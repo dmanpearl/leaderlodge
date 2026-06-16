@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | LeaderLodge{% endblock %}
+
+{% block content %}
+  <div class="row g-3">
+    <div class="col-12">
+      <h1 class="h3">Dashboard</h1>
+      <p class="text-muted">Welcome, {{ user.username }}.</p>
+    </div>
+    <div class="col-12 col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h5 card-title">Recent Games</h2>
+          <p class="card-text text-muted mb-0">Coming soon.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h5 card-title">Top Ranked Players</h2>
+          <p class="card-text text-muted mb-0">Coming soon.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
