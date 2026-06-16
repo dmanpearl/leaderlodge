@@ -21,6 +21,17 @@ class GameRecordForm(forms.Form):
         initial=timezone.localdate,
         widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
     )
+    location_name = forms.CharField(
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "list": "location-options",
+                "placeholder": "Optional",
+            }
+        ),
+    )
 
     def __init__(self, *args, user=None, **kwargs):
         self.user = user

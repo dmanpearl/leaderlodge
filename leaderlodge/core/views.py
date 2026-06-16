@@ -25,7 +25,7 @@ def dashboard(request):
 
     recent_games = (
         Game.objects.filter(group__in=groups)
-        .select_related("group")
+        .select_related("group", "location")
         .order_by("-played_on", "-created_at")[:5]
     )
 

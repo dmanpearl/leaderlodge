@@ -21,10 +21,29 @@ class Game(models.Model):
     notes = models.TextField(blank=True)
     player_count = models.PositiveSmallIntegerField()
     double_weight = models.PositiveSmallIntegerField(default=1)
+    location = models.ForeignKey(
+        "groups.Location",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="games",
+    )
+    import_source = models.CharField(max_length=30, blank=True)
+    import_row_key = models.CharField(max_length=64, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-played_on", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["group", "import_source", "import_row_key"],
+                condition=models.Q(
+                    import_source__gt="",
+                    import_row_key__gt="",
+                ),
+                name="unique_game_import_key",
+            ),
+        ]
 
     def __str__(self) -> str:
         game_type = get_game_type(self.game_type_code)

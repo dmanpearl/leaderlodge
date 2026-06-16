@@ -19,6 +19,7 @@
               <th scope="col">Date</th>
               <th scope="col">Group</th>
               <th scope="col">Game</th>
+              <th scope="col">Location</th>
               <th scope="col">Players</th>
             </tr>
           </thead>
@@ -35,6 +36,13 @@
                   {{ game.game_type.name }}
                   {% if game.double_weight == 2 %}
                     <span class="badge text-bg-secondary">2×</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted">
+                  {% if game.location %}
+                    {{ game.location.name }}
+                  {% else %}
+                    &mdash;
                   {% endif %}
                 </td>
                 <td>{{ game.player_count }}</td>

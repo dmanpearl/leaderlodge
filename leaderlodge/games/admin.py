@@ -14,6 +14,7 @@ class GameAdmin(admin.ModelAdmin):
         "game_type_code",
         "group",
         "played_on",
+        "location",
         "player_count",
         "recorded_by",
     )

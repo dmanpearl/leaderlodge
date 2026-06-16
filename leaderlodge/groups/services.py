@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractBaseUser
 
+from leaderlodge.groups.locations import create_location_library
 from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
 
 
@@ -11,10 +12,15 @@ def player_display_name(user: AbstractBaseUser) -> str:
 def create_group_with_owner(
     *, user: AbstractBaseUser, name: str, description: str = ""
 ) -> Group:
+    location_library = create_location_library(
+        user=user,
+        name=f"{name} places",
+    )
     group = Group.objects.create(
         name=name,
         description=description,
         created_by=user,
+        location_library=location_library,
     )
     GroupMembership.objects.create(
         group=group,

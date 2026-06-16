@@ -8,7 +8,7 @@ from django.db import transaction
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.scoring import compute_double_weight
-from leaderlodge.groups.models import Group, GroupPlayer
+from leaderlodge.groups.models import Group, GroupPlayer, Location
 
 
 @dataclass
@@ -27,6 +27,9 @@ def record_game(
     game_type_code: str,
     played_on: date,
     participants: list[ParticipantInput],
+    location: Location | None = None,
+    import_source: str = "",
+    import_row_key: str = "",
 ) -> Game:
     game_type = get_game_type(game_type_code)
 
@@ -67,6 +70,12 @@ def record_game(
     ]
     double_weight = compute_double_weight(row_dicts, game_type_code)
 
+    if location is not None:
+        if not group.location_library_id:
+            raise ValidationError("Group has no location library.")
+        if location.library_id != group.location_library_id:
+            raise ValidationError("Location must belong to this group's place list.")
+
     game = Game.objects.create(
         group=group,
         game_type_code=game_type_code,
@@ -74,6 +83,9 @@ def record_game(
         recorded_by=user,
         player_count=len(participants),
         double_weight=double_weight,
+        location=location,
+        import_source=import_source,
+        import_row_key=import_row_key,
     )
 
     for item in participants:

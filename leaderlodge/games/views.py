@@ -20,6 +20,7 @@ from leaderlodge.groups.services import (
     user_groups,
     user_is_member,
 )
+from leaderlodge.groups.locations import locations_for_group, resolve_game_location
 
 GAMES_PER_PAGE = 20
 
@@ -82,7 +83,7 @@ def _played_on_value_and_display(form: GameRecordForm) -> tuple[str, str]:
 def game_list(request: HttpRequest) -> HttpResponse:
     games_qs = (
         Game.objects.filter(group__in=user_groups(request.user))
-        .select_related("group", "recorded_by")
+        .select_related("group", "recorded_by", "location")
         .order_by("-played_on", "-created_at")
     )
     paginator = Paginator(games_qs, GAMES_PER_PAGE)
@@ -145,6 +146,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 "group": request.POST.get("group"),
                 "game_type_code": request.POST.get("game_type_code"),
                 "played_on": request.POST.get("played_on"),
+                "location_name": request.POST.get("location_name", ""),
             },
             user=request.user,
         )
@@ -152,6 +154,10 @@ def game_create(request: HttpRequest) -> HttpResponse:
             rows = parse_participants_from_post(request.POST, players)
             try:
                 prepare_participant_rows(rows, save_form.cleaned_data["game_type_code"])
+                location = resolve_game_location(
+                    group=group,
+                    location_name=save_form.cleaned_data.get("location_name", ""),
+                )
                 participants = [
                     ParticipantInput(
                         player=row["player"],
@@ -167,6 +173,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     game_type_code=save_form.cleaned_data["game_type_code"],
                     played_on=save_form.cleaned_data["played_on"],
                     participants=participants,
+                    location=location,
                 )
             except ValidationError as exc:
                 participant_error = (
@@ -180,8 +187,16 @@ def game_create(request: HttpRequest) -> HttpResponse:
 
     played_on_value = ""
     played_on_display = ""
+    location_name = ""
+    location_options = []
+    if group:
+        location_options = list(locations_for_group(group))
     if show_roster and group:
         played_on_value, played_on_display = _played_on_value_and_display(form)
+        if form.is_bound:
+            location_name = form.data.get("location_name", "")
+        elif form.initial.get("location_name"):
+            location_name = form.initial.get("location_name", "")
 
     return render(
         request,
@@ -195,6 +210,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "participant_error": participant_error,
             "played_on_value": played_on_value,
             "played_on_display": played_on_display,
+            "location_name": location_name,
+            "location_options": location_options,
         },
     )
 
@@ -202,7 +219,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
 @login_required
 def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     game = get_object_or_404(
-        Game.objects.select_related("group", "recorded_by").prefetch_related(
+        Game.objects.select_related("group", "recorded_by", "location").prefetch_related(
             "participant_results__player"
         ),
         pk=pk,

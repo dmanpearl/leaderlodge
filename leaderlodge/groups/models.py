@@ -2,6 +2,41 @@ from django.conf import settings
 from django.db import models
 
 
+class LocationLibrary(models.Model):
+    name = models.CharField(max_length=100, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="location_libraries",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "location libraries"
+        ordering = ["name", "pk"]
+
+    def __str__(self) -> str:
+        return self.name or f"Places #{self.pk}"
+
+
+class Location(models.Model):
+    library = models.ForeignKey(
+        LocationLibrary,
+        on_delete=models.CASCADE,
+        related_name="locations",
+    )
+    name = models.CharField(max_length=200)
+    normalized_name = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("library", "normalized_name")]
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Group(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
@@ -9,6 +44,13 @@ class Group(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="created_groups",
+    )
+    location_library = models.ForeignKey(
+        LocationLibrary,
+        on_delete=models.PROTECT,
+        related_name="groups",
+        null=True,
+        blank=True,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

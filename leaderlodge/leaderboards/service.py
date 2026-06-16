@@ -40,6 +40,7 @@ def get_player_rankings(
     group: Group,
     *,
     game_type_code: str | None = None,
+    location_id: int | None = None,
     min_games: int | None = None,
 ) -> list[PlayerRanking]:
     """
@@ -59,7 +60,9 @@ def get_player_rankings(
 
     rankings: list[PlayerRanking] = []
     for code in game_type_codes:
-        rankings.extend(_rankings_for_game_type(group, code, min_games))
+        rankings.extend(
+            _rankings_for_game_type(group, code, min_games, location_id=location_id)
+        )
 
     return rankings
 
@@ -80,17 +83,22 @@ def _rankings_for_game_type(
     group: Group,
     game_type_code: str,
     min_games: int,
+    *,
+    location_id: int | None = None,
 ) -> list[PlayerRanking]:
     from leaderlodge.games.models import GameParticipantResult
 
     game_type = get_game_type(game_type_code)
 
+    results_qs = GameParticipantResult.objects.filter(
+        game__group=group,
+        game__game_type_code=game_type_code,
+    )
+    if location_id is not None:
+        results_qs = results_qs.filter(game__location_id=location_id)
+
     stats = (
-        GameParticipantResult.objects.filter(
-            game__group=group,
-            game__game_type_code=game_type_code,
-        )
-        .values("player_id", "player__display_name")
+        results_qs.values("player_id", "player__display_name")
         .annotate(
             games_played=Sum("game__double_weight"),
             wins=Sum(

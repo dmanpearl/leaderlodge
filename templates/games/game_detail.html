@@ -24,6 +24,9 @@
     </h1>
     <p class="text-muted mb-0">
       {{ game.group.name }} &middot; {{ game.played_on|date:"M j, Y" }}
+      {% if game.location %}
+        &middot; {{ game.location.name }}
+      {% endif %}
     </p>
   </div>
 
