@@ -31,6 +31,21 @@ def test_create_group_creates_location_library(user):
 @pytest.mark.django_db
 def test_normalize_location_name():
     assert normalize_location_name("  Nancy's   House  ") == "nancy's house"
+    assert normalize_location_name("Zinqué") == "zinque"
+    assert normalize_location_name("  Café   Noir  ") == "cafe noir"
+
+
+@pytest.mark.django_db
+def test_get_or_create_location_deduplicates_accents(user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+
+    first = get_or_create_location(library=library, name="Zinque")
+    second = get_or_create_location(library=library, name="Zinqué")
+
+    assert first.pk == second.pk
+    assert Location.objects.filter(library=library).count() == 1
+    assert second.name == "Zinqué"
 
 
 @pytest.mark.django_db
@@ -60,6 +75,29 @@ def test_groups_can_share_location_library(user):
 
     assert location in locations_for_group(friends)
     assert family.location_library_id == friends.location_library_id
+
+
+@pytest.mark.django_db
+def test_group_locations_api(client, user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    get_or_create_location(library=group.location_library, name="Nancy's House")
+
+    client.force_login(user)
+    response = client.get(reverse("groups:locations", kwargs={"pk": group.pk}))
+
+    assert response.status_code == 200
+    assert response.json() == {"locations": [{"name": "Nancy's House"}]}
+
+
+@pytest.mark.django_db
+def test_group_locations_api_requires_membership(client, user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    stranger = User.objects.create_user(username="stranger", password="pass")
+
+    client.force_login(stranger)
+    response = client.get(reverse("groups:locations", kwargs={"pk": group.pk}))
+
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db

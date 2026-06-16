@@ -1,10 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from leaderlodge.groups.forms import GroupForm, GroupPlayerForm
 from leaderlodge.groups.models import Group
+from leaderlodge.groups.locations import locations_for_group
 from leaderlodge.groups.services import (
     add_guest_player,
     create_group_with_owner,
@@ -77,6 +78,19 @@ def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "player_form": player_form,
         },
     )
+
+
+@login_required
+def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
+    group = get_object_or_404(Group, pk=pk)
+    if not user_is_member(request.user, group):
+        raise Http404
+
+    locations = [
+        {"name": location.name}
+        for location in locations_for_group(group)
+    ]
+    return JsonResponse({"locations": locations})
 
 
 @login_required

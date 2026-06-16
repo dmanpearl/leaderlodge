@@ -6,6 +6,8 @@
 {% block extra_css %}
   {% if show_roster and player_rows %}
     <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+  {% else %}
+    <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}" />
   {% endif %}
 {% endblock %}
 
@@ -73,11 +75,6 @@
               {% if form.location_name.errors %}
                 <div class="invalid-feedback d-block">{{ form.location_name.errors }}</div>
               {% endif %}
-              <datalist id="location-options">
-                {% for location in location_options %}
-                  <option value="{{ location.name }}"></option>
-                {% endfor %}
-              </datalist>
             </div>
           </div>
           <div class="mt-3">
@@ -179,5 +176,10 @@
 {% block extra_js %}
   {% if show_roster and player_rows %}
     <script src="{% static 'js/game_record_form.js' %}"></script>
+  {% else %}
+    <script>
+      document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
+    </script>
+    <script src="{% static 'js/location_autocomplete.js' %}"></script>
   {% endif %}
 {% endblock %}

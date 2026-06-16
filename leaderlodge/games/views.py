@@ -188,9 +188,6 @@ def game_create(request: HttpRequest) -> HttpResponse:
     played_on_value = ""
     played_on_display = ""
     location_name = ""
-    location_options = []
-    if group:
-        location_options = list(locations_for_group(group))
     if show_roster and group:
         played_on_value, played_on_display = _played_on_value_and_display(form)
         if form.is_bound:
@@ -211,7 +208,6 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "played_on_value": played_on_value,
             "played_on_display": played_on_display,
             "location_name": location_name,
-            "location_options": location_options,
         },
     )
 

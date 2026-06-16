@@ -27,8 +27,9 @@ class GameRecordForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "list": "location-options",
                 "placeholder": "Optional",
+                "autocomplete": "off",
+                "data-location-autocomplete": "true",
             }
         ),
     )

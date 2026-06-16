@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.core.exceptions import ValidationError
@@ -6,8 +7,16 @@ from django.core.exceptions import ValidationError
 from leaderlodge.groups.models import Group, Location, LocationLibrary
 
 
+def fold_accents(name: str) -> str:
+    decomposed = unicodedata.normalize("NFD", name)
+    return "".join(
+        char for char in decomposed if unicodedata.category(char) != "Mn"
+    )
+
+
 def normalize_location_name(name: str) -> str:
-    return re.sub(r"\s+", " ", name.strip().lower())
+    folded = fold_accents(name.strip().lower())
+    return re.sub(r"\s+", " ", folded)
 
 
 def create_location_library(
