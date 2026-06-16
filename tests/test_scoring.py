@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.scoring import (
     assign_results_from_scores,
+    compute_double_weight,
     evaluate_results_from_rows,
     player_count_is_valid,
 )
@@ -27,12 +28,20 @@ def _rows(scores):
     ]
 
 
-def test_unique_high_score_wins():
+def test_unique_high_score_wins_dominos():
     rows = _rows([30, 20])
     evaluation = evaluate_results_from_rows(rows, "dominos")
     assert evaluation.win_pks == {0}
     assert evaluation.tie_pks == set()
     assert evaluation.loss_pks == set()
+    assert evaluation.is_double is False
+
+
+def test_low_score_wins_progressive_rummy():
+    rows = _rows([50, 10, 20])
+    evaluation = evaluate_results_from_rows(rows, "progressiverummy")
+    assert evaluation.win_pks == {1}
+    assert evaluation.loss_pks == {0}
 
 
 def test_tied_high_scores_are_tie():
@@ -42,12 +51,12 @@ def test_tied_high_scores_are_tie():
     assert evaluation.tie_pks == {0, 1}
 
 
-def test_tied_low_scores_are_both_losses():
+def test_tied_low_scores_are_both_wins():
     rows = _rows([30, 20, 20])
     evaluation = evaluate_results_from_rows(rows, "progressiverummy")
-    assert evaluation.win_pks == {0}
-    assert evaluation.tie_pks == set()
-    assert evaluation.loss_pks == {1, 2}
+    assert evaluation.win_pks == set()
+    assert evaluation.tie_pks == {1, 2}
+    assert evaluation.loss_pks == {0}
 
 
 def test_all_same_score_is_tie_without_loser():
@@ -62,6 +71,37 @@ def test_assign_results_from_scores():
     assign_results_from_scores(rows, "dominos")
     assert rows[1]["result"] == Result.WIN
     assert rows[0]["result"] == Result.PLAYED
+    assert rows[1]["placement"] == 0
+    assert rows[0]["placement"] == 1
+
+
+def test_assign_placements_competition_ranking():
+    rows = _rows([30, 20, 20])
+    assign_results_from_scores(rows, "progressiverummy")
+    assert rows[1]["placement"] == 0
+    assert rows[2]["placement"] == 0
+    assert rows[0]["placement"] == 2
+
+
+@pytest.mark.parametrize(
+    "scores,expected",
+    [
+        ({0: 42, 1: 19}, 1),
+        ({0: 77, 1: 76}, 2),
+        ({0: 39, 1: 61}, 2),
+    ],
+)
+def test_compute_double_weight_dominos(scores, expected):
+    rows = [
+        {
+            "player": FakePlayer(pk),
+            "score": score,
+            "result": Result.PLAYED,
+        }
+        for pk, score in scores.items()
+    ]
+    assign_results_from_scores(rows, "dominos")
+    assert compute_double_weight(rows, "dominos") == expected
 
 
 def test_player_count_is_valid():

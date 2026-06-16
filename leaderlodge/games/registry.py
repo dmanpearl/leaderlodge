@@ -1,5 +1,12 @@
-from dataclasses import dataclass
+from enum import StrEnum
 from typing import Callable
+
+from dataclasses import dataclass
+
+
+class ScoreDirection(StrEnum):
+    HIGH_WINS = "high"
+    LOW_WINS = "low"
 
 
 @dataclass(frozen=True)
@@ -9,15 +16,19 @@ class GameTypeDefinition:
     min_players: int
     max_players: int
     supports_loser: bool
+    score_direction: ScoreDirection
+    win_target_score: int | None
     icon_filename: str
     validate: Callable
 
 
 def _load_registry() -> dict[str, GameTypeDefinition]:
-    from leaderlodge.games.backgammon import rules as backgammon_rules
-    from leaderlodge.games.dominos import rules as dominos_rules
-    from leaderlodge.games.mahjongg import rules as mahjongg_rules
-    from leaderlodge.games.progressiverummy import rules as progressiverummy_rules
+    from leaderlodge.games.types.backgammon import rules as backgammon_rules
+    from leaderlodge.games.types.dominos import rules as dominos_rules
+    from leaderlodge.games.types.mahjongg import rules as mahjongg_rules
+    from leaderlodge.games.types.progressiverummy import (
+        rules as progressiverummy_rules,
+    )
 
     return {
         "dominos": GameTypeDefinition(
@@ -26,6 +37,8 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             min_players=2,
             max_players=4,
             supports_loser=False,
+            score_direction=ScoreDirection.HIGH_WINS,
+            win_target_score=30,
             icon_filename="dominos.png",
             validate=dominos_rules.validate_game,
         ),
@@ -35,6 +48,8 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             min_players=3,
             max_players=7,
             supports_loser=True,
+            score_direction=ScoreDirection.LOW_WINS,
+            win_target_score=None,
             icon_filename="progressiverummy.png",
             validate=progressiverummy_rules.validate_game,
         ),
@@ -44,6 +59,8 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             min_players=2,
             max_players=2,
             supports_loser=False,
+            score_direction=ScoreDirection.HIGH_WINS,
+            win_target_score=None,
             icon_filename="backgammon.png",
             validate=backgammon_rules.validate_game,
         ),
@@ -53,6 +70,8 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             min_players=3,
             max_players=4,
             supports_loser=False,
+            score_direction=ScoreDirection.HIGH_WINS,
+            win_target_score=None,
             icon_filename="mahjongg.png",
             validate=mahjongg_rules.validate_game,
         ),

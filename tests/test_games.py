@@ -98,7 +98,7 @@ def test_record_progressive_rummy_tied_losers(client, user, group):
         group,
         game_type_code="progressiverummy",
         players_played=players[:3],
-        scores={players[0].pk: 50, players[1].pk: 10, players[2].pk: 10},
+        scores={players[0].pk: 10, players[1].pk: 50, players[2].pk: 50},
     )
     client.force_login(user)
     client.post(
@@ -114,6 +114,31 @@ def test_record_progressive_rummy_tied_losers(client, user, group):
             result=GameParticipantResult.Result.LOSS
         ).count()
         == 2
+    )
+
+
+@pytest.mark.django_db
+def test_record_dominos_double_game(client, user, group):
+    players = list(group.players.order_by("pk"))
+    while len(players) < 2:
+        players.append(
+            add_guest_player(group=group, display_name=f"Guest{len(players)}")
+        )
+    data = _save_game_post(
+        group,
+        players_played=players[:2],
+        scores={players[0].pk: 77, players[1].pk: 76},
+    )
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    response = client.post(reverse("games:create"), data)
+    assert response.status_code == 302
+
+    game = Game.objects.get()
+    assert game.double_weight == 2
+    assert (
+        "Double game"
+        in client.get(reverse("games:detail", kwargs={"pk": game.pk})).content.decode()
     )
 
 

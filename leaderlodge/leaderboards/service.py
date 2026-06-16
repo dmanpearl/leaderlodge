@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import Q, Sum
 
 from leaderlodge.games.registry import GAME_TYPES, get_game_type
 
@@ -92,8 +92,11 @@ def _rankings_for_game_type(
         )
         .values("player_id", "player__display_name")
         .annotate(
-            games_played=Count("id"),
-            wins=Count("id", filter=Q(result=GameParticipantResult.Result.WIN)),
+            games_played=Sum("game__double_weight"),
+            wins=Sum(
+                "game__double_weight",
+                filter=Q(result=GameParticipantResult.Result.WIN),
+            ),
         )
         .filter(games_played__gte=min_games)
         .order_by("-wins", "-games_played", "player__display_name")
@@ -135,8 +138,11 @@ def get_player_stats(
         GameParticipantResult.objects.filter(game__group=group, player=player)
         .values("game__game_type_code")
         .annotate(
-            games_played=Count("id"),
-            wins=Count("id", filter=Q(result=GameParticipantResult.Result.WIN)),
+            games_played=Sum("game__double_weight"),
+            wins=Sum(
+                "game__double_weight",
+                filter=Q(result=GameParticipantResult.Result.WIN),
+            ),
         )
     )
 

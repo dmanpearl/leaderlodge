@@ -7,6 +7,7 @@ from django.db import transaction
 
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.scoring import compute_double_weight
 from leaderlodge.groups.models import Group, GroupPlayer
 
 
@@ -15,6 +16,7 @@ class ParticipantInput:
     player: GroupPlayer
     score: int
     result: str
+    placement: int
 
 
 @transaction.atomic
@@ -55,12 +57,23 @@ def record_game(
         loser_count=loser_count,
     )
 
+    row_dicts = [
+        {
+            "player": item.player,
+            "score": item.score,
+            "result": item.result,
+        }
+        for item in participants
+    ]
+    double_weight = compute_double_weight(row_dicts, game_type_code)
+
     game = Game.objects.create(
         group=group,
         game_type_code=game_type_code,
         played_on=played_on,
         recorded_by=user,
         player_count=len(participants),
+        double_weight=double_weight,
     )
 
     for item in participants:
@@ -69,6 +82,7 @@ def record_game(
             player=item.player,
             score=item.score,
             result=item.result,
+            placement=item.placement,
         )
 
     game.full_clean()

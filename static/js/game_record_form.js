@@ -10,7 +10,7 @@
     return Number.isNaN(parsed) ? null : parsed;
   }
 
-  function evaluateResults(rows, supportsLoser) {
+  function evaluateResults(rows, supportsLoser, scoreDirection, winTargetScore) {
     const active = rows.filter((row) => row.played && row.score !== null);
     const count = active.length;
     if (count === 0) {
@@ -19,29 +19,40 @@
         tieIds: new Set(),
         lossIds: new Set(),
         playerCount: 0,
+        isDouble: false,
       };
     }
 
-    const maxScore = Math.max(...active.map((row) => row.score));
-    const minScore = Math.min(...active.map((row) => row.score));
-    const atMax = active.filter((row) => row.score === maxScore);
-    const atMin = active.filter((row) => row.score === minScore);
+    const lowWins = scoreDirection === "low";
+    const scores = active.map((row) => row.score);
+    const bestScore = lowWins ? Math.min(...scores) : Math.max(...scores);
+    const worstScore = lowWins ? Math.max(...scores) : Math.min(...scores);
+    const atBest = active.filter((row) => row.score === bestScore);
+    const atWorst = active.filter((row) => row.score === worstScore);
 
     const winIds = new Set();
     const tieIds = new Set();
     const lossIds = new Set();
 
-    if (atMax.length === 1) {
-      winIds.add(atMax[0].playerId);
+    if (atBest.length === 1) {
+      winIds.add(atBest[0].playerId);
     } else {
-      atMax.forEach((row) => tieIds.add(row.playerId));
+      atBest.forEach((row) => tieIds.add(row.playerId));
     }
 
-    if (supportsLoser && maxScore !== minScore) {
-      atMin.forEach((row) => lossIds.add(row.playerId));
+    if (supportsLoser && bestScore !== worstScore) {
+      atWorst.forEach((row) => lossIds.add(row.playerId));
     }
 
-    return { winIds, tieIds, lossIds, playerCount: count };
+    let isDouble = false;
+    if (winTargetScore && winIds.size === 1) {
+      const winnerRow = active.find((row) => winIds.has(row.playerId));
+      if (winnerRow && winnerRow.score >= 2 * winTargetScore) {
+        isDouble = true;
+      }
+    }
+
+    return { winIds, tieIds, lossIds, playerCount: count, isDouble };
   }
 
   function collectRows(form) {
@@ -59,6 +70,10 @@
     });
   }
 
+  function renderBadge(label, className) {
+    return `<span class="badge ${className}">${label}</span>`;
+  }
+
   function renderResults(rows, evaluation) {
     rows.forEach((row) => {
       const cell = row.resultCell;
@@ -67,11 +82,17 @@
         return;
       }
       if (evaluation.winIds.has(row.playerId)) {
-        cell.innerHTML = '<span class="badge text-bg-success">Win</span>';
+        const cls = evaluation.isDouble
+          ? "result-badge result-badge--win-double"
+          : "result-badge result-badge--win";
+        cell.innerHTML = renderBadge("Win", cls);
       } else if (evaluation.tieIds.has(row.playerId)) {
-        cell.innerHTML = '<span class="badge text-bg-info">Tie</span>';
+        cell.innerHTML = renderBadge("Tie", "text-bg-info");
       } else if (evaluation.lossIds.has(row.playerId)) {
-        cell.innerHTML = '<span class="badge text-bg-danger">Loss</span>';
+        const cls = evaluation.isDouble
+          ? "result-badge result-badge--loss-double"
+          : "result-badge result-badge--loss";
+        cell.innerHTML = renderBadge("Loss", cls);
       }
     });
   }
@@ -80,6 +101,10 @@
     const minPlayers = Number.parseInt(form.dataset.minPlayers, 10);
     const maxPlayers = Number.parseInt(form.dataset.maxPlayers, 10);
     const supportsLoser = form.dataset.supportsLoser === "true";
+    const scoreDirection = form.dataset.scoreDirection || "high";
+    const winTargetScore = form.dataset.winTargetScore
+      ? Number.parseInt(form.dataset.winTargetScore, 10)
+      : null;
     const saveBtn = form.querySelector("[data-save-button]");
     const feedback = form.querySelector("[data-score-feedback]");
 
@@ -103,7 +128,12 @@
     });
 
     const activeRows = rows.filter((row) => row.played && row.score !== null);
-    const evaluation = evaluateResults(activeRows, supportsLoser);
+    const evaluation = evaluateResults(
+      activeRows,
+      supportsLoser,
+      scoreDirection,
+      winTargetScore
+    );
     renderResults(rows, evaluation);
 
     const countOk =
@@ -115,9 +145,16 @@
       if (!countOk && evaluation.playerCount > 0) {
         feedback.textContent = `Enter scores for ${minPlayers} to ${maxPlayers} players. Currently ${evaluation.playerCount}.`;
         feedback.classList.remove("d-none");
+      } else if (evaluation.isDouble) {
+        feedback.textContent = "Double game — counts as 2 in standings.";
+        feedback.classList.remove("d-none");
+        feedback.classList.remove("alert-warning");
+        feedback.classList.add("alert-info");
       } else {
         feedback.textContent = "";
         feedback.classList.add("d-none");
+        feedback.classList.add("alert-warning");
+        feedback.classList.remove("alert-info");
       }
     }
   }

@@ -20,6 +20,7 @@ class Game(models.Model):
     )
     notes = models.TextField(blank=True)
     player_count = models.PositiveSmallIntegerField()
+    double_weight = models.PositiveSmallIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

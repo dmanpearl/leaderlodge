@@ -3,6 +3,12 @@
 
 {% block title %}Record Game | LeaderLodge{% endblock %}
 
+{% block extra_css %}
+  {% if show_roster and player_rows %}
+    <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+  {% endif %}
+{% endblock %}
+
 {% block content %}
   <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -89,6 +95,8 @@
             data-min-players="{{ game_type.min_players }}"
             data-max-players="{{ game_type.max_players }}"
             data-supports-loser="{% if game_type.supports_loser %}true{% else %}false{% endif %}"
+            data-score-direction="{{ game_type.score_direction }}"
+            data-win-target-score="{% if game_type.win_target_score %}{{ game_type.win_target_score }}{% endif %}"
           >
             {% csrf_token %}
             <input type="hidden" name="action" value="save" />

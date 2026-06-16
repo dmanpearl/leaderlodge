@@ -1,0 +1,15 @@
+{% if result == "win" %}
+  {% if is_double %}
+    <span class="badge result-badge result-badge--win-double">Win</span>
+  {% else %}
+    <span class="badge result-badge result-badge--win">Win</span>
+  {% endif %}
+{% elif result == "tie" %}
+  <span class="badge text-bg-info">Tie</span>
+{% elif result == "loss" %}
+  {% if is_double %}
+    <span class="badge result-badge result-badge--loss-double">Loss</span>
+  {% else %}
+    <span class="badge result-badge result-badge--loss">Loss</span>
+  {% endif %}
+{% endif %}

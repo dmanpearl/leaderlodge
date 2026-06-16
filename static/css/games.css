@@ -1,0 +1,23 @@
+.result-badge--win {
+  background-color: #198754;
+  color: #fff;
+}
+
+.result-badge--win-double {
+  background-color: #20c997;
+  color: #000;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #20c997;
+}
+
+.result-badge--loss {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.result-badge--loss-double {
+  background-color: #ff6b81;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px #ff6b81;
+}

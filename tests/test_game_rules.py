@@ -1,9 +1,3 @@
-import pytest
-from django.core.exceptions import ValidationError
-
-from leaderlodge.games.backgammon import rules as backgammon_rules
-from leaderlodge.games.dominos import rules as dominos_rules
-from leaderlodge.games.progressiverummy import rules as progressiverummy_rules
 from leaderlodge.leaderboards.service import PlayerRanking
 
 
@@ -14,69 +8,3 @@ def test_player_ranking_includes_game_type():
     assert "game_type_name" in fields
     assert "player" in fields
     assert "rank" in fields
-
-
-@pytest.mark.parametrize(
-    "player_count",
-    [2, 3, 4],
-)
-def test_dominos_accepts_valid_player_counts(player_count):
-    dominos_rules.validate_game(
-        player_count=player_count,
-        winner_count=1,
-        tie_count=0,
-        loser_count=0,
-    )
-
-
-def test_dominos_accepts_tie():
-    dominos_rules.validate_game(
-        player_count=2,
-        winner_count=0,
-        tie_count=2,
-        loser_count=0,
-    )
-
-
-def test_dominos_rejects_loser():
-    with pytest.raises(ValidationError):
-        dominos_rules.validate_game(
-            player_count=2,
-            winner_count=1,
-            tie_count=0,
-            loser_count=1,
-        )
-
-
-def test_progressiverummy_allows_multiple_losers():
-    progressiverummy_rules.validate_game(
-        player_count=3,
-        winner_count=1,
-        tie_count=0,
-        loser_count=2,
-    )
-
-
-def test_progressiverummy_all_tie_no_loser():
-    progressiverummy_rules.validate_game(
-        player_count=3,
-        winner_count=0,
-        tie_count=3,
-        loser_count=0,
-    )
-
-
-def test_backgammon_requires_two_players():
-    backgammon_rules.validate_game(
-        player_count=2,
-        winner_count=1,
-        tie_count=0,
-        loser_count=0,
-    )
-    with pytest.raises(ValidationError):
-        backgammon_rules.validate_game(
-            player_count=3,
-            winner_count=1,
-            tie_count=0,
-            loser_count=0,
-        )

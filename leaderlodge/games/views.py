@@ -136,6 +136,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                         player=row["player"],
                         score=row["score"],
                         result=row["result"],
+                        placement=row["placement"],
                     )
                     for row in rows
                 ]
@@ -189,7 +190,7 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
         raise Http404
 
     game_type = get_game_type(game.game_type_code)
-    results = game.participant_results.all()
+    results = game.participant_results.order_by("placement", "pk")
 
     return render(
         request,
@@ -198,5 +199,6 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "game": game,
             "game_type": game_type,
             "results": results,
+            "is_double": game.double_weight == 2,
         },
     )

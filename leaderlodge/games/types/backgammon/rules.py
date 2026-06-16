@@ -1,7 +1,4 @@
-from leaderlodge.games.common.validators import (
-    validate_game_results,
-    validate_player_count,
-)
+from leaderlodge.games.validators import validate_game_results, validate_player_count
 
 
 def validate_game(
@@ -14,7 +11,7 @@ def validate_game(
     validate_player_count(
         player_count=player_count,
         min_players=2,
-        max_players=4,
+        max_players=2,
     )
     validate_game_results(
         supports_loser=False,
