@@ -22,7 +22,13 @@
             <a class="nav-link" href="{% url 'groups:list' %}">Groups</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link" href="{% url 'games:list' %}">Games</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link" href="{% url 'games:create' %}">Record Game</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'leaderboards:index' %}">Leaderboards</a>
           </li>
         {% endif %}
       </ul>

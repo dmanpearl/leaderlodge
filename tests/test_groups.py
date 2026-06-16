@@ -84,6 +84,8 @@ def test_group_detail_for_member(client, user, group):
     assert response.status_code == 200
     assert "Game Night" in response.content.decode()
     assert "david" in response.content.decode()
+    assert "Games" in response.content.decode()
+    assert "Wins" in response.content.decode()
 
 
 @pytest.mark.django_db

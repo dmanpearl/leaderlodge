@@ -37,6 +37,22 @@ def user_is_member(user: AbstractBaseUser, group: Group) -> bool:
     return GroupMembership.objects.filter(group=group, user=user).exists()
 
 
+def single_user_group(user: AbstractBaseUser) -> Group | None:
+    groups = list(user_groups(user).order_by("name"))
+    if len(groups) == 1:
+        return groups[0]
+    return None
+
+
+def resolve_user_group(user: AbstractBaseUser, group_id: str | None) -> Group | None:
+    if group_id:
+        group = Group.objects.filter(pk=group_id).first()
+        if group and user_is_member(user, group):
+            return group
+        return None
+    return single_user_group(user)
+
+
 def add_guest_player(*, group: Group, display_name: str) -> GroupPlayer:
     return GroupPlayer.objects.create(
         group=group,

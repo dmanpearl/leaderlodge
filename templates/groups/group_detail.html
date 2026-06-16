@@ -17,6 +17,14 @@
         <p class="text-muted mb-0">{{ group.description }}</p>
       {% endif %}
     </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'leaderboards:index' %}?group={{ group.pk }}" class="btn btn-outline-primary btn-sm">
+        Leaderboard
+      </a>
+      <a href="{% url 'games:create' %}?group={{ group.pk }}" class="btn btn-primary btn-sm">
+        Record Game
+      </a>
+    </div>
   </div>
 
   <div class="card">
@@ -27,21 +35,33 @@
         person who takes part in games and leaderboards.
       </p>
 
-      {% if players %}
+      {% if player_rows %}
         <div class="table-responsive mb-4">
           <table class="table table-striped mb-0">
             <thead>
               <tr>
                 <th scope="col">Name</th>
+                <th scope="col">Games</th>
+                <th scope="col">Wins</th>
+                <th scope="col">Win %</th>
               </tr>
             </thead>
             <tbody>
-              {% for player in players %}
+              {% for row in player_rows %}
                 <tr>
                   <td>
-                    {{ player.display_name }}
-                    {% if player.linked_user %}
-                      <span class="text-muted small">({{ player.linked_user.username }})</span>
+                    {{ row.player.display_name }}
+                    {% if row.player.linked_user %}
+                      <span class="text-muted small">({{ row.player.linked_user.username }})</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ row.total_games }}</td>
+                  <td>{{ row.total_wins }}</td>
+                  <td>
+                    {% if row.total_games %}
+                      {% widthratio row.total_wins row.total_games 100 %}%
+                    {% else %}
+                      &mdash;
                     {% endif %}
                   </td>
                 </tr>

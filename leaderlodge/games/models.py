@@ -30,6 +30,10 @@ class Game(models.Model):
         game_type = get_game_type(self.game_type_code)
         return f"{game_type.name} on {self.played_on}"
 
+    @property
+    def game_type(self):
+        return get_game_type(self.game_type_code)
+
     def clean(self) -> None:
         get_game_type(self.game_type_code)
         results = list(self.participant_results.all())

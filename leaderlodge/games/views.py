@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.dateparse import parse_date
@@ -14,7 +15,13 @@ from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.models import Group
-from leaderlodge.groups.services import user_groups, user_is_member
+from leaderlodge.groups.services import (
+    single_user_group,
+    user_groups,
+    user_is_member,
+)
+
+GAMES_PER_PAGE = 20
 
 
 def _player_rows(players, post=None):
@@ -40,10 +47,7 @@ def _player_rows(players, post=None):
 
 
 def _single_user_group(user) -> Group | None:
-    groups = list(user_groups(user).order_by("name"))
-    if len(groups) == 1:
-        return groups[0]
-    return None
+    return single_user_group(user)
 
 
 def _resolve_group(request: HttpRequest, form: GameRecordForm) -> Group | None:
@@ -72,6 +76,23 @@ def _played_on_value_and_display(form: GameRecordForm) -> tuple[str, str]:
     else:
         display = value
     return value, display
+
+
+@login_required
+def game_list(request: HttpRequest) -> HttpResponse:
+    games_qs = (
+        Game.objects.filter(group__in=user_groups(request.user))
+        .select_related("group", "recorded_by")
+        .order_by("-played_on", "-created_at")
+    )
+    paginator = Paginator(games_qs, GAMES_PER_PAGE)
+    page = paginator.get_page(request.GET.get("page"))
+
+    return render(
+        request,
+        "games/game_list.html",
+        {"page": page},
+    )
 
 
 @login_required

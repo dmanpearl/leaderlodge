@@ -107,8 +107,8 @@ def _rankings_for_game_type(
     rankings: list[PlayerRanking] = []
     for rank_index, row in enumerate(stats, start=1):
         player = GroupPlayer.objects.get(pk=row["player_id"])
-        games_played = row["games_played"]
-        wins = row["wins"]
+        games_played = row["games_played"] or 0
+        wins = row["wins"] or 0
         win_pct = (wins / games_played * 100) if games_played else 0.0
         rankings.append(
             PlayerRanking(
@@ -151,8 +151,8 @@ def get_player_stats(
     )
     for row in rows:
         code = row["game__game_type_code"]
-        games_played = row["games_played"]
-        wins = row["wins"]
+        games_played = row["games_played"] or 0
+        wins = row["wins"] or 0
         stats[code] = {
             "games_played": games_played,
             "wins": wins,

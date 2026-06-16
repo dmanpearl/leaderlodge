@@ -11,6 +11,7 @@ from leaderlodge.groups.services import (
     user_groups,
     user_is_member,
 )
+from leaderlodge.leaderboards.service import get_player_stats
 
 
 @login_required
@@ -53,13 +54,26 @@ def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
 
     players = group.players.filter(is_active=True).select_related("linked_user")
     player_form = GroupPlayerForm(group=group)
+    player_rows = []
+    for player in players:
+        stats_by_type = get_player_stats(group, player)
+        total_games = sum(row["games_played"] for row in stats_by_type.values())
+        total_wins = sum(row["wins"] for row in stats_by_type.values())
+        player_rows.append(
+            {
+                "player": player,
+                "stats_by_type": stats_by_type,
+                "total_games": total_games,
+                "total_wins": total_wins,
+            }
+        )
 
     return render(
         request,
         "groups/group_detail.html",
         {
             "group": group,
-            "players": players,
+            "player_rows": player_rows,
             "player_form": player_form,
         },
     )
@@ -87,13 +101,27 @@ def player_add(request: HttpRequest, pk: int) -> HttpResponse:
         return redirect("groups:detail", pk=group.pk)
 
     players = group.players.filter(is_active=True).select_related("linked_user")
+    player_form = form
+    player_rows = []
+    for player in players:
+        stats_by_type = get_player_stats(group, player)
+        total_games = sum(row["games_played"] for row in stats_by_type.values())
+        total_wins = sum(row["wins"] for row in stats_by_type.values())
+        player_rows.append(
+            {
+                "player": player,
+                "stats_by_type": stats_by_type,
+                "total_games": total_games,
+                "total_wins": total_wins,
+            }
+        )
     return render(
         request,
         "groups/group_detail.html",
         {
             "group": group,
-            "players": players,
-            "player_form": form,
+            "player_rows": player_rows,
+            "player_form": player_form,
         },
         status=400,
     )

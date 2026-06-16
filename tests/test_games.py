@@ -192,6 +192,38 @@ def test_setup_mode_hides_roster(client, user, group):
 
 
 @pytest.mark.django_db
+def test_game_list_for_member(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.get(reverse("games:list"))
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Dom Club" in content
+    assert "Dominos" in content
+
+
+@pytest.mark.django_db
+def test_game_list_pagination(client, user, group, monkeypatch):
+    from leaderlodge.games import views as game_views
+
+    monkeypatch.setattr(game_views, "GAMES_PER_PAGE", 1)
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    page1 = client.get(reverse("games:list"))
+    page2 = client.get(reverse("games:list"), {"page": 2})
+    assert page1.status_code == 200
+    assert page2.status_code == 200
+    assert "Page 1 of 3" in page1.content.decode()
+    assert "Page 2 of 3" in page2.content.decode()
+
+
+@pytest.mark.django_db
 def test_game_detail_for_member(client, user, group):
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))

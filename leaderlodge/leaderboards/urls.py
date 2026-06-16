@@ -1,5 +1,9 @@
 from django.urls import path
 
+from leaderlodge.leaderboards import views
+
 app_name = "leaderboards"
 
-urlpatterns: list = []
+urlpatterns = [
+    path("", views.leaderboard_index, name="index"),
+]

@@ -6,5 +6,6 @@ urlpatterns = [
     path("accounts/", include("leaderlodge.accounts.urls")),
     path("groups/", include("leaderlodge.groups.urls")),
     path("games/", include("leaderlodge.games.urls")),
+    path("leaderboards/", include("leaderlodge.leaderboards.urls")),
     path("", include("leaderlodge.core.urls")),
 ]

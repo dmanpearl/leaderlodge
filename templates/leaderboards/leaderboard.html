@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboards | LeaderLodge{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+    <h1 class="h3 mb-0">Leaderboards</h1>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-3 align-items-end">
+        <div class="col-12 col-md-6">
+          <label for="group-select" class="form-label">Group</label>
+          <select name="group" id="group-select" class="form-select" onchange="this.form.submit()">
+            <option value="">Choose a group</option>
+            {% for group in groups %}
+              <option value="{{ group.pk }}" {% if selected_group and selected_group.pk == group.pk %}selected{% endif %}>
+                {{ group.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if selected_group and game_type_options %}
+          <div class="col-12 col-md-6">
+            <label for="game-type-select" class="form-label">Game</label>
+            <select name="game_type_code" id="game-type-select" class="form-select" onchange="this.form.submit()">
+              {% for code, name in game_type_options %}
+                <option value="{{ code }}" {% if selected_game_type_code == code %}selected{% endif %}>
+                  {{ name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  {% if not groups %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-3">Join or create a group to see leaderboards.</p>
+        <a href="{% url 'groups:create' %}" class="btn btn-primary">Create a group</a>
+      </div>
+    </div>
+  {% elif not selected_group %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">Select a group above.</p>
+      </div>
+    </div>
+  {% elif not game_type_options %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-3">No games recorded for {{ selected_group.name }} yet.</p>
+        <a href="{% url 'games:create' %}?group={{ selected_group.pk }}" class="btn btn-primary">Record a game</a>
+      </div>
+    </div>
+  {% elif rankings %}
+    <div class="card">
+      <div class="card-header">
+        {{ selected_group.name }} &middot; {{ selected_game_type.name }}
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Rank</th>
+              <th scope="col">Player</th>
+              <th scope="col">Wins</th>
+              <th scope="col">Games</th>
+              <th scope="col">Win %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rankings %}
+              <tr>
+                <td>{{ row.rank }}</td>
+                <td>{{ row.player.display_name }}</td>
+                <td>{{ row.wins }}</td>
+                <td>{{ row.games_played }}</td>
+                <td>{{ row.win_pct|floatformat:0 }}%</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">No players meet the minimum games threshold yet.</p>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
