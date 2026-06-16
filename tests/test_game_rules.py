@@ -24,6 +24,16 @@ def test_dominos_accepts_valid_player_counts(player_count):
     dominos_rules.validate_game(
         player_count=player_count,
         winner_count=1,
+        tie_count=0,
+        loser_count=0,
+    )
+
+
+def test_dominos_accepts_tie():
+    dominos_rules.validate_game(
+        player_count=2,
+        winner_count=0,
+        tie_count=2,
         loser_count=0,
     )
 
@@ -33,33 +43,40 @@ def test_dominos_rejects_loser():
         dominos_rules.validate_game(
             player_count=2,
             winner_count=1,
+            tie_count=0,
             loser_count=1,
         )
 
 
-def test_progressiverummy_requires_loser():
+def test_progressiverummy_allows_multiple_losers():
     progressiverummy_rules.validate_game(
-        player_count=4,
+        player_count=3,
         winner_count=1,
-        loser_count=1,
+        tie_count=0,
+        loser_count=2,
     )
-    with pytest.raises(ValidationError):
-        progressiverummy_rules.validate_game(
-            player_count=4,
-            winner_count=1,
-            loser_count=0,
-        )
+
+
+def test_progressiverummy_all_tie_no_loser():
+    progressiverummy_rules.validate_game(
+        player_count=3,
+        winner_count=0,
+        tie_count=3,
+        loser_count=0,
+    )
 
 
 def test_backgammon_requires_two_players():
     backgammon_rules.validate_game(
         player_count=2,
         winner_count=1,
+        tie_count=0,
         loser_count=0,
     )
     with pytest.raises(ValidationError):
         backgammon_rules.validate_game(
             player_count=3,
             winner_count=1,
+            tie_count=0,
             loser_count=0,
         )

@@ -14,17 +14,26 @@ def validate_player_count(
         )
 
 
-def validate_winner_loser(
+def validate_game_results(
     *,
     supports_loser: bool,
+    player_count: int,
     winner_count: int,
+    tie_count: int,
     loser_count: int,
 ) -> None:
-    if winner_count != 1:
-        raise ValidationError("Exactly one winner is required.")
+    if winner_count > 1:
+        raise ValidationError("At most one winner is allowed.")
+
+    if winner_count == 1 and tie_count > 0:
+        raise ValidationError("Cannot have both a winner and a tie at the top.")
+
+    if winner_count == 0 and tie_count == 0:
+        raise ValidationError("Must have a winner or a tie at the top.")
 
     if supports_loser:
-        if loser_count != 1:
-            raise ValidationError("Exactly one loser is required for this game type.")
+        all_tied = tie_count == player_count and winner_count == 0
+        if not all_tied and loser_count < 1:
+            raise ValidationError("At least one loser is required for this game type.")
     elif loser_count != 0:
-        raise ValidationError("This game type does not use a loser field.")
+        raise ValidationError("This game type does not use a loser.")

@@ -38,6 +38,9 @@ class Game(models.Model):
         winner_count = sum(
             1 for r in results if r.result == GameParticipantResult.Result.WIN
         )
+        tie_count = sum(
+            1 for r in results if r.result == GameParticipantResult.Result.TIE
+        )
         loser_count = sum(
             1 for r in results if r.result == GameParticipantResult.Result.LOSS
         )
@@ -45,6 +48,7 @@ class Game(models.Model):
         game_type.validate(
             player_count=len(results),
             winner_count=winner_count,
+            tie_count=tie_count,
             loser_count=loser_count,
         )
 
@@ -53,6 +57,7 @@ class GameParticipantResult(models.Model):
     class Result(models.TextChoices):
         WIN = "win", "Win"
         LOSS = "loss", "Loss"
+        TIE = "tie", "Tie"
         PLAYED = "played", "Played"
 
     game = models.ForeignKey(

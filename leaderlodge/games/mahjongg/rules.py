@@ -1,17 +1,25 @@
 from leaderlodge.games.common.validators import (
+    validate_game_results,
     validate_player_count,
-    validate_winner_loser,
 )
 
 
-def validate_game(*, player_count: int, winner_count: int, loser_count: int) -> None:
+def validate_game(
+    *,
+    player_count: int,
+    winner_count: int,
+    tie_count: int,
+    loser_count: int,
+) -> None:
     validate_player_count(
         player_count=player_count,
         min_players=3,
         max_players=4,
     )
-    validate_winner_loser(
+    validate_game_results(
         supports_loser=False,
+        player_count=player_count,
         winner_count=winner_count,
+        tie_count=tie_count,
         loser_count=loser_count,
     )
