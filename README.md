@@ -36,6 +36,7 @@ venv\Scripts\activate
 
 - [Local development setup](docs/setup.md) -- settings, tests, day-to-day commands
 - [Architecture](docs/architecture.md) -- app layout, models, leaderboard design
+- [Importing game history](docs/importing.md) -- seed spreadsheets and `import_games`
 
 ## Project status
 

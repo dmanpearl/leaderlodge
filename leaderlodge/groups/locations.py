@@ -6,6 +6,11 @@ from django.core.exceptions import ValidationError
 
 from leaderlodge.groups.models import Group, Location, LocationLibrary
 
+MIN_FUZZY_MERGE_SCORE = 50
+MIN_SUBSEQUENCE_MERGE_SCORE = 10
+MIN_SUBSEQUENCE_QUERY_LENGTH = 4
+AMBIGUITY_SCORE_GAP = 5
+
 
 def fold_accents(name: str) -> str:
     decomposed = unicodedata.normalize("NFD", name)
@@ -17,6 +22,79 @@ def fold_accents(name: str) -> str:
 def normalize_location_name(name: str) -> str:
     folded = fold_accents(name.strip().lower())
     return re.sub(r"\s+", " ", folded)
+
+
+def normalize_for_fuzzy_match(name: str) -> str:
+    base = normalize_location_name(name)
+    return re.sub(r"[^a-z0-9\s']+", "", base)
+
+
+def score_location_match(query_normalized: str, candidate_normalized: str) -> int:
+    if not query_normalized:
+        return -1
+
+    if query_normalized == candidate_normalized:
+        return 200
+
+    if candidate_normalized.startswith(query_normalized):
+        return 100 - (len(candidate_normalized) - len(query_normalized))
+
+    if query_normalized.startswith(candidate_normalized):
+        return 90 - (len(query_normalized) - len(candidate_normalized))
+
+    if query_normalized in candidate_normalized:
+        return 50 - (len(candidate_normalized) - len(query_normalized))
+
+    if candidate_normalized in query_normalized:
+        return 45 - (len(query_normalized) - len(candidate_normalized))
+
+    query_index = 0
+    for char in candidate_normalized:
+        if query_index < len(query_normalized) and char == query_normalized[query_index]:
+            query_index += 1
+    if query_index == len(query_normalized):
+        return MIN_SUBSEQUENCE_MERGE_SCORE
+
+    return -1
+
+
+def find_fuzzy_location_match(
+    *,
+    library: LocationLibrary,
+    cleaned: str,
+) -> Location | None:
+    query = normalize_for_fuzzy_match(cleaned)
+    if not query:
+        return None
+
+    scored: list[tuple[int, Location]] = []
+    for location in library.locations.all():
+        score = score_location_match(
+            query,
+            normalize_for_fuzzy_match(location.name),
+        )
+        if score >= MIN_SUBSEQUENCE_MERGE_SCORE:
+            scored.append((score, location))
+
+    if not scored:
+        return None
+
+    scored.sort(key=lambda item: (-item[0], item[1].name))
+    best_score, best_location = scored[0]
+
+    if best_score >= MIN_FUZZY_MERGE_SCORE:
+        if len(scored) > 1 and scored[1][0] >= best_score - AMBIGUITY_SCORE_GAP:
+            return None
+        return best_location
+
+    if (
+        best_score >= MIN_SUBSEQUENCE_MERGE_SCORE
+        and len(query) >= MIN_SUBSEQUENCE_QUERY_LENGTH
+        and (len(scored) == 1 or scored[1][0] < best_score - AMBIGUITY_SCORE_GAP)
+    ):
+        return best_location
+
+    return None
 
 
 def create_location_library(
@@ -49,15 +127,25 @@ def get_or_create_location(*, library: LocationLibrary, name: str) -> Location:
     if not normalized:
         raise ValidationError("Location name cannot be empty.")
 
-    location, created = Location.objects.get_or_create(
+    location = Location.objects.filter(
         library=library,
         normalized_name=normalized,
-        defaults={"name": cleaned},
+    ).first()
+    if location is not None:
+        if location.name != cleaned:
+            location.name = cleaned
+            location.save(update_fields=["name"])
+        return location
+
+    fuzzy_match = find_fuzzy_location_match(library=library, cleaned=cleaned)
+    if fuzzy_match is not None:
+        return fuzzy_match
+
+    return Location.objects.create(
+        library=library,
+        normalized_name=normalized,
+        name=cleaned,
     )
-    if not created and location.name != cleaned:
-        location.name = cleaned
-        location.save(update_fields=["name"])
-    return location
 
 
 def resolve_game_location(*, group: Group, location_name: str) -> Location | None:

@@ -44,7 +44,7 @@
         <tbody>
           {% for result in results %}
             <tr>
-              <td>{{ result.player.display_name }}</td>
+              <td>{{ result.player.display_label }}</td>
               <td>{{ result.score }}</td>
               <td>
                 {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}

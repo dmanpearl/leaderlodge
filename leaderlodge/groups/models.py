@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from leaderlodge.groups.names import format_user_display_name
+
 
 class LocationLibrary(models.Model):
     name = models.CharField(max_length=100, blank=True)
@@ -112,5 +114,11 @@ class GroupPlayer(models.Model):
         unique_together = [("group", "display_name")]
         ordering = ["display_name"]
 
+    @property
+    def display_label(self) -> str:
+        if self.linked_user_id:
+            return format_user_display_name(self.linked_user)
+        return self.display_name
+
     def __str__(self) -> str:
-        return f"{self.display_name} ({self.group.name})"
+        return f"{self.display_label} ({self.group.name})"

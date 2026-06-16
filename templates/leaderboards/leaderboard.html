@@ -77,7 +77,7 @@
             {% for row in rankings %}
               <tr>
                 <td>{{ row.rank }}</td>
-                <td>{{ row.player.display_name }}</td>
+                <td>{{ row.player.display_label }}</td>
                 <td>{{ row.wins }}</td>
                 <td>{{ row.games_played }}</td>
                 <td>{{ row.win_pct|floatformat:0 }}%</td>

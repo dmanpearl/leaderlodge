@@ -11,7 +11,8 @@
   }
 
   function normalizeForMatch(value) {
-    return foldAccents(value.trim().toLowerCase());
+    const folded = foldAccents(value.trim().toLowerCase());
+    return folded.replace(/[^a-z0-9\s']/g, "");
   }
 
   function scoreLocation(query, name) {

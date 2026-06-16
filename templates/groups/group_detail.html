@@ -50,7 +50,7 @@
               {% for row in player_rows %}
                 <tr>
                   <td>
-                    {{ row.player.display_name }}
+                    {{ row.player.display_label }}
                     {% if row.player.linked_user %}
                       <span class="text-muted small">({{ row.player.linked_user.username }})</span>
                     {% endif %}

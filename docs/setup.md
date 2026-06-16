@@ -42,3 +42,16 @@ Set `DJANGO_SETTINGS_MODULE=leaderlodge.settings.production` in production.
 source venv/bin/activate
 pytest
 ```
+
+## Importing historical games
+
+See [Importing game history](importing.md) for seed file layout, player mapping, and the `import_games` management command.
+
+Quick example:
+
+```bash
+python manage.py import_games \
+  --group "Family" \
+  --game-type dominos \
+  data/seeds/dominos/dominos_seed_2026-06-16.xlsx
+```

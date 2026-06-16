@@ -4,10 +4,13 @@ from django.urls import reverse
 
 from leaderlodge.games.models import Game
 from leaderlodge.groups.locations import (
+    find_fuzzy_location_match,
     get_or_create_location,
     locations_for_group,
+    normalize_for_fuzzy_match,
     normalize_location_name,
     resolve_game_location,
+    score_location_match,
 )
 from leaderlodge.groups.models import Location, LocationLibrary
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
@@ -36,6 +39,11 @@ def test_normalize_location_name():
 
 
 @pytest.mark.django_db
+def test_normalize_for_fuzzy_match_strips_punctuation():
+    assert normalize_for_fuzzy_match("Zinque, Venice") == "zinque venice"
+
+
+@pytest.mark.django_db
 def test_get_or_create_location_deduplicates_accents(user):
     group = create_group_with_owner(user=user, name="Dom Club")
     library = group.location_library
@@ -46,6 +54,49 @@ def test_get_or_create_location_deduplicates_accents(user):
     assert first.pk == second.pk
     assert Location.objects.filter(library=library).count() == 1
     assert second.name == "Zinqué"
+
+
+@pytest.mark.django_db
+def test_get_or_create_location_fuzzy_merges_prefix_variants(user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+
+    first = get_or_create_location(library=library, name="Zinque, Venice")
+    second = get_or_create_location(library=library, name="Zinque")
+
+    assert first.pk == second.pk
+    assert Location.objects.filter(library=library).count() == 1
+    assert second.name == "Zinque, Venice"
+
+
+@pytest.mark.django_db
+def test_get_or_create_location_fuzzy_merges_punctuation_variants(user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+
+    first = get_or_create_location(library=library, name="Zinque, Venice")
+    second = get_or_create_location(library=library, name="Zinque Venice")
+
+    assert first.pk == second.pk
+    assert Location.objects.filter(library=library).count() == 1
+
+
+@pytest.mark.django_db
+def test_find_fuzzy_location_match_returns_none_when_ambiguous(user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+
+    get_or_create_location(library=library, name="North Beach")
+    get_or_create_location(library=library, name="South Beach")
+
+    match = find_fuzzy_location_match(library=library, cleaned="Beach")
+    assert match is None
+
+
+def test_score_location_match_prefers_prefix():
+    assert score_location_match("zinque", "zinque venice") > score_location_match(
+        "zinque", "superior zinque"
+    )
 
 
 @pytest.mark.django_db
