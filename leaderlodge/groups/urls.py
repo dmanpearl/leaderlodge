@@ -1,5 +1,12 @@
 from django.urls import path
 
+from leaderlodge.groups import views
+
 app_name = "groups"
 
-urlpatterns: list = []
+urlpatterns = [
+    path("", views.group_list, name="list"),
+    path("new/", views.group_create, name="create"),
+    path("<int:pk>/", views.group_detail, name="detail"),
+    path("<int:pk>/players/add/", views.player_add, name="player_add"),
+]

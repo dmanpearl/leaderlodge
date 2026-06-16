@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}{{ group.name }} | LeaderLodge{% endblock %}
+
+{% block content %}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'groups:list' %}">Groups</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ group.name }}</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">{{ group.name }}</h1>
+      {% if group.description %}
+        <p class="text-muted mb-0">{{ group.description }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Players</div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Everyone who plays in this group is listed here. Add a name for each
+        person who takes part in games and leaderboards.
+      </p>
+
+      {% if players %}
+        <div class="table-responsive mb-4">
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for player in players %}
+                <tr>
+                  <td>
+                    {{ player.display_name }}
+                    {% if player.linked_user %}
+                      <span class="text-muted small">({{ player.linked_user.username }})</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted mb-4">No players yet.</p>
+      {% endif %}
+
+      <h2 class="h6">Add a player</h2>
+      <form method="post" action="{% url 'groups:player_add' group.pk %}" class="row g-2 align-items-start">
+        {% csrf_token %}
+        <div class="col-12 col-sm-auto flex-grow-1">
+          {{ player_form.display_name }}
+          {% if player_form.display_name.errors %}
+            <div class="invalid-feedback d-block">{{ player_form.display_name.errors }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12 col-sm-auto">
+          <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

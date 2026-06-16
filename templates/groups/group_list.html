@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Groups | LeaderLodge{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+    <h1 class="h3 mb-0">Groups</h1>
+    <a href="{% url 'groups:create' %}" class="btn btn-primary">
+      <i class="bi bi-plus-lg"></i> Create Group
+    </a>
+  </div>
+
+  {% if groups %}
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Description</th>
+              <th scope="col">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for group in groups %}
+              <tr>
+                <td>
+                  <a href="{% url 'groups:detail' group.pk %}">{{ group.name }}</a>
+                </td>
+                <td class="text-muted">
+                  {% if group.description %}
+                    {{ group.description|truncatewords:12 }}
+                  {% else %}
+                    &mdash;
+                  {% endif %}
+                </td>
+                <td>{{ group.created_at|date:"M j, Y" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-3">You are not in any groups yet.</p>
+        <a href="{% url 'groups:create' %}" class="btn btn-primary">Create your first group</a>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
