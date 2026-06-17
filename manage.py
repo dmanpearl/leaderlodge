@@ -7,6 +7,10 @@ import sys
 
 def main():
     """Run administrative tasks."""
+    # Default to local settings for development. setdefault() preserves an
+    # explicitly set DJANGO_SETTINGS_MODULE, so Railway's production setting
+    # still works. If you see production settings locally, check your shell:
+    #   grep -r DJANGO_SETTINGS_MODULE ~/.zshrc ~/.bash_profile ~/.bashrc
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "leaderlodge.settings.local")
     try:
         from django.core.management import execute_from_command_line

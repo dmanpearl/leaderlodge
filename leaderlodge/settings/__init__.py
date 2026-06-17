@@ -1,1 +1,1 @@
-from .local import *  # noqa: F403
+# Import leaderlodge.settings.local or leaderlodge.settings.production explicitly.
