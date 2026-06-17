@@ -1,5 +1,4 @@
 from enum import StrEnum
-from typing import Callable
 
 from dataclasses import dataclass
 
@@ -19,17 +18,9 @@ class GameTypeDefinition:
     score_direction: ScoreDirection
     win_target_score: int | None
     icon_filename: str
-    validate: Callable
 
 
 def _load_registry() -> dict[str, GameTypeDefinition]:
-    from leaderlodge.games.types.backgammon import rules as backgammon_rules
-    from leaderlodge.games.types.dominos import rules as dominos_rules
-    from leaderlodge.games.types.mahjongg import rules as mahjongg_rules
-    from leaderlodge.games.types.progressiverummy import (
-        rules as progressiverummy_rules,
-    )
-
     return {
         "dominos": GameTypeDefinition(
             code="dominos",
@@ -40,18 +31,16 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             score_direction=ScoreDirection.HIGH_WINS,
             win_target_score=30,
             icon_filename="dominos.png",
-            validate=dominos_rules.validate_game,
         ),
         "progressiverummy": GameTypeDefinition(
             code="progressiverummy",
             name="Progressive Rummy",
-            min_players=3,
-            max_players=7,
+            min_players=2,
+            max_players=10,
             supports_loser=True,
             score_direction=ScoreDirection.LOW_WINS,
             win_target_score=None,
             icon_filename="progressiverummy.png",
-            validate=progressiverummy_rules.validate_game,
         ),
         "backgammon": GameTypeDefinition(
             code="backgammon",
@@ -62,7 +51,6 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             score_direction=ScoreDirection.HIGH_WINS,
             win_target_score=None,
             icon_filename="backgammon.png",
-            validate=backgammon_rules.validate_game,
         ),
         "mahjongg": GameTypeDefinition(
             code="mahjongg",
@@ -73,7 +61,6 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             score_direction=ScoreDirection.HIGH_WINS,
             win_target_score=None,
             icon_filename="mahjongg.png",
-            validate=mahjongg_rules.validate_game,
         ),
     }
 

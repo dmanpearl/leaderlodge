@@ -9,8 +9,12 @@ from django.core.management import call_command
 from io import StringIO
 from openpyxl import Workbook
 
+from leaderlodge.games.importing.progressiverummy import parse_progressiverummy_workbook
 from leaderlodge.games.importing.scorekeeper import parse_scorekeeper_workbook
-from leaderlodge.games.importing.service import import_scorekeeper_file
+from leaderlodge.games.importing.service import (
+    import_progressiverummy_file,
+    import_scorekeeper_file,
+)
 from leaderlodge.games.models import Game
 from leaderlodge.groups.models import GroupPlayer
 from leaderlodge.groups.names import format_user_display_name
@@ -187,3 +191,140 @@ def test_import_real_backgammon_seed(group, user):
         game_type_code="backgammon",
         import_source="backgammon_seed_2026-06-16",
     ).count() == 5
+
+
+def _write_progressiverummy(path: Path, rows: list[tuple]) -> None:
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Raw Games"
+    worksheet.append(
+        (
+            "Date",
+            "Where",
+            "Half",
+            "aa",
+            "Nancy",
+            "David",
+            "Pat",
+            "Min",
+            "Max",
+            "Winner",
+            "Loser",
+            "Players",
+        )
+    )
+    for row in rows:
+        worksheet.append(row)
+    workbook.save(path)
+
+
+@pytest.fixture
+def progressiverummy_spreadsheet(tmp_path):
+    path = tmp_path / "progressiverummy_seed_test.xlsx"
+    _write_progressiverummy(
+        path,
+        [
+            (datetime(2026, 3, 8), "Sally", "Yes", "skip", 10, 20, 30, 10, 30, "Nancy", "Pat", 3),
+            (datetime(2026, 3, 9), "<?>", None, None, 5, 15, 25, 5, 25, "Nancy", "Pat", 3),
+            ("<?>", "Kitchen", None, None, 8, 18, 28, 8, 28, "Nancy", "Pat", 3),
+        ],
+    )
+    return path
+
+
+def test_parse_progressiverummy_workbook(progressiverummy_spreadsheet):
+    rows = parse_progressiverummy_workbook(progressiverummy_spreadsheet)
+    assert len(rows) == 3
+
+    assert rows[0].played_on.isoformat() == "2026-03-08"
+    assert rows[0].location_name == "Sally"
+    assert rows[0].is_half is True
+    assert [ps.name for ps in rows[0].player_scores] == ["Nancy", "David", "Pat"]
+    assert rows[0].metadata["Winner"] == "Nancy"
+
+    assert rows[1].location_name == ""
+    assert rows[1].is_half is False
+
+    assert rows[2].played_on.isoformat() == "2026-03-07"
+    assert rows[2].location_name == "Kitchen"
+
+
+@pytest.mark.django_db
+def test_import_progressiverummy_file(group, user, progressiverummy_spreadsheet):
+    summary = import_progressiverummy_file(
+        path=progressiverummy_spreadsheet,
+        group=group,
+        recorded_by=user,
+    )
+
+    assert summary.parsed == 3
+    assert summary.created == 3
+    assert summary.skipped == 0
+
+    games = Game.objects.filter(group=group, game_type_code="progressiverummy").order_by("pk")
+    assert games.count() == 3
+    assert games[0].half_weight == 2
+    assert games[1].half_weight == 1
+    assert games[2].half_weight == 1
+    assert GroupPlayer.objects.filter(group=group, display_name="Pat").exists()
+
+
+@pytest.mark.django_db
+def test_import_progressiverummy_file_is_idempotent(group, user, progressiverummy_spreadsheet):
+    import_progressiverummy_file(
+        path=progressiverummy_spreadsheet,
+        group=group,
+        recorded_by=user,
+    )
+    summary = import_progressiverummy_file(
+        path=progressiverummy_spreadsheet,
+        group=group,
+        recorded_by=user,
+    )
+
+    assert summary.created == 0
+    assert summary.skipped == 3
+
+
+@pytest.mark.django_db
+def test_import_progressiverummy_command(group, user, progressiverummy_spreadsheet):
+    stdout = StringIO()
+    call_command(
+        "import_games",
+        str(progressiverummy_spreadsheet),
+        "--group",
+        str(group.pk),
+        "--game-type",
+        "progressiverummy",
+        stdout=stdout,
+    )
+
+    output = stdout.getvalue()
+    assert "Created: 3" in output
+    assert Game.objects.filter(
+        group=group,
+        import_source="progressiverummy_seed_test",
+    ).count() == 3
+
+
+@pytest.mark.django_db
+def test_import_real_progressiverummy_seed(group, user):
+    path = Path("data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx")
+    if not path.is_file():
+        pytest.skip("Seed file not present")
+
+    summary = import_progressiverummy_file(
+        path=path,
+        group=group,
+        recorded_by=user,
+    )
+
+    assert summary.parsed > 500
+    assert summary.created > 500
+    assert summary.skipped == summary.parsed - summary.created
+    half_games = Game.objects.filter(
+        group=group,
+        game_type_code="progressiverummy",
+        half_weight=2,
+    ).count()
+    assert half_games > 50

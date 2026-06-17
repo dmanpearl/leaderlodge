@@ -7,6 +7,7 @@ from django.db import transaction
 
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.validators import validate_game_for_type
 from leaderlodge.games.scoring import compute_double_weight
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 
@@ -30,6 +31,7 @@ def record_game(
     location: Location | None = None,
     import_source: str = "",
     import_row_key: str = "",
+    half_weight: int = 1,
 ) -> Game:
     game_type = get_game_type(game_type_code)
 
@@ -53,12 +55,16 @@ def record_game(
     loser_count = sum(
         1 for p in participants if p.result == GameParticipantResult.Result.LOSS
     )
-    game_type.validate(
+    validate_game_for_type(
+        game_type=game_type,
         player_count=len(participants),
         winner_count=winner_count,
         tie_count=tie_count,
         loser_count=loser_count,
     )
+
+    if half_weight not in (1, 2):
+        raise ValidationError("Half weight must be 1 or 2.")
 
     row_dicts = [
         {
@@ -83,6 +89,7 @@ def record_game(
         recorded_by=user,
         player_count=len(participants),
         double_weight=double_weight,
+        half_weight=half_weight,
         location=location,
         import_source=import_source,
         import_row_key=import_row_key,

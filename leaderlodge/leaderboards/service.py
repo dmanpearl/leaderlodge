@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING
 from django.conf import settings
 from django.db.models import Q, Sum
 
+from leaderlodge.games.standings import standings_weight_expression
+
 from leaderlodge.games.registry import GAME_TYPES, get_game_type
 
 if TYPE_CHECKING:
@@ -97,12 +99,13 @@ def _rankings_for_game_type(
     if location_id is not None:
         results_qs = results_qs.filter(game__location_id=location_id)
 
+    weight = standings_weight_expression()
     stats = (
         results_qs.values("player_id", "player__display_name")
         .annotate(
-            games_played=Sum("game__double_weight"),
+            games_played=Sum(weight),
             wins=Sum(
-                "game__double_weight",
+                weight,
                 filter=Q(result=GameParticipantResult.Result.WIN),
             ),
         )
@@ -142,13 +145,14 @@ def get_player_stats(
     """
     from leaderlodge.games.models import GameParticipantResult
 
+    weight = standings_weight_expression()
     rows = (
         GameParticipantResult.objects.filter(game__group=group, player=player)
         .values("game__game_type_code")
         .annotate(
-            games_played=Sum("game__double_weight"),
+            games_played=Sum(weight),
             wins=Sum(
-                "game__double_weight",
+                weight,
                 filter=Q(result=GameParticipantResult.Result.WIN),
             ),
         )

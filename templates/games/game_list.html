@@ -97,6 +97,8 @@
                     {{ row.game.game_type.name }}
                     {% if row.game.double_weight == 2 %}
                       <span class="badge text-bg-secondary">2×</span>
+                    {% elif row.game.half_weight == 2 %}
+                      <span class="badge text-bg-secondary">½</span>
                     {% endif %}
                   </td>
                 {% endif %}

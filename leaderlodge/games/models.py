@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.validators import validate_game_for_type
 
 
 class Game(models.Model):
@@ -21,6 +22,7 @@ class Game(models.Model):
     notes = models.TextField(blank=True)
     player_count = models.PositiveSmallIntegerField()
     double_weight = models.PositiveSmallIntegerField(default=1)
+    half_weight = models.PositiveSmallIntegerField(default=1)
     location = models.ForeignKey(
         "groups.Location",
         on_delete=models.SET_NULL,
@@ -28,7 +30,7 @@ class Game(models.Model):
         blank=True,
         related_name="games",
     )
-    import_source = models.CharField(max_length=30, blank=True)
+    import_source = models.CharField(max_length=64, blank=True)
     import_row_key = models.CharField(max_length=64, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -69,7 +71,8 @@ class Game(models.Model):
             1 for r in results if r.result == GameParticipantResult.Result.LOSS
         )
         game_type = get_game_type(self.game_type_code)
-        game_type.validate(
+        validate_game_for_type(
+            game_type=game_type,
             player_count=len(results),
             winner_count=winner_count,
             tie_count=tie_count,

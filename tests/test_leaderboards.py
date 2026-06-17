@@ -1,7 +1,10 @@
 import pytest
+from datetime import date
 from django.contrib.auth.models import User
 from django.urls import reverse
 
+from leaderlodge.games.scoring import assign_results_from_scores
+from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.leaderboards.service import get_player_rankings, get_player_stats
 from tests.test_games import _load_roster_post, _save_game_post
@@ -63,6 +66,47 @@ def test_get_player_rankings_counts_double_weight(client, user, group):
     winner = next(row for row in rankings if row.wins > 0)
     assert winner.games_played == 2
     assert winner.wins == 2
+
+
+@pytest.mark.django_db
+def test_get_player_rankings_counts_half_weight(user, group):
+    players = [
+        add_guest_player(group=group, display_name="Alice"),
+        add_guest_player(group=group, display_name="Bob"),
+        add_guest_player(group=group, display_name="Carol"),
+    ]
+    rows = [
+        {"player": players[0], "score": 10},
+        {"player": players[1], "score": 20},
+        {"player": players[2], "score": 30},
+    ]
+    assign_results_from_scores(rows, "progressiverummy")
+    participants = [
+        ParticipantInput(
+            player=row["player"],
+            score=row["score"],
+            result=row["result"],
+            placement=row["placement"],
+        )
+        for row in rows
+    ]
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=date(2026, 1, 1),
+        participants=participants,
+        half_weight=2,
+    )
+
+    rankings = get_player_rankings(
+        group,
+        game_type_code="progressiverummy",
+        min_games=0,
+    )
+    winner = next(row for row in rankings if row.wins > 0)
+    assert winner.games_played == 0.5
+    assert winner.wins == 0.5
 
 
 @pytest.mark.django_db

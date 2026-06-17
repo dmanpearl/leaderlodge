@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 
 from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.registry import ScoreDirection, get_game_type
+from leaderlodge.games.validators import validate_game_for_type
 
 Result = GameParticipantResult.Result
 
@@ -108,7 +109,8 @@ def assign_results_from_scores(rows: list[dict], game_type_code: str) -> None:
     assign_placements(rows, game_type_code)
 
     game_type = get_game_type(game_type_code)
-    game_type.validate(
+    validate_game_for_type(
+        game_type=game_type,
         player_count=len(rows),
         winner_count=sum(1 for row in rows if row["result"] == Result.WIN),
         tie_count=sum(1 for row in rows if row["result"] == Result.TIE),

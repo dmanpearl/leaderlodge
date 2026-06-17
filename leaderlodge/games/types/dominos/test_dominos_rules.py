@@ -1,12 +1,14 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from leaderlodge.games.types.dominos import rules as dominos_rules
+from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.validators import validate_game_for_type
 
 
 @pytest.mark.parametrize("player_count", [2, 3, 4])
 def test_dominos_accepts_valid_player_counts(player_count):
-    dominos_rules.validate_game(
+    validate_game_for_type(
+        game_type=get_game_type("dominos"),
         player_count=player_count,
         winner_count=1,
         tie_count=0,
@@ -15,7 +17,8 @@ def test_dominos_accepts_valid_player_counts(player_count):
 
 
 def test_dominos_accepts_tie():
-    dominos_rules.validate_game(
+    validate_game_for_type(
+        game_type=get_game_type("dominos"),
         player_count=2,
         winner_count=0,
         tie_count=2,
@@ -25,7 +28,8 @@ def test_dominos_accepts_tie():
 
 def test_dominos_rejects_loser():
     with pytest.raises(ValidationError):
-        dominos_rules.validate_game(
+        validate_game_for_type(
+            game_type=get_game_type("dominos"),
             player_count=2,
             winner_count=1,
             tie_count=0,

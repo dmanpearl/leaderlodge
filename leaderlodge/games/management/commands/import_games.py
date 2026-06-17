@@ -2,7 +2,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-from leaderlodge.games.importing.service import import_scorekeeper_file
+from leaderlodge.games.importing.service import import_games_file
 from leaderlodge.games.registry import GAME_TYPES
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.services import resolve_group
@@ -71,7 +71,7 @@ class Command(BaseCommand):
                 )
 
         try:
-            summary = import_scorekeeper_file(
+            summary = import_games_file(
                 path=path,
                 group=group,
                 game_type_code=options["game_type"],

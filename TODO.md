@@ -4,10 +4,11 @@
 
 - [x] Game list view filtering
 - [x] Game list view shows player scores
+- [x] Seed Progressive Rummy
 
 ## Open Items
 
-- [ ] Seed Progressive Rummy
+- [ ] Game list view filter by player (shows only games that player was in)
 - [ ] Game list view shows stats summary for filtering selection
 - [ ] Game detail view (maybe)
 - [ ] Calculate leaderboards

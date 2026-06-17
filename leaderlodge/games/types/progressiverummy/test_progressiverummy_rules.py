@@ -1,8 +1,10 @@
-from leaderlodge.games.types.progressiverummy import rules as progressiverummy_rules
+from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.validators import validate_game_for_type
 
 
 def test_progressiverummy_allows_multiple_losers():
-    progressiverummy_rules.validate_game(
+    validate_game_for_type(
+        game_type=get_game_type("progressiverummy"),
         player_count=3,
         winner_count=1,
         tie_count=0,
@@ -11,7 +13,8 @@ def test_progressiverummy_allows_multiple_losers():
 
 
 def test_progressiverummy_all_tie_no_loser():
-    progressiverummy_rules.validate_game(
+    validate_game_for_type(
+        game_type=get_game_type("progressiverummy"),
         player_count=3,
         winner_count=0,
         tie_count=3,

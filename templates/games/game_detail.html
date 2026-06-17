@@ -20,6 +20,8 @@
       {{ game_type.name }}
       {% if is_double %}
         <span class="badge result-badge result-badge--win-double align-middle">Double game</span>
+      {% elif is_half %}
+        <span class="badge text-bg-secondary align-middle">Half game</span>
       {% endif %}
     </h1>
     <p class="text-muted mb-0">

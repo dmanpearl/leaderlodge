@@ -315,5 +315,6 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "game_type": game_type,
             "results": results,
             "is_double": game.double_weight == 2,
+            "is_half": game.half_weight == 2,
         },
     )
