@@ -217,10 +217,100 @@ def test_game_list_pagination(client, user, group, monkeypatch):
 
     page1 = client.get(reverse("games:list"))
     page2 = client.get(reverse("games:list"), {"page": 2})
+    page3 = client.get(reverse("games:list"), {"page": 3})
     assert page1.status_code == 200
     assert page2.status_code == 200
-    assert "Page 1 of 3" in page1.content.decode()
+    assert page3.status_code == 200
+    content1 = page1.content.decode()
+    assert "Page 1 of 3" in content1
     assert "Page 2 of 3" in page2.content.decode()
+    assert 'page=3">Last</a>' in content1
+    assert 'page=1">First</a>' not in content1
+
+
+@pytest.mark.django_db
+def test_game_list_filters_by_group_and_game_type(client, user, group):
+    other_group = create_group_with_owner(user=user, name="Other Club")
+    add_guest_player(group=other_group, display_name="Pat")
+
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group, game_type_code="dominos"))
+    client.post(reverse("games:create"), _load_roster_post(other_group, game_type_code="backgammon"))
+    client.post(
+        reverse("games:create"),
+        _save_game_post(other_group, game_type_code="backgammon"),
+    )
+
+    all_games = client.get(reverse("games:list"))
+    dominos_only = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos"},
+    )
+    backgammon_only = client.get(
+        reverse("games:list"),
+        {"game_type": "backgammon"},
+    )
+
+    assert all_games.status_code == 200
+    assert "Page" not in all_games.content.decode()
+    assert dominos_only.status_code == 200
+    dominos_content = dominos_only.content.decode()
+    assert dominos_content.count("Dom Club") >= 1
+    assert ">Other Club</a>" not in dominos_content
+    assert '<th scope="col">Group</th>' not in dominos_content
+    assert '<th scope="col">Game</th>' not in dominos_content
+    assert backgammon_only.status_code == 200
+    assert "BackGammon" in backgammon_only.content.decode()
+    assert '<th scope="col">Game</th>' not in backgammon_only.content.decode()
+
+
+@pytest.mark.django_db
+def test_game_list_location_choices_culled_by_group_and_type(client, user, group):
+    other_group = create_group_with_owner(user=user, name="Other Club")
+    add_guest_player(group=other_group, display_name="Pat")
+
+    client.force_login(user)
+
+    load = _load_roster_post(group)
+    load["location_name"] = "Sally"
+    client.post(reverse("games:create"), load)
+    save = _save_game_post(group, game_type_code="dominos")
+    save["location_name"] = "Sally"
+    client.post(reverse("games:create"), save)
+
+    load = _load_roster_post(other_group, game_type_code="backgammon")
+    load["location_name"] = "Carpenteria"
+    client.post(reverse("games:create"), load)
+    save = _save_game_post(other_group, game_type_code="backgammon")
+    save["location_name"] = "Carpenteria"
+    client.post(reverse("games:create"), save)
+
+    dominos_group = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos"},
+    )
+    content = dominos_group.content.decode()
+    assert "Sally" in content
+    assert "Carpenteria" not in content
+
+
+@pytest.mark.django_db
+def test_game_list_sort_and_empty_filter_message(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.get(
+        reverse("games:list"),
+        {"game_type": "backgammon"},
+    )
+    assert response.status_code == 200
+    assert "No games match these filters." in response.content.decode()
+
+    sorted_response = client.get(reverse("games:list"), {"sort": "asc"})
+    assert sorted_response.status_code == 200
+    assert 'value="asc" selected' in sorted_response.content.decode()
 
 
 @pytest.mark.django_db

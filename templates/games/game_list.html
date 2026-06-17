@@ -10,6 +10,53 @@
     </a>
   </div>
 
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" id="game-list-filters" class="row g-3 align-items-end">
+        <div class="col-12 col-md-3">
+          <label for="filter-group" class="form-label">Group</label>
+          <select id="filter-group" name="group" class="form-select" onchange="this.form.submit()">
+            <option value="">All groups</option>
+            {% for group in groups %}
+              <option value="{{ group.pk }}" {% if params.group == group.pk|stringformat:"s" %}selected{% endif %}>
+                {{ group.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label for="filter-game-type" class="form-label">Game type</label>
+          <select id="filter-game-type" name="game_type" class="form-select" onchange="this.form.submit()">
+            <option value="">All games</option>
+            {% for code, name in game_types %}
+              <option value="{{ code }}" {% if params.game_type == code %}selected{% endif %}>
+                {{ name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label for="filter-location" class="form-label">Location</label>
+          <select id="filter-location" name="location" class="form-select" onchange="this.form.submit()">
+            <option value="">All locations</option>
+            {% for location in locations %}
+              <option value="{{ location.pk }}" {% if params.location == location.pk|stringformat:"s" %}selected{% endif %}>
+                {{ location.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label for="filter-sort" class="form-label">Date</label>
+          <select id="filter-sort" name="sort" class="form-select" onchange="this.form.submit()">
+            <option value="desc" {% if params.sort == "desc" %}selected{% endif %}>Newest first</option>
+            <option value="asc" {% if params.sort == "asc" %}selected{% endif %}>Oldest first</option>
+          </select>
+        </div>
+      </form>
+    </div>
+  </div>
+
   {% if page.object_list %}
     <div class="card">
       <div class="table-responsive">
@@ -17,8 +64,12 @@
           <thead>
             <tr>
               <th scope="col">Date</th>
-              <th scope="col">Group</th>
-              <th scope="col">Game</th>
+              {% if show_group_column %}
+                <th scope="col">Group</th>
+              {% endif %}
+              {% if show_game_type_column %}
+                <th scope="col">Game</th>
+              {% endif %}
               <th scope="col">Location</th>
               <th scope="col">Players</th>
             </tr>
@@ -29,15 +80,19 @@
                 <td>
                   <a href="{% url 'games:detail' game.pk %}">{{ game.played_on|date:"M j, Y" }}</a>
                 </td>
-                <td>
-                  <a href="{% url 'groups:detail' game.group.pk %}">{{ game.group.name }}</a>
-                </td>
-                <td>
-                  {{ game.game_type.name }}
-                  {% if game.double_weight == 2 %}
-                    <span class="badge text-bg-secondary">2×</span>
-                  {% endif %}
-                </td>
+                {% if show_group_column %}
+                  <td>
+                    <a href="{% url 'groups:detail' game.group.pk %}">{{ game.group.name }}</a>
+                  </td>
+                {% endif %}
+                {% if show_game_type_column %}
+                  <td>
+                    {{ game.game_type.name }}
+                    {% if game.double_weight == 2 %}
+                      <span class="badge text-bg-secondary">2×</span>
+                    {% endif %}
+                  </td>
+                {% endif %}
                 <td class="text-muted">
                   {% if game.location %}
                     {{ game.location.name }}
@@ -55,12 +110,18 @@
 
     {% if page.has_other_pages %}
       <nav class="mt-3" aria-label="Games pagination">
-        <ul class="pagination justify-content-center mb-0">
+        <ul class="pagination justify-content-center flex-wrap mb-0">
           {% if page.has_previous %}
             <li class="page-item">
-              <a class="page-link" href="?page={{ page.previous_page_number }}">Previous</a>
+              <a class="page-link" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page=1">First</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page.previous_page_number }}">Previous</a>
             </li>
           {% else %}
+            <li class="page-item disabled">
+              <span class="page-link">First</span>
+            </li>
             <li class="page-item disabled">
               <span class="page-link">Previous</span>
             </li>
@@ -72,11 +133,17 @@
 
           {% if page.has_next %}
             <li class="page-item">
-              <a class="page-link" href="?page={{ page.next_page_number }}">Next</a>
+              <a class="page-link" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page.next_page_number }}">Next</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page.paginator.num_pages }}">Last</a>
             </li>
           {% else %}
             <li class="page-item disabled">
               <span class="page-link">Next</span>
+            </li>
+            <li class="page-item disabled">
+              <span class="page-link">Last</span>
             </li>
           {% endif %}
         </ul>
@@ -85,8 +152,13 @@
   {% else %}
     <div class="card">
       <div class="card-body text-center py-5">
-        <p class="text-muted mb-3">No games recorded yet.</p>
-        <a href="{% url 'games:create' %}" class="btn btn-primary">Record your first game</a>
+        {% if has_filters %}
+          <p class="text-muted mb-3">No games match these filters.</p>
+          <a href="{% url 'games:list' %}" class="btn btn-outline-secondary">Clear filters</a>
+        {% else %}
+          <p class="text-muted mb-3">No games recorded yet.</p>
+          <a href="{% url 'games:create' %}" class="btn btn-primary">Record your first game</a>
+        {% endif %}
       </div>
     </div>
   {% endif %}
