@@ -15,9 +15,66 @@
   color: #fff;
 }
 
+.result-badge--tie {
+  background-color: #c4a574;
+  color: #212529;
+}
+
 .result-badge--loss-double {
   background-color: #ff6b81;
   color: #fff;
   font-weight: 700;
   box-shadow: 0 0 0 2px #ff6b81;
+}
+
+.game-list-table tbody td.game-list-cell--win {
+  background-color: #198754 !important;
+  color: #fff !important;
+}
+
+.game-list-table tbody td.game-list-cell--win-double {
+  background-color: #20c997 !important;
+  color: #000 !important;
+  font-weight: 700;
+}
+
+.game-list-table tbody td.game-list-cell--loss {
+  background-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+.game-list-table tbody td.game-list-cell--loss-double {
+  background-color: #ff6b81 !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.game-list-table tbody td.game-list-cell--tie {
+  background-color: #c4a574 !important;
+  color: #212529 !important;
+}
+
+.game-list-table tbody tr:hover td.game-list-cell--win {
+  background-color: #157347 !important;
+  color: #fff !important;
+}
+
+.game-list-table tbody tr:hover td.game-list-cell--win-double {
+  background-color: #1aa179 !important;
+  color: #000 !important;
+}
+
+.game-list-table tbody tr:hover td.game-list-cell--loss {
+  background-color: #bb2d3b !important;
+  color: #fff !important;
+}
+
+.game-list-table tbody tr:hover td.game-list-cell--loss-double {
+  background-color: #e85a6f !important;
+  color: #fff !important;
+}
+
+.game-list-table tbody tr:hover td.game-list-cell--tie {
+  background-color: #b59563 !important;
+  color: #212529 !important;
 }

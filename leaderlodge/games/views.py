@@ -11,6 +11,7 @@ from leaderlodge.games.forms import (
     parse_participants_from_post,
     prepare_participant_rows,
 )
+from leaderlodge.games.list_table import build_game_list_table
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES, game_type_choices, get_game_type
 from leaderlodge.games.services import ParticipantInput, record_game
@@ -22,7 +23,7 @@ from leaderlodge.groups.services import (
 )
 from leaderlodge.groups.locations import locations_for_group, resolve_game_location
 
-GAMES_PER_PAGE = 20
+GAMES_PER_PAGE = 25
 
 
 def _game_list_params(request: HttpRequest) -> dict[str, str]:
@@ -152,6 +153,8 @@ def game_list(request: HttpRequest) -> HttpResponse:
     games_qs = _filtered_games_queryset(request.user, params)
     paginator = Paginator(games_qs, GAMES_PER_PAGE)
     page = paginator.get_page(request.GET.get("page"))
+    games = list(page.object_list)
+    player_columns, game_rows = build_game_list_table(games)
 
     groups = user_groups(request.user).order_by("name")
 
@@ -160,6 +163,8 @@ def game_list(request: HttpRequest) -> HttpResponse:
         "games/game_list.html",
         {
             "page": page,
+            "game_rows": game_rows,
+            "player_columns": player_columns,
             "params": params,
             "filter_query": _game_list_filter_query(params),
             "has_filters": _game_list_has_filters(params),

@@ -87,7 +87,7 @@
           : "result-badge result-badge--win";
         cell.innerHTML = renderBadge("Win", cls);
       } else if (evaluation.tieIds.has(row.playerId)) {
-        cell.innerHTML = renderBadge("Tie", "text-bg-info");
+        cell.innerHTML = renderBadge("Tie", "result-badge result-badge--tie");
       } else if (evaluation.lossIds.has(row.playerId)) {
         const cls = evaluation.isDouble
           ? "result-badge result-badge--loss-double"

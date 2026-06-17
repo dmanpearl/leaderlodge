@@ -1,6 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Games | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+{% endblock %}
 
 {% block content %}
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
@@ -57,10 +62,10 @@
     </div>
   </div>
 
-  {% if page.object_list %}
+  {% if game_rows %}
     <div class="card">
       <div class="table-responsive">
-        <table class="table table-striped table-hover mb-0">
+        <table class="table table-hover mb-0 game-list-table">
           <thead>
             <tr>
               <th scope="col">Date</th>
@@ -71,36 +76,46 @@
                 <th scope="col">Game</th>
               {% endif %}
               <th scope="col">Location</th>
-              <th scope="col">Players</th>
+              {% for player in player_columns %}
+                <th scope="col" class="text-center">{{ player.display_label }}</th>
+              {% endfor %}
             </tr>
           </thead>
           <tbody>
-            {% for game in page.object_list %}
+            {% for row in game_rows %}
               <tr>
                 <td>
-                  <a href="{% url 'games:detail' game.pk %}">{{ game.played_on|date:"M j, Y" }}</a>
+                  <a href="{% url 'games:detail' row.game.pk %}">{{ row.game.played_on|date:"M j, Y" }}</a>
                 </td>
                 {% if show_group_column %}
                   <td>
-                    <a href="{% url 'groups:detail' game.group.pk %}">{{ game.group.name }}</a>
+                    <a href="{% url 'groups:detail' row.game.group.pk %}">{{ row.game.group.name }}</a>
                   </td>
                 {% endif %}
                 {% if show_game_type_column %}
                   <td>
-                    {{ game.game_type.name }}
-                    {% if game.double_weight == 2 %}
+                    {{ row.game.game_type.name }}
+                    {% if row.game.double_weight == 2 %}
                       <span class="badge text-bg-secondary">2×</span>
                     {% endif %}
                   </td>
                 {% endif %}
                 <td class="text-muted">
-                  {% if game.location %}
-                    {{ game.location.name }}
+                  {% if row.game.location %}
+                    {{ row.game.location.name }}
                   {% else %}
                     &mdash;
                   {% endif %}
                 </td>
-                <td>{{ game.player_count }}</td>
+                {% for cell in row.cells %}
+                  <td class="text-center{% if cell.css_class %} {{ cell.css_class }}{% endif %}">
+                    {% if cell.score is not None %}
+                      {{ cell.score }}
+                    {% else %}
+                      &mdash;
+                    {% endif %}
+                  </td>
+                {% endfor %}
               </tr>
             {% endfor %}
           </tbody>
