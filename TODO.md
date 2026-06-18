@@ -13,6 +13,10 @@
 
 ## Open Items
 
+- [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
+- [ ] Game list view: Move 2x and 1/2 into their own column so they can be retained when filtering on game type.
+- [ ] Demo mode so visitors can view a meaningful experience without login
+- [ ] Stats view: Spin-up/Spin-down control is wrong. Should be down/right, not down/up.
 - [ ] Bug: Record Game wrong date - At 10:12pm default date shows tomorrow's date
 - [ ] Game list view filter by player (shows only games that player was in)
 - [ ] Game detail view (maybe)

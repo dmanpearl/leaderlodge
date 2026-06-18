@@ -11,6 +11,7 @@ from leaderlodge.games.forms import (
     parse_participants_from_post,
     prepare_participant_rows,
 )
+from leaderlodge.games.list_density import game_list_date_format, resolve_game_list_density
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table
 from leaderlodge.games.models import Game
@@ -160,6 +161,11 @@ def game_list(request: HttpRequest) -> HttpResponse:
     page = paginator.get_page(request.GET.get("page"))
     games = list(page.object_list)
     player_columns, game_rows = build_game_list_table(games)
+    stats_player_count = len(list_stats.players) if list_stats else 0
+    list_density = resolve_game_list_density(
+        table_player_count=len(player_columns),
+        stats_player_count=stats_player_count,
+    )
 
     groups = user_groups(request.user).order_by("name")
 
@@ -171,6 +177,8 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "game_rows": game_rows,
             "player_columns": player_columns,
             "list_stats": list_stats,
+            "list_density": list_density,
+            "date_format": game_list_date_format(list_density),
             "params": params,
             "filter_query": _game_list_filter_query(params),
             "has_filters": _game_list_has_filters(params),

@@ -124,3 +124,202 @@
   z-index: 1;
   box-shadow: 0 -1px 0 var(--bs-border-color);
 }
+
+/* Game list layout density tiers */
+.game-list .game-list-player-col,
+.game-list .game-list-nowrap-col {
+  white-space: nowrap;
+}
+
+.game-list .game-list-player-col {
+  width: 1%;
+}
+
+.game-list-density--comfortable .game-list-table-card,
+.game-list-density--comfortable .game-list-stats-card,
+.game-list-density--compact .game-list-table-card,
+.game-list-density--compact .game-list-stats-card {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.game-list-density--comfortable .game-list-data-table,
+.game-list-density--compact .game-list-data-table {
+  width: auto;
+}
+
+.game-list-density--dense .game-list-table-card,
+.game-list-density--dense .game-list-stats-card {
+  width: 100%;
+}
+
+.game-list-density--dense .game-list-data-table {
+  width: 100%;
+}
+
+/* Compact tier */
+.game-list-density--compact {
+  font-size: 0.8125rem;
+  line-height: 1.25;
+}
+
+.game-list-density--compact .game-list-page-header {
+  margin-bottom: 0.75rem !important;
+  gap: 0.5rem !important;
+}
+
+.game-list-density--compact .game-list-page-header .h3 {
+  font-size: 1.25rem;
+}
+
+.game-list-density--compact .game-list-record-btn {
+  --bs-btn-padding-y: 0.25rem;
+  --bs-btn-padding-x: 0.5rem;
+  --bs-btn-font-size: 0.8125rem;
+}
+
+.game-list-density--compact .game-list-filters-card {
+  margin-bottom: 0.75rem !important;
+}
+
+.game-list-density--compact .game-list-filters-body {
+  padding: 0.5rem 0.75rem;
+}
+
+.game-list-density--compact .game-list-filter-select {
+  font-size: 0.8125rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.game-list-density--compact #game-list-filters {
+  --bs-gutter-y: 0.5rem;
+}
+
+.game-list-density--compact .game-list-stats-header {
+  padding: 0.35rem 0.75rem;
+}
+
+.game-list-density--compact .game-list-stats-body {
+  padding: 0.5rem;
+}
+
+.game-list-density--compact .game-list-data-table > :not(caption) > * > * {
+  padding: 0.2rem 0.35rem;
+}
+
+.game-list-density--compact .game-list-pagination {
+  margin-top: 0.75rem !important;
+}
+
+.game-list-density--compact .pagination {
+  --bs-pagination-padding-x: 0.5rem;
+  --bs-pagination-padding-y: 0.2rem;
+  --bs-pagination-font-size: 0.8125rem;
+}
+
+.game-list-density--compact .game-list-weight-badge {
+  font-size: 0.65em;
+  padding: 0.15em 0.4em;
+}
+
+/* Dense tier */
+.game-list-density--dense {
+  font-size: 0.6875rem;
+  line-height: 1.15;
+}
+
+.game-list-density--dense .game-list-page-header {
+  margin-bottom: 0.5rem !important;
+  gap: 0.25rem !important;
+}
+
+.game-list-density--dense .game-list-page-header .h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.game-list-density--dense .game-list-record-btn {
+  --bs-btn-padding-y: 0.125rem;
+  --bs-btn-padding-x: 0.375rem;
+  --bs-btn-font-size: 0.6875rem;
+}
+
+.game-list-density--dense .game-list-record-label {
+  display: none;
+}
+
+.game-list-density--dense .game-list-record-btn .bi-plus-lg {
+  margin-right: 0 !important;
+}
+
+.game-list-density--dense .game-list-filters-card {
+  margin-bottom: 0.5rem !important;
+}
+
+.game-list-density--dense .game-list-filters-body {
+  padding: 0.25rem 0.5rem;
+}
+
+.game-list-density--dense .form-label {
+  margin-bottom: 0;
+  font-size: inherit;
+}
+
+.game-list-density--dense .game-list-filter-select {
+  font-size: 0.6875rem;
+  min-height: 1.5rem;
+  padding: 0.1rem 1.5rem 0.1rem 0.3rem;
+}
+
+.game-list-density--dense #game-list-filters {
+  --bs-gutter-y: 0.25rem;
+}
+
+.game-list-density--dense .game-list-stats-header {
+  padding: 0 0.5rem;
+  font-size: inherit;
+}
+
+.game-list-density--dense .game-list-stats-body {
+  padding: 0.25rem;
+}
+
+.game-list-density--dense .game-list-data-table > :not(caption) > * > * {
+  padding: 0.1rem 0.25rem;
+}
+
+.game-list-density--dense .game-list-stats-table > :not(caption) > * > * {
+  padding: 0.08rem 0.2rem;
+}
+
+.game-list-density--dense .game-list-pagination {
+  margin-top: 0.5rem !important;
+}
+
+.game-list-density--dense .pagination {
+  --bs-pagination-padding-x: 0.4rem;
+  --bs-pagination-padding-y: 0.1rem;
+  --bs-pagination-font-size: 0.6875rem;
+}
+
+.game-list-density--dense .game-list-weight-badge {
+  font-size: 0.6em;
+  padding: 0.1em 0.35em;
+  vertical-align: middle;
+}
+
+.game-list-density--dense .game-list-data-table {
+  font-size: inherit;
+}
+
+.game-list-density--compact .game-list-data-table,
+.game-list-density--dense .game-list-data-table {
+  font-size: inherit;
+}
+
+.game-list-density--compact .game-list-data-table.table-hover,
+.game-list-density--dense .game-list-data-table {
+  --bs-table-cell-padding-y: 0.2rem;
+  --bs-table-cell-padding-x: 0.35rem;
+}

@@ -8,19 +8,20 @@
 {% endblock %}
 
 {% block content %}
-  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+  <div class="game-list game-list-density--{{ list_density|default:'comfortable' }}">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 game-list-page-header mb-3">
     <h1 class="h3 mb-0">Games</h1>
-    <a href="{% url 'games:create' %}" class="btn btn-primary">
-      <i class="bi bi-plus-lg"></i> Record Game
+    <a href="{% url 'games:create' %}" class="btn btn-primary game-list-record-btn">
+      <i class="bi bi-plus-lg"></i> <span class="game-list-record-label">Record Game</span>
     </a>
   </div>
 
-  <div class="card mb-3">
-    <div class="card-body">
+  <div class="card mb-3 game-list-filters-card">
+    <div class="card-body game-list-filters-body">
       <form method="get" id="game-list-filters" class="row g-3 align-items-end">
         <div class="col-12 col-md-3">
           <label for="filter-group" class="form-label">Group</label>
-          <select id="filter-group" name="group" class="form-select" onchange="this.form.submit()">
+          <select id="filter-group" name="group" class="form-select game-list-filter-select" onchange="this.form.submit()">
             <option value="">All groups</option>
             {% for group in groups %}
               <option value="{{ group.pk }}" {% if params.group == group.pk|stringformat:"s" %}selected{% endif %}>
@@ -31,7 +32,7 @@
         </div>
         <div class="col-12 col-md-3">
           <label for="filter-game-type" class="form-label">Game type</label>
-          <select id="filter-game-type" name="game_type" class="form-select" onchange="this.form.submit()">
+          <select id="filter-game-type" name="game_type" class="form-select game-list-filter-select" onchange="this.form.submit()">
             <option value="">All games</option>
             {% for code, name in game_types %}
               <option value="{{ code }}" {% if params.game_type == code %}selected{% endif %}>
@@ -42,7 +43,7 @@
         </div>
         <div class="col-12 col-md-3">
           <label for="filter-location" class="form-label">Location</label>
-          <select id="filter-location" name="location" class="form-select" onchange="this.form.submit()">
+          <select id="filter-location" name="location" class="form-select game-list-filter-select" onchange="this.form.submit()">
             <option value="">All locations</option>
             {% for location in locations %}
               <option value="{{ location.pk }}" {% if params.location == location.pk|stringformat:"s" %}selected{% endif %}>
@@ -53,7 +54,7 @@
         </div>
         <div class="col-12 col-md-3">
           <label for="filter-sort" class="form-label">Date</label>
-          <select id="filter-sort" name="sort" class="form-select" onchange="this.form.submit()">
+          <select id="filter-sort" name="sort" class="form-select game-list-filter-select" onchange="this.form.submit()">
             <option value="desc" {% if params.sort == "desc" %}selected{% endif %}>Newest first</option>
             <option value="asc" {% if params.sort == "asc" %}selected{% endif %}>Oldest first</option>
           </select>
@@ -63,8 +64,8 @@
   </div>
 
   {% if list_stats %}
-    <div class="card mb-3">
-      <div class="card-header d-flex justify-content-between align-items-center py-2">
+    <div class="card mb-3 game-list-stats-card">
+      <div class="card-header d-flex justify-content-between align-items-center game-list-stats-header">
         <button
           class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex align-items-center gap-2"
           type="button"
@@ -82,14 +83,14 @@
         {% endif %}
       </div>
       <div id="game-list-stats" class="collapse">
-        <div class="card-body pt-2 pb-3">
-          <div class="table-responsive">
-            <table class="table table-sm table-bordered mb-2 game-list-stats-table">
+        <div class="card-body game-list-stats-body">
+          <div class="table-responsive game-list-table-wrap">
+            <table class="table table-bordered mb-0 game-list-stats-table game-list-data-table{% if list_density != 'comfortable' %} table-sm{% endif %}">
               <thead>
                 <tr>
                   <th scope="col" class="game-list-stats-sticky-col"></th>
                   {% for player_stat in list_stats.players %}
-                    <th scope="col" class="text-center">{{ player_stat.player.display_label }}</th>
+                    <th scope="col" class="text-center game-list-player-col">{{ player_stat.player.display_label }}</th>
                   {% endfor %}
                   <th scope="col" class="text-center game-list-stats-col--all">All</th>
                 </tr>
@@ -99,7 +100,7 @@
                   <tr>
                     <th scope="row" class="game-list-stats-sticky-col">{{ stat_row.label }}</th>
                     {% for cell in stat_row.player_cells %}
-                      <td class="text-center{% if cell.css_class %} {{ cell.css_class }}{% endif %}">
+                      <td class="text-center game-list-player-col{% if cell.css_class %} {{ cell.css_class }}{% endif %}">
                         {{ cell.value }}
                       </td>
                     {% endfor %}
@@ -119,49 +120,49 @@
   {% endif %}
 
   {% if game_rows %}
-    <div class="card">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0 game-list-table">
+    <div class="card game-list-table-card">
+      <div class="table-responsive game-list-table-wrap">
+        <table class="table table-hover mb-0 game-list-table game-list-data-table{% if list_density != 'comfortable' %} table-sm{% endif %}">
           <thead class="game-list-table-head">
             <tr>
-              <th scope="col">Date</th>
+              <th scope="col" class="game-list-nowrap-col">Date</th>
               {% if show_group_column %}
-                <th scope="col">Group</th>
+                <th scope="col" class="game-list-nowrap-col">Group</th>
               {% endif %}
               {% if show_game_type_column %}
-                <th scope="col">Game</th>
+                <th scope="col" class="game-list-nowrap-col">Game</th>
               {% endif %}
               {% if show_location_column %}
-                <th scope="col">Location</th>
+                <th scope="col" class="game-list-nowrap-col">Location</th>
               {% endif %}
               {% for player in player_columns %}
-                <th scope="col" class="text-center">{{ player.display_label }}</th>
+                <th scope="col" class="text-center game-list-player-col">{{ player.display_label }}</th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
             {% for row in game_rows %}
               <tr>
-                <td>
-                  <a href="{% url 'games:detail' row.game.pk %}">{{ row.game.played_on|date:"M j, Y" }}</a>
+                <td class="game-list-nowrap-col">
+                  <a href="{% url 'games:detail' row.game.pk %}">{{ row.game.played_on|date:date_format }}</a>
                 </td>
                 {% if show_group_column %}
-                  <td>
+                  <td class="game-list-nowrap-col">
                     <a href="{% url 'groups:detail' row.game.group.pk %}">{{ row.game.group.name }}</a>
                   </td>
                 {% endif %}
                 {% if show_game_type_column %}
-                  <td>
+                  <td class="game-list-nowrap-col">
                     {{ row.game.game_type.name }}
                     {% if row.game.double_weight == 2 %}
-                      <span class="badge text-bg-secondary">2×</span>
+                      <span class="badge text-bg-secondary game-list-weight-badge">2×</span>
                     {% elif row.game.half_weight == 2 %}
-                      <span class="badge text-bg-secondary">½</span>
+                      <span class="badge text-bg-secondary game-list-weight-badge">½</span>
                     {% endif %}
                   </td>
                 {% endif %}
                 {% if show_location_column %}
-                  <td class="text-muted">
+                  <td class="text-muted game-list-nowrap-col">
                     {% if row.game.location %}
                       {{ row.game.location.name }}
                     {% else %}
@@ -170,7 +171,7 @@
                   </td>
                 {% endif %}
                 {% for cell in row.cells %}
-                  <td class="text-center{% if cell.css_class %} {{ cell.css_class }}{% endif %}">
+                  <td class="text-center game-list-player-col{% if cell.css_class %} {{ cell.css_class }}{% endif %}">
                     {% if cell.score is not None %}
                       {{ cell.score }}
                     {% else %}
@@ -183,18 +184,18 @@
           </tbody>
           <tfoot class="game-list-table-foot d-none">
             <tr>
-              <th scope="col">Date</th>
+              <th scope="col" class="game-list-nowrap-col">Date</th>
               {% if show_group_column %}
-                <th scope="col">Group</th>
+                <th scope="col" class="game-list-nowrap-col">Group</th>
               {% endif %}
               {% if show_game_type_column %}
-                <th scope="col">Game</th>
+                <th scope="col" class="game-list-nowrap-col">Game</th>
               {% endif %}
               {% if show_location_column %}
-                <th scope="col">Location</th>
+                <th scope="col" class="game-list-nowrap-col">Location</th>
               {% endif %}
               {% for player in player_columns %}
-                <th scope="col" class="text-center">{{ player.display_label }}</th>
+                <th scope="col" class="text-center game-list-player-col">{{ player.display_label }}</th>
               {% endfor %}
             </tr>
           </tfoot>
@@ -203,7 +204,7 @@
     </div>
 
     {% if page.has_other_pages %}
-      <nav class="mt-3" aria-label="Games pagination">
+      <nav class="mt-3 game-list-pagination" aria-label="Games pagination">
         <ul class="pagination justify-content-center flex-wrap mb-0">
           {% if page.has_previous %}
             <li class="page-item">
@@ -256,6 +257,7 @@
       </div>
     </div>
   {% endif %}
+  </div>
 {% endblock %}
 
 {% block extra_js %}
