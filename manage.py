@@ -12,9 +12,11 @@ def main():
     # still works. If you see production settings locally, check your shell:
     #   grep -r DJANGO_SETTINGS_MODULE ~/.zshrc ~/.bash_profile ~/.bashrc
     #
-    # `railway run` from a laptop injects RAILWAY_ENVIRONMENT but not PORT.
-    # Use production settings so management commands hit the deployed config.
-    if os.environ.get("RAILWAY_ENVIRONMENT") and not os.environ.get("PORT"):
+    # Use production settings whenever Railway injects RAILWAY_ENVIRONMENT —
+    # including container startup (migrate/collectstatic), where PORT is
+    # already set. Using local settings during collectstatic skips the
+    # WhiteNoise manifest and breaks /admin/ at runtime.
+    if os.environ.get("RAILWAY_ENVIRONMENT"):
         os.environ.setdefault(
             "DJANGO_SETTINGS_MODULE",
             "leaderlodge.settings.production",
