@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractBaseUser
+from django.db import IntegrityError
 
 from leaderlodge.groups.locations import create_location_library
 from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
@@ -28,10 +29,69 @@ def resolve_seed_player(*, group: Group, seed_name: str) -> GroupPlayer:
         raise ValueError("Seed player name cannot be empty.")
 
     seed_lower = cleaned.lower()
-    players = group.players.filter(is_active=True).select_related("linked_user")
+    players = list(group.players.select_related("linked_user"))
+
+    for player in players:
+        linked_user = player.linked_user
+        if linked_user is None:
+            continue
+        if linked_user.get_username().lower() == seed_lower:
+            return player
+
+    for player in players:
+        linked_user = player.linked_user
+        if linked_user is None:
+            continue
+        first_name = (linked_user.first_name or "").strip().lower()
+        if first_name and first_name == seed_lower:
+            return player
+
     for player in players:
         if player.display_name.lower() == seed_lower:
             return player
+
+    for membership in group.memberships.select_related("user"):
+        user = membership.user
+        if user.get_username().lower() == seed_lower:
+            return _get_or_create_linked_player(group=group, user=user)
+        first_name = (user.first_name or "").strip().lower()
+        if first_name and first_name == seed_lower:
+            return _get_or_create_linked_player(group=group, user=user)
+
+    try:
+        return add_guest_player(group=group, display_name=cleaned)
+    except IntegrityError:
+        return _resolve_seed_player_after_conflict(group=group, cleaned=cleaned)
+
+
+def _get_or_create_linked_player(
+    *, group: Group, user: AbstractBaseUser
+) -> GroupPlayer:
+    player = group.players.filter(linked_user=user).first()
+    if player is not None:
+        return player
+
+    try:
+        return GroupPlayer.objects.create(
+            group=group,
+            display_name=player_display_name(user),
+            linked_user=user,
+        )
+    except IntegrityError:
+        player = group.players.filter(linked_user=user).first()
+        if player is not None:
+            return player
+        raise
+
+
+def _resolve_seed_player_after_conflict(*, group: Group, cleaned: str) -> GroupPlayer:
+    seed_lower = cleaned.lower()
+
+    player = group.players.filter(display_name__iexact=cleaned).first()
+    if player is not None:
+        return player
+
+    for player in group.players.select_related("linked_user"):
         linked_user = player.linked_user
         if linked_user is None:
             continue
@@ -41,7 +101,9 @@ def resolve_seed_player(*, group: Group, seed_name: str) -> GroupPlayer:
         if first_name and first_name == seed_lower:
             return player
 
-    return add_guest_player(group=group, display_name=cleaned)
+    raise IntegrityError(
+        f"Could not resolve seed player {cleaned!r} for group {group.name!r}."
+    )
 
 
 def create_group_with_owner(

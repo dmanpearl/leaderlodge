@@ -16,7 +16,7 @@ from leaderlodge.games.importing.service import (
     import_scorekeeper_file,
 )
 from leaderlodge.games.models import Game
-from leaderlodge.groups.models import GroupPlayer
+from leaderlodge.groups.models import GroupMembership, GroupPlayer
 from leaderlodge.groups.names import format_user_display_name
 from leaderlodge.groups.services import (
     add_guest_player,
@@ -101,6 +101,102 @@ def test_resolve_seed_player_matches_existing_guest(group):
 
 
 @pytest.mark.django_db
+def test_resolve_seed_player_matches_inactive_guest(group):
+    guest = add_guest_player(group=group, display_name="Nancy")
+    guest.is_active = False
+    guest.save(update_fields=["is_active"])
+
+    player = resolve_seed_player(group=group, seed_name="Nancy")
+    assert player.pk == guest.pk
+
+
+@pytest.mark.django_db
+def test_resolve_seed_player_matches_inactive_linked_first_name(group, user):
+    nancy_user = User.objects.create_user(
+        username="nmanpearl",
+        password="test-pass-123",
+        first_name="Nancy",
+        last_name="Pearl",
+    )
+    player = GroupPlayer.objects.create(
+        group=group,
+        display_name="Nancy P.",
+        linked_user=nancy_user,
+        is_active=False,
+    )
+
+    resolved = resolve_seed_player(group=group, seed_name="Nancy")
+    assert resolved.pk == player.pk
+    assert resolved.linked_user_id == nancy_user.pk
+
+
+@pytest.mark.django_db
+def test_resolve_seed_player_creates_player_for_group_member_first_name(group, user):
+    nancy_user = User.objects.create_user(
+        username="nmanpearl",
+        password="test-pass-123",
+        first_name="Nancy",
+    )
+    GroupMembership.objects.create(
+        group=group,
+        user=nancy_user,
+        role=GroupMembership.Role.MEMBER,
+    )
+
+    player = resolve_seed_player(group=group, seed_name="Nancy")
+    assert player.linked_user_id == nancy_user.pk
+    assert player.display_name == "Nancy"
+
+
+@pytest.mark.django_db
+def test_resolve_seed_player_prefers_linked_user_over_guest_display_name(group, user):
+    add_guest_player(group=group, display_name="Nancy")
+    nancy_user = User.objects.create_user(
+        username="nmanpearl",
+        password="test-pass-123",
+        first_name="Nancy",
+    )
+    linked = GroupPlayer.objects.create(
+        group=group,
+        display_name="Nancy P.",
+        linked_user=nancy_user,
+    )
+
+    player = resolve_seed_player(group=group, seed_name="Nancy")
+    assert player.pk == linked.pk
+
+
+@pytest.mark.django_db
+def test_import_scorekeeper_file_uses_linked_nancy_player(group, user, sample_spreadsheet):
+    nancy_user = User.objects.create_user(
+        username="nmanpearl",
+        password="test-pass-123",
+        first_name="Nancy",
+    )
+    nancy_player = GroupPlayer.objects.create(
+        group=group,
+        display_name="Nancy",
+        linked_user=nancy_user,
+    )
+
+    summary = import_scorekeeper_file(
+        path=sample_spreadsheet,
+        group=group,
+        game_type_code="dominos",
+        recorded_by=user,
+    )
+
+    assert summary.created == 2
+    assert GroupPlayer.objects.filter(group=group, display_name="Nancy").count() == 1
+    games = Game.objects.filter(group=group).prefetch_related(
+        "participant_results__player"
+    )
+    for game in games:
+        nancy_participant = game.participant_results.get(player__linked_user=nancy_user)
+        assert nancy_participant.player_id == nancy_player.pk
+
+
+@pytest.mark.django_db
 def test_resolve_seed_player_creates_guest(group):
     player = resolve_seed_player(group=group, seed_name="Nancy")
     assert player.display_name == "Nancy"
@@ -169,6 +265,44 @@ def test_import_games_command(group, user, sample_spreadsheet):
     output = stdout.getvalue()
     assert "Created: 2" in output
     assert Game.objects.filter(group=group, import_source="dominos_seed_test").count() == 2
+
+
+@pytest.mark.django_db
+def test_import_backgammon_after_dominos(group, user, sample_spreadsheet, tmp_path):
+    """Second scorekeeper import reuses Nancy created by the first."""
+    backgammon_path = tmp_path / "backgammon_seed_test.xlsx"
+    _write_scorekeeper(
+        backgammon_path,
+        [
+            (datetime(2026, 4, 1), 1, 0, "Home"),
+        ],
+    )
+
+    import_scorekeeper_file(
+        path=sample_spreadsheet,
+        group=group,
+        game_type_code="dominos",
+        recorded_by=user,
+    )
+    assert GroupPlayer.objects.filter(group=group, display_name="Nancy").count() == 1
+
+    summary = import_scorekeeper_file(
+        path=backgammon_path,
+        group=group,
+        game_type_code="backgammon",
+        recorded_by=user,
+    )
+
+    assert summary.created == 1
+    assert GroupPlayer.objects.filter(group=group, display_name="Nancy").count() == 1
+
+
+@pytest.mark.django_db
+def test_resolve_seed_player_reuses_existing_after_integrity_error(group):
+    add_guest_player(group=group, display_name="Nancy")
+    player = resolve_seed_player(group=group, seed_name="Nancy")
+    assert player.display_name == "Nancy"
+    assert GroupPlayer.objects.filter(group=group, display_name="Nancy").count() == 1
 
 
 @pytest.mark.django_db
