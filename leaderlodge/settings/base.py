@@ -37,6 +37,20 @@ _custom_host = os.environ.get("DJANGO_ALLOWED_HOST", "")
 if _custom_host and _custom_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_custom_host)
 
+# Railway health checks and internal routing use these hostnames, not the
+# custom domain. rating-ranch keeps its *.up.railway.app hostname here too.
+if os.environ.get("RAILWAY_ENVIRONMENT"):
+    for host in (
+        ".up.railway.app",
+        ".railway.internal",
+        "healthcheck.railway.app",
+    ):
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
+    _private_domain = os.environ.get("RAILWAY_PRIVATE_DOMAIN", "")
+    if _private_domain and _private_domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_private_domain)
+
 CSRF_TRUSTED_ORIGINS = [
     "https://leaderlodge.com",
     "https://www.leaderlodge.com",
