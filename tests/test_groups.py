@@ -175,3 +175,24 @@ def test_add_group_member_hidden_from_non_member(client, other_user, group):
     )
 
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_add_group_member_links_existing_guest_player(client, user, group):
+    nancy = User.objects.create_user(
+        username="nmanpearl",
+        password="test-pass-123",
+        first_name="Nancy",
+    )
+    guest = GroupPlayer.objects.create(group=group, display_name="Nancy")
+    client.force_login(user)
+    response = client.post(
+        reverse("groups:member_add", kwargs={"pk": group.pk}),
+        {"user": nancy.pk},
+    )
+
+    assert response.status_code == 302
+    guest.refresh_from_db()
+    assert guest.linked_user_id == nancy.pk
+    assert GroupMembership.objects.filter(group=group, user=nancy).exists()
+    assert group.players.filter(display_name__iexact="Nancy").count() == 1

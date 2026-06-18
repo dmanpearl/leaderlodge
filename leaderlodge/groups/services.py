@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractBaseUser
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 
 from leaderlodge.groups.locations import create_location_library
 from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
@@ -64,6 +64,27 @@ def resolve_seed_player(*, group: Group, seed_name: str) -> GroupPlayer:
         return _resolve_seed_player_after_conflict(group=group, cleaned=cleaned)
 
 
+def _link_guest_player(
+    *, group: Group, user: AbstractBaseUser, display_name: str
+) -> GroupPlayer | None:
+    player = group.players.filter(
+        display_name__iexact=display_name,
+        linked_user__isnull=True,
+    ).first()
+    if player is None:
+        first_name = (user.first_name or "").strip()
+        if first_name:
+            player = group.players.filter(
+                display_name__iexact=first_name,
+                linked_user__isnull=True,
+            ).first()
+    if player is None:
+        return None
+    player.linked_user = user
+    player.save(update_fields=["linked_user"])
+    return player
+
+
 def _get_or_create_linked_player(
     *, group: Group, user: AbstractBaseUser
 ) -> GroupPlayer:
@@ -71,16 +92,24 @@ def _get_or_create_linked_player(
     if player is not None:
         return player
 
+    display_name = player_display_name(user)
+    linked = _link_guest_player(group=group, user=user, display_name=display_name)
+    if linked is not None:
+        return linked
+
     try:
         return GroupPlayer.objects.create(
             group=group,
-            display_name=player_display_name(user),
+            display_name=display_name,
             linked_user=user,
         )
     except IntegrityError:
         player = group.players.filter(linked_user=user).first()
         if player is not None:
             return player
+        linked = _link_guest_player(group=group, user=user, display_name=display_name)
+        if linked is not None:
+            return linked
         raise
 
 
@@ -169,10 +198,11 @@ def add_group_member(
     user: AbstractBaseUser,
     role: str = GroupMembership.Role.MEMBER,
 ) -> GroupMembership:
-    membership = GroupMembership.objects.create(
-        group=group,
-        user=user,
-        role=role,
-    )
-    _get_or_create_linked_player(group=group, user=user)
+    with transaction.atomic():
+        membership = GroupMembership.objects.create(
+            group=group,
+            user=user,
+            role=role,
+        )
+        _get_or_create_linked_player(group=group, user=user)
     return membership
