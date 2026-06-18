@@ -19,7 +19,6 @@ def group(user):
     return group
 
 
-@pytest.mark.django_db
 def test_score_fuzzy_match_prefers_prefix():
     assert score_fuzzy_match("pat", "Pat") > score_fuzzy_match("pat", "Patrick")
 

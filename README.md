@@ -57,7 +57,7 @@ Copy `.env.example` to `.env` for local development. On Railway, set variables i
 | Module | Used by | DEBUG |
 |--------|---------|-------|
 | `leaderlodge.settings.local` | `manage.py runserver` (default) | `True` |
-| `leaderlodge.settings.test` | `pytest` (automatic) | `True` |
+| `leaderlodge.settings.test` | `pytest` (automatic) | `True` — isolated `test_db.sqlite3`, see [setup](docs/setup.md#tests) |
 | `leaderlodge.settings.production` | Railway via `gunicorn leaderlodge.wsgi` | `False` |
 
 `manage.py` defaults to local settings via `setdefault`, so Railway's explicit `DJANGO_SETTINGS_MODULE=leaderlodge.settings.production` is preserved.

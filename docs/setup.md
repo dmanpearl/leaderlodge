@@ -60,6 +60,22 @@ pytest
 
 Tests use `leaderlodge.settings.test` (see `pytest.ini`). You do not need a `.env` file to run pytest, but you need one for `manage.py` commands.
 
+Pytest uses a dedicated SQLite file, `test_db.sqlite3` (not `db.sqlite3`), and reuses it between runs (`--reuse-db` in `pytest.ini`) so repeat runs stay fast.
+
+**After you change models or add migrations**, rebuild the test database once:
+
+```bash
+pytest --create-db
+```
+
+Or delete the file and run pytest normally:
+
+```bash
+rm test_db.sqlite3 && pytest
+```
+
+Both commands run the same tests; `--create-db` only forces a fresh schema. Use it when migrations change or tests fail in ways that smell like a stale DB.
+
 ## Importing historical games
 
 See [Importing game history](importing.md) for seed file layout, player mapping, and the `import_games` management command.

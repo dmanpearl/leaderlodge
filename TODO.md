@@ -16,6 +16,8 @@
 
 ## Open Items
 
+- [ ] Game Stats: For two person games, the "Ties" row is not necessary to have entries for both players, as the will always be equivalent. Add a mechanism for merging adjacent cells and displaying a single tie count for the pair of players.
+- [ ] Game Stats: Need first date, last date, and date range. Range in humanize formatting. Use cell merge as necessary from the Game Stat Ties todo item.
 - [ ] Game Stats: Implement a way to hide some Guest/Players (Allyn, Alize)
 - [ ] Leaderboard: Add rank column and order the list by rank. Initial rank formula: r=sum(nummber-of-players-in-each-game-you-won)/number-of-games-you-played
 - [ ] Never display different kinds of games together in the Games list. There is always exactly one chosen. Display the game name up top. Remove Game Type column.

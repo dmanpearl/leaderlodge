@@ -40,6 +40,25 @@ def test_navbar_shows_login_button_for_anonymous(client):
     assert "dropdown-toggle" not in content
 
 
+@pytest.mark.parametrize("account_fixture", ["staff_user", "superuser"])
+@pytest.mark.django_db
+def test_navbar_shows_admin_for_privileged_user(client, account_fixture, request):
+    user = request.getfixturevalue(account_fixture)
+    client.force_login(user)
+    response = client.get(reverse("core:dashboard"))
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "Admin" in content
+    assert "System Admin" not in content
+    assert 'class="bi bi-gear navbar-menu-icon"' in content
+    assert reverse("admin:index") in content
+    assert "Administration" not in content
+    assert ">Dashboard</a>" not in content
+    if account_fixture == "staff_user":
+        assert content.count(f'href="{reverse("core:dashboard")}"') == 1
+
+
 @pytest.mark.django_db
 def test_navbar_shows_account_dropdown_for_member(client, user):
     client.force_login(user)
@@ -59,31 +78,3 @@ def test_navbar_shows_account_dropdown_for_member(client, user):
     assert 'class="bi bi-plus-lg navbar-nav-icon"' in content
     assert reverse("games:create") in content
     assert "\n              Add\n" in content or ">Add</a>" in content
-
-
-@pytest.mark.django_db
-def test_navbar_shows_system_admin_for_staff(client, staff_user):
-    client.force_login(staff_user)
-    response = client.get(reverse("core:dashboard"))
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "Admin" in content
-    assert "System Admin" not in content
-    assert 'class="bi bi-gear navbar-menu-icon"' in content
-    assert reverse("admin:index") in content
-    assert "Administration" not in content
-    assert ">Dashboard</a>" not in content
-    assert content.count(f'href="{reverse("core:dashboard")}"') == 1
-
-
-@pytest.mark.django_db
-def test_navbar_shows_system_admin_for_superuser(client, superuser):
-    client.force_login(superuser)
-    response = client.get(reverse("core:dashboard"))
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "Admin" in content
-    assert "System Admin" not in content
-    assert 'class="bi bi-gear navbar-menu-icon"' in content
