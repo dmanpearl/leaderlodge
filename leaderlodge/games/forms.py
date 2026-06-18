@@ -6,6 +6,7 @@ from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.registry import game_type_choices, get_game_type
 from leaderlodge.games.scoring import assign_results_from_scores, player_count_is_valid
 from leaderlodge.groups.models import Group
+from leaderlodge.groups.player_search import resolve_participant_player
 
 
 class GameRecordForm(forms.Form):
@@ -43,12 +44,21 @@ class GameRecordForm(forms.Form):
             self.fields["group"].queryset = user_groups(user).order_by("name")
 
 
-def parse_participants_from_post(post, players) -> list[dict]:
+def parse_participants_from_post(post, *, group) -> list[dict]:
     rows = []
-    for player in players:
-        if post.get(f"play_{player.pk}") != "on":
+    player_ids = post.getlist("participant_player_id")
+    guest_names = post.getlist("participant_guest_name")
+    scores = post.getlist("participant_score")
+    for player_id_raw, guest_name, score_raw in zip(
+        player_ids, guest_names, scores, strict=False
+    ):
+        player = resolve_participant_player(
+            group=group,
+            player_id=player_id_raw.strip() or None,
+            guest_name=guest_name.strip() or None,
+        )
+        if player is None:
             continue
-        score_raw = post.get(f"score_{player.pk}", "0")
         try:
             score = int(score_raw)
         except (TypeError, ValueError):

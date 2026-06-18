@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from leaderlodge.groups.forms import GroupForm, GroupMemberForm, GroupPlayerForm
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.locations import locations_for_group
+from leaderlodge.groups.player_search import search_group_players
 from leaderlodge.groups.services import (
     add_guest_player,
     add_group_member,
@@ -98,6 +99,17 @@ def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
         for location in locations_for_group(group)
     ]
     return JsonResponse({"locations": locations})
+
+
+@login_required
+def group_players_search(request: HttpRequest, pk: int) -> JsonResponse:
+    group = get_object_or_404(Group, pk=pk)
+    if not user_is_member(request.user, group):
+        raise Http404
+
+    query = request.GET.get("q", "")
+    players = search_group_players(group, query)
+    return JsonResponse({"players": players})
 
 
 @login_required

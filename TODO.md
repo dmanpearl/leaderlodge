@@ -12,13 +12,13 @@
 - [x] Game list stats table: highlight winners, losers, and ties
 - [x] Game stats view: Remove thick bar to the left of 'All' gray highlight is enough
 - [x] Login UI: If user is not logged in, show a Login button with a unicode user icon. If user is logged in, make the username a drop-down menu with options: System Admin and Logout (more options will be added later)
+- [x] In the Record Game form, don’t show all names, instead make user choose from a fuzzy predictive drop-down list of Users and Guests from auto-completion or add a new Guest if the user types in a unique new name.
 
 ## Open Items
 
 - [ ] Game Stats: Implement a way to hide some Guest/Players (Allyn, Alize)
 - [ ] Leaderboard: Add rank column and order the list by rank. Initial rank formula: r=sum(nummber-of-players-in-each-game-you-won)/number-of-games-you-played
 - [ ] Never display different kinds of games together in the Games list. There is always exactly one chosen. Display the game name up top. Remove Game Type column.
-- [ ] In the Record Game form, don’t show all names, instead make user choose from a fuzzy predictive drop-down list of names or type in a new name.
 - [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.
 - [ ] Verify that group user logins have access to the shared group games (ie. Zach and Nancy‘s logins can see our shared group)
 - [ ] Group members: Replace all-users dropdown with a secure, private, scalable invite method (email/link, not a public account picker)

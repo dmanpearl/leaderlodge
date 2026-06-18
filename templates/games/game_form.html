@@ -4,8 +4,9 @@
 {% block title %}Record Game | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  {% if show_roster and player_rows %}
+  {% if show_roster %}
     <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/player_picker.css' %}" />
   {% else %}
     <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}" />
   {% endif %}
@@ -78,7 +79,7 @@
             </div>
           </div>
           <div class="mt-3">
-            <button type="submit" class="btn btn-outline-primary">Load roster</button>
+            <button type="submit" class="btn btn-outline-primary">Continue</button>
           </div>
         </form>
       </div>
@@ -93,88 +94,107 @@
           <div class="alert alert-danger">{{ participant_error }}</div>
         {% endif %}
 
-        {% if player_rows %}
-          <p class="text-muted small">
-            Enter a final score for each player who took part. Highest score wins;
-            tied high scores are a tie{% if game_type.supports_loser %}. Lowest score
-            loses; tied low scores are all losses{% endif %}.
-            {{ game_type.name }} requires {{ game_type.min_players }} to {{ game_type.max_players }} players.
-          </p>
+        <p class="text-muted small">
+          Add each player who took part, then enter scores.
+          {{ scoring_instructions }}
+          {{ game_type.name }} requires {{ game_type.min_players }} to {{ game_type.max_players }} players.
+        </p>
 
-          <form
-            method="post"
-            id="game-record-form"
-            data-min-players="{{ game_type.min_players }}"
-            data-max-players="{{ game_type.max_players }}"
-            data-supports-loser="{% if game_type.supports_loser %}true{% else %}false{% endif %}"
-            data-score-direction="{{ game_type.score_direction }}"
-            data-win-target-score="{% if game_type.win_target_score %}{{ game_type.win_target_score }}{% endif %}"
-          >
-            {% csrf_token %}
-            <input type="hidden" name="action" value="save" />
-            <input type="hidden" name="group" value="{{ group.pk }}" />
-            <input type="hidden" name="game_type_code" value="{{ game_type.code }}" />
-            <input type="hidden" name="played_on" value="{{ played_on_value }}" />
-            <input type="hidden" name="location_name" value="{{ location_name }}" />
+        <form
+          method="post"
+          id="game-record-form"
+          data-min-players="{{ game_type.min_players }}"
+          data-max-players="{{ game_type.max_players }}"
+          data-supports-loser="{% if game_type.supports_loser %}true{% else %}false{% endif %}"
+          data-score-direction="{{ game_type.score_direction }}"
+          data-win-target-score="{% if game_type.win_target_score %}{{ game_type.win_target_score }}{% endif %}"
+        >
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save" />
+          <input type="hidden" name="group" value="{{ group.pk }}" />
+          <input type="hidden" name="game_type_code" value="{{ game_type.code }}" />
+          <input type="hidden" name="played_on" value="{{ played_on_value }}" />
+          <input type="hidden" name="location_name" value="{{ location_name }}" />
 
-            <div class="alert alert-warning d-none small py-2" data-score-feedback role="status"></div>
+          {{ roster|json_script:"game-roster-data" }}
 
-            <div class="table-responsive">
-              <table class="table table-striped align-middle">
-                <thead>
-                  <tr>
-                    <th scope="col">Player</th>
-                    <th scope="col">Score</th>
-                    <th scope="col">Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in player_rows %}
-                    <tr data-game-row data-player-id="{{ row.player.pk }}">
-                      <td>
-                        <input
-                          type="checkbox"
-                          class="d-none"
-                          name="play_{{ row.player.pk }}"
-                          id="play_{{ row.player.pk }}"
-                          data-play-input
-                          {% if row.played %}checked{% endif %}
-                        />
-                        <label for="score_{{ row.player.pk }}" class="mb-0">{{ row.player.display_label }}</label>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          name="score_{{ row.player.pk }}"
-                          id="score_{{ row.player.pk }}"
-                          class="form-control form-control-sm"
-                          data-score-input
-                          value="{% if row.played %}{{ row.score }}{% endif %}"
-                          style="max-width: 6rem;"
-                        />
-                      </td>
-                      <td data-result-cell></td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+          <div class="player-picker-wrap mb-3">
+            <label for="player-picker-input" class="form-label">Add player</label>
+            <input
+              type="text"
+              id="player-picker-input"
+              class="form-control"
+              data-player-picker
+              placeholder="Search roster or type a new guest name"
+              autocomplete="off"
+            />
+            <div class="form-text">
+              Pick someone from the group roster, or enter a new name to add a guest to the group permanently.
             </div>
+          </div>
 
-            <button type="submit" class="btn btn-primary" data-save-button disabled>Save game</button>
-          </form>
-        {% else %}
-          <p class="text-muted mb-0">
-            This group has no players yet.
-            <a href="{% url 'groups:detail' group.pk %}">Add players</a> first.
-          </p>
-        {% endif %}
+          <div class="alert alert-warning d-none small py-2" data-score-feedback role="status"></div>
+
+          <div class="table-responsive">
+            <table class="table table-striped align-middle">
+              <thead>
+                <tr>
+                  <th scope="col">Player</th>
+                  <th scope="col">Score</th>
+                  <th scope="col">Result</th>
+                </tr>
+              </thead>
+              <tbody data-participant-rows>
+                {% for row in participant_rows %}
+                  <tr
+                    data-game-row
+                    data-row-key="{% if row.player_id %}player-{{ row.player_id }}{% else %}guest-{{ row.guest_name|lower }}{% endif %}"
+                    data-player-id="{% if row.player_id %}{{ row.player_id }}{% else %}guest:{{ row.guest_name }}{% endif %}"
+                  >
+                    <td>
+                      <div class="d-flex align-items-center justify-content-between gap-2 participant-label">
+                        <span>
+                          {{ row.display_label }}
+                          {% if row.player and row.player.linked_user %}
+                            <span class="text-muted small">({{ row.player.linked_user.username }})</span>
+                          {% elif row.player %}
+                            <span class="badge text-bg-secondary ms-1">Guest</span>
+                          {% else %}
+                            <span class="badge text-bg-secondary ms-1">New guest</span>
+                          {% endif %}
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-remove-participant aria-label="Remove player">&times;</button>
+                      </div>
+                      <input type="hidden" name="participant_player_id" value="{{ row.player_id }}" />
+                      <input type="hidden" name="participant_guest_name" value="{{ row.guest_name }}" />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        name="participant_score"
+                        class="form-control form-control-sm"
+                        data-score-input
+                        value="{{ row.score }}"
+                        style="max-width: 6rem;"
+                      />
+                    </td>
+                    <td data-result-cell></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <button type="submit" class="btn btn-primary" data-save-button disabled>Save game</button>
+        </form>
       </div>
     </div>
   {% endif %}
 {% endblock %}
 
 {% block extra_js %}
-  {% if show_roster and player_rows %}
+  {% if show_roster %}
+    <script src="{% static 'js/player_picker.js' %}"></script>
     <script src="{% static 'js/game_record_form.js' %}"></script>
   {% else %}
     <script>

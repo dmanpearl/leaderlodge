@@ -11,11 +11,13 @@ from leaderlodge.games.forms import (
     parse_participants_from_post,
     prepare_participant_rows,
 )
+from leaderlodge.groups.player_search import roster_for_group
 from leaderlodge.games.list_density import game_list_date_format, resolve_game_list_density
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES, game_type_choices, get_game_type
+from leaderlodge.games.scoring import scoring_instructions
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.models import Group, Location
 from leaderlodge.groups.services import (
@@ -93,25 +95,44 @@ def _game_list_has_filters(params: dict[str, str]) -> bool:
     return any(params[key] for key in ("group", "game_type", "location"))
 
 
-def _player_rows(players, post=None):
+def _participant_rows_from_post(group, post):
     rows = []
-    for player in players:
-        if post is not None:
-            rows.append(
-                {
-                    "player": player,
-                    "played": post.get(f"play_{player.pk}") == "on",
-                    "score": post.get(f"score_{player.pk}", "0"),
-                }
+    player_ids = post.getlist("participant_player_id")
+    guest_names = post.getlist("participant_guest_name")
+    scores = post.getlist("participant_score")
+    for player_id_raw, guest_name, score_raw in zip(
+        player_ids, guest_names, scores, strict=False
+    ):
+        player = None
+        display_label = ""
+        if player_id_raw.strip():
+            player = (
+                group.players.filter(pk=player_id_raw.strip(), is_active=True)
+                .select_related("linked_user")
+                .first()
             )
-        else:
-            rows.append(
-                {
-                    "player": player,
-                    "played": False,
-                    "score": "",
-                }
-            )
+            if player is not None:
+                display_label = player.display_label
+        elif guest_name.strip():
+            display_label = guest_name.strip()
+            player = group.players.filter(
+                display_name__iexact=display_label,
+                is_active=True,
+            ).first()
+
+        if not display_label:
+            continue
+
+        rows.append(
+            {
+                "player": player,
+                "player_id": player.pk if player else "",
+                "guest_name": guest_name.strip() if not player_id_raw.strip() else "",
+                "display_label": display_label,
+                "played": True,
+                "score": score_raw,
+            }
+        )
     return rows
 
 
@@ -232,9 +253,12 @@ def game_create(request: HttpRequest) -> HttpResponse:
             game_type_code = request.POST.get("game_type_code")
         game_type = get_game_type(game_type_code)
 
-    players = []
+    roster = []
+    participant_rows = []
     if group and show_roster:
-        players = list(group.players.filter(is_active=True).order_by("display_name"))
+        roster = roster_for_group(group)
+        if post_for_rows is not None:
+            participant_rows = _participant_rows_from_post(group, post_for_rows)
 
     if request.method == "POST" and request.POST.get("action") == "save" and group:
         save_form = GameRecordForm(
@@ -247,7 +271,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
             user=request.user,
         )
         if save_form.is_valid():
-            rows = parse_participants_from_post(request.POST, players)
+            rows = parse_participants_from_post(request.POST, group=group)
             try:
                 prepare_participant_rows(rows, save_form.cleaned_data["game_type_code"])
                 location = resolve_game_location(
@@ -277,6 +301,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 )
                 game_type = get_game_type(save_form.cleaned_data["game_type_code"])
                 form = save_form
+                participant_rows = _participant_rows_from_post(group, request.POST)
             else:
                 messages.success(request, "Game recorded.")
                 return redirect("games:detail", pk=game.pk)
@@ -297,7 +322,11 @@ def game_create(request: HttpRequest) -> HttpResponse:
         {
             "form": form,
             "group": group,
-            "player_rows": _player_rows(players, post_for_rows),
+            "participant_rows": participant_rows,
+            "roster": roster,
+            "scoring_instructions": (
+                scoring_instructions(game_type.code) if game_type else ""
+            ),
             "game_type": game_type,
             "show_roster": show_roster and group is not None and game_type is not None,
             "participant_error": participant_error,

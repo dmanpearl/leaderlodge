@@ -59,12 +59,12 @@
     return Array.from(form.querySelectorAll("[data-game-row]")).map((row) => {
       const playerId = row.dataset.playerId;
       const scoreInput = row.querySelector("[data-score-input]");
-      const playInput = row.querySelector("[data-play-input]");
       const score = parseScore(scoreInput.value);
+      const played = scoreInput.value.trim() !== "" && score !== null;
       return {
         playerId,
-        score,
-        played: playInput.checked,
+        score: played ? score : null,
+        played,
         resultCell: row.querySelector("[data-result-cell]"),
       };
     });
@@ -113,17 +113,10 @@
       const domRow = form.querySelector(
         `[data-game-row][data-player-id="${row.playerId}"]`
       );
-      const playInput = domRow.querySelector("[data-play-input]");
       const scoreInput = domRow.querySelector("[data-score-input]");
-      if (scoreInput.value.trim() !== "") {
-        playInput.checked = true;
+      if (scoreInput.value.trim() !== "" && row.score === null) {
+        row.score = 0;
         row.played = true;
-        if (row.score === null) {
-          row.score = 0;
-        }
-      } else {
-        playInput.checked = false;
-        row.played = false;
       }
     });
 
@@ -166,10 +159,7 @@
     }
 
     form.addEventListener("input", (event) => {
-      if (
-        event.target.matches("[data-score-input]") ||
-        event.target.matches("[data-play-input]")
-      ) {
+      if (event.target.matches("[data-score-input]")) {
         updateForm(form);
       }
     });

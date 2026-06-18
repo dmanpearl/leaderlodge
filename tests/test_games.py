@@ -37,11 +37,14 @@ def _save_game_post(
         "group": str(group.pk),
         "game_type_code": game_type_code,
         "played_on": timezone.localdate().isoformat(),
+        "participant_player_id": [],
+        "participant_guest_name": [],
+        "participant_score": [],
     }
-    for player in players:
-        if player in players_played:
-            data[f"play_{player.pk}"] = "on"
-            data[f"score_{player.pk}"] = str(scores.get(player.pk, 0))
+    for player in players_played:
+        data["participant_player_id"].append(str(player.pk))
+        data["participant_guest_name"].append("")
+        data["participant_score"].append(str(scores.get(player.pk, 0)))
     return data
 
 
@@ -150,7 +153,7 @@ def test_auto_select_single_group(client, user, group):
     content = response.content.decode()
     assert "Dom Club" in content
     assert "Choose a game" in content
-    assert "Load roster" in content
+    assert "Continue" in content
     assert 'id="game-record-form"' not in content
 
 
@@ -179,6 +182,50 @@ def test_load_roster_shows_formatted_date(client, user, group):
     assert "localdate" not in content
     assert "Change group or game" in content
     assert 'id="game-record-form"' in content
+    assert "data-player-picker" in content
+    assert "Add player" in content
+    assert "Highest score wins" in content
+
+
+@pytest.mark.django_db
+def test_load_roster_shows_low_wins_instructions_for_progressive_rummy(
+    client, user, group
+):
+    client.force_login(user)
+    response = client.post(
+        reverse("games:create"),
+        _load_roster_post(group, game_type_code="progressiverummy"),
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "Lowest score wins" in content
+    assert "Highest score loses" in content
+    assert "Highest score wins" not in content
+
+
+@pytest.mark.django_db
+def test_record_game_with_new_guest(client, user, group):
+    players = list(group.players.order_by("pk"))
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    response = client.post(
+        reverse("games:create"),
+        {
+            "action": "save",
+            "group": str(group.pk),
+            "game_type_code": "dominos",
+            "played_on": timezone.localdate().isoformat(),
+            "participant_player_id": [str(players[0].pk), ""],
+            "participant_guest_name": ["", "Alex"],
+            "participant_score": ["30", "20"],
+        },
+    )
+
+    assert response.status_code == 302
+    assert group.players.filter(display_name="Alex").exists()
+    game = Game.objects.get(group=group)
+    assert game.participant_results.count() == 2
 
 
 @pytest.mark.django_db
@@ -188,7 +235,7 @@ def test_setup_mode_hides_roster(client, user, group):
     assert response.status_code == 200
     content = response.content.decode()
     assert 'id="game-record-form"' not in content
-    assert "Load roster" in content
+    assert "Continue" in content
 
 
 @pytest.mark.django_db

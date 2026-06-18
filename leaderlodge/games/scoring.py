@@ -123,4 +123,19 @@ def player_count_is_valid(count: int, game_type_code: str) -> bool:
     return game_type.min_players <= count <= game_type.max_players
 
 
+def scoring_instructions(game_type_code: str) -> str:
+    game_type = get_game_type(game_type_code)
+    if game_type.score_direction == ScoreDirection.LOW_WINS:
+        win_text = "Lowest score wins; tied low scores are a tie"
+        loss_text = "Highest score loses; tied high scores are all losses"
+    else:
+        win_text = "Highest score wins; tied high scores are a tie"
+        loss_text = "Lowest score loses; tied low scores are all losses"
+
+    parts = [win_text]
+    if game_type.supports_loser:
+        parts.append(loss_text)
+    return ". ".join(parts) + "."
+
+
 assign_winner_loser_from_scores = assign_results_from_scores
