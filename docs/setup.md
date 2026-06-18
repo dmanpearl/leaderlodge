@@ -28,7 +28,7 @@ On Windows: `venv\Scripts\activate`
 
 ```bash
 source venv/bin/activate
-pip install -r requirements/local.txt
+pip install -r requirements-dev.txt
 cp .env.example .env
 # edit .env — set DJANGO_SECRET_KEY
 python manage.py migrate

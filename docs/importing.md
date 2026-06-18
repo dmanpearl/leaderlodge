@@ -139,4 +139,4 @@ If no match is found, a guest player is created with that display name.
 
 ## Dependencies
 
-Spreadsheet import requires `openpyxl`, included in `requirements/base.txt`.
+Spreadsheet import requires `openpyxl`, included in `requirements.txt`.

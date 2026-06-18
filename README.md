@@ -10,7 +10,7 @@ From a fresh clone:
 cd leaderlodge
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements/local.txt
+pip install -r requirements-dev.txt
 cp .env.example .env
 ```
 
@@ -67,21 +67,16 @@ Copy `.env.example` to `.env` for local development. On Railway, set variables i
 
 | File | Purpose |
 |------|---------|
-| `requirements/local.txt` | Local development (includes pytest) |
-| `requirements/production.txt` | Railway / production deploy |
-| `requirements/base.txt` | Shared runtime dependencies |
+| `requirements.txt` | Production runtime (Railway installs this) |
+| `requirements-dev.txt` | Local development (includes pytest, black) |
 
 ## Railway deployment
 
-1. Merge `dev` → `master` and push (production deploys from `master`).
-2. Create a Railway project connected to the GitHub repo; set branch to `master`.
-3. Add a **PostgreSQL** plugin. Railway sets `DATABASE_URL` automatically.
-4. Set web service variables:
-   - `DJANGO_SETTINGS_MODULE=leaderlodge.settings.production`
-   - `DJANGO_SECRET_KEY` (generate a **new** key for production; never reuse the local `.env` value)
-5. Deploy. `railway.json` runs migrate, collectstatic, and gunicorn on each deploy.
-6. Add custom domains `leaderlodge.com` and `www.leaderlodge.com` in Railway → Networking.
-7. Point Porkbun DNS at Railway (ALIAS `@`, CNAME `www` — see Railway's instructions for exact targets).
+1. Push to the **`dev`** branch (Railway deploys from `dev`).
+2. Add a **PostgreSQL** plugin and reference `DATABASE_URL` on the web service: `${{Postgres.DATABASE_URL}}`.
+3. Set **`DJANGO_SECRET_KEY`** on the web service (generate a new key for production).
+4. Deploy. `railway.json` runs migrate, collectstatic, and gunicorn on each deploy.
+5. Custom domains and DNS are configured in Railway → Networking (see Porkbun ALIAS/CNAME targets from `railway domain status`).
 
 ### Bootstrap production data
 
