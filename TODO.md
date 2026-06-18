@@ -9,11 +9,11 @@
 - [x] Game list view: Put header row at the bottom too
 - [x] Game list view filter: When a location is selected, omit the 'Location' column.
 - [x] Game list view shows stats summary for filtering selection
+- [x] Game list stats table: highlight winners, losers, and ties
 
 ## Open Items
 
-- [ ] Game list stats table: highlight winners, losers, and ties
-- [ ] Bug: Record Game wrong date - At 10:12pm default date shows tomorrow's date.
+- [ ] Bug: Record Game wrong date - At 10:12pm default date shows tomorrow's date
 - [ ] Game list view filter by player (shows only games that player was in)
 - [ ] Game detail view (maybe)
 - [ ] Calculate leaderboards

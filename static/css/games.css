@@ -84,6 +84,38 @@
   font-weight: 600;
 }
 
+.game-list-stats-table .game-list-stats-sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background-color: var(--bs-table-bg);
+  box-shadow: 1px 0 0 var(--bs-border-color);
+}
+
+.game-list-stats-table thead .game-list-stats-sticky-col {
+  z-index: 3;
+}
+
+.game-list-stats-table .game-list-stats-col--all {
+  background-color: #e9ecef;
+  border-left: 3px solid #adb5bd;
+}
+
+.game-list-stats-table td.game-list-stats-cell--best {
+  background-color: #198754 !important;
+  color: #fff !important;
+}
+
+.game-list-stats-table td.game-list-stats-cell--worst {
+  background-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+.game-list-stats-table td.game-list-stats-cell--tie {
+  background-color: #c4a574 !important;
+  color: #212529 !important;
+}
+
 .game-list-table-foot th {
   border-top-width: 2px;
   background-color: var(--bs-table-bg);

@@ -3,8 +3,17 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 
-from leaderlodge.games.list_stats import build_game_list_stats
+from leaderlodge.games.list_stats import (
+    STAT_CELL_BEST,
+    STAT_CELL_TIE,
+    STAT_CELL_WORST,
+    _build_stat_rows,
+    _highlight_extremes,
+    _highlight_most_ties,
+    build_game_list_stats,
+)
 from leaderlodge.games.models import GameParticipantResult
+from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.views import _filtered_games_queryset
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 
@@ -220,3 +229,235 @@ def test_game_list_hides_location_column_when_filtered(client, user, group):
 
     assert response.status_code == 200
     assert content.count('<th scope="col">Location</th>') == 0
+
+
+def test_highlight_extremes_marks_best_and_worst():
+    assert _highlight_extremes([3, 1, 2], higher_is_best=True) == [
+        STAT_CELL_BEST,
+        STAT_CELL_WORST,
+        "",
+    ]
+    assert _highlight_extremes([10, 40, 25], higher_is_best=False) == [
+        STAT_CELL_BEST,
+        STAT_CELL_WORST,
+        "",
+    ]
+    assert _highlight_extremes([5, 5], higher_is_best=True) == ["", ""]
+
+
+def test_highlight_most_ties_marks_highest_only():
+    assert _highlight_most_ties([0, 0]) == ["", ""]
+    assert _highlight_most_ties([1, 3, 3]) == ["", STAT_CELL_TIE, STAT_CELL_TIE]
+
+
+@pytest.mark.django_db
+def test_build_stat_rows_highlights_dominos_scores(user, group):
+    players = _players_pair(group)
+    _record_game(group, scores={players[0].pk: 30, players[1].pk: 20})
+    _record_game(group, scores={players[0].pk: 30, players[1].pk: 20})
+    _record_game(group, scores={players[0].pk: 25, players[1].pk: 25})
+    _record_game(group, scores={players[0].pk: 10, players[1].pk: 40})
+
+    params = {"group": str(group.pk), "game_type": "dominos", "location": "", "sort": "desc"}
+    games_qs = _filtered_games_queryset(user, params)
+    stats = build_game_list_stats(games_qs=games_qs, game_type_code="dominos")
+
+    rows = {row.label: row for row in stats.rows}
+    owner = group.players.get(linked_user=user)
+    pat = group.players.get(display_name="Pat")
+
+    assert rows["Total games"].global_cell.value == 4
+    assert all(cell.value == 4 for cell in rows["Total games"].player_cells)
+    assert all(cell.css_class == "" for cell in rows["Total games"].player_cells)
+
+    wins_by_player = {
+        player.player.pk: cell.css_class
+        for player, cell in zip(stats.players, rows["Wins"].player_cells, strict=True)
+    }
+    assert wins_by_player[owner.pk] == STAT_CELL_BEST
+    assert wins_by_player[pat.pk] == STAT_CELL_WORST
+
+    tie_by_player = {
+        player.player.pk: cell.css_class
+        for player, cell in zip(stats.players, rows["Ties"].player_cells, strict=True)
+    }
+    assert tie_by_player[owner.pk] == STAT_CELL_TIE
+    assert tie_by_player[pat.pk] == STAT_CELL_TIE
+
+    points_by_player = {
+        player.player.pk: cell.css_class
+        for player, cell in zip(stats.players, rows["Total points"].player_cells, strict=True)
+    }
+    assert points_by_player[owner.pk] == STAT_CELL_WORST
+    assert points_by_player[pat.pk] == STAT_CELL_BEST
+
+    high_by_player = {
+        player.player.pk: cell.css_class
+        for player, cell in zip(stats.players, rows["High score"].player_cells, strict=True)
+    }
+    assert high_by_player[owner.pk] == STAT_CELL_WORST
+    assert high_by_player[pat.pk] == STAT_CELL_BEST
+
+    low_by_player = {
+        player.player.pk: cell.css_class
+        for player, cell in zip(stats.players, rows["Low score"].player_cells, strict=True)
+    }
+    assert low_by_player[owner.pk] == STAT_CELL_WORST
+    assert low_by_player[pat.pk] == STAT_CELL_BEST
+
+
+@pytest.mark.django_db
+def test_build_stat_rows_highlights_progressive_rummy_losses_and_low_scores(user, group):
+    players = list(group.players.order_by("pk"))
+    while len(players) < 3:
+        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+
+    from leaderlodge.games.services import ParticipantInput, record_game
+
+    record_game(
+        user=group.created_by,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=players[0],
+                score=10,
+                result=GameParticipantResult.Result.WIN,
+                placement=1,
+            ),
+            ParticipantInput(
+                player=players[1],
+                score=20,
+                result=GameParticipantResult.Result.LOSS,
+                placement=2,
+            ),
+            ParticipantInput(
+                player=players[2],
+                score=30,
+                result=GameParticipantResult.Result.LOSS,
+                placement=3,
+            ),
+        ],
+    )
+
+    player_stats = tuple(
+        build_game_list_stats(
+            games_qs=_filtered_games_queryset(
+                user,
+                {
+                    "group": str(group.pk),
+                    "game_type": "progressiverummy",
+                    "location": "",
+                    "sort": "desc",
+                },
+            ),
+            game_type_code="progressiverummy",
+        ).players
+    )
+    rows = _build_stat_rows(
+        players=player_stats,
+        total_games=1,
+        show_losses=True,
+        score_direction=get_game_type("progressiverummy").score_direction,
+        global_max_score=30,
+        global_min_score=10,
+    )
+    rows_by_label = {row.label: row for row in rows}
+    winner = players[0]
+    loser_one = players[1]
+    loser_two = players[2]
+
+    def classes_for_row(label):
+        return {
+            player_stat.player.pk: cell.css_class
+            for player_stat, cell in zip(player_stats, rows_by_label[label].player_cells, strict=True)
+        }
+
+    losses = classes_for_row("Losses")
+    assert losses[winner.pk] == STAT_CELL_BEST
+    assert losses[loser_one.pk] == STAT_CELL_WORST
+    assert losses[loser_two.pk] == STAT_CELL_WORST
+
+    points = classes_for_row("Total points")
+    assert points[winner.pk] == STAT_CELL_BEST
+    assert points[loser_two.pk] == STAT_CELL_WORST
+
+
+@pytest.mark.django_db
+def test_build_stat_rows_highlights_games_played_when_unequal(user, group):
+    players = list(group.players.order_by("pk"))
+    while len(players) < 3:
+        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+
+    for scores in ({players[0].pk: 30, players[1].pk: 20, players[2].pk: 10},):
+        rows = [
+            {"player": player, "score": scores[player.pk]}
+            for player in players
+        ]
+        assign_results_from_scores(rows, "progressiverummy")
+        record_game(
+            user=group.created_by,
+            group=group,
+            game_type_code="progressiverummy",
+            played_on=timezone.localdate(),
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    two_player_rows = [
+        {"player": players[0], "score": 15},
+        {"player": players[1], "score": 25},
+    ]
+    assign_results_from_scores(two_player_rows, "progressiverummy")
+    record_game(
+        user=group.created_by,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in two_player_rows
+        ],
+    )
+
+    stats = build_game_list_stats(
+        games_qs=_filtered_games_queryset(
+            user,
+            {
+                "group": str(group.pk),
+                "game_type": "progressiverummy",
+                "location": "",
+                "sort": "desc",
+            },
+        ),
+        game_type_code="progressiverummy",
+    )
+    games_row = next(row for row in stats.rows if row.label == "Total games")
+    games_by_player = {
+        player_stat.player.pk: cell
+        for player_stat, cell in zip(stats.players, games_row.player_cells, strict=True)
+    }
+
+    assert games_row.global_cell.value == 2
+    assert games_by_player[players[0].pk].value == 2
+    assert games_by_player[players[1].pk].value == 2
+    assert games_by_player[players[2].pk].value == 1
+    assert games_by_player[players[0].pk].css_class == STAT_CELL_BEST
+    assert games_by_player[players[1].pk].css_class == STAT_CELL_BEST
+    assert games_by_player[players[2].pk].css_class == STAT_CELL_WORST
