@@ -15,11 +15,13 @@
 
 ## Open Items
 
+- [ ] Game Stats: Implement a way to hide some Guest/Players (Allyn, Alize)
 - [ ] Leaderboard: Add rank column and order the list by rank. Initial rank formula: r=sum(nummber-of-players-in-each-game-you-won)/number-of-games-you-played
 - [ ] Never display different kinds of games together in the Games list. There is always exactly one chosen. Display the game name up top. Remove Game Type column.
 - [ ] In the Record Game form, don’t show all names, instead make user choose from a fuzzy predictive drop-down list of names or type in a new name.
 - [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.
 - [ ] Verify that group user logins have access to the shared group games (ie. Zach and Nancy‘s logins can see our shared group)
+- [ ] Group members: Replace all-users dropdown with a secure, private, scalable invite method (email/link, not a public account picker)
 - [ ] Game stats view: Remove thick bar to the left of 'All' gray highlight is enough
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.

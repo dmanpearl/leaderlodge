@@ -161,3 +161,18 @@ def add_guest_player(*, group: Group, display_name: str) -> GroupPlayer:
         group=group,
         display_name=display_name.strip(),
     )
+
+
+def add_group_member(
+    *,
+    group: Group,
+    user: AbstractBaseUser,
+    role: str = GroupMembership.Role.MEMBER,
+) -> GroupMembership:
+    membership = GroupMembership.objects.create(
+        group=group,
+        user=user,
+        role=role,
+    )
+    _get_or_create_linked_player(group=group, user=user)
+    return membership

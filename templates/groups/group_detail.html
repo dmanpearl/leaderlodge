@@ -27,12 +27,66 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header">Players</div>
+  <div class="card mb-3">
+    <div class="card-header">Members</div>
     <div class="card-body">
       <p class="text-muted small mb-3">
-        Everyone who plays in this group is listed here. Add a name for each
-        person who takes part in games and leaderboards.
+        People with LeaderLodge logins who can see this group. Adding a member
+        also adds them to the player roster when needed.
+      </p>
+
+      {% if member_rows %}
+        <div class="table-responsive mb-4">
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr>
+                <th scope="col">User</th>
+                <th scope="col">Role</th>
+                <th scope="col">Joined</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for membership in member_rows %}
+                <tr>
+                  <td>
+                    {{ membership.user.username }}
+                    {% if membership.user.first_name %}
+                      <span class="text-muted small">({{ membership.user.get_full_name|default:membership.user.first_name }})</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ membership.get_role_display }}</td>
+                  <td>{{ membership.joined_at|date:"M j, Y" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted mb-4">No members yet.</p>
+      {% endif %}
+
+      <h2 class="h6">Add member</h2>
+      {# TODO: Replace all-users dropdown with a secure, private, scalable invite method. #}
+      <form method="post" action="{% url 'groups:member_add' group.pk %}" class="row g-2 align-items-start">
+        {% csrf_token %}
+        <div class="col-12 col-sm-auto flex-grow-1">
+          {{ member_form.user }}
+          {% if member_form.user.errors %}
+            <div class="invalid-feedback d-block">{{ member_form.user.errors }}</div>
+          {% endif %}
+        </div>
+        <div class="col-12 col-sm-auto">
+          <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Player roster</div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Everyone who can be scored in games. Members appear here automatically.
       </p>
 
       {% if player_rows %}
@@ -53,6 +107,8 @@
                     {{ row.player.display_label }}
                     {% if row.player.linked_user %}
                       <span class="text-muted small">({{ row.player.linked_user.username }})</span>
+                    {% else %}
+                      <span class="badge text-bg-secondary ms-1">Guest</span>
                     {% endif %}
                   </td>
                   <td>{{ row.total_games }}</td>
@@ -73,7 +129,10 @@
         <p class="text-muted mb-4">No players yet.</p>
       {% endif %}
 
-      <h2 class="h6">Add a player</h2>
+      <h2 class="h6">Add guest</h2>
+      <p class="text-muted small mb-2">
+        No login — for someone who plays occasionally but doesn&apos;t have an account.
+      </p>
       <form method="post" action="{% url 'groups:player_add' group.pk %}" class="row g-2 align-items-start">
         {% csrf_token %}
         <div class="col-12 col-sm-auto flex-grow-1">
