@@ -9,6 +9,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from leaderlodge.railway_db import resolve_database_url
+
 # Load .env for local dev. On Railway, env vars are set in the dashboard.
 # override=True lets local .env win over vars injected by `railway run`.
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env", override=True)
@@ -107,9 +109,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "leaderlodge.wsgi.application"
 
-_db_url = os.environ.get("DATABASE_URL", "")
-if "railway.internal" in _db_url:
-    _db_url = os.environ.get("DATABASE_PUBLIC_URL", _db_url)
+# Locally: SQLite. On Railway: DATABASE_URL from Postgres.
+# Railway's private host (postgres.railway.internal) is only reachable inside
+# the platform. For `railway run` from a laptop, resolve_database_url() swaps
+# to DATABASE_PUBLIC_URL or reads it from the Postgres service via Railway CLI.
+_db_url = resolve_database_url()
 if _db_url:
     _parsed = urllib.parse.urlparse(_db_url)
     DATABASES = {

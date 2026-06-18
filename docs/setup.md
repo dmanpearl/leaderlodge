@@ -47,7 +47,9 @@ Open http://127.0.0.1:8000/
 
 Set `DJANGO_SETTINGS_MODULE=leaderlodge.settings.production` in Railway only. Local dev does not need this variable.
 
-With no `DATABASE_URL`, local settings use SQLite. To run management commands against production PostgreSQL from your machine, add Railway's `DATABASE_PUBLIC_URL` to `.env` as `DATABASE_URL`.
+With no `DATABASE_URL`, local settings use SQLite.
+
+For `railway run` against production PostgreSQL, database URL resolution is automatic (see `leaderlodge/railway_db.py`). Optionally override with the public URL in `.env` as `DATABASE_URL`.
 
 ## Tests
 

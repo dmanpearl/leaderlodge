@@ -44,7 +44,8 @@ The project requires `DJANGO_SECRET_KEY`. **Never commit secrets to Git.**
 |----------|----------|---------|
 | `DJANGO_SECRET_KEY` | Yes | Django crypto signing; set in `.env` locally, Railway Variables in production |
 | `DJANGO_SETTINGS_MODULE` | Production | `leaderlodge.settings.production` on Railway; local dev defaults to `leaderlodge.settings.local` via `manage.py` |
-| `DATABASE_URL` | Optional | PostgreSQL URL; unset locally (SQLite). Set in `.env` for `railway run` against production |
+| `DATABASE_URL` | Optional | PostgreSQL URL; unset locally (SQLite). Optional `.env` override for `railway run` |
+| `RAILWAY_POSTGRES_SERVICE` | Optional | Postgres service name in Railway (default: `Postgres`) |
 | `DJANGO_ALLOWED_HOST` | Optional | Extra hostname appended to `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` |
 
 Copy `.env.example` to `.env` for local development. On Railway, set variables in the dashboard — do not upload a `.env` file.
@@ -73,10 +74,14 @@ Copy `.env.example` to `.env` for local development. On Railway, set variables i
 ## Railway deployment
 
 1. Push to the **`dev`** branch (Railway deploys from `dev`).
-2. Add a **PostgreSQL** plugin and reference `DATABASE_URL` on the web service: `${{Postgres.DATABASE_URL}}`.
+2. Add a **PostgreSQL** plugin. On the web service, reference:
+   - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+   - `DATABASE_PUBLIC_URL=${{Postgres.DATABASE_PUBLIC_URL}}` (for `railway run` from your laptop)
 3. Set **`DJANGO_SECRET_KEY`** on the web service (generate a new key for production).
 4. Deploy. `railway.json` runs migrate, collectstatic, and gunicorn on each deploy.
 5. Custom domains and DNS are configured in Railway → Networking (see Porkbun ALIAS/CNAME targets from `railway domain status`).
+
+`railway run python manage.py ...` resolves the public Postgres URL automatically. If the web service has no `DATABASE_PUBLIC_URL` reference yet, settings read it from the Postgres service via the linked Railway CLI. You can also put the public URL in `.env` as `DATABASE_URL` (rating-ranch style).
 
 ### Bootstrap production data
 
@@ -92,8 +97,6 @@ railway run python manage.py import_games -g manpearl --game-type dominos data/s
 railway run python manage.py import_games -g manpearl --game-type backgammon data/seeds/backgammon/backgammon_seed_2026-06-16.xlsx
 railway run python manage.py import_games -g manpearl --game-type progressiverummy data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx
 ```
-
-For `railway run` from your laptop, add `DATABASE_URL` to `.env` using Railway's **public** Postgres URL (`railway variables get DATABASE_PUBLIC_URL`).
 
 ## Documentation
 
