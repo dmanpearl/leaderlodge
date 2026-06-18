@@ -62,11 +62,96 @@
     </div>
   </div>
 
+  {% if list_stats %}
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <button
+          class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex align-items-center gap-2"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#game-list-stats"
+          aria-expanded="false"
+          aria-controls="game-list-stats"
+        >
+          <i id="game-list-stats-icon" class="bi bi-chevron-down" aria-hidden="true"></i>
+          <span class="fw-semibold">Stats</span>
+          <span class="text-muted">({{ list_stats.total_games }} game{{ list_stats.total_games|pluralize }})</span>
+        </button>
+        {% if has_filters %}
+          <span class="small text-muted">Filtered totals</span>
+        {% endif %}
+      </div>
+      <div id="game-list-stats" class="collapse">
+        <div class="card-body pt-2 pb-3">
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered mb-2 game-list-stats-table">
+              <thead>
+                <tr>
+                  <th scope="col"></th>
+                  {% for player_stat in list_stats.players %}
+                    <th scope="col" class="text-center">{{ player_stat.player.display_label }}</th>
+                  {% endfor %}
+                  <th scope="col" class="text-center">All players</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Wins</th>
+                  {% for player_stat in list_stats.players %}
+                    <td class="text-center">{{ player_stat.wins }}</td>
+                  {% endfor %}
+                  <td class="text-center text-muted">&mdash;</td>
+                </tr>
+                <tr>
+                  <th scope="row">Ties</th>
+                  {% for player_stat in list_stats.players %}
+                    <td class="text-center">{{ player_stat.ties }}</td>
+                  {% endfor %}
+                  <td class="text-center text-muted">&mdash;</td>
+                </tr>
+                {% if list_stats.show_losses %}
+                  <tr>
+                    <th scope="row">Losses</th>
+                    {% for player_stat in list_stats.players %}
+                      <td class="text-center">{{ player_stat.losses }}</td>
+                    {% endfor %}
+                    <td class="text-center text-muted">&mdash;</td>
+                  </tr>
+                {% endif %}
+                <tr>
+                  <th scope="row">Total points</th>
+                  {% for player_stat in list_stats.players %}
+                    <td class="text-center">{{ player_stat.total_points }}</td>
+                  {% endfor %}
+                  <td class="text-center text-muted">&mdash;</td>
+                </tr>
+                <tr>
+                  <th scope="row">High score</th>
+                  {% for player_stat in list_stats.players %}
+                    <td class="text-center">{{ player_stat.max_score }}</td>
+                  {% endfor %}
+                  <td class="text-center">{{ list_stats.global_max_score }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Low score</th>
+                  {% for player_stat in list_stats.players %}
+                    <td class="text-center">{{ player_stat.min_score }}</td>
+                  {% endfor %}
+                  <td class="text-center">{{ list_stats.global_min_score }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
   {% if game_rows %}
     <div class="card">
       <div class="table-responsive">
         <table class="table table-hover mb-0 game-list-table">
-          <thead>
+          <thead class="game-list-table-head">
             <tr>
               <th scope="col">Date</th>
               {% if show_group_column %}
@@ -75,7 +160,9 @@
               {% if show_game_type_column %}
                 <th scope="col">Game</th>
               {% endif %}
-              <th scope="col">Location</th>
+              {% if show_location_column %}
+                <th scope="col">Location</th>
+              {% endif %}
               {% for player in player_columns %}
                 <th scope="col" class="text-center">{{ player.display_label }}</th>
               {% endfor %}
@@ -102,13 +189,15 @@
                     {% endif %}
                   </td>
                 {% endif %}
-                <td class="text-muted">
-                  {% if row.game.location %}
-                    {{ row.game.location.name }}
-                  {% else %}
-                    &mdash;
-                  {% endif %}
-                </td>
+                {% if show_location_column %}
+                  <td class="text-muted">
+                    {% if row.game.location %}
+                      {{ row.game.location.name }}
+                    {% else %}
+                      &mdash;
+                    {% endif %}
+                  </td>
+                {% endif %}
                 {% for cell in row.cells %}
                   <td class="text-center{% if cell.css_class %} {{ cell.css_class }}{% endif %}">
                     {% if cell.score is not None %}
@@ -121,6 +210,23 @@
               </tr>
             {% endfor %}
           </tbody>
+          <tfoot class="game-list-table-foot d-none">
+            <tr>
+              <th scope="col">Date</th>
+              {% if show_group_column %}
+                <th scope="col">Group</th>
+              {% endif %}
+              {% if show_game_type_column %}
+                <th scope="col">Game</th>
+              {% endif %}
+              {% if show_location_column %}
+                <th scope="col">Location</th>
+              {% endif %}
+              {% for player in player_columns %}
+                <th scope="col" class="text-center">{{ player.display_label }}</th>
+              {% endfor %}
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
@@ -179,4 +285,8 @@
       </div>
     </div>
   {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/game_list.js' %}"></script>
 {% endblock %}

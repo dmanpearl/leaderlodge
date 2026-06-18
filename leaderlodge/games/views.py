@@ -11,6 +11,7 @@ from leaderlodge.games.forms import (
     parse_participants_from_post,
     prepare_participant_rows,
 )
+from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES, game_type_choices, get_game_type
@@ -151,6 +152,10 @@ def game_list(request: HttpRequest) -> HttpResponse:
     locations = _location_choices_for_game_list(request.user, params)
     params = _sanitize_game_list_params(params, locations)
     games_qs = _filtered_games_queryset(request.user, params)
+    list_stats = build_game_list_stats(
+        games_qs=games_qs,
+        game_type_code=params["game_type"],
+    )
     paginator = Paginator(games_qs, GAMES_PER_PAGE)
     page = paginator.get_page(request.GET.get("page"))
     games = list(page.object_list)
@@ -165,6 +170,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "page": page,
             "game_rows": game_rows,
             "player_columns": player_columns,
+            "list_stats": list_stats,
             "params": params,
             "filter_query": _game_list_filter_query(params),
             "has_filters": _game_list_has_filters(params),
@@ -173,6 +179,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "locations": locations,
             "show_group_column": not params["group"],
             "show_game_type_column": not params["game_type"],
+            "show_location_column": not params["location"],
         },
     )
 

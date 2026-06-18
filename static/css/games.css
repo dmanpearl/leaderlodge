@@ -78,3 +78,17 @@
   background-color: #b59563 !important;
   color: #212529 !important;
 }
+
+.game-list-stats-table th[scope="row"] {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.game-list-table-foot th {
+  border-top-width: 2px;
+  background-color: var(--bs-table-bg);
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  box-shadow: 0 -1px 0 var(--bs-border-color);
+}
