@@ -1,0 +1,43 @@
+nav.navbar.bg-primary {
+  --bs-navbar-padding-y: 0.3125rem;
+}
+
+nav.navbar.bg-primary .navbar-nav .nav-link {
+  padding-top: 0.3125rem;
+  padding-bottom: 0.3125rem;
+}
+
+nav.navbar.bg-primary .navbar-toggler {
+  padding: 0.25rem 0.5625rem;
+}
+
+.navbar-dark .navbar-user-icon,
+.navbar-dark .navbar-menu-icon,
+.navbar-dark .navbar-nav-icon {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.navbar-nav-icon {
+  font-size: 1em;
+  line-height: 1;
+}
+
+.navbar-user-icon {
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.navbar-menu-icon {
+  font-size: 1em;
+  line-height: 1;
+}
+
+.dropdown-menu .navbar-menu-icon {
+  color: var(--bs-body-color);
+}
+
+.navbar-nav .dropdown-item[type="submit"],
+.navbar-nav form .dropdown-item {
+  width: 100%;
+  text-align: inherit;
+}

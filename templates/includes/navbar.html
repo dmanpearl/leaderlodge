@@ -1,6 +1,5 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container">
-    <a class="navbar-brand" href="{% url 'core:dashboard' %}">LeaderLodge</a>
     <button
       class="navbar-toggler"
       type="button"
@@ -14,43 +13,79 @@
     </button>
     <div class="collapse navbar-collapse" id="mainNavbar">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'core:dashboard' %}">
+            <i class="bi bi-house navbar-nav-icon" aria-hidden="true"></i>
+            LeaderLodge
+          </a>
+        </li>
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'core:dashboard' %}">Dashboard</a>
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'groups:list' %}">
+              <i class="bi bi-people navbar-nav-icon" aria-hidden="true"></i>
+              Groups
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'groups:list' %}">Groups</a>
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:list' %}">
+              <i class="bi bi-grid navbar-nav-icon" aria-hidden="true"></i>
+              Games
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'games:list' %}">Games</a>
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:create' %}">
+              <i class="bi bi-plus-lg navbar-nav-icon" aria-hidden="true"></i>
+              Add
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'games:create' %}">Record Game</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'leaderboards:index' %}">Leaderboards</a>
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'leaderboards:index' %}">
+              <i class="bi bi-trophy navbar-nav-icon" aria-hidden="true"></i>
+              Leaders
+            </a>
           </li>
         {% endif %}
       </ul>
-      <ul class="navbar-nav ms-auto">
+      <ul class="navbar-nav ms-auto align-items-lg-center">
         {% if user.is_authenticated %}
-          <li class="nav-item">
-            <span class="navbar-text me-3">{{ user.username }}</span>
-          </li>
-          {% if user.is_staff %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'admin:index' %}">Administration</a>
-            </li>
-          {% endif %}
-          <li class="nav-item">
-            <form method="post" action="{% url 'accounts:logout' %}" class="d-inline">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-link nav-link">Logout</button>
-            </form>
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle d-flex align-items-center gap-1"
+              href="#"
+              id="accountMenu"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i class="bi bi-person navbar-user-icon" aria-hidden="true"></i>
+              <span>{{ user.username }}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountMenu">
+              {% if user.is_staff or user.is_superuser %}
+                <li>
+                  <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'admin:index' %}">
+                    <i class="bi bi-gear navbar-menu-icon" aria-hidden="true"></i>
+                    Admin
+                  </a>
+                </li>
+              {% endif %}
+              <li>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                    <i class="bi bi-box-arrow-right navbar-menu-icon" aria-hidden="true"></i>
+                    Logout
+                  </button>
+                </form>
+              </li>
+            </ul>
           </li>
         {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'accounts:login' %}">Login</a>
+          <li class="nav-item ms-lg-2">
+            <a class="btn btn-outline-light btn-sm d-inline-flex align-items-center gap-1" href="{% url 'accounts:login' %}">
+              <i class="bi bi-person navbar-user-icon" aria-hidden="true"></i>
+              Login
+            </a>
           </li>
         {% endif %}
       </ul>
