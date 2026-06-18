@@ -10,9 +10,16 @@
 - [x] Game list view filter: When a location is selected, omit the 'Location' column.
 - [x] Game list view shows stats summary for filtering selection
 - [x] Game list stats table: highlight winners, losers, and ties
+- [x] Game stats view: Remove thick bar to the left of 'All' gray highlight is enough
 
 ## Open Items
 
+- [ ] Never display different kinds of games together in the Games list. There is always exactly one chosen. Display the game name up top. Remove Game Type column.
+- [ ] In the Record Game form, don’t show all names, instead make user choose from a fuzzy predictive drop-down list of names or type in a new name.
+- [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.
+- [ ] Verify that group user logins have access to the shared group games (ie. Zach and Nancy‘s logins can see our shared group)
+- [ ] Game stats view: Remove thick bar to the left of 'All' gray highlight is enough
+- [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
 - [ ] Game list view: Move 2x and 1/2 into their own column so they can be retained when filtering on game type.
 - [ ] Demo mode so visitors can view a meaningful experience without login
