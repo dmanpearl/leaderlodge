@@ -92,7 +92,9 @@
                   {% for player_stat in list_stats.players %}
                     <th scope="col" class="text-center game-list-player-col">{{ player_stat.player.display_label }}</th>
                   {% endfor %}
-                  <th scope="col" class="text-center game-list-stats-col--all">All</th>
+                  {% if list_stats.show_all_column %}
+                    <th scope="col" class="text-center game-list-stats-col--all">All</th>
+                  {% endif %}
                 </tr>
               </thead>
               <tbody>
@@ -100,14 +102,19 @@
                   <tr>
                     <th scope="row" class="game-list-stats-sticky-col">{{ stat_row.label }}</th>
                     {% for cell in stat_row.player_cells %}
-                      <td class="text-center game-list-player-col{% if cell.css_class %} {{ cell.css_class }}{% endif %}">
+                      <td
+                        class="text-center game-list-player-col{% if cell.css_class %} {{ cell.css_class }}{% endif %}"
+                        {% if cell.colspan > 1 %}colspan="{{ cell.colspan }}"{% endif %}
+                      >
                         {{ cell.value }}
                       </td>
                     {% endfor %}
-                    {% if stat_row.global_cell %}
-                      <td class="text-center game-list-stats-col--all">{{ stat_row.global_cell.value }}</td>
-                    {% else %}
-                      <td class="text-center text-muted game-list-stats-col--all">&mdash;</td>
+                    {% if list_stats.show_all_column %}
+                      {% if stat_row.global_cell %}
+                        <td class="text-center game-list-stats-col--all">{{ stat_row.global_cell.value }}</td>
+                      {% else %}
+                        <td class="text-center text-muted game-list-stats-col--all">&mdash;</td>
+                      {% endif %}
                     {% endif %}
                   </tr>
                 {% endfor %}

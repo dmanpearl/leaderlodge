@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 
 from django.db.models import Count, Max, Min, Q, QuerySet, Sum
 
@@ -27,8 +28,9 @@ class PlayerListStats:
 
 @dataclass(frozen=True)
 class GameListStatCell:
-    value: int
+    value: int | str
     css_class: str
+    colspan: int = 1
 
 
 @dataclass(frozen=True)
@@ -46,6 +48,10 @@ class GameListStats:
     global_min_score: int | None
     players: tuple[PlayerListStats, ...]
     rows: tuple[GameListStatRow, ...]
+
+    @property
+    def show_all_column(self) -> bool:
+        return len(self.players) > 2
 
 
 def _player_values(players: tuple[PlayerListStats, ...], field: str) -> list[int]:
@@ -94,6 +100,103 @@ def _make_cells(values: list[int], classes: list[str]) -> tuple[GameListStatCell
     )
 
 
+def _merge_equal_player_cells(
+    cells: tuple[GameListStatCell, ...],
+) -> tuple[GameListStatCell, ...]:
+    if len(cells) < 2:
+        return cells
+
+    values = [cell.value for cell in cells]
+    classes = [cell.css_class for cell in cells]
+    if len(set(values)) != 1:
+        return cells
+    if len(set(classes)) != 1:
+        return cells
+
+    return (
+        GameListStatCell(
+            value=values[0],
+            css_class=classes[0],
+            colspan=len(cells),
+        ),
+    )
+
+
+def _span_text_cell(text: str, player_count: int) -> tuple[GameListStatCell, ...]:
+    if player_count <= 0:
+        return ()
+    return (GameListStatCell(value=text, css_class="", colspan=player_count),)
+
+
+def _format_stat_date(value: date) -> str:
+    return value.strftime("%b %d, %Y").replace(" 0", " ")
+
+
+def _format_stat_date_short(value: date) -> str:
+    return value.strftime("%b %d").replace(" 0", " ")
+
+
+def _format_dates_summary(first: date, last: date) -> str:
+    if first > last:
+        first, last = last, first
+
+    duration = _humanize_date_range(first, last)
+    if first == last:
+        return f"{_format_stat_date(first)} ({duration})"
+    if first.year == last.year:
+        return (
+            f"{_format_stat_date_short(first)} - "
+            f"{_format_stat_date(last)} ({duration})"
+        )
+    return (
+        f"{_format_stat_date(first)} - "
+        f"{_format_stat_date(last)} ({duration})"
+    )
+
+
+def _humanize_date_range(first: date, last: date) -> str:
+    if first > last:
+        first, last = last, first
+    if first == last:
+        return "Same day"
+
+    days = (last - first).days
+    if days == 1:
+        return "1 day"
+    if days < 7:
+        return f"{days} days"
+    weeks = days // 7
+    if days < 60:
+        return f"{weeks} weeks" if weeks != 1 else "1 week"
+    months = max(1, round(days / 30.44))
+    if days < 365:
+        return f"{months} months" if months != 1 else "1 month"
+    years = days / 365.25
+    if years < 2:
+        return "1 year"
+    return f"{round(years)} years"
+
+
+def _prepend_date_rows(
+    rows: tuple[GameListStatRow, ...],
+    *,
+    first_date: date | None,
+    last_date: date | None,
+    player_count: int,
+) -> tuple[GameListStatRow, ...]:
+    if first_date is None or last_date is None or player_count == 0:
+        return rows
+
+    dates_row = GameListStatRow(
+        label="Date Range",
+        player_cells=_span_text_cell(
+            _format_dates_summary(first_date, last_date),
+            player_count,
+        ),
+    )
+    return (dates_row,) + rows
+
+
 def _build_stat_rows(
     *,
     players: tuple[PlayerListStats, ...],
@@ -106,14 +209,21 @@ def _build_stat_rows(
     rows: list[GameListStatRow] = []
 
     games_values = _player_values(players, "games_played")
+    games_cells = _make_cells(
+        games_values,
+        _highlight_extremes(games_values, higher_is_best=True),
+    )
+    if len(players) == 2:
+        games_cells = _merge_equal_player_cells(games_cells)
     rows.append(
         GameListStatRow(
             label="Total games",
-            player_cells=_make_cells(
-                games_values,
-                _highlight_extremes(games_values, higher_is_best=True),
+            player_cells=games_cells,
+            global_cell=(
+                None
+                if len(games_cells) == 1
+                else GameListStatCell(value=total_games, css_class="")
             ),
-            global_cell=GameListStatCell(value=total_games, css_class=""),
         )
     )
 
@@ -129,10 +239,13 @@ def _build_stat_rows(
     )
 
     tie_values = _player_values(players, "ties")
+    tie_cells = _make_cells(tie_values, _highlight_most_ties(tie_values))
+    if len(players) == 2:
+        tie_cells = _merge_equal_player_cells(tie_cells)
     rows.append(
         GameListStatRow(
             label="Ties",
-            player_cells=_make_cells(tie_values, _highlight_most_ties(tie_values)),
+            player_cells=tie_cells,
         )
     )
 
@@ -201,6 +314,7 @@ def build_game_list_stats(
         return None
 
     total_games = games_qs.count()
+    date_agg = games_qs.aggregate(first_date=Min("played_on"), last_date=Max("played_on"))
     show_losses = (
         game_type_code in GAME_TYPES
         and get_game_type(game_type_code).supports_loser
@@ -262,12 +376,17 @@ def build_game_list_stats(
         global_max_score=global_agg["global_max_score"],
         global_min_score=global_agg["global_min_score"],
         players=players_tuple,
-        rows=_build_stat_rows(
-            players=players_tuple,
-            total_games=total_games,
-            show_losses=show_losses,
-            score_direction=score_direction,
-            global_max_score=global_agg["global_max_score"],
-            global_min_score=global_agg["global_min_score"],
+        rows=_prepend_date_rows(
+            _build_stat_rows(
+                players=players_tuple,
+                total_games=total_games,
+                show_losses=show_losses,
+                score_direction=score_direction,
+                global_max_score=global_agg["global_max_score"],
+                global_min_score=global_agg["global_min_score"],
+            ),
+            first_date=date_agg["first_date"],
+            last_date=date_agg["last_date"],
+            player_count=len(players_tuple),
         ),
     )

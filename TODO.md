@@ -13,18 +13,17 @@
 - [x] Game stats view: Remove thick bar to the left of 'All' gray highlight is enough
 - [x] Login UI: If user is not logged in, show a Login button with a unicode user icon. If user is logged in, make the username a drop-down menu with options: System Admin and Logout (more options will be added later)
 - [x] In the Record Game form, don’t show all names, instead make user choose from a fuzzy predictive drop-down list of Users and Guests from auto-completion or add a new Guest if the user types in a unique new name.
+- [x] Game Stats: For two person games, the "Ties" row is not necessary to have entries for both players, as the will always be equivalent. Add a mechanism for merging adjacent cells and displaying a single tie count for the pair of players.
+- [x] Game Stats: Need first date, last date, and date range. Range in humanize formatting. Use cell merge as necessary from the Game Stat Ties todo item.
 
 ## Open Items
 
-- [ ] Game Stats: For two person games, the "Ties" row is not necessary to have entries for both players, as the will always be equivalent. Add a mechanism for merging adjacent cells and displaying a single tie count for the pair of players.
-- [ ] Game Stats: Need first date, last date, and date range. Range in humanize formatting. Use cell merge as necessary from the Game Stat Ties todo item.
 - [ ] Game Stats: Implement a way to hide some Guest/Players (Allyn, Alize)
 - [ ] Leaderboard: Add rank column and order the list by rank. Initial rank formula: r=sum(nummber-of-players-in-each-game-you-won)/number-of-games-you-played
 - [ ] Never display different kinds of games together in the Games list. There is always exactly one chosen. Display the game name up top. Remove Game Type column.
 - [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.
 - [ ] Verify that group user logins have access to the shared group games (ie. Zach and Nancy‘s logins can see our shared group)
 - [ ] Group members: Replace all-users dropdown with a secure, private, scalable invite method (email/link, not a public account picker)
-- [ ] Game stats view: Remove thick bar to the left of 'All' gray highlight is enough
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
 - [ ] Game list view: Move 2x and 1/2 into their own column so they can be retained when filtering on game type.

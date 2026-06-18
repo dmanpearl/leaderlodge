@@ -1,4 +1,5 @@
 import pytest
+from datetime import date
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
@@ -7,9 +8,13 @@ from leaderlodge.games.list_stats import (
     STAT_CELL_BEST,
     STAT_CELL_TIE,
     STAT_CELL_WORST,
+    GameListStatCell,
     _build_stat_rows,
     _highlight_extremes,
     _highlight_most_ties,
+    _format_dates_summary,
+    _humanize_date_range,
+    _merge_equal_player_cells,
     build_game_list_stats,
 )
 from leaderlodge.games.models import GameParticipantResult
@@ -34,7 +39,7 @@ def _players_pair(group):
     return list(group.players.order_by("pk"))[:2]
 
 
-def _record_game(group, *, game_type_code="dominos", scores=None, location_name=""):
+def _record_game(group, *, game_type_code="dominos", scores=None, location_name="", played_on=None):
     from leaderlodge.games.scoring import assign_results_from_scores
     from leaderlodge.games.services import ParticipantInput, record_game
 
@@ -68,7 +73,7 @@ def _record_game(group, *, game_type_code="dominos", scores=None, location_name=
         user=group.created_by,
         group=group,
         game_type_code=game_type_code,
-        played_on=timezone.localdate(),
+        played_on=played_on or timezone.localdate(),
         participants=participants,
         location=location,
     )
@@ -208,6 +213,71 @@ def test_game_list_stats_use_full_filter_not_current_page(client, user, group, m
 
 
 @pytest.mark.django_db
+def test_game_list_stats_hides_all_column_for_two_players(client, user, group):
+    client.force_login(user)
+    players = _players_pair(group)
+    _record_game(group, scores={players[0].pk: 30, players[1].pk: 20})
+
+    response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos"},
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    stats_table = content.split("game-list-stats-table", 1)[1].split("</table>", 1)[0]
+    assert ">All<" not in stats_table
+    assert "game-list-stats-col--all" not in stats_table
+
+
+@pytest.mark.django_db
+def test_game_list_stats_shows_all_column_for_three_players(client, user, group):
+    from leaderlodge.games.services import ParticipantInput, record_game
+
+    client.force_login(user)
+    players = list(group.players.order_by("pk"))
+    while len(players) < 3:
+        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+    record_game(
+        user=group.created_by,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=players[0],
+                score=10,
+                result=GameParticipantResult.Result.WIN,
+                placement=1,
+            ),
+            ParticipantInput(
+                player=players[1],
+                score=20,
+                result=GameParticipantResult.Result.LOSS,
+                placement=2,
+            ),
+            ParticipantInput(
+                player=players[2],
+                score=30,
+                result=GameParticipantResult.Result.LOSS,
+                placement=3,
+            ),
+        ],
+    )
+
+    response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "progressiverummy"},
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    stats_table = content.split("game-list-stats-table", 1)[1].split("</table>", 1)[0]
+    assert ">All<" in stats_table
+    assert "game-list-stats-col--all" in stats_table
+
+
+@pytest.mark.django_db
 def test_game_list_hides_location_column_when_filtered(client, user, group):
     players = _players_pair(group)
     game = _record_game(
@@ -250,6 +320,57 @@ def test_highlight_most_ties_marks_highest_only():
     assert _highlight_most_ties([1, 3, 3]) == ["", STAT_CELL_TIE, STAT_CELL_TIE]
 
 
+def test_merge_equal_player_cells_combines_two_player_ties():
+    cells = (
+        GameListStatCell(value=2, css_class=STAT_CELL_TIE),
+        GameListStatCell(value=2, css_class=STAT_CELL_TIE),
+    )
+    merged = _merge_equal_player_cells(cells)
+
+    assert len(merged) == 1
+    assert merged[0].value == 2
+    assert merged[0].css_class == STAT_CELL_TIE
+    assert merged[0].colspan == 2
+
+
+def test_merge_equal_player_cells_skips_when_values_differ():
+    cells = (
+        GameListStatCell(value=1, css_class=STAT_CELL_TIE),
+        GameListStatCell(value=2, css_class=STAT_CELL_TIE),
+    )
+    assert _merge_equal_player_cells(cells) == cells
+
+
+def test_format_dates_summary():
+    assert _format_dates_summary(
+        date(2014, 2, 25),
+        date(2026, 6, 15),
+    ) == "Feb 25, 2014 - Jun 15, 2026 (12 years)"
+    assert _format_dates_summary(
+        date(2026, 2, 25),
+        date(2026, 3, 2),
+    ) == "Feb 25 - Mar 2, 2026 (5 days)"
+    assert _format_dates_summary(
+        date(2026, 2, 25),
+        date(2026, 2, 25),
+    ) == "Feb 25, 2026 (Same day)"
+
+
+def test_humanize_date_range():
+    assert _humanize_date_range(
+        timezone.localdate(),
+        timezone.localdate(),
+    ) == "Same day"
+    assert _humanize_date_range(
+        date(2026, 1, 1),
+        date(2026, 1, 8),
+    ) == "1 week"
+    assert _humanize_date_range(
+        date(2026, 1, 1),
+        date(2026, 4, 1),
+    ) == "3 months"
+
+
 @pytest.mark.django_db
 def test_build_stat_rows_highlights_dominos_scores(user, group):
     players = _players_pair(group)
@@ -266,9 +387,11 @@ def test_build_stat_rows_highlights_dominos_scores(user, group):
     owner = group.players.get(linked_user=user)
     pat = group.players.get(display_name="Pat")
 
-    assert rows["Total games"].global_cell.value == 4
-    assert all(cell.value == 4 for cell in rows["Total games"].player_cells)
-    assert all(cell.css_class == "" for cell in rows["Total games"].player_cells)
+    assert rows["Total games"].global_cell is None
+    assert len(rows["Total games"].player_cells) == 1
+    assert rows["Total games"].player_cells[0].value == 4
+    assert rows["Total games"].player_cells[0].colspan == 2
+    assert rows["Total games"].player_cells[0].css_class == ""
 
     wins_by_player = {
         player.player.pk: cell.css_class
@@ -277,12 +400,11 @@ def test_build_stat_rows_highlights_dominos_scores(user, group):
     assert wins_by_player[owner.pk] == STAT_CELL_BEST
     assert wins_by_player[pat.pk] == STAT_CELL_WORST
 
-    tie_by_player = {
-        player.player.pk: cell.css_class
-        for player, cell in zip(stats.players, rows["Ties"].player_cells, strict=True)
-    }
-    assert tie_by_player[owner.pk] == STAT_CELL_TIE
-    assert tie_by_player[pat.pk] == STAT_CELL_TIE
+    tie_row = rows["Ties"]
+    assert len(tie_row.player_cells) == 1
+    assert tie_row.player_cells[0].value == 1
+    assert tie_row.player_cells[0].css_class == STAT_CELL_TIE
+    assert tie_row.player_cells[0].colspan == 2
 
     points_by_player = {
         player.player.pk: cell.css_class
@@ -461,3 +583,30 @@ def test_build_stat_rows_highlights_games_played_when_unequal(user, group):
     assert games_by_player[players[0].pk].css_class == STAT_CELL_BEST
     assert games_by_player[players[1].pk].css_class == STAT_CELL_BEST
     assert games_by_player[players[2].pk].css_class == STAT_CELL_WORST
+
+
+@pytest.mark.django_db
+def test_build_game_list_stats_includes_date_rows(user, group):
+    players = _players_pair(group)
+    _record_game(
+        group,
+        scores={players[0].pk: 30, players[1].pk: 20},
+        played_on=date(2026, 1, 5),
+    )
+    _record_game(
+        group,
+        scores={players[0].pk: 25, players[1].pk: 25},
+        played_on=date(2026, 3, 15),
+    )
+
+    stats = build_game_list_stats(
+        games_qs=_filtered_games_queryset(
+            user,
+            {"group": str(group.pk), "game_type": "dominos", "location": "", "sort": "desc"},
+        ),
+        game_type_code="dominos",
+    )
+    rows = {row.label: row for row in stats.rows}
+
+    assert rows["Date Range"].player_cells[0].value == "Jan 5 - Mar 15, 2026 (2 months)"
+    assert rows["Date Range"].player_cells[0].colspan == 2
