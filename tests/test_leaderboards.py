@@ -44,7 +44,7 @@ def test_leaderboard_shows_rankings(client, user, group):
     assert "Dominos" in content
     assert ">Score<" in content
     assert 'class="text-nowrap">Win %</th>' in content
-    assert "leaderboard-sticky-col--rank" in content
+    assert 'aria-label="Rank">#</th>' in content
     assert "leaderboard-sticky-col--player" in content
 
 

@@ -56,14 +56,14 @@ nav.navbar.bg-primary .navbar-toggler {
   .leaderboard-table .leaderboard-sticky-col--rank {
     left: 0;
     z-index: 2;
-    width: 3rem;
-    min-width: 3rem;
-    max-width: 3rem;
+    width: 2.25rem;
+    min-width: 2.25rem;
+    max-width: 2.25rem;
     box-shadow: 1px 0 0 var(--bs-border-color);
   }
 
   .leaderboard-table .leaderboard-sticky-col--player {
-    left: 3rem;
+    left: 2.25rem;
     z-index: 3;
     white-space: nowrap;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
