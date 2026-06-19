@@ -17,6 +17,8 @@ class GroupMembershipInline(admin.TabularInline):
 class GroupPlayerInline(admin.TabularInline):
     model = GroupPlayer
     extra = 0
+    fields = ("display_name", "hide_from_game_list", "is_active", "linked_user")
+    show_change_link = True
 
 
 class LocationInline(admin.TabularInline):
@@ -60,6 +62,20 @@ class GroupMembershipAdmin(admin.ModelAdmin):
 
 @admin.register(GroupPlayer)
 class GroupPlayerAdmin(admin.ModelAdmin):
-    list_display = ("display_name", "group", "linked_user", "is_active")
-    list_filter = ("is_active",)
+    list_display = (
+        "display_name",
+        "group",
+        "linked_user",
+        "is_active",
+        "hide_from_game_list",
+    )
+    list_filter = ("is_active", "hide_from_game_list", "group")
+    list_editable = ("hide_from_game_list",)
     search_fields = ("display_name",)
+    fields = (
+        "group",
+        "display_name",
+        "linked_user",
+        "is_active",
+        "hide_from_game_list",
+    )

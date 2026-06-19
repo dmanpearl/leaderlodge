@@ -22,6 +22,7 @@
 - [x] Rank detail view shows how a player's rank was calculated for a particular view.
 - [x] Dashboard view: Show leaderboard cards for each sport
 - [x] Game list view filter by player (shows only games that player was in)
+- [x] Game Stats: Implement a way to hide undesirable Guest/Players
 
 ## Open Items
 
@@ -29,7 +30,6 @@
 - [ ] Game selection persistent storage. Use setting per logged in user. Add reset settings option.
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
-- [ ] Game Stats: Implement a way to hide some Guest/Players (Allyn, Alize)
 - [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.
 - [ ] Group members: Replace all-users dropdown with a secure, private, scalable invite method (email/link, not a public account picker)
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location

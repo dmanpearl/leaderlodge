@@ -17,7 +17,7 @@ from leaderlodge.games.list_stats import (
     _merge_equal_player_cells,
     build_game_list_stats,
 )
-from leaderlodge.games.models import GameParticipantResult
+from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.views import _filtered_games_queryset
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
@@ -583,6 +583,107 @@ def test_build_stat_rows_highlights_games_played_when_unequal(user, group):
     assert games_by_player[players[0].pk].css_class == STAT_CELL_BEST
     assert games_by_player[players[1].pk].css_class == STAT_CELL_BEST
     assert games_by_player[players[2].pk].css_class == STAT_CELL_WORST
+
+
+@pytest.mark.django_db
+def test_build_game_list_stats_excludes_players_hidden_from_game_list(user, group):
+    players = list(group.players.order_by("pk"))
+    while len(players) < 3:
+        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+
+    hidden = players[2]
+    hidden.hide_from_game_list = True
+    hidden.save(update_fields=["hide_from_game_list"])
+
+    from leaderlodge.games.services import ParticipantInput, record_game
+
+    record_game(
+        user=group.created_by,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=players[0],
+                score=10,
+                result=GameParticipantResult.Result.WIN,
+                placement=1,
+            ),
+            ParticipantInput(
+                player=players[1],
+                score=20,
+                result=GameParticipantResult.Result.LOSS,
+                placement=2,
+            ),
+            ParticipantInput(
+                player=players[2],
+                score=30,
+                result=GameParticipantResult.Result.LOSS,
+                placement=3,
+            ),
+        ],
+    )
+
+    games_qs = Game.objects.filter(group=group, game_type_code="progressiverummy")
+    stats = build_game_list_stats(games_qs=games_qs, game_type_code="progressiverummy")
+
+    assert len(stats.players) == 2
+    assert {item.player.pk for item in stats.players} == {players[0].pk, players[1].pk}
+
+
+@pytest.mark.django_db
+def test_game_list_stats_table_hides_player_but_game_table_keeps_them(client, user, group):
+    from leaderlodge.games.services import ParticipantInput, record_game
+
+    client.force_login(user)
+    players = list(group.players.order_by("pk"))
+    while len(players) < 3:
+        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+
+    hidden = players[2]
+    hidden.display_name = "Allyn"
+    hidden.hide_from_game_list = True
+    hidden.save(update_fields=["display_name", "hide_from_game_list"])
+
+    record_game(
+        user=group.created_by,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=players[0],
+                score=10,
+                result=GameParticipantResult.Result.WIN,
+                placement=1,
+            ),
+            ParticipantInput(
+                player=players[1],
+                score=20,
+                result=GameParticipantResult.Result.LOSS,
+                placement=2,
+            ),
+            ParticipantInput(
+                player=players[2],
+                score=30,
+                result=GameParticipantResult.Result.LOSS,
+                placement=3,
+            ),
+        ],
+    )
+
+    response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "progressiverummy"},
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    stats_table = content.split("game-list-stats-table", 1)[1].split("</table>", 1)[0]
+    game_table = content.split("game-list-table game-list-data-table", 1)[1].split("</table>", 1)[0]
+
+    assert "Allyn" not in stats_table
+    assert "Allyn" in game_table
 
 
 @pytest.mark.django_db

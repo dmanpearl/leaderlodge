@@ -108,6 +108,11 @@ class GroupPlayer(models.Model):
         related_name="group_player_profiles",
     )
     is_active = models.BooleanField(default=True)
+    hide_from_game_list = models.BooleanField(
+        default=False,
+        verbose_name="Hide from game stats",
+        help_text="Omit this player from the game list stats table.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

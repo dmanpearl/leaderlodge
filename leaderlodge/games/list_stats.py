@@ -355,6 +355,8 @@ def build_game_list_stats(
     players: list[PlayerListStats] = []
     for row in player_rows:
         player = players_by_id[row["player_id"]]
+        if player.hide_from_game_list:
+            continue
         players.append(
             PlayerListStats(
                 player=player,
