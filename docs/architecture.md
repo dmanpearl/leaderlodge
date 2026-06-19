@@ -19,24 +19,30 @@ types receives one `PlayerRanking` row per game type.
 
 Example: David plays dominos and backgammon in Group A:
 
-| player | game_type_code | wins | games_played | rank |
-|--------|----------------|------|--------------|------|
-| David  | dominos        | 5    | 8            | 1    |
-| David  | backgammon     | 2    | 4            | 2    |
+| player | game_type_code | wins | games_played | rank_score | rank |
+|--------|----------------|------|--------------|------------|------|
+| David  | dominos        | 5    | 8            | 1.75       | 1    |
+| David  | backgammon     | 2    | 4            | 2.00       | 2    |
 
 `PlayerRanking` fields: `player`, `game_type_code`, `game_type_name`,
-`games_played`, `wins`, `win_pct`, `rank`.
+`games_played`, `wins`, `losses`, `win_points`, `win_pct`, `loss_pct`,
+`rank_score`, `rank`.
 
 ### Ranking service
 
-All ranking logic lives in `leaderlodge/leaderboards/service.py` as plain
-functions (no strategy classes or inheritance):
+All ranking logic lives in `leaderlodge/leaderboards/service.py` and
+`leaderlodge/leaderboards/ranking.py` as plain functions (no strategy classes):
 
 - `get_player_rankings(group, game_type_code=None, min_games=1)` -- main entry
+- `get_group_roster_standings(group, game_type_code, sort, ascending)` -- group detail
 - `get_player_stats(group, player)` -- per-game-type stats for a single player
 
-Phase 1 ranks by wins (desc), then games played (desc), within each game type.
-The module will be extended in place as weighted ranking is added in Phase 2.
+Phase 1 ranks by field-weighted win score within each game type. Each win
+contributes `player_count × (double_weight / half_weight)`; ties contribute
+half that amount. Rank score is win points divided by weighted games played.
+
+Players must meet `MIN_GAMES_FOR_LEADERBOARD` to appear on the leaderboard page.
+The group detail roster shows all players; unqualified players have no rank.
 
 ## Score storage
 

@@ -83,26 +83,101 @@
   </div>
 
   <div class="card">
-    <div class="card-header">Player roster</div>
+    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+      <span>Player roster</span>
+      {% if game_type_options %}
+        <form method="get" class="d-flex align-items-center gap-2 mb-0">
+          <label for="roster-game-type" class="form-label mb-0 small text-muted">Game</label>
+          <select
+            id="roster-game-type"
+            name="game_type_code"
+            class="form-select form-select-sm"
+            onchange="this.form.submit()"
+          >
+            {% for code, name in game_type_options %}
+              <option value="{{ code }}" {% if selected_game_type_code == code %}selected{% endif %}>
+                {{ name }}
+              </option>
+            {% endfor %}
+          </select>
+          {% if standings_sort %}
+            <input type="hidden" name="sort" value="{{ standings_sort }}" />
+          {% endif %}
+          {% if standings_dir %}
+            <input type="hidden" name="dir" value="{{ standings_dir }}" />
+          {% endif %}
+        </form>
+      {% endif %}
+    </div>
     <div class="card-body">
       <p class="text-muted small mb-3">
         Everyone who can be scored in games. Members appear here automatically.
+        {% if selected_game_type %}
+          Rankings use field-weighted wins for {{ selected_game_type.name }}.
+        {% endif %}
       </p>
 
-      {% if player_rows %}
+      {% if standings %}
         <div class="table-responsive mb-4">
           <table class="table table-striped mb-0">
             <thead>
               <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Games</th>
-                <th scope="col">Wins</th>
-                <th scope="col">Win %</th>
+                <th scope="col">
+                  <a
+                    href="?game_type_code={{ selected_game_type_code }}&sort=rank&dir={% if standings_sort == 'rank' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'rank' %} fw-semibold{% endif %}"
+                  >Rank</a>
+                </th>
+                <th scope="col">
+                  <a
+                    href="?game_type_code={{ selected_game_type_code }}&sort=name&dir={% if standings_sort == 'name' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'name' %} fw-semibold{% endif %}"
+                  >Name</a>
+                </th>
+                <th scope="col">
+                  <a
+                    href="?game_type_code={{ selected_game_type_code }}&sort=score&dir={% if standings_sort == 'score' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'score' %} fw-semibold{% endif %}"
+                  >Score</a>
+                </th>
+                <th scope="col">
+                  <a
+                    href="?game_type_code={{ selected_game_type_code }}&sort=games&dir={% if standings_sort == 'games' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'games' %} fw-semibold{% endif %}"
+                  >Games</a>
+                </th>
+                <th scope="col">
+                  <a
+                    href="?game_type_code={{ selected_game_type_code }}&sort=wins&dir={% if standings_sort == 'wins' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'wins' %} fw-semibold{% endif %}"
+                  >Wins</a>
+                </th>
+                <th scope="col">
+                  <a
+                    href="?game_type_code={{ selected_game_type_code }}&sort=win_pct&dir={% if standings_sort == 'win_pct' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'win_pct' %} fw-semibold{% endif %}"
+                  >Win %</a>
+                </th>
+                {% if show_losses %}
+                  <th scope="col">
+                    <a
+                      href="?game_type_code={{ selected_game_type_code }}&sort=losses&dir={% if standings_sort == 'losses' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                      class="text-decoration-none{% if standings_sort == 'losses' %} fw-semibold{% endif %}"
+                    >Losses</a>
+                  </th>
+                  <th scope="col">
+                    <a
+                      href="?game_type_code={{ selected_game_type_code }}&sort=loss_pct&dir={% if standings_sort == 'loss_pct' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
+                      class="text-decoration-none{% if standings_sort == 'loss_pct' %} fw-semibold{% endif %}"
+                    >Loss %</a>
+                  </th>
+                {% endif %}
               </tr>
             </thead>
             <tbody>
-              {% for row in player_rows %}
+              {% for row in standings %}
                 <tr>
+                  <td>{% if row.rank %}{{ row.rank }}{% else %}&mdash;{% endif %}</td>
                   <td>
                     {{ row.player.display_label }}
                     {% if row.player.linked_user %}
@@ -111,22 +186,23 @@
                       <span class="badge text-bg-secondary ms-1">Guest</span>
                     {% endif %}
                   </td>
-                  <td>{{ row.total_games }}</td>
-                  <td>{{ row.total_wins }}</td>
-                  <td>
-                    {% if row.total_games %}
-                      {% widthratio row.total_wins row.total_games 100 %}%
-                    {% else %}
-                      &mdash;
-                    {% endif %}
-                  </td>
+                  <td>{{ row.rank_score|floatformat:2 }}</td>
+                  <td>{{ row.games_played|floatformat:-2 }}</td>
+                  <td>{{ row.wins|floatformat:-2 }}</td>
+                  <td>{% if row.games_played %}{{ row.win_pct|floatformat:0 }}%{% else %}&mdash;{% endif %}</td>
+                  {% if show_losses %}
+                    <td>{{ row.losses|floatformat:-2 }}</td>
+                    <td>{% if row.games_played %}{{ row.loss_pct|floatformat:0 }}%{% else %}&mdash;{% endif %}</td>
+                  {% endif %}
                 </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+      {% elif game_type_options %}
+        <p class="text-muted mb-4">No games recorded for this group yet.</p>
       {% else %}
-        <p class="text-muted mb-4">No players yet.</p>
+        <p class="text-muted mb-4">Record a game to see player standings.</p>
       {% endif %}
 
       <h2 class="h6">Add guest</h2>

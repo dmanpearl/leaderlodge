@@ -82,10 +82,11 @@ def test_group_detail_for_member(client, user, group):
     response = client.get(reverse("groups:detail", kwargs={"pk": group.pk}))
 
     assert response.status_code == 200
-    assert "Game Night" in response.content.decode()
-    assert "david" in response.content.decode()
-    assert "Games" in response.content.decode()
-    assert "Wins" in response.content.decode()
+    content = response.content.decode()
+    assert "Game Night" in content
+    assert "david" in content
+    assert "Player roster" in content
+    assert "Record a game to see player standings." in content
 
 
 @pytest.mark.django_db

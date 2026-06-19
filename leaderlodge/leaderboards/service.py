@@ -4,22 +4,28 @@ Leaderboard ranking for a group.
 Rankings are scoped by game type. A player who plays both dominos and backgammon
 receives one PlayerRanking row per game type (e.g. david-dominos, david-backgammon).
 
-Phase 1 ranks by wins within each game type. The ranking logic lives in this
-module only and will evolve in place as requirements grow.
+Rank score weights wins by field size: each win contributes game.player_count
+times the double/half game weight; ties contribute half that amount.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from django.conf import settings
-from django.db.models import Q, Sum
-
-from leaderlodge.games.standings import standings_weight_expression
+from django.db.models import F, FloatField, Q, Sum, Value
+from django.db.models.functions import Cast
 
 from leaderlodge.games.registry import GAME_TYPES, get_game_type
+from leaderlodge.games.standings import standings_weight_expression
+from leaderlodge.leaderboards.ranking import (
+    SORTABLE_COLUMNS,
+    TIE_WIN_POINTS_FACTOR,
+    compute_percentage,
+    compute_rank_score,
+)
 
 if TYPE_CHECKING:
     from leaderlodge.groups.models import Group, GroupPlayer
@@ -32,10 +38,14 @@ class PlayerRanking:
     player: GroupPlayer
     game_type_code: str
     game_type_name: str
-    games_played: int
-    wins: int
+    games_played: float
+    wins: float
+    losses: float
+    win_points: float
     win_pct: float
-    rank: int
+    loss_pct: float
+    rank_score: float
+    rank: int | None = None
 
 
 def get_player_rankings(
@@ -46,7 +56,7 @@ def get_player_rankings(
     min_games: int | None = None,
 ) -> list[PlayerRanking]:
     """
-    Return player rankings for a group.
+    Return ranked players who meet the minimum games threshold.
 
     When game_type_code is set, only that game type is included.
     When game_type_code is None, all game types with recorded games are
@@ -62,78 +72,88 @@ def get_player_rankings(
 
     rankings: list[PlayerRanking] = []
     for code in game_type_codes:
-        rankings.extend(
-            _rankings_for_game_type(group, code, min_games, location_id=location_id)
+        standings = _standings_for_game_type(
+            group,
+            code,
+            location_id=location_id,
         )
+        eligible = [
+            row for row in standings if row.games_played >= min_games
+        ]
+        rankings.extend(_assign_ranks(eligible))
 
     return rankings
 
 
-def _game_type_codes_for_group(group: Group) -> list[str]:
-    from leaderlodge.games.models import Game
-
-    codes = (
-        Game.objects.filter(group=group)
-        .values_list("game_type_code", flat=True)
-        .distinct()
-        .order_by("game_type_code")
-    )
-    return list(codes)
-
-
-def _rankings_for_game_type(
+def get_group_roster_standings(
     group: Group,
-    game_type_code: str,
-    min_games: int,
     *,
-    location_id: int | None = None,
+    game_type_code: str,
+    sort: str = "rank",
+    ascending: bool = True,
+    min_games: int | None = None,
 ) -> list[PlayerRanking]:
-    from leaderlodge.games.models import GameParticipantResult
+    """
+    Standings for every active roster player in a group for one game type.
 
-    game_type = get_game_type(game_type_code)
-
-    results_qs = GameParticipantResult.objects.filter(
-        game__group=group,
-        game__game_type_code=game_type_code,
-    )
-    if location_id is not None:
-        results_qs = results_qs.filter(game__location_id=location_id)
-
-    weight = standings_weight_expression()
-    stats = (
-        results_qs.values("player_id", "player__display_name")
-        .annotate(
-            games_played=Sum(weight),
-            wins=Sum(
-                weight,
-                filter=Q(result=GameParticipantResult.Result.WIN),
-            ),
-        )
-        .filter(games_played__gte=min_games)
-        .order_by("-wins", "-games_played", "player__display_name")
-    )
+    Players below the minimum games threshold are included with rank=None.
+    """
+    if min_games is None:
+        min_games = settings.MIN_GAMES_FOR_LEADERBOARD
 
     from leaderlodge.groups.models import GroupPlayer
 
-    rankings: list[PlayerRanking] = []
-    for rank_index, row in enumerate(stats, start=1):
-        player = GroupPlayer.objects.get(pk=row["player_id"])
-        games_played = row["games_played"] or 0
-        wins = row["wins"] or 0
-        win_pct = (wins / games_played * 100) if games_played else 0.0
-        rankings.append(
-            PlayerRanking(
-                player=player,
-                game_type_code=game_type.code,
-                game_type_name=game_type.name,
-                games_played=games_played,
-                wins=wins,
-                win_pct=win_pct,
-                rank=rank_index,
-            )
-        )
+    stats_by_player = {
+        row.player.pk: row
+        for row in _standings_for_game_type(group, game_type_code)
+    }
+    game_type = get_game_type(game_type_code)
 
-    return rankings
+    rows: list[PlayerRanking] = []
+    for player in group.players.filter(is_active=True).select_related("linked_user"):
+        row = stats_by_player.get(player.pk)
+        if row is None:
+            row = _empty_player_ranking(player, game_type)
+        rows.append(row)
+
+    eligible = [row for row in rows if row.games_played >= min_games]
+    ranked = _assign_ranks(eligible)
+    rank_by_player = {row.player.pk: row.rank for row in ranked}
+
+    merged = [
+        replace(row, rank=rank_by_player.get(row.player.pk))
+        for row in rows
+    ]
+    return sort_standings(merged, sort=sort, ascending=ascending)
+
+
+def sort_standings(
+    rows: list[PlayerRanking],
+    *,
+    sort: str,
+    ascending: bool,
+) -> list[PlayerRanking]:
+    if sort not in SORTABLE_COLUMNS:
+        sort = "rank"
+
+    def key(row: PlayerRanking):
+        if sort == "rank":
+            return row.rank if row.rank is not None else 10**9
+        if sort == "name":
+            return row.player.display_label.lower()
+        if sort == "score":
+            return row.rank_score
+        if sort == "games":
+            return row.games_played
+        if sort == "wins":
+            return row.wins
+        if sort == "win_pct":
+            return row.win_pct
+        if sort == "losses":
+            return row.losses
+        return row.loss_pct
+
+    return sorted(rows, key=key, reverse=not ascending)
 
 
 def get_player_stats(
@@ -168,7 +188,7 @@ def get_player_stats(
         stats[code] = {
             "games_played": games_played,
             "wins": wins,
-            "win_pct": (wins / games_played * 100) if games_played else 0.0,
+            "win_pct": compute_percentage(wins, games_played),
         }
 
     for code in stats:
@@ -177,3 +197,127 @@ def get_player_stats(
             stats[code]["game_type_name"] = game_type.name
 
     return dict(stats)
+
+
+def _game_type_codes_for_group(group: Group) -> list[str]:
+    from leaderlodge.games.models import Game
+
+    codes = (
+        Game.objects.filter(group=group)
+        .values_list("game_type_code", flat=True)
+        .distinct()
+        .order_by("game_type_code")
+    )
+    return list(codes)
+
+
+def _standings_weight_factors():
+    weight = standings_weight_expression()
+    player_count = Cast(F("game__player_count"), FloatField())
+    return weight, player_count
+
+
+def _standings_for_game_type(
+    group: Group,
+    game_type_code: str,
+    *,
+    location_id: int | None = None,
+) -> list[PlayerRanking]:
+    from leaderlodge.games.models import GameParticipantResult
+    from leaderlodge.groups.models import GroupPlayer
+
+    game_type = get_game_type(game_type_code)
+
+    results_qs = GameParticipantResult.objects.filter(
+        game__group=group,
+        game__game_type_code=game_type_code,
+    )
+    if location_id is not None:
+        results_qs = results_qs.filter(game__location_id=location_id)
+
+    weight, player_count = _standings_weight_factors()
+    win_points_expr = player_count * weight
+    tie_points_expr = player_count * weight * Value(TIE_WIN_POINTS_FACTOR)
+
+    stats = results_qs.values("player_id").annotate(
+        games_played=Sum(weight),
+        wins=Sum(weight, filter=Q(result=GameParticipantResult.Result.WIN)),
+        losses=Sum(weight, filter=Q(result=GameParticipantResult.Result.LOSS)),
+        win_point_wins=Sum(
+            win_points_expr,
+            filter=Q(result=GameParticipantResult.Result.WIN),
+        ),
+        win_point_ties=Sum(
+            tie_points_expr,
+            filter=Q(result=GameParticipantResult.Result.TIE),
+        ),
+    )
+
+    players_by_id = {
+        player.pk: player
+        for player in GroupPlayer.objects.filter(
+            pk__in=[row["player_id"] for row in stats]
+        ).select_related("linked_user")
+    }
+
+    rows: list[PlayerRanking] = []
+    for row in stats:
+        player = players_by_id[row["player_id"]]
+        games_played = float(row["games_played"] or 0)
+        wins = float(row["wins"] or 0)
+        losses = float(row["losses"] or 0)
+        win_points = float(row["win_point_wins"] or 0) + float(
+            row["win_point_ties"] or 0
+        )
+        rank_score = compute_rank_score(
+            win_points=win_points,
+            games_played=games_played,
+        )
+        rows.append(
+            PlayerRanking(
+                player=player,
+                game_type_code=game_type.code,
+                game_type_name=game_type.name,
+                games_played=games_played,
+                wins=wins,
+                losses=losses,
+                win_points=win_points,
+                win_pct=compute_percentage(wins, games_played),
+                loss_pct=compute_percentage(losses, games_played),
+                rank_score=rank_score,
+            )
+        )
+
+    return rows
+
+
+def _empty_player_ranking(player: GroupPlayer, game_type) -> PlayerRanking:
+    return PlayerRanking(
+        player=player,
+        game_type_code=game_type.code,
+        game_type_name=game_type.name,
+        games_played=0.0,
+        wins=0.0,
+        losses=0.0,
+        win_points=0.0,
+        win_pct=0.0,
+        loss_pct=0.0,
+        rank_score=0.0,
+    )
+
+
+def _default_standings_sort_key(row: PlayerRanking) -> tuple:
+    return (
+        -row.rank_score,
+        -row.games_played,
+        -row.win_points,
+        row.player.display_label.lower(),
+    )
+
+
+def _assign_ranks(rows: list[PlayerRanking]) -> list[PlayerRanking]:
+    ordered = sorted(rows, key=_default_standings_sort_key)
+    ranked: list[PlayerRanking] = []
+    for index, row in enumerate(ordered, start=1):
+        ranked.append(replace(row, rank=index))
+    return ranked

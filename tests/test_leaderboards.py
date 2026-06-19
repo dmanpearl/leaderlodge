@@ -42,6 +42,7 @@ def test_leaderboard_shows_rankings(client, user, group):
     content = response.content.decode()
     assert "Dom Club" in content
     assert "Dominos" in content
+    assert ">Score<" in content
 
 
 @pytest.mark.django_db

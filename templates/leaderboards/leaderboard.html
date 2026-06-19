@@ -68,9 +68,14 @@
             <tr>
               <th scope="col">Rank</th>
               <th scope="col">Player</th>
+              <th scope="col">Score</th>
               <th scope="col">Wins</th>
               <th scope="col">Games</th>
               <th scope="col">Win %</th>
+              {% if selected_game_type.supports_loser %}
+                <th scope="col">Losses</th>
+                <th scope="col">Loss %</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -78,9 +83,14 @@
               <tr>
                 <td>{{ row.rank }}</td>
                 <td>{{ row.player.display_label }}</td>
-                <td>{{ row.wins }}</td>
-                <td>{{ row.games_played }}</td>
+                <td>{{ row.rank_score|floatformat:2 }}</td>
+                <td>{{ row.wins|floatformat:-2 }}</td>
+                <td>{{ row.games_played|floatformat:-2 }}</td>
                 <td>{{ row.win_pct|floatformat:0 }}%</td>
+                {% if selected_game_type.supports_loser %}
+                  <td>{{ row.losses|floatformat:-2 }}</td>
+                  <td>{{ row.loss_pct|floatformat:0 }}%</td>
+                {% endif %}
               </tr>
             {% endfor %}
           </tbody>
