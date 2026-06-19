@@ -36,6 +36,8 @@ def test_navbar_shows_login_button_for_anonymous(client):
     assert 'href="' in content and reverse("accounts:login") in content
     assert "Login" in content
     assert 'class="bi bi-person navbar-user-icon"' in content
+    assert 'id="login-password-toggle"' in content
+    assert 'class="bi bi-eye"' in content
     assert "Administration" not in content
     assert "dropdown-toggle" not in content
 

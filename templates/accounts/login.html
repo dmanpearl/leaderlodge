@@ -24,13 +24,25 @@
             </div>
             <div class="mb-3">
               <label for="id_password" class="form-label">Password</label>
-              <input
-                type="password"
-                name="password"
-                required
-                class="form-control"
-                id="id_password"
-              />
+              <div class="input-group">
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  class="form-control"
+                  id="id_password"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  id="login-password-toggle"
+                  aria-label="Show password"
+                  aria-pressed="false"
+                  aria-controls="id_password"
+                >
+                  <i class="bi bi-eye" id="login-password-toggle-icon" aria-hidden="true"></i>
+                </button>
+              </div>
             </div>
             <button type="submit" class="btn btn-primary w-100">Login</button>
           </form>
@@ -38,4 +50,26 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const input = document.getElementById("id_password");
+      const toggle = document.getElementById("login-password-toggle");
+      const icon = document.getElementById("login-password-toggle-icon");
+      if (!input || !toggle || !icon) {
+        return;
+      }
+
+      toggle.addEventListener("click", () => {
+        const showing = input.type === "text";
+        input.type = showing ? "password" : "text";
+        icon.classList.toggle("bi-eye", showing);
+        icon.classList.toggle("bi-eye-slash", !showing);
+        toggle.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+        toggle.setAttribute("aria-pressed", String(!showing));
+      });
+    });
+  </script>
 {% endblock %}
