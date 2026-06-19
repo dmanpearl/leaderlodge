@@ -19,7 +19,7 @@
   <div class="card mb-3 game-list-filters-card">
     <div class="card-body game-list-filters-body">
       <form method="get" id="game-list-filters" class="row g-3 align-items-end">
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-group" class="form-label">Group</label>
           <select id="filter-group" name="group" class="form-select game-list-filter-select" onchange="this.form.submit()">
             <option value="">All groups</option>
@@ -30,7 +30,7 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-game-type" class="form-label">Game type</label>
           <select id="filter-game-type" name="game_type" class="form-select game-list-filter-select" onchange="this.form.submit()">
             {% for code, name in game_types %}
@@ -40,7 +40,22 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-sm-6 col-lg-4 col-xl">
+          <label for="filter-player" class="form-label">Player</label>
+          <select id="filter-player" name="player" class="form-select game-list-filter-select" onchange="this.form.submit()">
+            <option value="">All players</option>
+            {% for player in players %}
+              <option value="{{ player.pk }}" {% if params.player == player.pk|stringformat:"s" %}selected{% endif %}>
+                {% if params.group %}
+                  {{ player.display_label }}
+                {% else %}
+                  {{ player.display_label }} ({{ player.group.name }})
+                {% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-location" class="form-label">Location</label>
           <select id="filter-location" name="location" class="form-select game-list-filter-select" onchange="this.form.submit()">
             <option value="">All locations</option>
@@ -51,7 +66,7 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-12 col-md-3">
+        <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-sort" class="form-label">Date</label>
           <select id="filter-sort" name="sort" class="form-select game-list-filter-select" onchange="this.form.submit()">
             <option value="desc" {% if params.sort == "desc" %}selected{% endif %}>Newest first</option>

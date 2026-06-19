@@ -352,6 +352,64 @@ def test_game_list_location_choices_culled_by_group_and_type(client, user, group
 
 
 @pytest.mark.django_db
+def test_game_list_filters_by_player(client, user, group):
+    other_group = create_group_with_owner(user=user, name="Other Club")
+    pat = group.players.get(display_name="Pat")
+    add_guest_player(group=other_group, display_name="Pat")
+
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(
+        reverse("games:create"),
+        _save_game_post(
+            group,
+            game_type_code="dominos",
+            players_played=list(group.players.order_by("pk"))[:2],
+        ),
+    )
+    client.post(reverse("games:create"), _load_roster_post(other_group, game_type_code="dominos"))
+    client.post(
+        reverse("games:create"),
+        _save_game_post(
+            other_group,
+            game_type_code="dominos",
+            players_played=list(other_group.players.order_by("pk"))[:2],
+        ),
+    )
+
+    all_dominos = client.get(
+        reverse("games:list"),
+        {"game_type": "dominos"},
+    )
+    pat_only = client.get(
+        reverse("games:list"),
+        {"game_type": "dominos", "player": str(pat.pk)},
+    )
+    group_pat_only = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos", "player": str(pat.pk)},
+    )
+
+    assert all_dominos.status_code == 200
+    all_content = all_dominos.content.decode()
+    assert "All players" in all_content
+    assert "Pat (Dom Club)" in all_content
+    assert "Pat (Other Club)" in all_content
+    assert all_content.count("Dom Club") >= 1
+    assert all_content.count("Other Club") >= 1
+
+    assert pat_only.status_code == 200
+    pat_content = pat_only.content.decode()
+    assert pat_content.count("Dom Club") >= 1
+    assert pat_content.count("Other Club") >= 1
+
+    assert group_pat_only.status_code == 200
+    group_pat_content = group_pat_only.content.decode()
+    assert "Pat (Dom Club)" not in group_pat_content
+    assert ">Other Club</a>" not in group_pat_content
+
+
+@pytest.mark.django_db
 def test_game_list_sort_and_empty_filter_message(client, user, group):
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))

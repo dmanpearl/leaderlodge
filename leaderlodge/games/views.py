@@ -16,11 +16,11 @@ from leaderlodge.groups.player_search import roster_for_group
 from leaderlodge.games.list_density import game_list_date_format, resolve_game_list_density
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
-from leaderlodge.games.models import Game
+from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import GAME_TYPES, game_type_choices, get_game_type
 from leaderlodge.games.scoring import scoring_instructions
 from leaderlodge.games.services import ParticipantInput, record_game
-from leaderlodge.groups.models import Group, Location
+from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
     single_user_group,
     user_groups,
@@ -38,6 +38,7 @@ def _game_list_params(request: HttpRequest) -> dict[str, str]:
     return {
         "group": request.GET.get("group", "").strip(),
         "game_type": request.GET.get("game_type", "").strip(),
+        "player": request.GET.get("player", "").strip(),
         "location": request.GET.get("location", "").strip(),
         "sort": sort,
     }
@@ -85,19 +86,28 @@ def _game_list_redirect_query(params: dict[str, str], page: str | None) -> str:
     return urlencode(query_params)
 
 
-def _filtered_games_queryset(user, params: dict[str, str]):
-    games_qs = Game.objects.filter(group__in=user_groups(user)).select_related(
-        "group", "recorded_by", "location"
-    )
-
+def _games_queryset_for_filter_choices(user, params: dict[str, str]):
+    games_qs = Game.objects.filter(group__in=user_groups(user))
     if params["group"].isdigit():
         games_qs = games_qs.filter(group_id=int(params["group"]))
     if params["game_type"] in GAME_TYPES:
         games_qs = games_qs.filter(game_type_code=params["game_type"])
-    else:
+    return games_qs
+
+
+def _filtered_games_queryset(user, params: dict[str, str]):
+    games_qs = _games_queryset_for_filter_choices(user, params).select_related(
+        "group", "recorded_by", "location"
+    )
+
+    if params["game_type"] not in GAME_TYPES:
         return games_qs.none()
     if params["location"].isdigit():
         games_qs = games_qs.filter(location_id=int(params["location"]))
+    if params["player"].isdigit():
+        games_qs = games_qs.filter(
+            participant_results__player_id=int(params["player"]),
+        ).distinct()
 
     if params["sort"] == "asc":
         return games_qs.order_by("played_on", "created_at")
@@ -105,28 +115,44 @@ def _filtered_games_queryset(user, params: dict[str, str]):
 
 
 def _location_choices_for_game_list(user, params: dict[str, str]):
-    games_qs = Game.objects.filter(
-        group__in=user_groups(user),
+    games_qs = _games_queryset_for_filter_choices(user, params).filter(
         location__isnull=False,
     )
-    if params["group"].isdigit():
-        games_qs = games_qs.filter(group_id=int(params["group"]))
-    if params["game_type"] in GAME_TYPES:
-        games_qs = games_qs.filter(game_type_code=params["game_type"])
-
     location_ids = games_qs.values_list("location_id", flat=True).distinct()
     return Location.objects.filter(pk__in=location_ids).order_by("name")
+
+
+def _player_choices_for_game_list(user, params: dict[str, str]):
+    games_qs = _games_queryset_for_filter_choices(user, params)
+    player_ids = (
+        GameParticipantResult.objects.filter(game__in=games_qs)
+        .values_list("player_id", flat=True)
+        .distinct()
+    )
+    players_qs = GroupPlayer.objects.filter(pk__in=player_ids).select_related(
+        "linked_user",
+        "group",
+    )
+    if params["group"].isdigit():
+        players_qs = players_qs.filter(group_id=int(params["group"]))
+        return players_qs.order_by("display_name", "pk")
+    return players_qs.order_by("group__name", "display_name", "pk")
 
 
 def _sanitize_game_list_params(
     params: dict[str, str],
     locations,
+    players,
 ) -> dict[str, str]:
     sanitized = dict(params)
     if sanitized["location"].isdigit():
         valid_ids = {location.pk for location in locations}
         if int(sanitized["location"]) not in valid_ids:
             sanitized["location"] = ""
+    if sanitized["player"].isdigit():
+        valid_ids = {player.pk for player in players}
+        if int(sanitized["player"]) not in valid_ids:
+            sanitized["player"] = ""
     return sanitized
 
 
@@ -137,7 +163,7 @@ def _game_list_filter_query(params: dict[str, str]) -> str:
 
 
 def _game_list_has_filters(params: dict[str, str]) -> bool:
-    return any(params[key] for key in ("group", "location"))
+    return any(params[key] for key in ("group", "player", "location"))
 
 
 def _participant_rows_from_post(group, post):
@@ -226,7 +252,8 @@ def game_list(request: HttpRequest) -> HttpResponse:
 
     params = resolved_params
     locations = _location_choices_for_game_list(request.user, params)
-    params = _sanitize_game_list_params(params, locations)
+    players = _player_choices_for_game_list(request.user, params)
+    params = _sanitize_game_list_params(params, locations, players)
     games_qs = _filtered_games_queryset(request.user, params)
     selected_game_type = get_game_type(params["game_type"])
     list_stats = build_game_list_stats(
@@ -263,6 +290,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "groups": groups,
             "game_types": game_type_choices(),
             "locations": locations,
+            "players": players,
             "selected_game_type": selected_game_type,
             "show_group_column": not params["group"],
             "show_weight_column": show_weight_column(

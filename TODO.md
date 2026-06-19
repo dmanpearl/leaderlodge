@@ -21,6 +21,7 @@
 - [x] Leaderboard rank score uses field-weighted finish placement points.
 - [x] Rank detail view shows how a player's rank was calculated for a particular view.
 - [x] Dashboard view: Show leaderboard cards for each sport
+- [x] Game list view filter by player (shows only games that player was in)
 
 ## Open Items
 
@@ -33,10 +34,8 @@
 - [ ] Group members: Replace all-users dropdown with a secure, private, scalable invite method (email/link, not a public account picker)
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
-- [ ] Demo mode so visitors can view a meaningful experience without login
 - [ ] Stats view: Spin-up/Spin-down control is wrong. Should be down/right, not down/up.
 - [ ] Bug: Record Game wrong date - At 10:12pm default date shows tomorrow's date
-- [ ] Game list view filter by player (shows only games that player was in)
 - [ ] Game detail view (maybe)
 - [ ] Calculate leaderboards
 - [ ] Filter leaderboards (month, game)
