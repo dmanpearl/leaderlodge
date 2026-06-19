@@ -65,14 +65,14 @@
         {% endif %}
 
         <dt class="col-7 col-sm-5">Wins</dt>
-        <dd class="col-5 col-sm-7">{{ detail.ranking.wins|floatformat:-2 }} ({{ detail.ranking.win_pct|floatformat:0 }}%)</dd>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.wins|floatformat:-1 }} ({{ detail.ranking.win_pct|floatformat:0 }}%)</dd>
 
         <dt class="col-7 col-sm-5">Win points</dt>
         <dd class="col-5 col-sm-7">{{ detail.ranking.win_points|floatformat:2 }}</dd>
 
         {% if detail.supports_loser %}
           <dt class="col-7 col-sm-5">Losses</dt>
-          <dd class="col-5 col-sm-7">{{ detail.ranking.losses|floatformat:-2 }} ({{ detail.ranking.loss_pct|floatformat:0 }}%)</dd>
+          <dd class="col-5 col-sm-7">{{ detail.ranking.losses|floatformat:-1 }} ({{ detail.ranking.loss_pct|floatformat:0 }}%)</dd>
         {% endif %}
 
         {% if detail.tie_count %}
