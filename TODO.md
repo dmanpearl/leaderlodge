@@ -20,12 +20,12 @@
 - [x] Leaderboard: Add rank column and order the list by rank. Initial rank formula: r=sum(nummber-of-players-in-each-game-you-won)/number-of-games-you-played
 - [x] Leaderboard rank score uses field-weighted finish placement points.
 - [x] Rank detail view shows how a player's rank was calculated for a particular view.
+- [x] Dashboard view: Show leaderboard cards for each sport
 
 ## Open Items
 
 - [ ] Demo mode: Use new demo-seed Excel files with representative player names. Use group 'Demo'. May need seed command for demo group. The demo-seed files are based on the manpearl seed files.
 - [ ] Game selection persistent storage. Use setting per logged in user. Add reset settings option.
-- [ ] Dashboard view: Show leaderboard cards for each sport
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] Game Stats: Implement a way to hide some Guest/Players (Allyn, Alize)

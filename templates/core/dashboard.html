@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <div class="col-12 col-lg-6">
+    <div class="col-12 {% if leaderboard_cards %}col-xl-5{% endif %}">
       <div class="card h-100">
         <div class="card-header d-flex justify-content-between align-items-center">
           <span>Recent Games</span>
@@ -37,23 +37,25 @@
                     <th scope="col">Date</th>
                     <th scope="col">Group</th>
                     <th scope="col">Game</th>
+                    <th scope="col">Winner</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {% for game in recent_games %}
+                  {% for row in recent_games %}
                     <tr>
                       <td>
-                        <a href="{% url 'games:detail' game.pk %}">{{ game.played_on|date:"M j, Y" }}</a>
+                        <a href="{% url 'games:detail' row.game.pk %}">{{ row.game.played_on|date:"M j, Y" }}</a>
                       </td>
-                      <td>{{ game.group.name }}</td>
+                      <td>{{ row.game.group.name }}</td>
                       <td>
-                        {{ game.game_type.name }}
-                        {% if game.double_weight == 2 %}
+                        {{ row.game.game_type.name }}
+                        {% if row.game.double_weight == 2 %}
                           <span class="badge text-bg-secondary">2×</span>
-                        {% elif game.half_weight == 2 %}
+                        {% elif row.game.half_weight == 2 %}
                           <span class="badge text-bg-secondary">½</span>
                         {% endif %}
                       </td>
+                      <td class="text-truncate" style="max-width: 7rem;">{{ row.winner_label }}</td>
                     </tr>
                   {% endfor %}
                 </tbody>
@@ -66,50 +68,71 @@
       </div>
     </div>
 
-    <div class="col-12 col-lg-6">
-      <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span>
-            Top Players
-            {% if top_rankings_game_type and default_group %}
-              <span class="text-muted fw-normal small">
-                &middot; {{ default_group.name }} &middot; {{ top_rankings_game_type.name }}
-              </span>
-            {% endif %}
-          </span>
-          {% if default_group %}
-            <a href="{% url 'leaderboards:index' %}?group={{ default_group.pk }}" class="small">Full leaderboard</a>
+    {% if has_groups %}
+      <div class="col-12 {% if leaderboard_cards %}col-xl-7{% endif %}">
+        {% if leaderboard_cards %}
+          {% if composite_leaderboards %}
+            <p class="text-muted small mb-2">Leaderboards across your groups</p>
           {% endif %}
-        </div>
-        <div class="card-body p-0">
-          {% if top_rankings %}
-            <div class="table-responsive">
-              <table class="table table-striped mb-0">
-                <thead>
-                  <tr>
-                    <th scope="col">Rank</th>
-                    <th scope="col">Player</th>
-                    <th scope="col">Wins</th>
-                    <th scope="col">Games</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in top_rankings %}
-                    <tr>
-                      <td>{{ row.rank }}</td>
-                      <td>{{ row.player.display_label }}</td>
-                      <td>{{ row.wins }}</td>
-                      <td>{{ row.games_played }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+          <div class="row g-3">
+            {% for card in leaderboard_cards %}
+              <div class="col-12 col-md-6">
+                <div class="card h-100">
+                  <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                    <span class="text-truncate">{{ card.game_type_name }}</span>
+                    <a href="{{ card.leaderboard_url }}" class="small text-nowrap">
+                      Full board
+                    </a>
+                  </div>
+                  <div class="card-body p-0">
+                    <div class="table-responsive">
+                      <table class="table table-striped mb-0">
+                        <thead>
+                          <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Player</th>
+                            {% if card.composite %}
+                              <th scope="col">Group</th>
+                            {% endif %}
+                            <th scope="col">Score</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for row in card.rows %}
+                            <tr>
+                              <td>{{ row.rank }}</td>
+                              <td class="text-truncate" style="max-width: 7rem;">{{ row.player_label }}</td>
+                              {% if card.composite %}
+                                <td class="text-truncate" style="max-width: 6rem;">{{ row.group_name }}</td>
+                              {% endif %}
+                              <td>{{ row.rank_score|floatformat:2 }}</td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="card h-100">
+            <div class="card-body d-flex align-items-center">
+              <p class="text-muted mb-0">Record games to see leaderboards.</p>
             </div>
-          {% else %}
-            <p class="text-muted mb-0 p-3">Record games to see rankings.</p>
-          {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    {% elif not recent_games %}
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body text-center py-4">
+            <p class="text-muted mb-3">Join or create a group to get started.</p>
+            <a href="{% url 'groups:create' %}" class="btn btn-outline-primary btn-sm">Create a group</a>
+          </div>
         </div>
       </div>
-    </div>
+    {% endif %}
   </div>
 {% endblock %}

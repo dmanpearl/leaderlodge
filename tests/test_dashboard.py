@@ -34,6 +34,7 @@ def test_dashboard_shows_recent_games(client, user, group):
     assert response.status_code == 200
     content = response.content.decode()
     assert "Recent Games" in content
+    assert "Winner" in content
     assert "Dominos" in content
     assert "Record Game" in content
 
@@ -46,5 +47,27 @@ def test_dashboard_shows_top_players(client, user, group):
 
     response = client.get(reverse("core:dashboard"))
     content = response.content.decode()
-    assert "Top Players" in content
+    assert "Dominos" in content
+    assert "Full board" in content
     assert "Dom Club" in content
+    assert "david" in content.lower() or "David" in content
+
+
+@pytest.mark.django_db
+def test_dashboard_composite_leaderboards(client, user, group):
+    other_group = create_group_with_owner(user=user, name="Other Club")
+    add_guest_player(group=other_group, display_name="Pat")
+
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+    client.post(reverse("games:create"), _load_roster_post(other_group))
+    client.post(reverse("games:create"), _save_game_post(other_group))
+
+    response = client.get(reverse("core:dashboard"))
+    content = response.content.decode()
+
+    assert "Leaderboards across your groups" in content
+    assert "Dom Club" in content
+    assert "Other Club" in content
+    assert content.index("Player") < content.index("Group", content.index("Dominos"))

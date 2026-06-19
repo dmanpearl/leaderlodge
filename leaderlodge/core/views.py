@@ -1,19 +1,122 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from dataclasses import dataclass
 
+from django.contrib.auth.decorators import login_required
+from django.db.models import QuerySet
+from django.shortcuts import render
+from django.urls import reverse
+
+from leaderlodge.games.display import winner_labels_for_games
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
+from leaderlodge.groups.models import Group
 from leaderlodge.groups.services import resolve_user_group, user_groups
-from leaderlodge.leaderboards.service import get_player_rankings
+from leaderlodge.leaderboards.service import PlayerRanking, get_player_rankings
 
 
-def _game_type_codes_for_group(group):
+@dataclass(frozen=True)
+class DashboardRecentGame:
+    game: Game
+    winner_label: str
+
+
+@dataclass(frozen=True)
+class DashboardLeaderboardRow:
+    rank: int
+    player_label: str
+    rank_score: float
+    group_name: str | None = None
+    group_id: int | None = None
+
+
+@dataclass(frozen=True)
+class DashboardLeaderboardCard:
+    game_type_code: str
+    game_type_name: str
+    rows: list[DashboardLeaderboardRow]
+    composite: bool
+    leaderboard_url: str
+
+
+def _game_type_codes_for_groups(groups: QuerySet[Group] | list[Group]) -> list[str]:
     return list(
-        Game.objects.filter(group=group)
+        Game.objects.filter(group__in=groups)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
     )
+
+
+def _dashboard_ranking_sort_key(ranking: PlayerRanking) -> tuple:
+    return (
+        -ranking.rank_score,
+        -ranking.games_played,
+        -ranking.finish_points,
+        ranking.player.display_label.lower(),
+        ranking.player.group.name.lower(),
+    )
+
+
+def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboardCard]:
+    group_list = list(groups)
+    if not group_list:
+        return []
+
+    composite = len(group_list) > 1
+    cards: list[DashboardLeaderboardCard] = []
+
+    for code in _game_type_codes_for_groups(group_list):
+        game_type = get_game_type(code)
+        combined: list[PlayerRanking] = []
+        for group in group_list:
+            combined.extend(get_player_rankings(group, game_type_code=code))
+
+        if not combined:
+            continue
+
+        combined.sort(key=_dashboard_ranking_sort_key)
+        top = combined[:5]
+
+        if composite:
+            rows = [
+                DashboardLeaderboardRow(
+                    rank=index,
+                    player_label=row.player.display_label,
+                    rank_score=row.rank_score,
+                    group_name=row.player.group.name,
+                    group_id=row.player.group_id,
+                )
+                for index, row in enumerate(top, start=1)
+            ]
+            leaderboard_url = (
+                f"{reverse('leaderboards:index')}?game_type_code={code}"
+            )
+        else:
+            group = group_list[0]
+            rows = [
+                DashboardLeaderboardRow(
+                    rank=row.rank or index,
+                    player_label=row.player.display_label,
+                    rank_score=row.rank_score,
+                    group_id=group.pk,
+                )
+                for index, row in enumerate(top, start=1)
+            ]
+            leaderboard_url = (
+                f"{reverse('leaderboards:index')}"
+                f"?group={group.pk}&game_type_code={code}"
+            )
+
+        cards.append(
+            DashboardLeaderboardCard(
+                game_type_code=code,
+                game_type_name=game_type.name,
+                rows=rows,
+                composite=composite,
+                leaderboard_url=leaderboard_url,
+            )
+        )
+
+    return cards
 
 
 @login_required
@@ -23,22 +126,22 @@ def dashboard(request):
     if default_group is None and groups.count() == 1:
         default_group = groups.first()
 
-    recent_games = (
+    recent_games_qs = list(
         Game.objects.filter(group__in=groups)
         .select_related("group", "location")
         .order_by("-played_on", "-created_at")[:5]
     )
+    winner_labels = winner_labels_for_games(recent_games_qs)
+    recent_games = [
+        DashboardRecentGame(
+            game=game,
+            winner_label=winner_labels.get(game.pk, "—"),
+        )
+        for game in recent_games_qs
+    ]
 
-    top_rankings = []
-    top_rankings_game_type = None
-    if default_group:
-        codes = _game_type_codes_for_group(default_group)
-        if codes:
-            top_rankings_game_type = get_game_type(codes[0])
-            top_rankings = get_player_rankings(
-                default_group,
-                game_type_code=codes[0],
-            )[:5]
+    leaderboard_cards = _build_leaderboard_cards(groups)
+    composite_leaderboards = groups.count() > 1
 
     record_game_url_group = default_group.pk if default_group else None
 
@@ -47,9 +150,9 @@ def dashboard(request):
         "core/dashboard.html",
         {
             "recent_games": recent_games,
-            "top_rankings": top_rankings,
-            "top_rankings_game_type": top_rankings_game_type,
-            "default_group": default_group,
+            "leaderboard_cards": leaderboard_cards,
+            "composite_leaderboards": composite_leaderboards,
+            "has_groups": groups.exists(),
             "record_game_url_group": record_game_url_group,
         },
     )
