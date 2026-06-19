@@ -46,6 +46,46 @@ nav.navbar.bg-primary .navbar-toggler {
   cursor: pointer;
 }
 
+@media (max-width: 767.98px) {
+  .leaderboard-table .leaderboard-sticky-col--rank,
+  .leaderboard-table .leaderboard-sticky-col--player {
+    position: sticky;
+    background-color: var(--bs-table-bg);
+  }
+
+  .leaderboard-table .leaderboard-sticky-col--rank {
+    left: 0;
+    z-index: 2;
+    width: 3rem;
+    min-width: 3rem;
+    max-width: 3rem;
+    box-shadow: 1px 0 0 var(--bs-border-color);
+  }
+
+  .leaderboard-table .leaderboard-sticky-col--player {
+    left: 3rem;
+    z-index: 3;
+    white-space: nowrap;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+  }
+
+  .leaderboard-table thead .leaderboard-sticky-col--rank {
+    z-index: 4;
+  }
+
+  .leaderboard-table thead .leaderboard-sticky-col--player {
+    z-index: 5;
+  }
+
+  .leaderboard-table.table-striped > tbody > tr:nth-of-type(odd) > .leaderboard-sticky-col {
+    background-color: var(--bs-table-striped-bg);
+  }
+
+  .leaderboard-table.table-hover > tbody > tr:hover > .leaderboard-sticky-col {
+    background-color: var(--bs-table-hover-bg);
+  }
+}
+
 .rank-detail-dl dt {
   font-weight: 500;
 }

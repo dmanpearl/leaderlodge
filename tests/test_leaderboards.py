@@ -43,6 +43,9 @@ def test_leaderboard_shows_rankings(client, user, group):
     assert "Dom Club" in content
     assert "Dominos" in content
     assert ">Score<" in content
+    assert 'class="text-nowrap">Win %</th>' in content
+    assert "leaderboard-sticky-col--rank" in content
+    assert "leaderboard-sticky-col--player" in content
 
 
 @pytest.mark.django_db
