@@ -244,11 +244,12 @@ def test_game_list_for_member(client, user, group):
     client.post(reverse("games:create"), _load_roster_post(group))
     client.post(reverse("games:create"), _save_game_post(group))
 
-    response = client.get(reverse("games:list"))
+    response = client.get(reverse("games:list"), follow=True)
     assert response.status_code == 200
     content = response.content.decode()
     assert "Dom Club" in content
     assert "Dominos" in content
+    assert '<option value="">All games</option>' not in content
 
 
 @pytest.mark.django_db
@@ -262,9 +263,9 @@ def test_game_list_pagination(client, user, group, monkeypatch):
     client.post(reverse("games:create"), _save_game_post(group))
     client.post(reverse("games:create"), _save_game_post(group))
 
-    page1 = client.get(reverse("games:list"))
-    page2 = client.get(reverse("games:list"), {"page": 2})
-    page3 = client.get(reverse("games:list"), {"page": 3})
+    page1 = client.get(reverse("games:list"), follow=True)
+    page2 = client.get(reverse("games:list"), {"page": 2}, follow=True)
+    page3 = client.get(reverse("games:list"), {"page": 3}, follow=True)
     assert page1.status_code == 200
     assert page2.status_code == 200
     assert page3.status_code == 200
@@ -289,7 +290,11 @@ def test_game_list_filters_by_group_and_game_type(client, user, group):
         _save_game_post(other_group, game_type_code="backgammon"),
     )
 
-    all_games = client.get(reverse("games:list"))
+    redirect_response = client.get(reverse("games:list"))
+    assert redirect_response.status_code == 302
+    assert "game_type=backgammon" in redirect_response.url
+
+    default_list = client.get(reverse("games:list"), follow=True)
     dominos_only = client.get(
         reverse("games:list"),
         {"group": str(group.pk), "game_type": "dominos"},
@@ -299,8 +304,12 @@ def test_game_list_filters_by_group_and_game_type(client, user, group):
         {"game_type": "backgammon"},
     )
 
-    assert all_games.status_code == 200
-    assert "Page" not in all_games.content.decode()
+    assert default_list.status_code == 200
+    default_content = default_list.content.decode()
+    assert "BackGammon" in default_content
+    assert ">Other Club</a>" in default_content
+    assert ">Dom Club</a>" not in default_content
+    assert '<option value="">All games</option>' not in default_content
     assert dominos_only.status_code == 200
     dominos_content = dominos_only.content.decode()
     assert dominos_content.count("Dom Club") >= 1
@@ -355,7 +364,7 @@ def test_game_list_sort_and_empty_filter_message(client, user, group):
     assert response.status_code == 200
     assert "No games match these filters." in response.content.decode()
 
-    sorted_response = client.get(reverse("games:list"), {"sort": "asc"})
+    sorted_response = client.get(reverse("games:list"), {"sort": "asc"}, follow=True)
     assert sorted_response.status_code == 200
     assert 'value="asc" selected' in sorted_response.content.decode()
 

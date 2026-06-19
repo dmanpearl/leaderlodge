@@ -71,7 +71,7 @@ def test_game_list_shows_player_scores_and_result_shading(client, user, group):
     client.post(reverse("games:create"), _load_roster_post(group))
     client.post(reverse("games:create"), _save_game_post(group))
 
-    response = client.get(reverse("games:list"))
+    response = client.get(reverse("games:list"), follow=True)
     content = response.content.decode()
 
     assert response.status_code == 200
@@ -125,12 +125,16 @@ def test_game_list_puts_weight_badges_in_weight_column(client, user, group):
     client.post(reverse("games:create"), _load_roster_post(group))
     client.post(reverse("games:create"), data)
 
-    response = client.get(reverse("games:list"), {"group": str(group.pk)})
+    response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk)},
+        follow=True,
+    )
     content = response.content.decode()
     games_table = content.split("game-list-table ", 1)[1].split("</table>", 1)[0]
 
     assert response.status_code == 200
-    assert "Dominos" in games_table
+    assert "Dominos" in content
     assert "2×" in games_table
-    assert "Dominos\n                    2×" not in games_table.replace("\r\n", "\n")
-    assert "Dominos\n                      2×" not in games_table.replace("\r\n", "\n")
+    assert "Dominos\n                    2×" not in content.replace("\r\n", "\n")
+    assert "Dominos\n                      2×" not in content.replace("\r\n", "\n")

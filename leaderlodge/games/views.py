@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.dateparse import parse_date
 
 from leaderlodge.games.forms import (
@@ -42,6 +43,48 @@ def _game_list_params(request: HttpRequest) -> dict[str, str]:
     }
 
 
+def _default_game_type_code(
+    user,
+    *,
+    group_id: str,
+    requested: str,
+) -> str:
+    if requested in GAME_TYPES:
+        return requested
+
+    games_qs = Game.objects.filter(group__in=user_groups(user))
+    if group_id.isdigit():
+        games_qs = games_qs.filter(group_id=int(group_id))
+    code = (
+        games_qs.values_list("game_type_code", flat=True)
+        .distinct()
+        .order_by("game_type_code")
+        .first()
+    )
+    if code in GAME_TYPES:
+        return code
+    return game_type_choices()[0][0]
+
+
+def _resolve_game_list_params(user, params: dict[str, str]) -> dict[str, str]:
+    resolved = dict(params)
+    resolved["game_type"] = _default_game_type_code(
+        user,
+        group_id=params["group"],
+        requested=params["game_type"],
+    )
+    return resolved
+
+
+def _game_list_redirect_query(params: dict[str, str], page: str | None) -> str:
+    from urllib.parse import urlencode
+
+    query_params = {key: value for key, value in params.items() if value}
+    if page:
+        query_params["page"] = page
+    return urlencode(query_params)
+
+
 def _filtered_games_queryset(user, params: dict[str, str]):
     games_qs = Game.objects.filter(group__in=user_groups(user)).select_related(
         "group", "recorded_by", "location"
@@ -51,6 +94,8 @@ def _filtered_games_queryset(user, params: dict[str, str]):
         games_qs = games_qs.filter(group_id=int(params["group"]))
     if params["game_type"] in GAME_TYPES:
         games_qs = games_qs.filter(game_type_code=params["game_type"])
+    else:
+        return games_qs.none()
     if params["location"].isdigit():
         games_qs = games_qs.filter(location_id=int(params["location"]))
 
@@ -92,7 +137,7 @@ def _game_list_filter_query(params: dict[str, str]) -> str:
 
 
 def _game_list_has_filters(params: dict[str, str]) -> bool:
-    return any(params[key] for key in ("group", "game_type", "location"))
+    return any(params[key] for key in ("group", "location"))
 
 
 def _participant_rows_from_post(group, post):
@@ -171,9 +216,19 @@ def _played_on_value_and_display(form: GameRecordForm) -> tuple[str, str]:
 @login_required
 def game_list(request: HttpRequest) -> HttpResponse:
     params = _game_list_params(request)
+    resolved_params = _resolve_game_list_params(request.user, params)
+    if resolved_params["game_type"] != params["game_type"]:
+        query = _game_list_redirect_query(resolved_params, request.GET.get("page"))
+        url = reverse("games:list")
+        if query:
+            url = f"{url}?{query}"
+        return redirect(url)
+
+    params = resolved_params
     locations = _location_choices_for_game_list(request.user, params)
     params = _sanitize_game_list_params(params, locations)
     games_qs = _filtered_games_queryset(request.user, params)
+    selected_game_type = get_game_type(params["game_type"])
     list_stats = build_game_list_stats(
         games_qs=games_qs,
         game_type_code=params["game_type"],
@@ -189,6 +244,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
     )
 
     groups = user_groups(request.user).order_by("name")
+    has_any_games = Game.objects.filter(group__in=groups).exists()
 
     return render(
         request,
@@ -203,11 +259,12 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "params": params,
             "filter_query": _game_list_filter_query(params),
             "has_filters": _game_list_has_filters(params),
+            "show_empty_filters_message": has_any_games,
             "groups": groups,
             "game_types": game_type_choices(),
             "locations": locations,
+            "selected_game_type": selected_game_type,
             "show_group_column": not params["group"],
-            "show_game_type_column": not params["game_type"],
             "show_weight_column": show_weight_column(
                 games=games,
                 game_type_code=params["game_type"],

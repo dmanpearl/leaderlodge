@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Games | LeaderLodge{% endblock %}
+{% block title %}{{ selected_game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />
@@ -10,7 +10,7 @@
 {% block content %}
   <div class="game-list game-list-density--{{ list_density|default:'comfortable' }}">
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 game-list-page-header mb-3">
-    <h1 class="h3 mb-0">Games</h1>
+    <h1 class="h3 mb-0">{{ selected_game_type.name }}</h1>
     <a href="{% url 'games:create' %}" class="btn btn-primary game-list-record-btn">
       <i class="bi bi-plus-lg"></i> <span class="game-list-record-label">Record Game</span>
     </a>
@@ -33,7 +33,6 @@
         <div class="col-12 col-md-3">
           <label for="filter-game-type" class="form-label">Game type</label>
           <select id="filter-game-type" name="game_type" class="form-select game-list-filter-select" onchange="this.form.submit()">
-            <option value="">All games</option>
             {% for code, name in game_types %}
               <option value="{{ code }}" {% if params.game_type == code %}selected{% endif %}>
                 {{ name }}
@@ -136,9 +135,6 @@
               {% if show_group_column %}
                 <th scope="col" class="game-list-nowrap-col">Group</th>
               {% endif %}
-              {% if show_game_type_column %}
-                <th scope="col" class="game-list-nowrap-col">Game</th>
-              {% endif %}
               {% if show_weight_column %}
                 <th scope="col" class="text-center game-list-nowrap-col game-list-weight-col" aria-label="Weight modifier">×</th>
               {% endif %}
@@ -159,11 +155,6 @@
                 {% if show_group_column %}
                   <td class="game-list-nowrap-col">
                     <a href="{% url 'groups:detail' row.game.group.pk %}">{{ row.game.group.name }}</a>
-                  </td>
-                {% endif %}
-                {% if show_game_type_column %}
-                  <td class="game-list-nowrap-col">
-                    {{ row.game.game_type.name }}
                   </td>
                 {% endif %}
                 {% if show_weight_column %}
@@ -199,9 +190,6 @@
               <th scope="col" class="game-list-nowrap-col">Date</th>
               {% if show_group_column %}
                 <th scope="col" class="game-list-nowrap-col">Group</th>
-              {% endif %}
-              {% if show_game_type_column %}
-                <th scope="col" class="game-list-nowrap-col">Game</th>
               {% endif %}
               {% if show_weight_column %}
                 <th scope="col" class="text-center game-list-nowrap-col game-list-weight-col" aria-label="Weight modifier">×</th>
@@ -262,9 +250,9 @@
   {% else %}
     <div class="card">
       <div class="card-body text-center py-5">
-        {% if has_filters %}
+        {% if show_empty_filters_message %}
           <p class="text-muted mb-3">No games match these filters.</p>
-          <a href="{% url 'games:list' %}" class="btn btn-outline-secondary">Clear filters</a>
+          <a href="{% url 'games:list' %}?game_type={{ params.game_type }}" class="btn btn-outline-secondary">Clear filters</a>
         {% else %}
           <p class="text-muted mb-3">No games recorded yet.</p>
           <a href="{% url 'games:create' %}" class="btn btn-primary">Record your first game</a>
