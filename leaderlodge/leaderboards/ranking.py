@@ -16,10 +16,34 @@ SORTABLE_COLUMNS = frozenset(
 )
 
 
-def compute_rank_score(*, win_points: float, games_played: float) -> float:
+def compute_finish_points(
+    *,
+    player_count: float,
+    placement: float,
+    weight: float = 1.0,
+    is_tie: bool = False,
+) -> float:
+    """
+    Field-weighted finish credit for one game result.
+
+    First place earns player_count × weight; last place earns 0. Intermediate
+    placements scale linearly. Ties keep the historical half-credit factor.
+    """
+    if player_count <= 1:
+        return 0.0
+
+    slots_above_last = player_count - 1.0
+    placement_distance = max(player_count - placement - 1.0, 0.0)
+    points = placement_distance / slots_above_last * player_count * weight
+    if is_tie:
+        points *= TIE_WIN_POINTS_FACTOR
+    return points
+
+
+def compute_rank_score(*, points_total: float, games_played: float) -> float:
     if games_played <= 0:
         return 0.0
-    return win_points / games_played
+    return points_total / games_played
 
 
 def compute_vesting_multiplier(

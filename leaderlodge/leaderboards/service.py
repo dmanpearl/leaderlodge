@@ -4,8 +4,8 @@ Leaderboard ranking for a group.
 Rankings are scoped by game type. A player who plays both dominos and backgammon
 receives one PlayerRanking row per game type (e.g. david-dominos, david-backgammon).
 
-Rank score weights wins by field size: each win contributes game.player_count
-times the double/half game weight; ties contribute half that amount.
+Rank score averages field-weighted finish points across weighted games played.
+Each finish earns credit by placement; wins/ties/losses remain available as stats.
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from collections import defaultdict
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-from django.db.models import F, FloatField, Q, Sum, Value
-from django.db.models.functions import Cast
+from django.db.models import Case, F, FloatField, Q, Sum, Value, When
+from django.db.models.functions import Cast, Greatest
 
 from leaderlodge.games.registry import GAME_TYPES, get_game_type
 from leaderlodge.games.standings import standings_weight_expression
@@ -42,6 +42,7 @@ class PlayerRanking:
     wins: float
     losses: float
     win_points: float
+    finish_points: float
     win_pct: float
     loss_pct: float
     rank_score: float
@@ -210,6 +211,26 @@ def _standings_weight_factors():
     return weight, player_count
 
 
+def _finish_points_expression():
+    from leaderlodge.games.models import GameParticipantResult
+
+    weight, player_count = _standings_weight_factors()
+    placement = Cast(F("placement"), FloatField())
+    slots_above_last = Greatest(player_count - Value(1.0), Value(1.0))
+    placement_distance = Greatest(
+        player_count - placement - Value(1.0),
+        Value(0.0),
+    )
+    base = placement_distance / slots_above_last * player_count * weight
+    return Case(
+        When(
+            result=GameParticipantResult.Result.TIE,
+            then=base * Value(TIE_WIN_POINTS_FACTOR),
+        ),
+        default=base,
+    )
+
+
 def _standings_for_game_type(
     group: Group,
     game_type_code: str,
@@ -232,6 +253,8 @@ def _standings_for_game_type(
     win_points_expr = player_count * weight
     tie_points_expr = player_count * weight * Value(TIE_WIN_POINTS_FACTOR)
 
+    finish_points_expr = _finish_points_expression()
+
     stats = results_qs.values("player_id").annotate(
         games_played=Sum(weight),
         wins=Sum(weight, filter=Q(result=GameParticipantResult.Result.WIN)),
@@ -244,6 +267,7 @@ def _standings_for_game_type(
             tie_points_expr,
             filter=Q(result=GameParticipantResult.Result.TIE),
         ),
+        finish_points=Sum(finish_points_expr),
     )
 
     players_by_id = {
@@ -262,8 +286,9 @@ def _standings_for_game_type(
         win_points = float(row["win_point_wins"] or 0) + float(
             row["win_point_ties"] or 0
         )
+        finish_points = float(row["finish_points"] or 0)
         raw_rank_score = compute_rank_score(
-            win_points=win_points,
+            points_total=finish_points,
             games_played=games_played,
         )
         rank_score = apply_vesting_to_rank_score(raw_rank_score, games_played)
@@ -276,6 +301,7 @@ def _standings_for_game_type(
                 wins=wins,
                 losses=losses,
                 win_points=win_points,
+                finish_points=finish_points,
                 win_pct=compute_percentage(wins, games_played),
                 loss_pct=compute_percentage(losses, games_played),
                 rank_score=rank_score,
@@ -294,6 +320,7 @@ def _empty_player_ranking(player: GroupPlayer, game_type) -> PlayerRanking:
         wins=0.0,
         losses=0.0,
         win_points=0.0,
+        finish_points=0.0,
         win_pct=0.0,
         loss_pct=0.0,
         rank_score=0.0,
@@ -304,7 +331,7 @@ def _default_standings_sort_key(row: PlayerRanking) -> tuple:
     return (
         -row.rank_score,
         -row.games_played,
-        -row.win_points,
+        -row.finish_points,
         row.player.display_label.lower(),
     )
 

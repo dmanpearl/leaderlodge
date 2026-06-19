@@ -25,7 +25,7 @@ Example: David plays dominos and backgammon in Group A:
 | David  | backgammon     | 2    | 4            | 2.00       | 2    |
 
 `PlayerRanking` fields: `player`, `game_type_code`, `game_type_name`,
-`games_played`, `wins`, `losses`, `win_points`, `win_pct`, `loss_pct`,
+`games_played`, `wins`, `losses`, `win_points`, `finish_points`, `win_pct`, `loss_pct`,
 `rank_score`, `rank`.
 
 ### Ranking service
@@ -37,9 +37,8 @@ All ranking logic lives in `leaderlodge/leaderboards/service.py` and
 - `get_group_roster_standings(group, game_type_code, sort, ascending)` -- group detail
 - `get_player_stats(group, player)` -- per-game-type stats for a single player
 
-Phase 1 ranks by field-weighted win score within each game type. Each win
-contributes `player_count × (double_weight / half_weight)`; ties contribute
-half that amount. Raw rank score is win points divided by weighted games played. Scores below
+Phase 2 ranks by field-weighted finish points within each game type. For each
+game result, placement credit is `(player_count - placement - 1) / (player_count - 1) × player_count × (double_weight / half_weight)`; last place earns 0. Ties multiply that amount by the same half factor used for win-only scoring. Raw rank score is total finish points divided by weighted games played. Scores below
 `LEADERBOARD_VESTING_COUNT` games are scaled by
 `LEADERBOARD_VESTING_FACTOR + (1 - LEADERBOARD_VESTING_FACTOR) × games_played / LEADERBOARD_VESTING_COUNT`.
 

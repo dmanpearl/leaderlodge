@@ -19,9 +19,11 @@
 - [x] Games View: Never display different kinds of games together in the games list. There is always exactly one type. Remove the 'All Games' option.
 - [x] Leaderboard: Add rank column and order the list by rank. Initial rank formula: r=sum(nummber-of-players-in-each-game-you-won)/number-of-games-you-played
 - [x] Rank reduction for players with few games by formula.
+- [x] Leaderboard rank score uses field-weighted finish placement points.
 
 ## Open Items
 
+- [ ] Dashboard view: Show leaderboard cards for each sport
 - [ ] Rank detail view shows how a player's rank was calculated for a particular view.
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
