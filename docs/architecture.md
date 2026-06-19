@@ -33,16 +33,18 @@ Example: David plays dominos and backgammon in Group A:
 All ranking logic lives in `leaderlodge/leaderboards/service.py` and
 `leaderlodge/leaderboards/ranking.py` as plain functions (no strategy classes):
 
-- `get_player_rankings(group, game_type_code=None, min_games=1)` -- main entry
+- `get_player_rankings(group, game_type_code=None)` -- main entry
 - `get_group_roster_standings(group, game_type_code, sort, ascending)` -- group detail
 - `get_player_stats(group, player)` -- per-game-type stats for a single player
 
 Phase 1 ranks by field-weighted win score within each game type. Each win
 contributes `player_count × (double_weight / half_weight)`; ties contribute
-half that amount. Rank score is win points divided by weighted games played.
+half that amount. Raw rank score is win points divided by weighted games played. Scores below
+`LEADERBOARD_VESTING_COUNT` games are scaled by
+`LEADERBOARD_VESTING_FACTOR + (1 - LEADERBOARD_VESTING_FACTOR) × games_played / LEADERBOARD_VESTING_COUNT`.
 
-Players must meet `MIN_GAMES_FOR_LEADERBOARD` to appear on the leaderboard page.
-The group detail roster shows all players; unqualified players have no rank.
+All players with at least one recorded game appear on the leaderboard.
+The group detail roster shows every active player; unranked rows have no games.
 
 ## Score storage
 

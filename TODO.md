@@ -18,10 +18,12 @@
 - [x] Game list view: Move 2x and 1/2 into their own column so they can be retained when filtering on game type.
 - [x] Games View: Never display different kinds of games together in the games list. There is always exactly one type. Remove the 'All Games' option.
 - [x] Leaderboard: Add rank column and order the list by rank. Initial rank formula: r=sum(nummber-of-players-in-each-game-you-won)/number-of-games-you-played
+- [x] Rank reduction for players with few games by formula.
 
 ## Open Items
 
-- [ ] Ranking need sort by columns
+- [ ] Rank detail view shows how a player's rank was calculated for a particular view.
+- [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] Game Stats: Implement a way to hide some Guest/Players (Allyn, Alize)
 - [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.

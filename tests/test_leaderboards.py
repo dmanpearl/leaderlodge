@@ -63,7 +63,7 @@ def test_get_player_rankings_counts_double_weight(client, user, group):
         ),
     )
 
-    rankings = get_player_rankings(group, game_type_code="dominos", min_games=1)
+    rankings = get_player_rankings(group, game_type_code="dominos")
     winner = next(row for row in rankings if row.wins > 0)
     assert winner.games_played == 2
     assert winner.wins == 2
@@ -103,7 +103,6 @@ def test_get_player_rankings_counts_half_weight(user, group):
     rankings = get_player_rankings(
         group,
         game_type_code="progressiverummy",
-        min_games=0,
     )
     winner = next(row for row in rankings if row.wins > 0)
     assert winner.games_played == 0.5

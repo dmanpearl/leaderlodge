@@ -14,7 +14,6 @@ from collections import defaultdict
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
-from django.conf import settings
 from django.db.models import F, FloatField, Q, Sum, Value
 from django.db.models.functions import Cast
 
@@ -23,6 +22,7 @@ from leaderlodge.games.standings import standings_weight_expression
 from leaderlodge.leaderboards.ranking import (
     SORTABLE_COLUMNS,
     TIE_WIN_POINTS_FACTOR,
+    apply_vesting_to_rank_score,
     compute_percentage,
     compute_rank_score,
 )
@@ -53,18 +53,17 @@ def get_player_rankings(
     *,
     game_type_code: str | None = None,
     location_id: int | None = None,
-    min_games: int | None = None,
 ) -> list[PlayerRanking]:
     """
-    Return ranked players who meet the minimum games threshold.
+    Return ranked players for a group, ordered by vested rank score.
 
     When game_type_code is set, only that game type is included.
     When game_type_code is None, all game types with recorded games are
     included. The same player may appear multiple times (once per game type).
-    """
-    if min_games is None:
-        min_games = settings.MIN_GAMES_FOR_LEADERBOARD
 
+    Players with no recorded games are omitted. Low game counts reduce the
+    displayed rank score via the vesting multiplier in settings.
+    """
     if game_type_code is not None:
         game_type_codes = [game_type_code]
     else:
@@ -77,10 +76,8 @@ def get_player_rankings(
             code,
             location_id=location_id,
         )
-        eligible = [
-            row for row in standings if row.games_played >= min_games
-        ]
-        rankings.extend(_assign_ranks(eligible))
+        active = [row for row in standings if row.games_played > 0]
+        rankings.extend(_assign_ranks(active))
 
     return rankings
 
@@ -91,16 +88,12 @@ def get_group_roster_standings(
     game_type_code: str,
     sort: str = "rank",
     ascending: bool = True,
-    min_games: int | None = None,
 ) -> list[PlayerRanking]:
     """
     Standings for every active roster player in a group for one game type.
 
-    Players below the minimum games threshold are included with rank=None.
+    Players with no recorded games keep rank=None.
     """
-    if min_games is None:
-        min_games = settings.MIN_GAMES_FOR_LEADERBOARD
-
     from leaderlodge.groups.models import GroupPlayer
 
     stats_by_player = {
@@ -116,7 +109,7 @@ def get_group_roster_standings(
             row = _empty_player_ranking(player, game_type)
         rows.append(row)
 
-    eligible = [row for row in rows if row.games_played >= min_games]
+    eligible = [row for row in rows if row.games_played > 0]
     ranked = _assign_ranks(eligible)
     rank_by_player = {row.player.pk: row.rank for row in ranked}
 
@@ -269,10 +262,11 @@ def _standings_for_game_type(
         win_points = float(row["win_point_wins"] or 0) + float(
             row["win_point_ties"] or 0
         )
-        rank_score = compute_rank_score(
+        raw_rank_score = compute_rank_score(
             win_points=win_points,
             games_played=games_played,
         )
+        rank_score = apply_vesting_to_rank_score(raw_rank_score, games_played)
         rows.append(
             PlayerRanking(
                 player=player,
