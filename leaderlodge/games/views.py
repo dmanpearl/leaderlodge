@@ -14,7 +14,7 @@ from leaderlodge.games.forms import (
 from leaderlodge.groups.player_search import roster_for_group
 from leaderlodge.games.list_density import game_list_date_format, resolve_game_list_density
 from leaderlodge.games.list_stats import build_game_list_stats
-from leaderlodge.games.list_table import build_game_list_table
+from leaderlodge.games.list_table import build_game_list_table, show_weight_column
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES, game_type_choices, get_game_type
 from leaderlodge.games.scoring import scoring_instructions
@@ -208,6 +208,10 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "locations": locations,
             "show_group_column": not params["group"],
             "show_game_type_column": not params["game_type"],
+            "show_weight_column": show_weight_column(
+                games=games,
+                game_type_code=params["game_type"],
+            ),
             "show_location_column": not params["location"],
         },
     )

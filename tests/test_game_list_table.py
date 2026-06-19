@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from leaderlodge.games.list_table import build_game_list_table, result_cell_class
+from leaderlodge.games.list_table import build_game_list_table, result_cell_class, show_weight_column
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from tests.test_games import _load_roster_post, _save_game_post
 
@@ -26,6 +26,20 @@ def test_result_cell_class():
     assert result_cell_class(result="loss", is_double=True) == "game-list-cell--loss-double"
     assert result_cell_class(result="tie", is_double=False) == "game-list-cell--tie"
     assert result_cell_class(result="played", is_double=False) == ""
+
+
+def test_show_weight_column():
+    from leaderlodge.games.models import Game
+
+    normal_game = Game(double_weight=1, half_weight=1)
+    double_game = Game(double_weight=2, half_weight=1)
+    half_game = Game(double_weight=1, half_weight=2)
+
+    assert show_weight_column(games=[], game_type_code="dominos") is True
+    assert show_weight_column(games=[], game_type_code="progressiverummy") is True
+    assert show_weight_column(games=[normal_game], game_type_code="") is False
+    assert show_weight_column(games=[double_game], game_type_code="") is True
+    assert show_weight_column(games=[half_game], game_type_code="backgammon") is True
 
 
 @pytest.mark.django_db
@@ -65,3 +79,58 @@ def test_game_list_shows_player_scores_and_result_shading(client, user, group):
     assert "Pat" in content
     assert "30" in content
     assert "20" in content
+
+
+@pytest.mark.django_db
+def test_game_list_shows_weight_column_when_game_type_filtered(client, user, group):
+    players = list(group.players.order_by("pk"))
+    while len(players) < 2:
+        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+    data = _save_game_post(
+        group,
+        players_played=players[:2],
+        scores={players[0].pk: 77, players[1].pk: 76},
+    )
+
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), data)
+
+    response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos"},
+    )
+    content = response.content.decode()
+    games_table = content.split("game-list-table ", 1)[1].split("</table>", 1)[0]
+
+    assert response.status_code == 200
+    assert content.count('<th scope="col">Game</th>') == 0
+    assert 'aria-label="Weight modifier"' in games_table
+    assert "2×" in games_table
+    assert games_table.count("game-list-weight-badge") == 1
+
+
+@pytest.mark.django_db
+def test_game_list_puts_weight_badges_in_weight_column(client, user, group):
+    players = list(group.players.order_by("pk"))
+    while len(players) < 2:
+        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+    data = _save_game_post(
+        group,
+        players_played=players[:2],
+        scores={players[0].pk: 77, players[1].pk: 76},
+    )
+
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), data)
+
+    response = client.get(reverse("games:list"), {"group": str(group.pk)})
+    content = response.content.decode()
+    games_table = content.split("game-list-table ", 1)[1].split("</table>", 1)[0]
+
+    assert response.status_code == 200
+    assert "Dominos" in games_table
+    assert "2×" in games_table
+    assert "Dominos\n                    2×" not in games_table.replace("\r\n", "\n")
+    assert "Dominos\n                      2×" not in games_table.replace("\r\n", "\n")

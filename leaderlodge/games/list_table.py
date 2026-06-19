@@ -4,6 +4,14 @@ from dataclasses import dataclass
 
 from leaderlodge.games.models import Game, GameParticipantResult
 
+WEIGHT_GAME_TYPES = frozenset({"dominos", "progressiverummy"})
+
+
+def show_weight_column(*, games: list[Game], game_type_code: str) -> bool:
+    if game_type_code in WEIGHT_GAME_TYPES:
+        return True
+    return any(game.double_weight == 2 or game.half_weight == 2 for game in games)
+
 
 @dataclass(frozen=True)
 class GameListScoreCell:

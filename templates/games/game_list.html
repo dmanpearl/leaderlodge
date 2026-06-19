@@ -113,7 +113,7 @@
                       {% if stat_row.global_cell %}
                         <td class="text-center game-list-stats-col--all">{{ stat_row.global_cell.value }}</td>
                       {% else %}
-                        <td class="text-center text-muted game-list-stats-col--all">&mdash;</td>
+                        <td class="text-center game-list-stats-col--all"></td>
                       {% endif %}
                     {% endif %}
                   </tr>
@@ -139,6 +139,9 @@
               {% if show_game_type_column %}
                 <th scope="col" class="game-list-nowrap-col">Game</th>
               {% endif %}
+              {% if show_weight_column %}
+                <th scope="col" class="text-center game-list-nowrap-col game-list-weight-col" aria-label="Weight modifier">×</th>
+              {% endif %}
               {% if show_location_column %}
                 <th scope="col" class="game-list-nowrap-col">Location</th>
               {% endif %}
@@ -161,6 +164,10 @@
                 {% if show_game_type_column %}
                   <td class="game-list-nowrap-col">
                     {{ row.game.game_type.name }}
+                  </td>
+                {% endif %}
+                {% if show_weight_column %}
+                  <td class="text-center game-list-nowrap-col game-list-weight-col">
                     {% if row.game.double_weight == 2 %}
                       <span class="badge text-bg-secondary game-list-weight-badge">2×</span>
                     {% elif row.game.half_weight == 2 %}
@@ -172,8 +179,6 @@
                   <td class="text-muted game-list-nowrap-col">
                     {% if row.game.location %}
                       {{ row.game.location.name }}
-                    {% else %}
-                      &mdash;
                     {% endif %}
                   </td>
                 {% endif %}
@@ -197,6 +202,9 @@
               {% endif %}
               {% if show_game_type_column %}
                 <th scope="col" class="game-list-nowrap-col">Game</th>
+              {% endif %}
+              {% if show_weight_column %}
+                <th scope="col" class="text-center game-list-nowrap-col game-list-weight-col" aria-label="Weight modifier">×</th>
               {% endif %}
               {% if show_location_column %}
                 <th scope="col" class="game-list-nowrap-col">Location</th>

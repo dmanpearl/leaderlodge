@@ -134,6 +134,10 @@
   width: 1%;
 }
 
+.game-list .game-list-weight-col {
+  width: 1%;
+}
+
 .game-list-density--comfortable .game-list-table-card,
 .game-list-density--comfortable .game-list-stats-card,
 .game-list-density--compact .game-list-table-card,
