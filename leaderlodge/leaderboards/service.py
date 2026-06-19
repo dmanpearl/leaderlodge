@@ -12,19 +12,24 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, replace
+from datetime import date
 from typing import TYPE_CHECKING
 
 from django.db.models import Case, F, FloatField, Q, Sum, Value, When
 from django.db.models.functions import Cast, Greatest
 
-from leaderlodge.games.registry import GAME_TYPES, get_game_type
+from leaderlodge.games.list_stats import humanize_date_range
+from leaderlodge.games.registry import GAME_TYPES, ScoreDirection, get_game_type
 from leaderlodge.games.standings import standings_weight_expression
 from leaderlodge.leaderboards.ranking import (
     SORTABLE_COLUMNS,
     TIE_WIN_POINTS_FACTOR,
     apply_vesting_to_rank_score,
+    compute_finish_points,
     compute_percentage,
     compute_rank_score,
+    compute_vesting_multiplier,
+    ordinal_place_label,
 )
 
 if TYPE_CHECKING:
@@ -47,6 +52,278 @@ class PlayerRanking:
     loss_pct: float
     rank_score: float
     rank: int | None = None
+
+
+@dataclass(frozen=True)
+class FieldSizeBreakdown:
+    player_count: int
+    weighted_count: float
+
+
+@dataclass(frozen=True)
+class PlacementBreakdown:
+    placement: int
+    label: str
+    weighted_count: float
+    finish_points: float
+    field_sizes: tuple[FieldSizeBreakdown, ...]
+
+
+@dataclass(frozen=True)
+class FieldSizeGameCount:
+    player_count: int
+    game_count: int
+
+
+@dataclass(frozen=True)
+class ScoreHighlight:
+    score: int
+    played_on: date
+
+
+@dataclass(frozen=True)
+class PlayerRankDetail:
+    ranking: PlayerRanking
+    raw_rank_score: float
+    vesting_multiplier: float
+    vesting_count: int
+    vesting_factor: float
+    placements: tuple[PlacementBreakdown, ...]
+    loss_game_count: int
+    loss_games_by_field_size: tuple[FieldSizeGameCount, ...]
+    supports_loser: bool
+    first_game_date: date | None
+    last_game_date: date | None
+    date_range_label: str
+    first_win_date: date | None
+    last_win_date: date | None
+    first_loss_date: date | None
+    game_count: int
+    tie_count: int
+    best_score: ScoreHighlight | None
+    worst_score: ScoreHighlight | None
+    score_low_wins: bool
+    average_score: float | None
+    average_field_size: float
+    double_game_count: int
+    half_game_count: int
+    podium_count: int
+    podium_pct: float
+
+
+def _update_score_highlight(
+    *,
+    score: int,
+    played_on: date,
+    low_wins: bool,
+    best: ScoreHighlight | None,
+    worst: ScoreHighlight | None,
+) -> tuple[ScoreHighlight, ScoreHighlight]:
+    highlight = ScoreHighlight(score=score, played_on=played_on)
+    if best is None:
+        return highlight, highlight
+
+    if low_wins:
+        if score < best.score or (score == best.score and played_on < best.played_on):
+            best = highlight
+        if score > worst.score or (score == worst.score and played_on > worst.played_on):
+            worst = highlight
+    else:
+        if score > best.score or (score == best.score and played_on < best.played_on):
+            best = highlight
+        if score < worst.score or (score == worst.score and played_on > worst.played_on):
+            worst = highlight
+    return best, worst
+
+
+def get_player_rank_detail(
+    group: Group,
+    player: GroupPlayer,
+    *,
+    game_type_code: str,
+    location_id: int | None = None,
+) -> PlayerRankDetail | None:
+    from django.conf import settings
+
+    from leaderlodge.games.models import GameParticipantResult
+
+    game_type = get_game_type(game_type_code)
+    low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
+    results_qs = (
+        GameParticipantResult.objects.filter(
+            game__group=group,
+            game__game_type_code=game_type_code,
+            player=player,
+        )
+        .select_related("game")
+        .order_by("game__played_on", "game__pk", "pk")
+    )
+    if location_id is not None:
+        results_qs = results_qs.filter(game__location_id=location_id)
+
+    if not results_qs.exists():
+        return None
+
+    placement_stats: dict[int, dict[str, object]] = defaultdict(
+        lambda: {"weighted_count": 0.0, "finish_points": 0.0, "by_size": defaultdict(float)}
+    )
+    loss_games_by_size: dict[int, int] = defaultdict(int)
+    loss_game_count = 0
+    first_game_date: date | None = None
+    last_game_date: date | None = None
+    first_win_date: date | None = None
+    last_win_date: date | None = None
+    first_loss_date: date | None = None
+    game_count = 0
+    tie_count = 0
+    double_game_count = 0
+    half_game_count = 0
+    podium_count = 0
+    weighted_games = 0.0
+    weighted_field_size = 0.0
+    weighted_score_total = 0.0
+    best_score: ScoreHighlight | None = None
+    worst_score: ScoreHighlight | None = None
+
+    for result in results_qs.iterator():
+        game = result.game
+        played_on = game.played_on
+        weight = game.double_weight / game.half_weight
+        player_count = game.player_count
+        placement = result.placement if result.placement is not None else 0
+        game_count += 1
+
+        if first_game_date is None or played_on < first_game_date:
+            first_game_date = played_on
+        if last_game_date is None or played_on > last_game_date:
+            last_game_date = played_on
+
+        if result.result == GameParticipantResult.Result.WIN:
+            if first_win_date is None or played_on < first_win_date:
+                first_win_date = played_on
+            if last_win_date is None or played_on > last_win_date:
+                last_win_date = played_on
+        elif result.result == GameParticipantResult.Result.TIE:
+            tie_count += 1
+
+        if game_type.supports_loser and result.result == GameParticipantResult.Result.LOSS:
+            loss_game_count += 1
+            loss_games_by_size[player_count] += 1
+            if first_loss_date is None or played_on < first_loss_date:
+                first_loss_date = played_on
+
+        if game.double_weight == 2:
+            double_game_count += 1
+        if game.half_weight == 2:
+            half_game_count += 1
+
+        if placement <= 2:
+            podium_count += 1
+
+        weighted_games += weight
+        weighted_field_size += player_count * weight
+        weighted_score_total += result.score * weight
+        best_score, worst_score = _update_score_highlight(
+            score=result.score,
+            played_on=played_on,
+            low_wins=low_wins,
+            best=best_score,
+            worst=worst_score,
+        )
+
+        bucket = placement_stats[placement]
+        bucket["weighted_count"] = float(bucket["weighted_count"]) + weight
+        finish_points = compute_finish_points(
+            player_count=player_count,
+            placement=placement,
+            weight=weight,
+            is_tie=result.result == GameParticipantResult.Result.TIE,
+        )
+        bucket["finish_points"] = float(bucket["finish_points"]) + finish_points
+        by_size = bucket["by_size"]
+        by_size[player_count] = by_size[player_count] + weight
+
+    average_field_size = (
+        weighted_field_size / weighted_games if weighted_games > 0 else 0.0
+    )
+    average_score = (
+        weighted_score_total / weighted_games if weighted_games > 0 else None
+    )
+    date_range_label = (
+        humanize_date_range(first_game_date, last_game_date)
+        if first_game_date and last_game_date
+        else ""
+    )
+
+    standings = _standings_for_game_type(
+        group,
+        game_type_code,
+        location_id=location_id,
+    )
+    ranking_row = next((row for row in standings if row.player.pk == player.pk), None)
+    if ranking_row is None:
+        return None
+
+    rankings = _assign_ranks([row for row in standings if row.games_played > 0])
+    rank_by_player = {row.player.pk: row.rank for row in rankings}
+    ranking = replace(ranking_row, rank=rank_by_player.get(player.pk))
+
+    raw_rank_score = compute_rank_score(
+        points_total=ranking.finish_points,
+        games_played=ranking.games_played,
+    )
+    vesting_multiplier = compute_vesting_multiplier(ranking.games_played)
+
+    placements: list[PlacementBreakdown] = []
+    for placement in sorted(placement_stats):
+        bucket = placement_stats[placement]
+        field_sizes = tuple(
+            FieldSizeBreakdown(player_count=size, weighted_count=count)
+            for size, count in sorted(bucket["by_size"].items())
+        )
+        placements.append(
+            PlacementBreakdown(
+                placement=placement,
+                label=ordinal_place_label(placement),
+                weighted_count=float(bucket["weighted_count"]),
+                finish_points=float(bucket["finish_points"]),
+                field_sizes=field_sizes,
+            )
+        )
+
+    loss_games_by_field_size = tuple(
+        FieldSizeGameCount(player_count=size, game_count=count)
+        for size, count in sorted(loss_games_by_size.items())
+    )
+
+    return PlayerRankDetail(
+        ranking=ranking,
+        raw_rank_score=raw_rank_score,
+        vesting_multiplier=vesting_multiplier,
+        vesting_count=settings.LEADERBOARD_VESTING_COUNT,
+        vesting_factor=settings.LEADERBOARD_VESTING_FACTOR,
+        placements=tuple(placements),
+        loss_game_count=loss_game_count,
+        loss_games_by_field_size=loss_games_by_field_size,
+        supports_loser=game_type.supports_loser,
+        first_game_date=first_game_date,
+        last_game_date=last_game_date,
+        date_range_label=date_range_label,
+        first_win_date=first_win_date,
+        last_win_date=last_win_date,
+        first_loss_date=first_loss_date,
+        game_count=game_count,
+        tie_count=tie_count,
+        best_score=best_score,
+        worst_score=worst_score,
+        score_low_wins=low_wins,
+        average_score=average_score,
+        average_field_size=average_field_size,
+        double_game_count=double_game_count,
+        half_game_count=half_game_count,
+        podium_count=podium_count,
+        podium_pct=compute_percentage(podium_count, game_count),
+    )
 
 
 def get_player_rankings(

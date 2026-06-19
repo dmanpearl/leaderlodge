@@ -16,6 +16,15 @@ SORTABLE_COLUMNS = frozenset(
 )
 
 
+def ordinal_place_label(placement: int) -> str:
+    place = placement + 1
+    if 10 <= place % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(place % 10, "th")
+    return f"{place}{suffix}"
+
+
 def compute_finish_points(
     *,
     player_count: float,

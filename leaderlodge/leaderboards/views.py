@@ -1,11 +1,12 @@
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
+from django.urls import reverse
 
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.services import resolve_user_group, user_groups
-from leaderlodge.leaderboards.service import get_player_rankings
+from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
 def _game_type_codes_for_group(group: Group) -> list[str]:
@@ -55,5 +56,50 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "selected_game_type_code": selected_game_type_code,
             "selected_game_type": selected_game_type,
             "rankings": rankings,
+        },
+    )
+
+
+@login_required
+def rank_detail(request: HttpRequest) -> HttpResponse:
+    selected_group = resolve_user_group(request.user, request.GET.get("group"))
+    game_type_code = request.GET.get("game_type_code")
+    player_id = request.GET.get("player")
+
+    if (
+        selected_group is None
+        or not game_type_code
+        or not player_id
+        or game_type_code not in _game_type_codes_for_group(selected_group)
+    ):
+        return HttpResponseNotFound()
+
+    player = selected_group.players.filter(pk=player_id).first()
+    if player is None:
+        return HttpResponseNotFound()
+
+    detail = get_player_rank_detail(
+        selected_group,
+        player,
+        game_type_code=game_type_code,
+    )
+    if detail is None:
+        return HttpResponseNotFound()
+
+    game_type = get_game_type(game_type_code)
+    leaderboard_url = (
+        f"{reverse('leaderboards:index')}"
+        f"?group={selected_group.pk}&game_type_code={game_type_code}"
+    )
+
+    return render(
+        request,
+        "leaderboards/rank_detail.html",
+        {
+            "selected_group": selected_group,
+            "game_type": game_type,
+            "game_type_code": game_type_code,
+            "detail": detail,
+            "leaderboard_url": leaderboard_url,
         },
     )

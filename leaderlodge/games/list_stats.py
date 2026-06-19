@@ -154,6 +154,10 @@ def _format_dates_summary(first: date, last: date) -> str:
     )
 
 
+def humanize_date_range(first: date, last: date) -> str:
+    return _humanize_date_range(first, last)
+
+
 def _humanize_date_range(first: date, last: date) -> str:
     if first > last:
         first, last = last, first

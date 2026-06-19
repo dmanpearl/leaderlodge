@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}{{ detail.ranking.player.display_label }} rank detail | LeaderLodge{% endblock %}
+
+{% block content %}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'leaderboards:index' %}">Leaderboards</a></li>
+      <li class="breadcrumb-item"><a href="{{ leaderboard_url }}">{{ selected_group.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ detail.ranking.player.display_label }}</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">{{ detail.ranking.player.display_label }}</h1>
+      <p class="text-muted mb-0">{{ selected_group.name }} &middot; {{ game_type.name }}</p>
+    </div>
+    <a href="{{ leaderboard_url }}" class="btn btn-outline-secondary btn-sm align-self-sm-start">
+      Back to leaderboard
+    </a>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Rank score</div>
+    <div class="card-body">
+      <dl class="row mb-0 rank-detail-dl">
+        <dt class="col-7 col-sm-5">Rank</dt>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.rank|default:"—" }}</dd>
+
+        <dt class="col-7 col-sm-5">Score (displayed)</dt>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.rank_score|floatformat:2 }}</dd>
+
+        <dt class="col-7 col-sm-5">Finish points total</dt>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.finish_points|floatformat:2 }}</dd>
+
+        <dt class="col-7 col-sm-5">Weighted games played</dt>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.games_played|floatformat:-2 }}</dd>
+
+        <dt class="col-7 col-sm-5">Raw average</dt>
+        <dd class="col-5 col-sm-7">
+          {{ detail.ranking.finish_points|floatformat:2 }}
+          &divide;
+          {{ detail.ranking.games_played|floatformat:-2 }}
+          =
+          {{ detail.raw_rank_score|floatformat:2 }}
+        </dd>
+
+        <dt class="col-7 col-sm-5">Vesting multiplier</dt>
+        <dd class="col-5 col-sm-7">
+          {% if detail.vesting_multiplier == 1 %}
+            1.00 (fully vested at {{ detail.vesting_count }}+ games)
+          {% else %}
+            {{ detail.vesting_multiplier|floatformat:3 }}
+            <span class="text-muted">({{ detail.ranking.games_played|floatformat:-2 }} of {{ detail.vesting_count }} games)</span>
+          {% endif %}
+        </dd>
+
+        {% if detail.vesting_multiplier != 1 %}
+          <dt class="col-7 col-sm-5">Vested score</dt>
+          <dd class="col-5 col-sm-7">
+            {{ detail.raw_rank_score|floatformat:2 }} &times; {{ detail.vesting_multiplier|floatformat:3 }}
+            = {{ detail.ranking.rank_score|floatformat:2 }}
+          </dd>
+        {% endif %}
+
+        <dt class="col-7 col-sm-5">Wins</dt>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.wins|floatformat:-2 }} ({{ detail.ranking.win_pct|floatformat:0 }}%)</dd>
+
+        <dt class="col-7 col-sm-5">Win points</dt>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.win_points|floatformat:2 }}</dd>
+
+        {% if detail.supports_loser %}
+          <dt class="col-7 col-sm-5">Losses</dt>
+          <dd class="col-5 col-sm-7">{{ detail.ranking.losses|floatformat:-2 }} ({{ detail.ranking.loss_pct|floatformat:0 }}%)</dd>
+        {% endif %}
+
+        {% if detail.tie_count %}
+          <dt class="col-7 col-sm-5">Ties</dt>
+          <dd class="col-5 col-sm-7">{{ detail.tie_count }}</dd>
+        {% endif %}
+      </dl>
+      <p class="text-muted small mb-0 mt-3">
+        Each finish earns field-weighted placement points. Score is the average finish
+        points per weighted game, scaled by vesting when game count is below
+        {{ detail.vesting_count }}. Wins, losses, and games above use weighted counts
+        (half games count as 0.5) to match the leaderboard.
+      </p>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Activity</div>
+    <div class="card-body">
+      <dl class="row mb-0 rank-detail-dl">
+        <dt class="col-7 col-sm-5">First game</dt>
+        <dd class="col-5 col-sm-7">{{ detail.first_game_date|date:"M j, Y"|default:"—" }}</dd>
+
+        <dt class="col-7 col-sm-5">Most recent game</dt>
+        <dd class="col-5 col-sm-7">{{ detail.last_game_date|date:"M j, Y"|default:"—" }}</dd>
+
+        {% if detail.date_range_label %}
+          <dt class="col-7 col-sm-5">Span</dt>
+          <dd class="col-5 col-sm-7">{{ detail.date_range_label }}</dd>
+        {% endif %}
+
+        <dt class="col-7 col-sm-5">First win</dt>
+        <dd class="col-5 col-sm-7">{{ detail.first_win_date|date:"M j, Y"|default:"—" }}</dd>
+
+        {% if detail.last_win_date and detail.last_win_date != detail.first_win_date %}
+          <dt class="col-7 col-sm-5">Most recent win</dt>
+          <dd class="col-5 col-sm-7">{{ detail.last_win_date|date:"M j, Y" }}</dd>
+        {% endif %}
+
+        {% if detail.supports_loser and detail.first_loss_date %}
+          <dt class="col-7 col-sm-5">First loss</dt>
+          <dd class="col-5 col-sm-7">{{ detail.first_loss_date|date:"M j, Y" }}</dd>
+        {% endif %}
+
+        <dt class="col-7 col-sm-5">Podium finishes</dt>
+        <dd class="col-5 col-sm-7">
+          {{ detail.podium_count }}
+          ({{ detail.podium_pct|floatformat:0 }}% of {{ detail.game_count }} games)
+        </dd>
+
+        <dt class="col-7 col-sm-5">Avg field size</dt>
+        <dd class="col-5 col-sm-7">{{ detail.average_field_size|floatformat:1 }} players</dd>
+
+        {% if detail.double_game_count %}
+          <dt class="col-7 col-sm-5">Double games</dt>
+          <dd class="col-5 col-sm-7">{{ detail.double_game_count }}</dd>
+        {% endif %}
+
+        {% if detail.half_game_count %}
+          <dt class="col-7 col-sm-5">Half games</dt>
+          <dd class="col-5 col-sm-7">{{ detail.half_game_count }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+
+  {% if detail.best_score %}
+    <div class="card mb-3">
+      <div class="card-header">Scores</div>
+      <div class="card-body">
+        <dl class="row mb-0 rank-detail-dl">
+          {% if detail.score_low_wins %}
+            <dt class="col-7 col-sm-5">Best score (lowest)</dt>
+          {% else %}
+            <dt class="col-7 col-sm-5">Best score (highest)</dt>
+          {% endif %}
+          <dd class="col-5 col-sm-7">
+            {{ detail.best_score.score }}
+            <span class="text-muted">on {{ detail.best_score.played_on|date:"M j, Y" }}</span>
+          </dd>
+
+          {% if detail.score_low_wins %}
+            <dt class="col-7 col-sm-5">Worst score (highest)</dt>
+          {% else %}
+            <dt class="col-7 col-sm-5">Worst score (lowest)</dt>
+          {% endif %}
+          <dd class="col-5 col-sm-7">
+            {{ detail.worst_score.score }}
+            <span class="text-muted">on {{ detail.worst_score.played_on|date:"M j, Y" }}</span>
+          </dd>
+
+          {% if detail.average_score is not None %}
+            <dt class="col-7 col-sm-5">Average score</dt>
+            <dd class="col-5 col-sm-7">{{ detail.average_score|floatformat:1 }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="card mb-3">
+    <div class="card-header">Finish placements</div>
+    <ul class="list-group list-group-flush">
+      {% for row in detail.placements %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between gap-2">
+            <strong>{{ row.label }}</strong>
+            <span class="text-end text-nowrap">
+              {{ row.weighted_count|floatformat:-2 }} finish{{ row.weighted_count|pluralize:"es" }}
+              &middot;
+              {{ row.finish_points|floatformat:2 }} pts
+            </span>
+          </div>
+          {% if row.field_sizes %}
+            <div class="mt-2 d-flex flex-wrap gap-1">
+              {% for size in row.field_sizes %}
+                <span class="badge text-bg-light border fw-normal">
+                  {{ size.player_count }}-player: {{ size.weighted_count|floatformat:-2 }}
+                </span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </li>
+      {% empty %}
+        <li class="list-group-item text-muted">No recorded finishes.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {% if detail.supports_loser %}
+    <div class="card mb-3">
+      <div class="card-header">Losses by field size</div>
+      <div class="card-body">
+        <p class="mb-2">
+          <strong>{{ detail.loss_game_count }}</strong>
+          loss{{ detail.loss_game_count|pluralize:"es" }} total
+        </p>
+        {% if detail.loss_games_by_field_size %}
+          <div class="d-flex flex-wrap gap-1">
+            {% for size in detail.loss_games_by_field_size %}
+              <span class="badge text-bg-light border fw-normal">
+                {{ size.player_count }}-player: {{ size.game_count }}
+              </span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No explicit losses recorded.</p>
+        {% endif %}
+        <p class="text-muted small mb-0 mt-3">
+          Losses are shown for reference; rank score uses finish placement points only.
+        </p>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

@@ -14,7 +14,7 @@ from leaderlodge.leaderboards.ranking import (
     compute_rank_score,
     compute_vesting_multiplier,
 )
-from leaderlodge.leaderboards.service import get_player_rankings
+from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
 @pytest.fixture
@@ -232,3 +232,51 @@ def test_vesting_penalizes_one_game_wonders(user, group):
     assert vested_winner.games_played == pytest.approx(20)
     assert vested_winner.rank_score == pytest.approx(2.0)
     assert vested_winner.rank_score > winner.rank_score
+
+
+@pytest.mark.django_db
+def test_get_player_rank_detail_breakdown(user, group):
+    alice = group.players.get(linked_user=user)
+    bob = add_guest_player(group=group, display_name="Bob")
+    carol = add_guest_player(group=group, display_name="Carol")
+    dave = add_guest_player(group=group, display_name="Dave")
+
+    _record_progressive(user, group, [alice, bob, carol], alice)
+    _record_progressive(user, group, [alice, bob, carol, dave], bob)
+
+    detail = get_player_rank_detail(
+        group,
+        alice,
+        game_type_code="progressiverummy",
+    )
+
+    assert detail is not None
+    assert detail.ranking.player.pk == alice.pk
+    assert detail.ranking.finish_points > 0
+    assert detail.raw_rank_score == pytest.approx(
+        detail.ranking.finish_points / detail.ranking.games_played
+    )
+    assert detail.ranking.rank_score == pytest.approx(
+        detail.raw_rank_score * detail.vesting_multiplier
+    )
+
+    labels = [row.label for row in detail.placements]
+    assert "1st" in labels
+    assert "2nd" in labels
+    first = next(row for row in detail.placements if row.label == "1st")
+    second = next(row for row in detail.placements if row.label == "2nd")
+    assert first.weighted_count == pytest.approx(1)
+    assert second.weighted_count == pytest.approx(1)
+    assert first.field_sizes[0].player_count == 3
+    assert second.field_sizes[0].player_count == 4
+    assert detail.supports_loser is True
+    assert detail.loss_game_count >= 0
+    assert detail.game_count == 2
+    assert detail.first_game_date is not None
+    assert detail.last_win_date is not None
+    assert detail.first_win_date == detail.first_game_date
+    assert detail.best_score is not None
+    assert detail.worst_score is not None
+    assert detail.score_low_wins is True
+    assert detail.best_score.score <= detail.worst_score.score
+    assert detail.podium_count > 0

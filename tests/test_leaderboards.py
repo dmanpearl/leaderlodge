@@ -118,3 +118,42 @@ def test_get_player_stats(client, user, group):
     player = group.players.order_by("pk").first()
     stats = get_player_stats(group, player)
     assert stats["dominos"]["games_played"] >= 1
+
+
+@pytest.mark.django_db
+def test_rank_detail_requires_login(client, user, group):
+    player = group.players.order_by("pk").first()
+    url = reverse("leaderboards:detail")
+    response = client.get(
+        url,
+        {
+            "group": str(group.pk),
+            "game_type_code": "dominos",
+            "player": str(player.pk),
+        },
+    )
+    assert response.status_code == 302
+
+
+@pytest.mark.django_db
+def test_rank_detail_shows_breakdown(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    player = group.players.order_by("pk").first()
+    response = client.get(
+        reverse("leaderboards:detail"),
+        {
+            "group": str(group.pk),
+            "game_type_code": "dominos",
+            "player": str(player.pk),
+        },
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Rank score" in content
+    assert "Activity" in content
+    assert "Scores" in content
+    assert "Finish placements" in content
+    assert player.display_label in content

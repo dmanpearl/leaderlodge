@@ -41,3 +41,11 @@ nav.navbar.bg-primary .navbar-toggler {
   width: 100%;
   text-align: inherit;
 }
+
+.leaderboard-row {
+  cursor: pointer;
+}
+
+.rank-detail-dl dt {
+  font-weight: 500;
+}

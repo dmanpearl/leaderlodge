@@ -34,6 +34,7 @@ All ranking logic lives in `leaderlodge/leaderboards/service.py` and
 `leaderlodge/leaderboards/ranking.py` as plain functions (no strategy classes):
 
 - `get_player_rankings(group, game_type_code=None)` -- main entry
+- `get_player_rank_detail(group, player, game_type_code)` -- rank breakdown for one player
 - `get_group_roster_standings(group, game_type_code, sort, ascending)` -- group detail
 - `get_player_stats(group, player)` -- per-game-type stats for a single player
 

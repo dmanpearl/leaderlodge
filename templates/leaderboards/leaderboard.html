@@ -63,7 +63,7 @@
         {{ selected_group.name }} &middot; {{ selected_game_type.name }}
       </div>
       <div class="table-responsive">
-        <table class="table table-striped mb-0">
+        <table class="table table-striped table-hover mb-0">
           <thead>
             <tr>
               <th scope="col">Rank</th>
@@ -80,7 +80,12 @@
           </thead>
           <tbody>
             {% for row in rankings %}
-              <tr>
+              <tr
+                class="leaderboard-row"
+                role="link"
+                tabindex="0"
+                data-href="{% url 'leaderboards:detail' %}?group={{ selected_group.pk }}&amp;game_type_code={{ selected_game_type_code }}&amp;player={{ row.player.pk }}"
+              >
                 <td>{{ row.rank }}</td>
                 <td>{{ row.player.display_label }}</td>
                 <td>{{ row.rank_score|floatformat:2 }}</td>
@@ -100,8 +105,25 @@
   {% else %}
     <div class="card">
       <div class="card-body text-center py-5">
-        <p class="text-muted mb-0">No players meet the minimum games threshold yet.</p>
+        <p class="text-muted mb-0">No players with recorded games yet.</p>
       </div>
     </div>
   {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    document.querySelectorAll(".leaderboard-row[data-href]").forEach((row) => {
+      const navigate = () => {
+        window.location = row.dataset.href;
+      };
+      row.addEventListener("click", navigate);
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          navigate();
+        }
+      });
+    });
+  </script>
 {% endblock %}
