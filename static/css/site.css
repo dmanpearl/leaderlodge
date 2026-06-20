@@ -2,6 +2,12 @@ nav.navbar.bg-primary {
   --bs-navbar-padding-y: 0.3125rem;
 }
 
+.navbar-brand-logo {
+  display: block;
+  height: 2rem;
+  width: auto;
+}
+
 nav.navbar.bg-primary .navbar-nav .nav-link {
   padding-top: 0.3125rem;
   padding-bottom: 0.3125rem;

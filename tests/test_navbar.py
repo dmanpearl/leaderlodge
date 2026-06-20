@@ -36,6 +36,8 @@ def test_navbar_shows_login_button_for_anonymous(client):
     assert 'href="' in content and reverse("accounts:login") in content
     assert "Login" in content
     assert 'class="bi bi-person navbar-user-icon"' in content
+    assert 'class="navbar-brand-logo"' in content
+    assert 'alt="LeaderLodge"' in content
     assert 'id="login-password-toggle"' in content
     assert 'class="bi bi-eye"' in content
     assert "Administration" not in content
@@ -57,6 +59,7 @@ def test_navbar_shows_admin_for_privileged_user(client, account_fixture, request
     assert reverse("admin:index") in content
     assert "Administration" not in content
     assert ">Dashboard</a>" not in content
+    assert 'class="navbar-brand-logo"' in content
     if account_fixture == "staff_user":
         assert content.count(f'href="{reverse("core:dashboard")}"') == 1
 
@@ -76,7 +79,7 @@ def test_navbar_shows_account_dropdown_for_member(client, user):
     assert 'class="bi bi-box-arrow-right navbar-menu-icon"' in content
     assert "Administration" not in content
     assert ">Dashboard</a>" not in content
-    assert 'class="bi bi-house navbar-nav-icon"' in content
+    assert 'class="navbar-brand-logo"' in content
     assert 'class="bi bi-plus-lg navbar-nav-icon"' in content
     assert reverse("games:create") in content
     assert "\n              Add\n" in content or ">Add</a>" in content

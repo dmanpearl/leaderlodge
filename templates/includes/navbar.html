@@ -1,5 +1,15 @@
+{% load static %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container">
+    <a class="navbar-brand py-0 me-2" href="{% url 'core:dashboard' %}">
+      <img
+        src="{% static 'img/brand/navbar-logo.png' %}"
+        alt="LeaderLodge"
+        class="navbar-brand-logo"
+        width="128"
+        height="64"
+      />
+    </a>
     <button
       class="navbar-toggler"
       type="button"
@@ -13,12 +23,6 @@
     </button>
     <div class="collapse navbar-collapse" id="mainNavbar">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'core:dashboard' %}">
-            <i class="bi bi-house navbar-nav-icon" aria-hidden="true"></i>
-            LeaderLodge
-          </a>
-        </li>
         {% if user.is_authenticated %}
           <li class="nav-item">
             <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'groups:list' %}">
