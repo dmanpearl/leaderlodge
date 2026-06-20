@@ -47,6 +47,7 @@ The project requires `DJANGO_SECRET_KEY`. **Never commit secrets to Git.**
 | `DATABASE_URL` | Optional | PostgreSQL URL; unset locally (SQLite). Optional `.env` override for `railway run` |
 | `RAILWAY_POSTGRES_SERVICE` | Optional | Postgres service name in Railway (default: `Postgres`) |
 | `DJANGO_ALLOWED_HOST` | Optional | Extra hostname appended to `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` |
+| `DJANGO_TIME_ZONE` | Optional | IANA timezone for calendar dates (default: `America/Los_Angeles`) |
 
 Copy `.env.example` to `.env` for local development. On Railway, set variables in the dashboard — do not upload a `.env` file.
 

@@ -154,7 +154,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+# Calendar dates (e.g. game "played on") use this zone. UTC makes late-evening
+# US games default to tomorrow's date.
+TIME_ZONE = os.environ.get("DJANGO_TIME_ZONE", "America/Los_Angeles")
 USE_I18N = True
 USE_TZ = True
 

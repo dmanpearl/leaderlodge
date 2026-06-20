@@ -1,5 +1,9 @@
 import pytest
+from datetime import datetime, timezone as dt_timezone
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -155,6 +159,25 @@ def test_auto_select_single_group(client, user, group):
     assert "Choose a game" in content
     assert "Continue" in content
     assert 'id="game-record-form"' not in content
+
+
+@pytest.mark.django_db
+def test_record_game_default_date_uses_configured_timezone(client, user, group):
+    """11pm Pacific is already the next calendar day in UTC."""
+    late_evening_utc = datetime(2026, 6, 20, 6, 9, tzinfo=dt_timezone.utc)
+
+    with patch("django.utils.timezone.now", return_value=late_evening_utc):
+        with override_settings(TIME_ZONE="UTC"):
+            assert timezone.localdate().isoformat() == "2026-06-20"
+
+        with override_settings(TIME_ZONE="America/Los_Angeles"):
+            assert timezone.localdate().isoformat() == "2026-06-19"
+
+            client.force_login(user)
+            response = client.get(reverse("games:create"))
+            content = response.content.decode()
+            assert response.status_code == 200
+            assert 'value="2026-06-19"' in content
 
 
 @pytest.mark.django_db
