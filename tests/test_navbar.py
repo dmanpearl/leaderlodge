@@ -37,7 +37,7 @@ def test_navbar_shows_login_button_for_anonymous(client):
     assert "Login" in content
     assert 'class="bi bi-person navbar-user-icon"' in content
     assert 'class="navbar-brand-logo"' in content
-    assert 'alt="LeaderLodge"' in content
+    assert 'class="navbar-brand-text-leader">Leader</span><span class="navbar-brand-text-lodge">Lodge</span>' in content
     assert 'id="login-password-toggle"' in content
     assert 'class="bi bi-eye"' in content
     assert "Administration" not in content

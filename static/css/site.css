@@ -8,6 +8,23 @@ nav.navbar.bg-primary {
   width: auto;
 }
 
+.navbar-brand-text {
+  font-size: 1.125rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.navbar-brand-text-leader {
+  font-weight: 700;
+}
+
+.navbar-brand-text-lodge {
+  font-weight: 400;
+  font-family: "Helvetica Neue Condensed", "Arial Narrow", var(--bs-font-sans-serif);
+  font-stretch: condensed;
+  font-variation-settings: "wdth" 80;
+}
+
 nav.navbar.bg-primary .navbar-nav .nav-link {
   padding-top: 0.3125rem;
   padding-bottom: 0.3125rem;
