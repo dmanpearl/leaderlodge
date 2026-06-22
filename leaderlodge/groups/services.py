@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import IntegrityError, transaction
 
@@ -165,6 +166,48 @@ def user_groups(user: AbstractBaseUser):
     return Group.objects.filter(memberships__user=user).distinct()
 
 
+def get_demo_group() -> Group | None:
+    if not settings.DEMO_MODE_ENABLED:
+        return None
+    return Group.objects.filter(is_demo=True).order_by("pk").first()
+
+
+def demo_group_exists() -> bool:
+    return get_demo_group() is not None
+
+
+def can_view_group(user: AbstractBaseUser | None, group: Group) -> bool:
+    if group.is_demo and settings.DEMO_MODE_ENABLED:
+        return True
+    if user is None or not user.is_authenticated:
+        return False
+    return user_is_member(user, group)
+
+
+def can_edit_group(user: AbstractBaseUser | None, group: Group) -> bool:
+    if user is None or not user.is_authenticated:
+        return False
+    if group.is_demo:
+        return user.is_staff or group.created_by_id == user.pk
+    return user_is_member(user, group)
+
+
+def visible_groups(user: AbstractBaseUser | None):
+    group_ids: set[int] = set()
+    if user and user.is_authenticated:
+        group_ids.update(user_groups(user).values_list("pk", flat=True))
+    demo = get_demo_group()
+    if demo is not None:
+        group_ids.add(demo.pk)
+    return Group.objects.filter(pk__in=group_ids).order_by("name")
+
+
+def editable_groups(user: AbstractBaseUser | None):
+    if user is None or not user.is_authenticated:
+        return Group.objects.none()
+    return user_groups(user).filter(is_demo=False).order_by("name")
+
+
 def user_is_member(user: AbstractBaseUser, group: Group) -> bool:
     return GroupMembership.objects.filter(group=group, user=user).exists()
 
@@ -183,6 +226,17 @@ def resolve_user_group(user: AbstractBaseUser, group_id: str | None) -> Group | 
             return group
         return None
     return single_user_group(user)
+
+
+def resolve_view_group(user: AbstractBaseUser | None, group_id: str | None) -> Group | None:
+    if group_id:
+        group = Group.objects.filter(pk=group_id).first()
+        if group and can_view_group(user, group):
+            return group
+        return None
+    if user and user.is_authenticated:
+        return single_user_group(user)
+    return get_demo_group()
 
 
 def add_guest_player(*, group: Group, display_name: str) -> GroupPlayer:

@@ -88,3 +88,29 @@ python manage.py import_games \
   --game-type dominos \
   data/seeds/dominos/dominos_seed_2026-06-16.xlsx
 ```
+
+## Demo group (public read-only)
+
+Anonymous visitors can browse the **Demo** group when `DEMO_MODE_ENABLED` is true (default). See [Importing game history — Demo group seeds](importing.md#demo-group-seeds) for spreadsheet paths and formats.
+
+After `migrate` and `createsuperuser`:
+
+```bash
+python manage.py setup_demo
+```
+
+This creates the **Demo** group, sets **`is_demo=True`**, and imports all four bundled `*_demo_2026-06-22.xlsx` seed files. Re-running is idempotent.
+
+Log out and open http://127.0.0.1:8000/ to confirm the demo landing page. Set `DEMO_MODE_ENABLED=false` in `.env` or Railway variables to disable public demo browsing.
+
+### Railway production
+
+After deploy (migrate runs automatically via `railway.json`):
+
+```bash
+railway link
+railway run python manage.py createsuperuser   # first time only
+railway run python manage.py setup_demo
+```
+
+Use `--owner USERNAME` if you have multiple superusers and want a specific group owner. No Django admin step is required to set **Is demo**.

@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 
+from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.forms import (
     GameRecordForm,
     parse_participants_from_post,
@@ -22,9 +23,11 @@ from leaderlodge.games.scoring import scoring_instructions
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
+    can_edit_group,
+    can_view_group,
+    editable_groups,
     single_user_group,
-    user_groups,
-    user_is_member,
+    visible_groups,
 )
 from leaderlodge.groups.locations import locations_for_group, resolve_game_location
 
@@ -53,7 +56,7 @@ def _default_game_type_code(
     if requested in GAME_TYPES:
         return requested
 
-    games_qs = Game.objects.filter(group__in=user_groups(user))
+    games_qs = Game.objects.filter(group__in=visible_groups(user))
     if group_id.isdigit():
         games_qs = games_qs.filter(group_id=int(group_id))
     code = (
@@ -87,7 +90,7 @@ def _game_list_redirect_query(params: dict[str, str], page: str | None) -> str:
 
 
 def _games_queryset_for_filter_choices(user, params: dict[str, str]):
-    games_qs = Game.objects.filter(group__in=user_groups(user))
+    games_qs = Game.objects.filter(group__in=visible_groups(user))
     if params["group"].isdigit():
         games_qs = games_qs.filter(group_id=int(params["group"]))
     if params["game_type"] in GAME_TYPES:
@@ -104,7 +107,7 @@ def _filtered_games_queryset(user, params: dict[str, str]):
         return games_qs.none()
     if params["location"].isdigit():
         games_qs = games_qs.filter(location_id=int(params["location"]))
-    if params["player"].isdigit():
+    if params.get("player", "").isdigit():
         games_qs = games_qs.filter(
             participant_results__player_id=int(params["player"]),
         ).distinct()
@@ -239,7 +242,7 @@ def _played_on_value_and_display(form: GameRecordForm) -> tuple[str, str]:
     return value, display
 
 
-@login_required
+@demo_or_login_required
 def game_list(request: HttpRequest) -> HttpResponse:
     params = _game_list_params(request)
     resolved_params = _resolve_game_list_params(request.user, params)
@@ -270,8 +273,11 @@ def game_list(request: HttpRequest) -> HttpResponse:
         stats_player_count=stats_player_count,
     )
 
-    groups = user_groups(request.user).order_by("name")
+    groups = visible_groups(request.user).order_by("name")
     has_any_games = Game.objects.filter(group__in=groups).exists()
+    can_record_games = (
+        request.user.is_authenticated and editable_groups(request.user).exists()
+    )
 
     return render(
         request,
@@ -298,6 +304,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
                 game_type_code=params["game_type"],
             ),
             "show_location_column": not params["location"],
+            "can_record_games": can_record_games,
         },
     )
 
@@ -328,7 +335,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
         form = GameRecordForm(user=request.user, initial=initial)
 
     group = _resolve_group(request, form)
-    if group and not user_is_member(request.user, group):
+    if group and not can_edit_group(request.user, group):
         raise Http404
 
     if show_roster and group:
@@ -426,7 +433,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
+@demo_or_login_required
 def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     game = get_object_or_404(
         Game.objects.select_related("group", "recorded_by", "location").prefetch_related(
@@ -434,7 +441,7 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
         ),
         pk=pk,
     )
-    if not user_is_member(request.user, game.group):
+    if not can_view_group(request.user, game.group):
         raise Http404
 
     game_type = get_game_type(game.game_type_code)

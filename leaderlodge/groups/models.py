@@ -47,6 +47,10 @@ class Group(models.Model):
         on_delete=models.PROTECT,
         related_name="created_groups",
     )
+    is_demo = models.BooleanField(
+        default=False,
+        help_text="When enabled, anyone can view this group read-only (demo/sample data).",
+    )
     location_library = models.ForeignKey(
         LocationLibrary,
         on_delete=models.PROTECT,

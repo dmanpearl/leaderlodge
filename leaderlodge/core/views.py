@@ -1,15 +1,21 @@
 from dataclasses import dataclass
 
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
 from django.db.models import QuerySet
 from django.shortcuts import render
 from django.urls import reverse
 
+from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.display import winner_labels_for_games
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
-from leaderlodge.groups.services import resolve_user_group, user_groups
+from leaderlodge.groups.services import (
+    editable_groups,
+    get_demo_group,
+    resolve_user_group,
+    user_groups,
+)
 from leaderlodge.leaderboards.service import PlayerRanking, get_player_rankings
 
 
@@ -119,10 +125,14 @@ def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboa
     return cards
 
 
-@login_required
-def dashboard(request):
-    groups = user_groups(request.user).order_by("name")
-    default_group = resolve_user_group(request.user, None)
+def _render_dashboard(
+    request,
+    *,
+    groups: QuerySet[Group],
+    is_demo_landing: bool,
+    can_record_games: bool,
+):
+    default_group = resolve_user_group(request.user, None) if request.user.is_authenticated else None
     if default_group is None and groups.count() == 1:
         default_group = groups.first()
 
@@ -142,8 +152,9 @@ def dashboard(request):
 
     leaderboard_cards = _build_leaderboard_cards(groups)
     composite_leaderboards = groups.count() > 1
-
-    record_game_url_group = default_group.pk if default_group else None
+    record_game_url_group = (
+        default_group.pk if default_group and can_record_games else None
+    )
 
     return render(
         request,
@@ -154,5 +165,30 @@ def dashboard(request):
             "composite_leaderboards": composite_leaderboards,
             "has_groups": groups.exists(),
             "record_game_url_group": record_game_url_group,
+            "is_demo_landing": is_demo_landing,
+            "can_record_games": can_record_games,
         },
+    )
+
+
+@demo_or_login_required
+def dashboard(request):
+    if request.user.is_authenticated:
+        groups = user_groups(request.user).order_by("name")
+        return _render_dashboard(
+            request,
+            groups=groups,
+            is_demo_landing=False,
+            can_record_games=editable_groups(request.user).exists(),
+        )
+
+    demo = get_demo_group()
+    if demo is None:
+        return redirect_to_login(request.get_full_path())
+
+    return _render_dashboard(
+        request,
+        groups=Group.objects.filter(pk=demo.pk),
+        is_demo_landing=True,
+        can_record_games=False,
     )

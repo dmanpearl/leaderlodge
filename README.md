@@ -48,6 +48,7 @@ The project requires `DJANGO_SECRET_KEY`. **Never commit secrets to Git.**
 | `RAILWAY_POSTGRES_SERVICE` | Optional | Postgres service name in Railway (default: `Postgres`) |
 | `DJANGO_ALLOWED_HOST` | Optional | Extra hostname appended to `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` |
 | `DJANGO_TIME_ZONE` | Optional | IANA timezone for calendar dates (default: `America/Los_Angeles`) |
+| `DEMO_MODE_ENABLED` | Optional | Public read-only demo group browsing (default: `true`) |
 
 Copy `.env.example` to `.env` for local development. On Railway, set variables in the dashboard — do not upload a `.env` file.
 
@@ -99,8 +100,25 @@ railway run python manage.py import_games -g manpearl --game-type backgammon dat
 railway run python manage.py import_games -g manpearl --game-type progressiverummy data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx
 ```
 
+### Demo group (anonymous visitors)
+
+After `createsuperuser`, load the public demo group and all four demo spreadsheets in one step:
+
+```bash
+railway run python manage.py setup_demo
+```
+
+This creates **Demo**, sets `is_demo=True`, and imports:
+
+- `data/seeds/dominos/dominos_demo_2026-06-22.xlsx`
+- `data/seeds/backgammon/backgammon_demo_2026-06-22.xlsx`
+- `data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx`
+- `data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx`
+
+See [Demo group setup](docs/setup.md#demo-group-public-read-only) and [Importing — Demo seeds](docs/importing.md#demo-group-seeds) for local use, `--dry-run`, and manual import alternatives.
+
 ## Documentation
 
 - [Local development setup](docs/setup.md) — settings, tests, day-to-day commands
 - [Architecture](docs/architecture.md) — app layout, models, leaderboard design
-- [Importing game history](docs/importing.md) — seed spreadsheets and `import_games`
+- [Importing game history](docs/importing.md) — seed spreadsheets, `import_games`, and `setup_demo`

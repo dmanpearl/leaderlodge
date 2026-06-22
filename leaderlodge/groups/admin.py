@@ -48,9 +48,9 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "location_library", "created_by", "created_at")
+    list_display = ("name", "is_demo", "location_library", "created_by", "created_at")
     search_fields = ("name", "description")
-    list_filter = ("location_library",)
+    list_filter = ("is_demo", "location_library")
     inlines = [GroupMembershipInline, GroupPlayerInline]
 
 

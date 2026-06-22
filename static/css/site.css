@@ -122,3 +122,9 @@ nav.navbar.bg-primary .navbar-toggler {
 .rank-detail-dl dt {
   font-weight: 500;
 }
+
+.demo-banner {
+  line-height: 1.25;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}

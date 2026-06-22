@@ -11,9 +11,11 @@
   <div class="game-list game-list-density--{{ list_density|default:'comfortable' }}">
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 game-list-page-header mb-3">
     <h1 class="h3 mb-0">{{ selected_game_type.name }}</h1>
-    <a href="{% url 'games:create' %}" class="btn btn-primary game-list-record-btn">
-      <i class="bi bi-plus-lg"></i> <span class="game-list-record-label">Record Game</span>
-    </a>
+    {% if can_record_games %}
+      <a href="{% url 'games:create' %}" class="btn btn-primary game-list-record-btn">
+        <i class="bi bi-plus-lg"></i> <span class="game-list-record-label">Record Game</span>
+      </a>
+    {% endif %}
   </div>
 
   <div class="card mb-3 game-list-filters-card">

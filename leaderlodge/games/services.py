@@ -10,6 +10,7 @@ from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.validators import validate_game_for_type
 from leaderlodge.games.scoring import compute_double_weight
 from leaderlodge.groups.models import Group, GroupPlayer, Location
+from leaderlodge.groups.services import can_edit_group
 
 
 @dataclass
@@ -34,6 +35,9 @@ def record_game(
     half_weight: int = 1,
 ) -> Game:
     game_type = get_game_type(game_type_code)
+
+    if not can_edit_group(user, group):
+        raise ValidationError("You cannot record games in this group.")
 
     if not participants:
         raise ValidationError("Select at least one player.")

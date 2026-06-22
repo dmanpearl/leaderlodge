@@ -151,6 +151,63 @@ Differences during import:
 
 Blank player cells mean that player did not participate in the game. A score of `0` is valid (for example, a wall game).
 
+## Demo group seeds
+
+Bundled demo spreadsheets use fictional player names and live in the repo under `data/seeds/`:
+
+```text
+data/seeds/dominos/dominos_demo_2026-06-22.xlsx
+data/seeds/backgammon/backgammon_demo_2026-06-22.xlsx
+data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx
+data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx
+```
+
+### One-command demo setup
+
+`setup_demo` creates the **Demo** group (if needed), sets **`is_demo=True`**, and imports all four files above. Re-running is safe: existing games from the same spreadsheet rows are skipped.
+
+```bash
+source venv/bin/activate
+
+# After migrate and createsuperuser:
+python manage.py setup_demo
+```
+
+| Option | Description |
+|--------|-------------|
+| `--owner USERNAME` | Group owner and import recorder (default: first superuser) |
+| `--dry-run` | Show planned actions without writing to the database |
+
+On Railway:
+
+```bash
+railway run python manage.py setup_demo
+```
+
+Or pass a specific owner:
+
+```bash
+railway run python manage.py setup_demo --owner yourusername
+```
+
+Migration `0004_group_is_demo` also sets `is_demo=True` on an existing group named **Demo** when you run `migrate`. Use `setup_demo` on production to create the group, set the flag, and load seed data in one step — no admin panel required.
+
+To import demo seeds manually instead:
+
+```bash
+python manage.py import_games --group Demo --game-type dominos \
+  data/seeds/dominos/dominos_demo_2026-06-22.xlsx
+
+python manage.py import_games --group Demo --game-type backgammon \
+  data/seeds/backgammon/backgammon_demo_2026-06-22.xlsx
+
+python manage.py import_games --group Demo --game-type progressiverummy \
+  data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx
+
+python manage.py import_games --group Demo --game-type mahjongg \
+  data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx
+```
+
 ## Dependencies
 
 Spreadsheet import requires `openpyxl`, included in `requirements.txt`.

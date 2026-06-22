@@ -1,11 +1,11 @@
-from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
 from django.urls import reverse
 
+from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
-from leaderlodge.groups.services import resolve_user_group, user_groups
+from leaderlodge.groups.services import resolve_view_group, visible_groups
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
@@ -20,10 +20,10 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
     )
 
 
-@login_required
+@demo_or_login_required
 def leaderboard_index(request: HttpRequest) -> HttpResponse:
-    groups = user_groups(request.user).order_by("name")
-    selected_group = resolve_user_group(request.user, request.GET.get("group"))
+    groups = visible_groups(request.user).order_by("name")
+    selected_group = resolve_view_group(request.user, request.GET.get("group"))
 
     if selected_group is None and groups.count() == 1:
         selected_group = groups.first()
@@ -60,9 +60,9 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
+@demo_or_login_required
 def rank_detail(request: HttpRequest) -> HttpResponse:
-    selected_group = resolve_user_group(request.user, request.GET.get("group"))
+    selected_group = resolve_view_group(request.user, request.GET.get("group"))
     game_type_code = request.GET.get("game_type_code")
     player_id = request.GET.get("player")
 

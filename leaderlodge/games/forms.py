@@ -39,9 +39,9 @@ class GameRecordForm(forms.Form):
         self.user = user
         super().__init__(*args, **kwargs)
         if user is not None:
-            from leaderlodge.groups.services import user_groups
+            from leaderlodge.groups.services import editable_groups
 
-            self.fields["group"].queryset = user_groups(user).order_by("name")
+            self.fields["group"].queryset = editable_groups(user).order_by("name")
 
 
 def parse_participants_from_post(post, *, group) -> list[dict]:

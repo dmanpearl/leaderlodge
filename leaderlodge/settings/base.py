@@ -102,6 +102,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "leaderlodge.core.context_processors.demo_context",
             ],
         },
     },
@@ -168,7 +169,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:dashboard"
-LOGOUT_REDIRECT_URL = "accounts:login"
+LOGOUT_REDIRECT_URL = "core:dashboard"
+
+DEMO_MODE_ENABLED = os.environ.get("DEMO_MODE_ENABLED", "true").lower() in (
+    "true",
+    "1",
+    "yes",
+)
 
 MIN_GAMES_FOR_LEADERBOARD = 1
 LEADERBOARD_VESTING_COUNT = 14
