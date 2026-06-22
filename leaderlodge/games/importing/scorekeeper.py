@@ -7,10 +7,11 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 SCOREKEEPER_SHEET = "ScoreKeeper"
+HEADER_ROW = 1
 DATA_START_ROW = 3
 DATE_COL = 0
-NANCY_SCORE_COL = 1
-DAVID_SCORE_COL = 2
+PLAYER_ONE_COL = 1
+PLAYER_TWO_COL = 2
 WHERE_COL = 3
 
 
@@ -18,9 +19,20 @@ WHERE_COL = 3
 class ScoreKeeperRow:
     row_number: int
     played_on: date
-    nancy_score: int
-    david_score: int
+    scores: tuple[int, int]
     location_name: str
+
+
+@dataclass(frozen=True)
+class ScoreKeeperParseResult:
+    player_names: tuple[str, str]
+    rows: list[ScoreKeeperRow]
+
+
+def _normalize_header(value) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
 
 
 def _coerce_date(value) -> date | None:
@@ -46,7 +58,7 @@ def _coerce_location(value) -> str:
     return str(value).strip()
 
 
-def parse_scorekeeper_workbook(path: Path) -> list[ScoreKeeperRow]:
+def parse_scorekeeper_workbook(path: Path) -> ScoreKeeperParseResult:
     workbook = load_workbook(path, read_only=True, data_only=True)
     try:
         if SCOREKEEPER_SHEET not in workbook.sheetnames:
@@ -54,6 +66,20 @@ def parse_scorekeeper_workbook(path: Path) -> list[ScoreKeeperRow]:
                 f'Expected a "{SCOREKEEPER_SHEET}" worksheet in {path.name}.'
             )
         worksheet = workbook[SCOREKEEPER_SHEET]
+        header_row = next(
+            worksheet.iter_rows(min_row=HEADER_ROW, max_row=HEADER_ROW, values_only=True)
+        )
+        player_one_name = _normalize_header(
+            header_row[PLAYER_ONE_COL] if len(header_row) > PLAYER_ONE_COL else None
+        )
+        player_two_name = _normalize_header(
+            header_row[PLAYER_TWO_COL] if len(header_row) > PLAYER_TWO_COL else None
+        )
+        if not player_one_name or not player_two_name:
+            raise ValueError(
+                f"Missing player name headers in columns B and C of {path.name}."
+            )
+
         rows: list[ScoreKeeperRow] = []
         for row_number, values in enumerate(
             worksheet.iter_rows(min_row=DATA_START_ROW, values_only=True),
@@ -66,22 +92,24 @@ def parse_scorekeeper_workbook(path: Path) -> list[ScoreKeeperRow]:
             if played_on is None:
                 continue
 
-            nancy_score = _coerce_score(values[NANCY_SCORE_COL])
-            david_score = _coerce_score(values[DAVID_SCORE_COL])
-            if nancy_score is None or david_score is None:
+            player_one_score = _coerce_score(values[PLAYER_ONE_COL])
+            player_two_score = _coerce_score(values[PLAYER_TWO_COL])
+            if player_one_score is None or player_two_score is None:
                 continue
 
             rows.append(
                 ScoreKeeperRow(
                     row_number=row_number,
                     played_on=played_on,
-                    nancy_score=nancy_score,
-                    david_score=david_score,
+                    scores=(player_one_score, player_two_score),
                     location_name=_coerce_location(
                         values[WHERE_COL] if len(values) > WHERE_COL else None
                     ),
                 )
             )
-        return rows
+        return ScoreKeeperParseResult(
+            player_names=(player_one_name, player_two_name),
+            rows=rows,
+        )
     finally:
         workbook.close()

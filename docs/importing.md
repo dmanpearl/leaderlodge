@@ -31,11 +31,13 @@ Columns used for import:
 | Column | Field |
 |--------|-------|
 | A | Date played |
-| B | Nancy's score for the game |
-| C | David's score for the game |
+| B | First player's score (header row is the player name) |
+| C | Second player's score (header row is the player name) |
 | D | Location (`Where`), optional |
 
 Running totals and win-count columns are ignored. Rows without a valid date or both scores are skipped.
+
+Player names come from the **column B and C headers** on row 1 (not hardcoded).
 
 ## Import command
 
@@ -78,9 +80,9 @@ You can import any compatible file from anywhere:
 python manage.py import_games -g "Family" --game-type dominos ~/Downloads/my_scores.xlsx
 ```
 
-## Player mapping (David & Nancy)
+## Player mapping (ScoreKeeper games)
 
-Dominos and backgammon seed files assume two players named **David** and **Nancy**.
+Dominos and backgammon read player names from the **column B and C headers** on row 1.
 
 For each name, the importer looks for an existing active player in the target group:
 
@@ -136,6 +138,18 @@ Each player column header is a display name. For each name, the importer uses th
 3. `display_name` (case-insensitive)
 
 If no match is found, a guest player is created with that display name.
+
+## Spreadsheet format (Mah Jongg)
+
+Mah Jongg uses the same **Raw Games** worksheet layout as Progressive Rummy (see above). Store seed files under `data/seeds/mahjongg/`.
+
+Differences during import:
+
+- **Half** column is ignored (Mah Jongg has no half games).
+- Rows must have **3 to 4** scored players (Mah Jongg player limits).
+- Win/loss/tie results use Mah Jongg rules (high score wins).
+
+Blank player cells mean that player did not participate in the game. A score of `0` is valid (for example, a wall game).
 
 ## Dependencies
 

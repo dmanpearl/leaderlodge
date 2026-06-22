@@ -12,6 +12,7 @@ from openpyxl import Workbook
 from leaderlodge.games.importing.progressiverummy import parse_progressiverummy_workbook
 from leaderlodge.games.importing.scorekeeper import parse_scorekeeper_workbook
 from leaderlodge.games.importing.service import (
+    import_mahjongg_file,
     import_progressiverummy_file,
     import_scorekeeper_file,
 )
@@ -40,13 +41,16 @@ def group(user):
     return create_group_with_owner(user=user, name="Family")
 
 
-def _write_scorekeeper(path: Path, rows: list[tuple]) -> None:
+def _write_scorekeeper(
+    path: Path,
+    rows: list[tuple],
+    *,
+    headers: tuple[str, ...] = ("Date", "Nancy", "David", "Where", "Nancy", "David", "Diff"),
+) -> None:
     workbook = Workbook()
     worksheet = workbook.active
     worksheet.title = "ScoreKeeper"
-    worksheet.append(
-        ("Date", "Nancy", "David", "Where", "Nancy", "David", "Diff")
-    )
+    worksheet.append(headers)
     worksheet.append(("Totals", 0, 0, None, 0, 0, None))
     for row in rows:
         worksheet.append(row)
@@ -204,13 +208,49 @@ def test_resolve_seed_player_creates_guest(group):
 
 
 def test_parse_scorekeeper_workbook(sample_spreadsheet):
-    rows = parse_scorekeeper_workbook(sample_spreadsheet)
-    assert len(rows) == 2
-    assert rows[0].played_on.isoformat() == "2026-03-08"
-    assert rows[0].nancy_score == 25
-    assert rows[0].david_score == 30
-    assert rows[0].location_name == "Sally"
-    assert rows[1].location_name == ""
+    parsed = parse_scorekeeper_workbook(sample_spreadsheet)
+    assert parsed.player_names == ("Nancy", "David")
+    assert len(parsed.rows) == 2
+    assert parsed.rows[0].played_on.isoformat() == "2026-03-08"
+    assert parsed.rows[0].scores == (25, 30)
+    assert parsed.rows[0].location_name == "Sally"
+    assert parsed.rows[1].location_name == ""
+
+
+def test_parse_scorekeeper_workbook_reads_custom_player_headers(tmp_path):
+    path = tmp_path / "custom_players.xlsx"
+    _write_scorekeeper(
+        path,
+        [
+            (datetime(2026, 3, 8), 25, 30, "Lodge"),
+        ],
+        headers=("Date", "Carter", "Elena", "Where"),
+    )
+    parsed = parse_scorekeeper_workbook(path)
+    assert parsed.player_names == ("Carter", "Elena")
+    assert parsed.rows[0].scores == (25, 30)
+
+
+@pytest.mark.django_db
+def test_import_scorekeeper_file_uses_header_player_names(group, user, tmp_path):
+    path = tmp_path / "custom_players.xlsx"
+    _write_scorekeeper(
+        path,
+        [
+            (datetime(2026, 3, 8), 25, 30, "Lodge"),
+        ],
+        headers=("Date", "Carter", "Elena", "Where"),
+    )
+    summary = import_scorekeeper_file(
+        path=path,
+        group=group,
+        game_type_code="dominos",
+        recorded_by=user,
+    )
+    assert summary.created == 1
+    assert GroupPlayer.objects.filter(group=group, display_name="Carter").exists()
+    assert GroupPlayer.objects.filter(group=group, display_name="Elena").exists()
+    assert not GroupPlayer.objects.filter(group=group, display_name="Nancy").exists()
 
 
 @pytest.mark.django_db
@@ -462,3 +502,100 @@ def test_import_real_progressiverummy_seed(group, user):
         half_weight=2,
     ).count()
     assert half_games > 50
+
+
+def _write_mahjongg(path: Path, rows: list[tuple]) -> None:
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Raw Games"
+    worksheet.append(
+        (
+            "Date",
+            "Where",
+            "Half",
+            "aa",
+            "Carter",
+            "Elena",
+            "Lily",
+            "Owen",
+        )
+    )
+    for row in rows:
+        worksheet.append(row)
+    workbook.save(path)
+
+
+@pytest.fixture
+def mahjongg_spreadsheet(tmp_path):
+    path = tmp_path / "mahjongg_seed_test.xlsx"
+    _write_mahjongg(
+        path,
+        [
+            (datetime(2026, 3, 8), "Lodge", None, None, 25, 0, 0, 0),
+            (datetime(2026, 3, 9), "The Club", None, None, 0, 30, 10, 5),
+            (datetime(2026, 3, 10), "Treehouse", None, None, 10, 20, None, None),
+        ],
+    )
+    return path
+
+
+@pytest.mark.django_db
+def test_import_mahjongg_file(group, user, mahjongg_spreadsheet):
+    summary = import_mahjongg_file(
+        path=mahjongg_spreadsheet,
+        group=group,
+        recorded_by=user,
+    )
+
+    assert summary.parsed == 3
+    assert summary.created == 2
+    assert summary.skipped == 1
+
+    games = Game.objects.filter(group=group, game_type_code="mahjongg").order_by("pk")
+    assert games.count() == 2
+    assert all(game.half_weight == 1 for game in games)
+    assert GroupPlayer.objects.filter(group=group, display_name="Owen").exists()
+
+    winners = {
+        game.participant_results.get(result="win").player.display_name
+        for game in games
+    }
+    assert winners == {"Carter", "Elena"}
+
+
+@pytest.mark.django_db
+def test_import_mahjongg_command(group, user, mahjongg_spreadsheet):
+    stdout = StringIO()
+    call_command(
+        "import_games",
+        str(mahjongg_spreadsheet),
+        "--group",
+        str(group.pk),
+        "--game-type",
+        "mahjongg",
+        stdout=stdout,
+    )
+
+    output = stdout.getvalue()
+    assert "Created: 2" in output
+    assert Game.objects.filter(
+        group=group,
+        import_source="mahjongg_seed_test",
+    ).count() == 2
+
+
+@pytest.mark.django_db
+def test_import_real_mahjongg_seed(group, user):
+    path = Path("data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx")
+    if not path.is_file():
+        pytest.skip("Seed file not present")
+
+    summary = import_mahjongg_file(
+        path=path,
+        group=group,
+        recorded_by=user,
+    )
+
+    assert summary.parsed > 0
+    assert summary.created > 0
+    assert summary.created + summary.skipped == summary.parsed

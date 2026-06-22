@@ -19,8 +19,8 @@ from leaderlodge.groups.locations import resolve_game_location
 from leaderlodge.groups.models import Group, GroupPlayer
 from leaderlodge.groups.services import resolve_group, resolve_seed_player
 
-SEED_PLAYER_NAMES = ("Nancy", "David")
 SCOREKEEPER_GAME_TYPES = frozenset({"dominos", "backgammon"})
+RAW_GAMES_GAME_TYPES = frozenset({"progressiverummy", "mahjongg"})
 
 
 @dataclass
@@ -64,10 +64,11 @@ def import_games_file(
             recorded_by=recorded_by,
             dry_run=dry_run,
         )
-    if game_type_code == "progressiverummy":
-        return import_progressiverummy_file(
+    if game_type_code in RAW_GAMES_GAME_TYPES:
+        return import_raw_games_file(
             path=path,
             group=group,
+            game_type_code=game_type_code,
             recorded_by=recorded_by,
             dry_run=dry_run,
         )
@@ -85,12 +86,12 @@ def import_scorekeeper_file(
     recorded_by: AbstractBaseUser,
     dry_run: bool = False,
 ) -> ImportSummary:
-    rows = parse_scorekeeper_workbook(path)
+    parsed = parse_scorekeeper_workbook(path)
     import_source = import_source_from_path(path)
 
     players = {
         name: resolve_seed_player(group=group, seed_name=name)
-        for name in SEED_PLAYER_NAMES
+        for name in parsed.player_names
     }
 
     existing_keys = set(
@@ -103,7 +104,7 @@ def import_scorekeeper_file(
     created = 0
     skipped = 0
 
-    for row in rows:
+    for row in parsed.rows:
         row_key = import_row_key(row.row_number)
         if row_key in existing_keys:
             skipped += 1
@@ -111,13 +112,10 @@ def import_scorekeeper_file(
 
         participant_rows = [
             {
-                "player": players["Nancy"],
-                "score": row.nancy_score,
-            },
-            {
-                "player": players["David"],
-                "score": row.david_score,
-            },
+                "player": players[name],
+                "score": score,
+            }
+            for name, score in zip(parsed.player_names, row.scores, strict=True)
         ]
         assign_results_from_scores(participant_rows, game_type_code)
 
@@ -154,7 +152,7 @@ def import_scorekeeper_file(
     return ImportSummary(
         source=import_source,
         game_type_code=game_type_code,
-        parsed=len(rows),
+        parsed=len(parsed.rows),
         created=created,
         skipped=skipped,
     )
@@ -172,17 +170,18 @@ def _resolve_import_players(
 
 
 @transaction.atomic
-def import_progressiverummy_file(
+def import_raw_games_file(
     *,
     path: Path,
     group: Group,
+    game_type_code: str,
     recorded_by: AbstractBaseUser,
     dry_run: bool = False,
 ) -> ImportSummary:
-    game_type_code = "progressiverummy"
     game_type = get_game_type(game_type_code)
     rows = parse_progressiverummy_workbook(path)
     import_source = import_source_from_path(path)
+    use_half_games = game_type_code == "progressiverummy"
 
     player_cache: dict[str, GroupPlayer] = {}
     player_names = {
@@ -252,7 +251,7 @@ def import_progressiverummy_file(
             location=location,
             import_source=import_source,
             import_row_key=row_key,
-            half_weight=2 if row.is_half else 1,
+            half_weight=2 if use_half_games and row.is_half else 1,
         )
         created += 1
         existing_keys.add(row_key)
@@ -263,4 +262,38 @@ def import_progressiverummy_file(
         parsed=len(rows),
         created=created,
         skipped=skipped,
+    )
+
+
+@transaction.atomic
+def import_progressiverummy_file(
+    *,
+    path: Path,
+    group: Group,
+    recorded_by: AbstractBaseUser,
+    dry_run: bool = False,
+) -> ImportSummary:
+    return import_raw_games_file(
+        path=path,
+        group=group,
+        game_type_code="progressiverummy",
+        recorded_by=recorded_by,
+        dry_run=dry_run,
+    )
+
+
+@transaction.atomic
+def import_mahjongg_file(
+    *,
+    path: Path,
+    group: Group,
+    recorded_by: AbstractBaseUser,
+    dry_run: bool = False,
+) -> ImportSummary:
+    return import_raw_games_file(
+        path=path,
+        group=group,
+        game_type_code="mahjongg",
+        recorded_by=recorded_by,
+        dry_run=dry_run,
     )

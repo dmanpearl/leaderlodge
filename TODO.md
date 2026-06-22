@@ -27,8 +27,15 @@
 
 ## Open Items
 
+- [ ] Mah Jongg: Wall Game (aka Tie with all zeros): Verify Leaderboard behavior
+- [ ] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.
+- [ ] Record Game: Add an option to use the same players from the previous game of the same game-type.
+- [ ] Leaderboard: Mah Jongg: Revisit ranking algorithm for this game because only one player gets scores. I don't want to share ties between all losers. Make sure zero points in a game does not score any ranking score. Evaluate exactly what happens now for zero point ties
+- [ ] Bug: Mobile: Option menus for Player or Location are too high. They appear offscreen above the top of the screen. Switch to native pickers on Mobile.
 - [ ] Demo mode: Use new demo-seed Excel files with representative player names. Use group 'Demo'. May need seed command for demo group. The demo-seed files are based on the manpearl seed files.
-- [ ] Game selection persistent storage. Use setting per logged in user. Add reset settings option.
+- [ ] Record Game: Default initial values to zero, so user doesn't have to enter a score if the player scored zero. However, do not do this for games like Progressive Rummy where lowest score wins.
+- [ ] Record Game: Make the add player name field more prominent so the user knows what to enter next.
+- [ ] Game selection persistent storage or central location affecting all views. Use setting per logged in user. Add reset settings option. When user selects Record Game or Leaderboard, the current game type is maintained.
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.
