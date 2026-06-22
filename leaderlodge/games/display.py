@@ -37,7 +37,7 @@ def winner_labels_for_games(games: list[Game]) -> dict[int, str]:
             labels[game_id] = ", ".join(winners_by_game[game_id])
         elif ties_by_game[game_id]:
             names = ", ".join(ties_by_game[game_id])
-            labels[game_id] = f"Tie — {names}"
+            labels[game_id] = f"Tie - {names}"
         else:
             labels[game_id] = "—"
     return labels
