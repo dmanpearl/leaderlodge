@@ -35,17 +35,25 @@ from leaderlodge.accounts.game_selection import (
     preferred_game_type_code,
     resolve_game_type_code,
 )
+from leaderlodge.accounts.group_selection import (
+    persist_group_id,
+    preferred_group_id,
+    resolve_group_id,
+)
 from leaderlodge.groups.locations import locations_for_group, resolve_game_location
 
 GAMES_PER_PAGE = 25
 
 
-def _game_list_params(request: HttpRequest) -> dict[str, str]:
+def _game_list_params(request: HttpRequest) -> dict:
     sort = request.GET.get("sort", "desc")
     if sort not in ("asc", "desc"):
         sort = "desc"
+    group = request.GET.get("group") if "group" in request.GET else None
+    if group is not None:
+        group = group.strip()
     return {
-        "group": request.GET.get("group", "").strip(),
+        "group": group,
         "game_type": request.GET.get("game_type", "").strip(),
         "player": request.GET.get("player", "").strip(),
         "location": request.GET.get("location", "").strip(),
@@ -53,13 +61,35 @@ def _game_list_params(request: HttpRequest) -> dict[str, str]:
     }
 
 
-def _resolve_game_list_params(request: HttpRequest, params: dict[str, str]) -> dict[str, str]:
-    resolved = dict(params)
-    resolved["game_type"] = resolve_game_type_code(
-        request,
-        requested=params["game_type"],
-        available_codes=all_game_type_codes(),
-    )
+def _game_list_params_changed(raw: dict, resolved: dict[str, str]) -> bool:
+    if raw["game_type"] != resolved["game_type"]:
+        return True
+    raw_group = raw["group"]
+    if raw_group is None:
+        return bool(resolved["group"])
+    return raw_group != resolved["group"]
+
+
+def _resolve_game_list_params(
+    request: HttpRequest,
+    params: dict,
+    groups,
+) -> dict[str, str]:
+    resolved = {
+        "group": resolve_group_id(
+            request,
+            requested=params["group"],
+            available_groups=groups,
+        ),
+        "game_type": resolve_game_type_code(
+            request,
+            requested=params["game_type"],
+            available_codes=all_game_type_codes(),
+        ),
+        "player": params["player"],
+        "location": params["location"],
+        "sort": params["sort"],
+    }
     return resolved
 
 
@@ -227,9 +257,10 @@ def _played_on_value_and_display(form: GameRecordForm) -> tuple[str, str]:
 
 @demo_or_login_required
 def game_list(request: HttpRequest) -> HttpResponse:
+    groups = visible_groups(request.user).order_by("name")
     params = _game_list_params(request)
-    resolved_params = _resolve_game_list_params(request, params)
-    if resolved_params["game_type"] != params["game_type"]:
+    resolved_params = _resolve_game_list_params(request, params, groups)
+    if _game_list_params_changed(params, resolved_params):
         query = _game_list_redirect_query(resolved_params, request.GET.get("page"))
         url = reverse("games:list")
         if query:
@@ -311,10 +342,13 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 request,
                 form.cleaned_data["game_type_code"],
             )
+            persist_group_id(request, form.cleaned_data["group"].pk)
     else:
         initial = {}
         if request.GET.get("group"):
             initial["group"] = request.GET.get("group")
+        elif preferred_group_id(request):
+            initial["group"] = preferred_group_id(request)
         elif not request.GET.get("setup"):
             single = _single_user_group(request.user)
             if single:
@@ -395,6 +429,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     request,
                     save_form.cleaned_data["game_type_code"],
                 )
+                persist_group_id(request, group.pk)
                 messages.success(request, "Game recorded.")
                 return redirect("games:detail", pk=game.pk)
 

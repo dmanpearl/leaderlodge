@@ -29,6 +29,8 @@
 
 ## Open Items
 
+- [ ] Tests (pytest): Make another pass at optimizing and speeding up tests. Remove redundant and unnecessary tests. Look for shared setup opportunities
+- [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
 - [ ] Mah Jongg: Wall Game (aka Tie with all zeros): Verify Leaderboard behavior
 - [ ] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.
 - [ ] Record Game: Add an option to use the same players from the previous game of the same game-type.

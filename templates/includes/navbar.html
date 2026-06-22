@@ -27,13 +27,13 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         {% if user.is_authenticated or demo_mode_enabled %}
           <li class="nav-item">
-            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:list' %}{% if preferred_game_type_code %}?game_type={{ preferred_game_type_code }}{% endif %}">
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:list' %}{% if preferred_games_list_query %}?{{ preferred_games_list_query }}{% endif %}">
               <i class="bi bi-grid navbar-nav-icon" aria-hidden="true"></i>
               Games
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'leaderboards:index' %}{% if preferred_game_type_code %}?game_type_code={{ preferred_game_type_code }}{% endif %}">
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'leaderboards:index' %}{% if preferred_leaderboards_query %}?{{ preferred_leaderboards_query }}{% endif %}">
               <i class="bi bi-trophy navbar-nav-icon" aria-hidden="true"></i>
               Leaders
             </a>
@@ -47,7 +47,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:create' %}">
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:create' %}{% if preferred_group_id %}?group={{ preferred_group_id }}{% endif %}">
               <i class="bi bi-plus-lg navbar-nav-icon" aria-hidden="true"></i>
               Add
             </a>

@@ -102,6 +102,7 @@ def test_leaderboard_uses_saved_game_type(client, user, group):
     response = client.get(
         reverse("leaderboards:index"),
         {"group": str(group.pk)},
+        follow=True,
     )
 
     assert response.status_code == 200
@@ -121,8 +122,8 @@ def test_navbar_links_include_saved_game_type(client, user, group):
     response = client.get(reverse("core:dashboard"))
     content = response.content.decode()
 
-    assert f'{reverse("games:list")}?game_type=dominos' in content
-    assert f'{reverse("leaderboards:index")}?game_type_code=dominos' in content
+    assert "game_type=dominos" in content
+    assert "game_type_code=dominos" in content
     assert "Reset Preferences" in content
 
 
@@ -143,5 +144,5 @@ def test_anonymous_visitor_maintains_game_type_in_navbar(
     response = client.get(reverse("core:dashboard"))
     content = response.content.decode()
 
-    assert f'{reverse("games:list")}?game_type=dominos' in content
-    assert f'{reverse("leaderboards:index")}?game_type_code=dominos' in content
+    assert "game_type=dominos" in content
+    assert "game_type_code=dominos" in content

@@ -316,6 +316,7 @@ def test_game_list_filters_by_group_and_game_type(client, user, group):
     redirect_response = client.get(reverse("games:list"))
     assert redirect_response.status_code == 302
     assert "game_type=backgammon" in redirect_response.url
+    assert f"group={other_group.pk}" in redirect_response.url
 
     default_list = client.get(reverse("games:list"), follow=True)
     dominos_only = client.get(
@@ -325,13 +326,13 @@ def test_game_list_filters_by_group_and_game_type(client, user, group):
     backgammon_only = client.get(
         reverse("games:list"),
         {"game_type": "backgammon"},
+        follow=True,
     )
 
     assert default_list.status_code == 200
     default_content = default_list.content.decode()
     assert "BackGammon" in default_content
-    assert ">Other Club</a>" in default_content
-    assert ">Dom Club</a>" not in default_content
+    assert f'value="{other_group.pk}" selected' in default_content
     assert '<option value="">All games</option>' not in default_content
     assert dominos_only.status_code == 200
     dominos_content = dominos_only.content.decode()
@@ -400,31 +401,32 @@ def test_game_list_filters_by_player(client, user, group):
         ),
     )
 
-    all_dominos = client.get(
+    dom_club_dominos = client.get(
         reverse("games:list"),
-        {"game_type": "dominos"},
+        {"group": str(group.pk), "game_type": "dominos"},
+        follow=True,
     )
     pat_only = client.get(
         reverse("games:list"),
-        {"game_type": "dominos", "player": str(pat.pk)},
+        {"group": str(group.pk), "game_type": "dominos", "player": str(pat.pk)},
+        follow=True,
     )
     group_pat_only = client.get(
         reverse("games:list"),
         {"group": str(group.pk), "game_type": "dominos", "player": str(pat.pk)},
     )
 
-    assert all_dominos.status_code == 200
-    all_content = all_dominos.content.decode()
-    assert "All players" in all_content
-    assert "Pat (Dom Club)" in all_content
-    assert "Pat (Other Club)" in all_content
-    assert all_content.count("Dom Club") >= 1
-    assert all_content.count("Other Club") >= 1
+    assert dom_club_dominos.status_code == 200
+    dom_content = dom_club_dominos.content.decode()
+    assert "All players" in dom_content
+    assert "Pat (Dom Club)" not in dom_content
+    assert "Pat (Other Club)" not in dom_content
+    assert "All groups" not in dom_content
 
     assert pat_only.status_code == 200
     pat_content = pat_only.content.decode()
     assert pat_content.count("Dom Club") >= 1
-    assert pat_content.count("Other Club") >= 1
+    assert ">Other Club</a>" not in pat_content
 
     assert group_pat_only.status_code == 200
     group_pat_content = group_pat_only.content.decode()
@@ -441,6 +443,7 @@ def test_game_list_sort_and_empty_filter_message(client, user, group):
     response = client.get(
         reverse("games:list"),
         {"game_type": "backgammon"},
+        follow=True,
     )
     assert response.status_code == 200
     assert "No games match these filters." in response.content.decode()

@@ -83,6 +83,7 @@ def test_anonymous_cannot_view_private_group_leaderboard(
     response = client.get(
         reverse("leaderboards:index"),
         {"group": str(member_group.pk), "game_type_code": "dominos"},
+        follow=True,
     )
     assert response.status_code == 200
     content = response.content.decode()
