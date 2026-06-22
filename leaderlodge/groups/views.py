@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from leaderlodge.accounts.game_selection import resolve_game_type_code
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.forms import GroupForm, GroupMemberForm, GroupPlayerForm
 from leaderlodge.groups.models import Group
@@ -33,9 +34,14 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
 def _group_detail_context(group: Group, request: HttpRequest) -> dict:
     memberships = group.memberships.select_related("user").order_by("user__username")
     game_type_codes = _game_type_codes_for_group(group)
-    selected_game_type_code = request.GET.get("game_type_code")
-    if selected_game_type_code not in game_type_codes:
-        selected_game_type_code = game_type_codes[0] if game_type_codes else None
+    if game_type_codes:
+        selected_game_type_code = resolve_game_type_code(
+            request,
+            requested=request.GET.get("game_type_code", "").strip(),
+            available_codes=game_type_codes,
+        )
+    else:
+        selected_game_type_code = None
 
     sort = request.GET.get("sort", "rank")
     if sort not in SORTABLE_COLUMNS:

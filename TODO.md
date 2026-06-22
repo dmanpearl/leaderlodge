@@ -25,6 +25,7 @@
 - [x] Game Stats: Implement a way to hide undesirable Guest/Players
 - [x] Bug: Record Game wrong date - At 10:12pm default date shows tomorrow's date
 - [x] Demo mode: Public read-only Demo group with demo seed spreadsheets for all game types
+- [x] Game selection persistent storage or central location affecting all views. Use setting per logged in user. Add reset settings option. When user selects Record Game or Leaderboard, the current game type is maintained.
 
 ## Open Items
 
@@ -35,7 +36,6 @@
 - [ ] Bug: Mobile: Option menus for Player or Location are too high. They appear offscreen above the top of the screen. Switch to native pickers on Mobile.
 - [ ] Record Game: Default initial values to zero, so user doesn't have to enter a score if the player scored zero. However, do not do this for games like Progressive Rummy where lowest score wins.
 - [ ] Record Game: Make the add player name field more prominent so the user knows what to enter next.
-- [ ] Game selection persistent storage or central location affecting all views. Use setting per logged in user. Add reset settings option. When user selects Record Game or Leaderboard, the current game type is maintained.
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.
@@ -47,4 +47,3 @@
 - [ ] Calculate leaderboards
 - [ ] Filter leaderboards (month, game)
 - [ ] Merge similar locations tool
-- [ ] Persistent UI selection storage

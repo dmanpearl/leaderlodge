@@ -103,6 +103,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "leaderlodge.core.context_processors.demo_context",
+                "leaderlodge.accounts.context_processors.game_selection_context",
             ],
         },
     },

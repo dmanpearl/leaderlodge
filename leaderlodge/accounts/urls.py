@@ -1,6 +1,8 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
+from leaderlodge.accounts import views
+
 app_name = "accounts"
 
 urlpatterns = [
@@ -13,5 +15,10 @@ urlpatterns = [
         "logout/",
         auth_views.LogoutView.as_view(),
         name="logout",
+    ),
+    path(
+        "api/ui-settings/reset/",
+        views.reset_preferences,
+        name="reset_preferences",
     ),
 ]

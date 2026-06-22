@@ -27,13 +27,13 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         {% if user.is_authenticated or demo_mode_enabled %}
           <li class="nav-item">
-            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:list' %}">
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:list' %}{% if preferred_game_type_code %}?game_type={{ preferred_game_type_code }}{% endif %}">
               <i class="bi bi-grid navbar-nav-icon" aria-hidden="true"></i>
               Games
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'leaderboards:index' %}">
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'leaderboards:index' %}{% if preferred_game_type_code %}?game_type_code={{ preferred_game_type_code }}{% endif %}">
               <i class="bi bi-trophy navbar-nav-icon" aria-hidden="true"></i>
               Leaders
             </a>
@@ -77,6 +77,17 @@
                   </a>
                 </li>
               {% endif %}
+              <li>
+                <button
+                  type="button"
+                  id="reset-preferences-btn"
+                  class="dropdown-item d-flex align-items-center gap-2"
+                  data-url="{% url 'accounts:reset_preferences' %}"
+                >
+                  <i class="bi bi-arrow-counterclockwise navbar-menu-icon" aria-hidden="true"></i>
+                  Reset Preferences
+                </button>
+              </li>
               <li>
                 <form method="post" action="{% url 'accounts:logout' %}">
                   {% csrf_token %}

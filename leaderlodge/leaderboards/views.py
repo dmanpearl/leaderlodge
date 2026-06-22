@@ -2,6 +2,7 @@ from django.http import HttpRequest, HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
 from django.urls import reverse
 
+from leaderlodge.accounts.game_selection import resolve_game_type_code
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
@@ -31,9 +32,14 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
     game_type_codes = (
         _game_type_codes_for_group(selected_group) if selected_group else []
     )
-    selected_game_type_code = request.GET.get("game_type_code")
-    if selected_game_type_code not in game_type_codes:
-        selected_game_type_code = game_type_codes[0] if game_type_codes else None
+    if game_type_codes:
+        selected_game_type_code = resolve_game_type_code(
+            request,
+            requested=request.GET.get("game_type_code", "").strip(),
+            available_codes=game_type_codes,
+        )
+    else:
+        selected_game_type_code = None
 
     rankings = []
     selected_game_type = None

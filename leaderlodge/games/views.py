@@ -29,6 +29,12 @@ from leaderlodge.groups.services import (
     single_user_group,
     visible_groups,
 )
+from leaderlodge.accounts.game_selection import (
+    all_game_type_codes,
+    persist_game_type_code,
+    preferred_game_type_code,
+    resolve_game_type_code,
+)
 from leaderlodge.groups.locations import locations_for_group, resolve_game_location
 
 GAMES_PER_PAGE = 25
@@ -47,35 +53,12 @@ def _game_list_params(request: HttpRequest) -> dict[str, str]:
     }
 
 
-def _default_game_type_code(
-    user,
-    *,
-    group_id: str,
-    requested: str,
-) -> str:
-    if requested in GAME_TYPES:
-        return requested
-
-    games_qs = Game.objects.filter(group__in=visible_groups(user))
-    if group_id.isdigit():
-        games_qs = games_qs.filter(group_id=int(group_id))
-    code = (
-        games_qs.values_list("game_type_code", flat=True)
-        .distinct()
-        .order_by("game_type_code")
-        .first()
-    )
-    if code in GAME_TYPES:
-        return code
-    return game_type_choices()[0][0]
-
-
-def _resolve_game_list_params(user, params: dict[str, str]) -> dict[str, str]:
+def _resolve_game_list_params(request: HttpRequest, params: dict[str, str]) -> dict[str, str]:
     resolved = dict(params)
-    resolved["game_type"] = _default_game_type_code(
-        user,
-        group_id=params["group"],
+    resolved["game_type"] = resolve_game_type_code(
+        request,
         requested=params["game_type"],
+        available_codes=all_game_type_codes(),
     )
     return resolved
 
@@ -245,7 +228,7 @@ def _played_on_value_and_display(form: GameRecordForm) -> tuple[str, str]:
 @demo_or_login_required
 def game_list(request: HttpRequest) -> HttpResponse:
     params = _game_list_params(request)
-    resolved_params = _resolve_game_list_params(request.user, params)
+    resolved_params = _resolve_game_list_params(request, params)
     if resolved_params["game_type"] != params["game_type"]:
         query = _game_list_redirect_query(resolved_params, request.GET.get("page"))
         url = reverse("games:list")
@@ -324,6 +307,10 @@ def game_create(request: HttpRequest) -> HttpResponse:
             post_for_rows = request.POST
         elif action == "load_roster" and form.is_valid():
             show_roster = True
+            persist_game_type_code(
+                request,
+                form.cleaned_data["game_type_code"],
+            )
     else:
         initial = {}
         if request.GET.get("group"):
@@ -332,6 +319,11 @@ def game_create(request: HttpRequest) -> HttpResponse:
             single = _single_user_group(request.user)
             if single:
                 initial["group"] = single.pk
+        saved_game_type = preferred_game_type_code(request)
+        if saved_game_type in GAME_TYPES:
+            initial["game_type_code"] = saved_game_type
+        elif request.user.is_authenticated:
+            initial["game_type_code"] = game_type_choices()[0][0]
         form = GameRecordForm(user=request.user, initial=initial)
 
     group = _resolve_group(request, form)
@@ -399,6 +391,10 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 form = save_form
                 participant_rows = _participant_rows_from_post(group, request.POST)
             else:
+                persist_game_type_code(
+                    request,
+                    save_form.cleaned_data["game_type_code"],
+                )
                 messages.success(request, "Game recorded.")
                 return redirect("games:detail", pk=game.pk)
 

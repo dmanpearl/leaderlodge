@@ -76,6 +76,8 @@ def test_navbar_shows_account_dropdown_for_member(client, user):
     assert "System Admin" not in content
     assert 'action="' in content and reverse("accounts:logout") in content
     assert "Logout" in content
+    assert "Reset Preferences" in content
+    assert 'id="reset-preferences-btn"' in content
     assert 'class="bi bi-box-arrow-right navbar-menu-icon"' in content
     assert "Administration" not in content
     assert ">Dashboard</a>" not in content
