@@ -44,9 +44,11 @@
 - [x] Navbar Mobile: Instead of drop-down menu of items, display Games, Leaders, Groups, and Add as icons only for limited width environments
 - [x] Record Game view: "Type player name" and "Save" buttons should be vertically justified. Instead, "Save" is too high. It is vertically top justified with the "Add Players" label. This is only a desktop issue. Mobile stacks the buttons, so non-issue
 - [x] Stats view: Spin-up/Spin-down control is wrong. Should be down/right, not down/up.
+- [x] Filter leaderboards by year and month
 
 ## Open Items
 
+- [ ] Bug: Forbidden 403 CSRF verification failed. Request aborted. Opened my phone from sleep and found this. Stale token issue perhaps. I've seen and fixed this is breaking-news and rating-ranch.
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
 - [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [ ] Mobile Native Controls: Explore controls that can be converted to native as we did for the Player and Location drop-downs.
@@ -59,5 +61,4 @@
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
 - [ ] Game detail view (maybe)
-- [ ] Filter leaderboards by year and month
 - [ ] Merge similar locations tool

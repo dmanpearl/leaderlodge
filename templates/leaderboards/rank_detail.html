@@ -14,7 +14,7 @@
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-3">
     <div>
       <h1 class="h3 mb-1">{{ detail.ranking.player.display_label }}</h1>
-      <p class="text-muted mb-0">{{ selected_group.name }} &middot; {{ game_type.name }}</p>
+      <p class="text-muted mb-0">{{ selected_group.name }} &middot; {{ game_type.name }}{% if period_label %} &middot; {{ period_label }}{% endif %}</p>
     </div>
     <a href="{{ leaderboard_url }}" class="btn btn-outline-secondary btn-sm align-self-sm-start">
       Back to leaderboard
@@ -46,6 +46,7 @@
           {{ detail.raw_rank_score|floatformat:1 }}
         </dd>
 
+        {% if selected_period.apply_vesting %}
         <dt class="col-7 col-sm-5">Vesting multiplier</dt>
         <dd class="col-5 col-sm-7">
           {% if detail.vesting_multiplier == 1 %}
@@ -67,6 +68,7 @@
             {% endif %}
             = {{ detail.ranking.rank_score|floatformat:1 }}
           </dd>
+        {% endif %}
         {% endif %}
 
         <dt class="col-7 col-sm-5">Wins</dt>

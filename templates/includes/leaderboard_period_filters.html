@@ -1,0 +1,36 @@
+{% if period_year_options %}
+  <div class="col-12 col-sm-6 col-lg-4 col-xl">
+    <label for="{{ year_select_id|default:'leaderboard-year' }}" class="form-label">Year</label>
+    <select
+      id="{{ year_select_id|default:'leaderboard-year' }}"
+      name="year"
+      class="form-select"
+      onchange="this.form.submit()"
+    >
+      <option value="">All years</option>
+      {% for year in period_year_options %}
+        <option value="{{ year }}" {% if selected_period.year == year %}selected{% endif %}>
+          {{ year }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if selected_period.year %}
+    <div class="col-12 col-sm-6 col-lg-4 col-xl">
+      <label for="{{ month_select_id|default:'leaderboard-month' }}" class="form-label">Month</label>
+      <select
+        id="{{ month_select_id|default:'leaderboard-month' }}"
+        name="month"
+        class="form-select"
+        onchange="this.form.submit()"
+      >
+        <option value="">All months</option>
+        {% for month in period_month_options %}
+          <option value="{{ month.value }}" {% if selected_period.month == month.value %}selected{% endif %}>
+            {{ month.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  {% endif %}
+{% endif %}

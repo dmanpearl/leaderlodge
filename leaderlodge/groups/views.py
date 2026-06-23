@@ -18,6 +18,12 @@ from leaderlodge.groups.services import (
     user_is_member,
     visible_groups,
 )
+from leaderlodge.leaderboards.period import (
+    available_leaderboard_periods,
+    build_leaderboard_query,
+    month_label,
+    resolve_leaderboard_period,
+)
 from leaderlodge.leaderboards.ranking import SORTABLE_COLUMNS
 from leaderlodge.leaderboards.service import get_group_roster_standings
 
@@ -45,6 +51,26 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
     else:
         selected_game_type_code = None
 
+    years, months_by_year = (
+        available_leaderboard_periods(group, selected_game_type_code)
+        if selected_game_type_code
+        else ([], {})
+    )
+    selected_period = resolve_leaderboard_period(
+        raw_year=request.GET.get("year", "").strip(),
+        raw_month=request.GET.get("month", "").strip(),
+        available_years=years,
+        months_by_year=months_by_year,
+    )
+    period_month_options = [
+        {"value": month, "label": month_label(month)}
+        for month in (
+            months_by_year.get(selected_period.year, ())
+            if selected_period.year is not None
+            else ()
+        )
+    ]
+
     sort = request.GET.get("sort", "rank")
     if sort not in SORTABLE_COLUMNS:
         sort = "rank"
@@ -61,11 +87,14 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
             game_type_code=selected_game_type_code,
             sort=sort,
             ascending=ascending,
+            period=selected_period,
         )
 
-    game_type_options = [
-        (code, get_game_type(code).name) for code in game_type_codes
-    ]
+    game_type_options = [(code, get_game_type(code).name) for code in game_type_codes]
+    filter_query = build_leaderboard_query(
+        game_type_code=selected_game_type_code or "",
+        period=selected_period,
+    )
 
     return {
         "group": group,
@@ -78,6 +107,11 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         "show_losses": show_losses,
         "standings_sort": sort,
         "standings_dir": "desc" if not ascending else "asc",
+        "filter_query": filter_query,
+        "selected_period": selected_period,
+        "period_year_options": years,
+        "period_month_options": period_month_options,
+        "period_label": selected_period.display_label(),
         "player_form": GroupPlayerForm(group=group),
     }
 
@@ -133,10 +167,7 @@ def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
     if not can_view_group(request.user, group):
         raise Http404
 
-    locations = [
-        {"name": location.name}
-        for location in locations_for_group(group)
-    ]
+    locations = [{"name": location.name} for location in locations_for_group(group)]
     return JsonResponse({"locations": locations})
 
 

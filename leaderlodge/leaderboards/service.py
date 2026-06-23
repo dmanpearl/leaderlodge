@@ -21,6 +21,10 @@ from django.db.models.functions import Cast
 from leaderlodge.games.list_stats import humanize_date_range
 from leaderlodge.games.registry import GAME_TYPES, ScoreDirection, get_game_type
 from leaderlodge.games.standings import standings_weight_expression
+from leaderlodge.leaderboards.period import (
+    LeaderboardPeriod,
+    filter_results_by_period,
+)
 from leaderlodge.leaderboards.ranking import (
     FINISH_POINTS_EXPONENT,
     SORTABLE_COLUMNS,
@@ -157,6 +161,7 @@ def get_player_rank_detail(
     *,
     game_type_code: str,
     location_id: int | None = None,
+    period: LeaderboardPeriod | None = None,
 ) -> PlayerRankDetail | None:
     from django.conf import settings
 
@@ -164,6 +169,8 @@ def get_player_rank_detail(
 
     game_type = get_game_type(game_type_code)
     low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
+    if period is None:
+        period = LeaderboardPeriod.all_time()
     results_qs = (
         GameParticipantResult.objects.filter(
             game__group=group,
@@ -176,6 +183,7 @@ def get_player_rank_detail(
     )
     if location_id is not None:
         results_qs = results_qs.filter(game__location_id=location_id)
+    results_qs = filter_results_by_period(results_qs, period)
 
     if not results_qs.exists():
         return None
@@ -294,6 +302,7 @@ def get_player_rank_detail(
         group,
         game_type_code,
         location_id=location_id,
+        period=period,
     )
     ranking_row = next((row for row in standings if row.player.pk == player.pk), None)
     if ranking_row is None:
@@ -310,7 +319,11 @@ def get_player_rank_detail(
         points_total=ranking.finish_points,
         games_played=ranking.games_played,
     )
-    vesting_multiplier = compute_vesting_multiplier(ranking.games_played)
+    vesting_multiplier = (
+        compute_vesting_multiplier(ranking.games_played)
+        if period.apply_vesting
+        else 1.0
+    )
     half_game_penalty = compute_half_game_penalty_factor(
         weighted_games=weighted_games,
         half_weighted_games=half_weighted_games,
@@ -393,6 +406,7 @@ def get_player_rankings(
     *,
     game_type_code: str | None = None,
     location_id: int | None = None,
+    period: LeaderboardPeriod | None = None,
 ) -> list[PlayerRanking]:
     """
     Return ranked players for a group, ordered by vested rank score.
@@ -409,12 +423,16 @@ def get_player_rankings(
     else:
         game_type_codes = _game_type_codes_for_group(group)
 
+    if period is None:
+        period = LeaderboardPeriod.all_time()
+
     rankings: list[PlayerRanking] = []
     for code in game_type_codes:
         standings = _standings_for_game_type(
             group,
             code,
             location_id=location_id,
+            period=period,
         )
         active = [row for row in standings if row.games_played > 0]
         low_wins = get_game_type(code).score_direction == ScoreDirection.LOW_WINS
@@ -429,6 +447,7 @@ def get_group_roster_standings(
     game_type_code: str,
     sort: str = "rank",
     ascending: bool = True,
+    period: LeaderboardPeriod | None = None,
 ) -> list[PlayerRanking]:
     """
     Standings for every active roster player in a group for one game type.
@@ -437,8 +456,12 @@ def get_group_roster_standings(
     """
     from leaderlodge.groups.models import GroupPlayer
 
+    if period is None:
+        period = LeaderboardPeriod.all_time()
+
     stats_by_player = {
-        row.player.pk: row for row in _standings_for_game_type(group, game_type_code)
+        row.player.pk: row
+        for row in _standings_for_game_type(group, game_type_code, period=period)
     }
     game_type = get_game_type(game_type_code)
 
@@ -597,6 +620,7 @@ def _standings_for_game_type(
     game_type_code: str,
     *,
     location_id: int | None = None,
+    period: LeaderboardPeriod | None = None,
 ) -> list[PlayerRanking]:
     from leaderlodge.games.models import GameParticipantResult
     from leaderlodge.groups.models import GroupPlayer
@@ -604,12 +628,16 @@ def _standings_for_game_type(
     game_type = get_game_type(game_type_code)
     low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
 
+    if period is None:
+        period = LeaderboardPeriod.all_time()
+
     results_qs = GameParticipantResult.objects.filter(
         game__group=group,
         game__game_type_code=game_type_code,
     )
     if location_id is not None:
         results_qs = results_qs.filter(game__location_id=location_id)
+    results_qs = filter_results_by_period(results_qs, period)
 
     finish_points_by_player = _finish_points_by_player(results_qs, low_wins=low_wins)
 
@@ -669,6 +697,7 @@ def _standings_for_game_type(
             games_played,
             low_wins=low_wins,
             half_game_penalty=half_game_penalty,
+            apply_vesting=period.apply_vesting,
         )
         rows.append(
             PlayerRanking(

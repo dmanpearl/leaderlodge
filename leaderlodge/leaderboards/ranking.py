@@ -145,7 +145,11 @@ def apply_vesting_to_rank_score(
     *,
     low_wins: bool = False,
     half_game_penalty: float = 1.0,
+    apply_vesting: bool = True,
 ) -> float:
+    if not apply_vesting:
+        return raw_rank_score * half_game_penalty
+
     vesting_multiplier = compute_vesting_multiplier(games_played)
     if vesting_multiplier <= 0:
         return 0.0

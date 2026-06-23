@@ -10,6 +10,13 @@ from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.services import visible_groups
+from leaderlodge.leaderboards.period import (
+    LeaderboardPeriod,
+    available_leaderboard_periods,
+    build_leaderboard_query,
+    month_label,
+    resolve_leaderboard_period,
+)
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
@@ -22,15 +29,6 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
         .distinct()
         .order_by("game_type_code")
     )
-
-
-def _leaderboard_query(*, group_id: str, game_type_code: str | None) -> str:
-    params = {}
-    if group_id:
-        params["group"] = group_id
-    if game_type_code:
-        params["game_type_code"] = game_type_code
-    return urlencode(params)
 
 
 def _leaderboard_needs_redirect(
@@ -62,6 +60,40 @@ def _leaderboard_needs_redirect(
     return False
 
 
+def _period_context(
+    group: Group | None,
+    game_type_code: str | None,
+    request: HttpRequest,
+) -> dict:
+    if group is None or not game_type_code:
+        return {
+            "selected_period": LeaderboardPeriod.all_time(),
+            "period_year_options": [],
+            "period_month_options": [],
+        }
+
+    years, months_by_year = available_leaderboard_periods(group, game_type_code)
+    selected_period = resolve_leaderboard_period(
+        raw_year=request.GET.get("year", "").strip(),
+        raw_month=request.GET.get("month", "").strip(),
+        available_years=years,
+        months_by_year=months_by_year,
+    )
+    month_options = [
+        {"value": month, "label": month_label(month)}
+        for month in (
+            months_by_year.get(selected_period.year, ())
+            if selected_period.year is not None
+            else ()
+        )
+    ]
+    return {
+        "selected_period": selected_period,
+        "period_year_options": years,
+        "period_month_options": month_options,
+    }
+
+
 @demo_or_login_required
 def leaderboard_index(request: HttpRequest) -> HttpResponse:
     groups = list(visible_groups(request.user).order_by("name"))
@@ -85,14 +117,18 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         selected_game_type_code = None
 
     resolved_group_id = str(selected_group.pk) if selected_group else ""
+    period_ctx = _period_context(selected_group, selected_game_type_code, request)
+    selected_period = period_ctx["selected_period"]
+
     if _leaderboard_needs_redirect(
         request,
         resolved_group_id=resolved_group_id,
         resolved_game_type_code=selected_game_type_code,
     ):
-        query = _leaderboard_query(
+        query = build_leaderboard_query(
             group_id=resolved_group_id,
             game_type_code=selected_game_type_code,
+            period=selected_period,
         )
         url = reverse("leaderboards:index")
         if query:
@@ -106,9 +142,16 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         rankings = get_player_rankings(
             selected_group,
             game_type_code=selected_game_type_code,
+            period=selected_period,
         )
 
     game_type_options = [(code, get_game_type(code).name) for code in game_type_codes]
+    period_label = selected_period.display_label()
+    leaderboard_query = build_leaderboard_query(
+        group_id=resolved_group_id,
+        game_type_code=selected_game_type_code or "",
+        period=selected_period,
+    )
 
     return render(
         request,
@@ -120,6 +163,9 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "selected_game_type_code": selected_game_type_code,
             "selected_game_type": selected_game_type,
             "rankings": rankings,
+            "period_label": period_label,
+            "leaderboard_query": leaderboard_query,
+            **period_ctx,
         },
     )
 
@@ -148,10 +194,14 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     if player is None:
         return HttpResponseNotFound()
 
+    period_ctx = _period_context(selected_group, game_type_code, request)
+    selected_period = period_ctx["selected_period"]
+
     detail = get_player_rank_detail(
         selected_group,
         player,
         game_type_code=game_type_code,
+        period=selected_period,
     )
     if detail is None:
         return HttpResponseNotFound()
@@ -159,8 +209,9 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     game_type = get_game_type(game_type_code)
     leaderboard_url = (
         f"{reverse('leaderboards:index')}"
-        f"?group={selected_group.pk}&game_type_code={game_type_code}"
+        f"?{build_leaderboard_query(group_id=str(selected_group.pk), game_type_code=game_type_code, period=selected_period)}"
     )
+    period_label = selected_period.display_label()
 
     return render(
         request,
@@ -171,5 +222,8 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
             "game_type_code": game_type_code,
             "detail": detail,
             "leaderboard_url": leaderboard_url,
+            "selected_period": selected_period,
+            "period_label": period_label,
+            **period_ctx,
         },
     )
