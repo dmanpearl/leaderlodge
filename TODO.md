@@ -43,6 +43,7 @@
 - [x] Record Game: Make the add player name field more prominent so the user knows what to enter next.
 - [x] Navbar Mobile: Instead of drop-down menu of items, display Games, Leaders, Groups, and Add as icons only for limited width environments
 - [x] Record Game view: "Type player name" and "Save" buttons should be vertically justified. Instead, "Save" is too high. It is vertically top justified with the "Add Players" label. This is only a desktop issue. Mobile stacks the buttons, so non-issue
+- [x] Stats view: Spin-up/Spin-down control is wrong. Should be down/right, not down/up.
 
 ## Open Items
 
@@ -57,7 +58,6 @@
 - [ ] Group members: Replace all-users dropdown with a secure, private, scalable invite method (email/link, not a public account picker)
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
-- [ ] Stats view: Spin-up/Spin-down control is wrong. Should be down/right, not down/up.
 - [ ] Game detail view (maybe)
 - [ ] Filter leaderboards by year and month
 - [ ] Merge similar locations tool

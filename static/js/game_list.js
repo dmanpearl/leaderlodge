@@ -36,8 +36,8 @@
     if (!icon) {
       return;
     }
-    icon.classList.toggle("bi-chevron-up", isOpen);
-    icon.classList.toggle("bi-chevron-down", !isOpen);
+    icon.classList.toggle("bi-chevron-down", isOpen);
+    icon.classList.toggle("bi-chevron-right", !isOpen);
   }
 
   function updateFooterHeader() {
