@@ -26,12 +26,13 @@
 - [x] Bug: Record Game wrong date - At 10:12pm default date shows tomorrow's date
 - [x] Demo mode: Public read-only Demo group with demo seed spreadsheets for all game types
 - [x] Game selection persistent storage or central location affecting all views. Use setting per logged in user. Add reset settings option. When user selects Record Game or Leaderboard, the current game type is maintained.
+- [x] Mah Jongg: Wall Game (aka Tie with all zeros): Verify Leaderboard behavior
 
 ## Open Items
 
+- [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes.
 - [ ] Tests (pytest): Make another pass at optimizing and speeding up tests. Remove redundant and unnecessary tests. Look for shared setup opportunities
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
-- [ ] Mah Jongg: Wall Game (aka Tie with all zeros): Verify Leaderboard behavior
 - [ ] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.
 - [ ] Record Game: Add an option to use the same players from the previous game of the same game-type.
 - [ ] Leaderboard: Mah Jongg: Revisit ranking algorithm for this game because only one player gets scores. I don't want to share ties between all losers. Make sure zero points in a game does not score any ranking score. Evaluate exactly what happens now for zero point ties

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 TIE_WIN_POINTS_FACTOR = 0.5
+FINISH_POINTS_EXPONENT = 1.5
 
 SORTABLE_COLUMNS = frozenset(
     {
@@ -36,14 +37,16 @@ def compute_finish_points(
     Field-weighted finish credit for one game result.
 
     First place earns player_count × weight; last place earns 0. Intermediate
-    placements scale linearly. Ties keep the historical half-credit factor.
+    placements scale by (normalized distance)^FINISH_POINTS_EXPONENT.
+    Ties multiply that amount by TIE_WIN_POINTS_FACTOR.
     """
     if player_count <= 1:
         return 0.0
 
     slots_above_last = player_count - 1.0
     placement_distance = max(player_count - placement - 1.0, 0.0)
-    points = placement_distance / slots_above_last * player_count * weight
+    ratio = placement_distance / slots_above_last
+    points = (ratio**FINISH_POINTS_EXPONENT) * player_count * weight
     if is_tie:
         points *= TIE_WIN_POINTS_FACTOR
     return points

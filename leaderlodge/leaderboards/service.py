@@ -16,12 +16,13 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 from django.db.models import Case, F, FloatField, Q, Sum, Value, When
-from django.db.models.functions import Cast, Greatest
+from django.db.models.functions import Cast, Greatest, Power
 
 from leaderlodge.games.list_stats import humanize_date_range
 from leaderlodge.games.registry import GAME_TYPES, ScoreDirection, get_game_type
 from leaderlodge.games.standings import standings_weight_expression
 from leaderlodge.leaderboards.ranking import (
+    FINISH_POINTS_EXPONENT,
     SORTABLE_COLUMNS,
     TIE_WIN_POINTS_FACTOR,
     apply_vesting_to_rank_score,
@@ -109,6 +110,7 @@ class PlayerRankDetail:
     half_game_count: int
     podium_count: int
     podium_pct: float
+    finish_points_exponent: float
 
 
 def _update_score_highlight(
@@ -323,6 +325,7 @@ def get_player_rank_detail(
         half_game_count=half_game_count,
         podium_count=podium_count,
         podium_pct=compute_percentage(podium_count, game_count),
+        finish_points_exponent=FINISH_POINTS_EXPONENT,
     )
 
 
@@ -498,7 +501,8 @@ def _finish_points_expression():
         player_count - placement - Value(1.0),
         Value(0.0),
     )
-    base = placement_distance / slots_above_last * player_count * weight
+    ratio = placement_distance / slots_above_last
+    base = Power(ratio, Value(FINISH_POINTS_EXPONENT)) * player_count * weight
     return Case(
         When(
             result=GameParticipantResult.Result.TIE,

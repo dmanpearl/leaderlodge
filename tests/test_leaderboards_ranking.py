@@ -8,6 +8,7 @@ from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.leaderboards.ranking import (
+    FINISH_POINTS_EXPONENT,
     TIE_WIN_POINTS_FACTOR,
     apply_vesting_to_rank_score,
     compute_finish_points,
@@ -33,15 +34,53 @@ def test_compute_finish_points():
     assert compute_finish_points(player_count=2, placement=0) == pytest.approx(2.0)
     assert compute_finish_points(player_count=2, placement=1) == pytest.approx(0.0)
     assert compute_finish_points(player_count=5, placement=0) == pytest.approx(5.0)
-    assert compute_finish_points(player_count=5, placement=1) == pytest.approx(3.75)
+    assert compute_finish_points(player_count=5, placement=1) == pytest.approx(3.247595, abs=0.001)
     assert compute_finish_points(player_count=5, placement=4) == pytest.approx(0.0)
-    assert compute_finish_points(player_count=3, placement=1) == pytest.approx(1.5)
+    assert compute_finish_points(player_count=3, placement=1) == pytest.approx(1.06066, abs=0.001)
     assert compute_finish_points(player_count=5, placement=1) > compute_finish_points(
         player_count=3, placement=1
     )
     assert compute_finish_points(
         player_count=2, placement=0, is_tie=True
     ) == pytest.approx(2.0 * TIE_WIN_POINTS_FACTOR)
+    assert FINISH_POINTS_EXPONENT == 1.5
+
+
+def test_mahjongg_wall_game_losers_earn_no_finish_points(user, group):
+    players = [
+        add_guest_player(group=group, display_name=f"Player {index}")
+        for index in range(4)
+    ]
+    rows = [
+        {"player": players[0], "score": 35},
+        {"player": players[1], "score": 0},
+        {"player": players[2], "score": 0},
+        {"player": players[3], "score": 0},
+    ]
+    assign_results_from_scores(rows, "mahjongg")
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="mahjongg",
+        played_on=date(2026, 6, 20),
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ],
+    )
+
+    rankings = get_player_rankings(group, game_type_code="mahjongg")
+    by_player = {row.player.pk: row for row in rankings}
+
+    assert by_player[players[0].pk].finish_points == pytest.approx(4.0)
+    assert by_player[players[1].pk].finish_points == pytest.approx(0.0)
+    assert by_player[players[2].pk].finish_points == pytest.approx(0.0)
+    assert by_player[players[3].pk].finish_points == pytest.approx(0.0)
 
 
 @override_settings(LEADERBOARD_VESTING_COUNT=20, LEADERBOARD_VESTING_FACTOR=0.5)
@@ -129,18 +168,22 @@ def test_middle_placement_earns_finish_points(user, group):
 
     assert alice_row.wins == 0
     assert alice_row.win_points == 0
-    assert alice_row.finish_points == pytest.approx(2.667, abs=0.01)
+    assert alice_row.finish_points == pytest.approx(2.177, abs=0.01)
     assert alice_row.rank_score > 0
 
 
 @pytest.mark.django_db
-def test_tie_contributes_half_finish_points(user, group):
+def test_tie_for_lead_uses_lower_place_and_earns_no_finish_points_in_two_player_game(
+    user, group
+):
     players = list(group.players.order_by("pk"))[:2]
     rows = [
         {"player": players[0], "score": 20},
         {"player": players[1], "score": 20},
     ]
     assign_results_from_scores(rows, "dominos")
+    assert rows[0]["placement"] == 1
+    assert rows[1]["placement"] == 1
     record_game(
         user=user,
         group=group,
@@ -160,16 +203,14 @@ def test_tie_contributes_half_finish_points(user, group):
     rankings = get_player_rankings(group, game_type_code="dominos")
     for row in rankings:
         expected_win_points = 2 * TIE_WIN_POINTS_FACTOR
-        expected_finish_points = compute_finish_points(
-            player_count=2,
-            placement=0,
-            is_tie=True,
-        )
         assert row.win_points == pytest.approx(expected_win_points)
-        assert row.finish_points == pytest.approx(expected_finish_points)
-        assert row.rank_score == pytest.approx(
-            apply_vesting_to_rank_score(1.0, row.games_played)
-        )
+        assert row.finish_points == pytest.approx(0.0)
+
+
+def test_tie_applies_half_factor_when_finish_points_are_nonzero():
+    base = compute_finish_points(player_count=4, placement=2, is_tie=False)
+    tied = compute_finish_points(player_count=4, placement=2, is_tie=True)
+    assert tied == pytest.approx(base * TIE_WIN_POINTS_FACTOR)
 
 
 @pytest.mark.django_db

@@ -81,7 +81,8 @@
         {% endif %}
       </dl>
       <p class="text-muted small mb-0 mt-3">
-        Each finish earns field-weighted placement points. Score is the average finish
+        Each finish earns field-weighted placement points (distance ratio
+        <sup>{{ detail.finish_points_exponent }}</sup>). Score is the average finish
         points per weighted game, scaled by vesting when game count is below
         {{ detail.vesting_count }}. Wins, losses, and games above use weighted counts
         (half games count as 0.5) to match the leaderboard.

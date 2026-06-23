@@ -81,10 +81,12 @@ def assign_placements(rows: list[dict], game_type_code: str) -> None:
     while index < len(sorted_rows):
         score = sorted_rows[index]["score"]
         tied = [row for row in sorted_rows if row["score"] == score]
+        tie_size = len(tied)
+        tied_placement = placement + tie_size - 1
         for row in tied:
-            row["placement"] = placement
-        index += len(tied)
-        placement += len(tied)
+            row["placement"] = tied_placement
+        index += tie_size
+        placement += tie_size
 
 
 def compute_double_weight(rows: list[dict], game_type_code: str) -> int:

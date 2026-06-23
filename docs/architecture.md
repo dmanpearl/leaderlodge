@@ -39,7 +39,11 @@ All ranking logic lives in `leaderlodge/leaderboards/service.py` and
 - `get_player_stats(group, player)` -- per-game-type stats for a single player
 
 Phase 2 ranks by field-weighted finish points within each game type. For each
-game result, placement credit is `(player_count - placement - 1) / (player_count - 1) × player_count × (double_weight / half_weight)`; last place earns 0. Ties multiply that amount by the same half factor used for win-only scoring. Raw rank score is total finish points divided by weighted games played. Scores below
+game result, normalized placement distance is raised to the power 1.5, then
+multiplied by player count and game weight (double/half). Last place earns 0.
+Tied scores use lower-place tie ranking (ties share the worst placement in
+their score group). Ties multiply finish credit by 0.5. Raw rank score is
+total finish points divided by weighted games played. Scores below
 `LEADERBOARD_VESTING_COUNT` games are scaled by
 `LEADERBOARD_VESTING_FACTOR + (1 - LEADERBOARD_VESTING_FACTOR) × games_played / LEADERBOARD_VESTING_COUNT`.
 

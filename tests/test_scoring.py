@@ -78,9 +78,28 @@ def test_assign_results_from_scores():
 def test_assign_placements_competition_ranking():
     rows = _rows([30, 20, 20])
     assign_results_from_scores(rows, "progressiverummy")
-    assert rows[1]["placement"] == 0
-    assert rows[2]["placement"] == 0
+    assert rows[1]["placement"] == 1
+    assert rows[2]["placement"] == 1
     assert rows[0]["placement"] == 2
+
+
+def test_assign_placements_lower_place_tie_high_wins():
+    rows = _rows([10, 8, 8, 4])
+    assign_results_from_scores(rows, "dominos")
+    assert rows[0]["placement"] == 0
+    assert rows[1]["placement"] == 2
+    assert rows[2]["placement"] == 2
+    assert rows[3]["placement"] == 3
+
+
+def test_assign_placements_mahjongg_wall_game():
+    rows = _rows([35, 0, 0, 0])
+    assign_results_from_scores(rows, "mahjongg")
+    assert rows[0]["placement"] == 0
+    assert rows[0]["result"] == Result.WIN
+    assert rows[1]["placement"] == 3
+    assert rows[2]["placement"] == 3
+    assert rows[3]["placement"] == 3
 
 
 @pytest.mark.parametrize(
