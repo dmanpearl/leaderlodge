@@ -38,10 +38,10 @@
 - [x] Record Game: Default initial values to zero, so user doesn't have to enter a score if the player scored zero. However, do not do this for games like Progressive Rummy where lowest score wins.
 - [x] Bug: Mobile: Option menus for Player or Location are too high. Anchor suggestion lists to the field and flip within the viewport so typing + keyboard still work.
 - [x] Guest Mode: Must showcase Groups and +Add pages even though access is meaningless.
+- [x] Home page title: use "LeaderLodge" only (drop "Dashboard") so mobile URL/history previews show the brand name.
 
 ## Open Items
 
-- [ ] Mobile browser: When I type url "leaderlo...", Website preview shows "Dashboard | LeaderLodge". I don't want the word 'Dashboard' to be there
 - [ ] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
