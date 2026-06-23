@@ -62,6 +62,7 @@ class PlayerRanking:
 class FieldSizeBreakdown:
     player_count: int
     weighted_count: float
+    count_pct: float
 
 
 @dataclass(frozen=True)
@@ -70,13 +71,16 @@ class PlacementBreakdown:
     label: str
     weighted_count: float
     finish_points: float
+    avg_finish_points: float
+    count_pct: float
     field_sizes: tuple[FieldSizeBreakdown, ...]
 
 
 @dataclass(frozen=True)
 class FieldSizeGameCount:
     player_count: int
-    game_count: int
+    game_count: float
+    count_pct: float
 
 
 @dataclass(frozen=True)
@@ -94,7 +98,8 @@ class PlayerRankDetail:
     vesting_factor: float
     half_game_penalty: float
     placements: tuple[PlacementBreakdown, ...]
-    loss_game_count: int
+    loss_game_count: float
+    loss_pct: float
     loss_games_by_field_size: tuple[FieldSizeGameCount, ...]
     supports_loser: bool
     first_game_date: date | None
@@ -182,8 +187,8 @@ def get_player_rank_detail(
             "by_size": defaultdict(float),
         }
     )
-    loss_games_by_size: dict[int, int] = defaultdict(int)
-    loss_game_count = 0
+    loss_games_by_size: dict[int, float] = defaultdict(float)
+    loss_game_count = 0.0
     first_game_date: date | None = None
     last_game_date: date | None = None
     first_win_date: date | None = None
@@ -228,8 +233,8 @@ def get_player_rank_detail(
             game_type.supports_loser
             and result.result == GameParticipantResult.Result.LOSS
         ):
-            loss_game_count += 1
-            loss_games_by_size[player_count] += 1
+            loss_game_count += weight
+            loss_games_by_size[player_count] += weight
             if first_loss_date is None or played_on < first_loss_date:
                 first_loss_date = played_on
 
@@ -311,27 +316,44 @@ def get_player_rank_detail(
         half_weighted_games=half_weighted_games,
     )
 
+    placement_denominator = weighted_games if weighted_games > 0 else 0.0
+
     placements: list[PlacementBreakdown] = []
     for placement in sorted(placement_stats):
         bucket = placement_stats[placement]
+        weighted_count = float(bucket["weighted_count"])
         field_sizes = tuple(
-            FieldSizeBreakdown(player_count=size, weighted_count=count)
+            FieldSizeBreakdown(
+                player_count=size,
+                weighted_count=count,
+                count_pct=compute_percentage(count, placement_denominator),
+            )
             for size, count in sorted(bucket["by_size"].items())
         )
         placements.append(
             PlacementBreakdown(
                 placement=placement,
                 label=ordinal_place_label(placement),
-                weighted_count=float(bucket["weighted_count"]),
+                weighted_count=weighted_count,
                 finish_points=float(bucket["finish_points"]),
+                avg_finish_points=compute_rank_score(
+                    points_total=float(bucket["finish_points"]),
+                    games_played=weighted_count,
+                ),
+                count_pct=compute_percentage(weighted_count, placement_denominator),
                 field_sizes=field_sizes,
             )
         )
 
     loss_games_by_field_size = tuple(
-        FieldSizeGameCount(player_count=size, game_count=count)
+        FieldSizeGameCount(
+            player_count=size,
+            game_count=count,
+            count_pct=compute_percentage(count, placement_denominator),
+        )
         for size, count in sorted(loss_games_by_size.items())
     )
+    loss_pct = compute_percentage(loss_game_count, placement_denominator)
 
     return PlayerRankDetail(
         ranking=ranking,
@@ -342,6 +364,7 @@ def get_player_rank_detail(
         half_game_penalty=half_game_penalty,
         placements=tuple(placements),
         loss_game_count=loss_game_count,
+        loss_pct=loss_pct,
         loss_games_by_field_size=loss_games_by_field_size,
         supports_loser=game_type.supports_loser,
         first_game_date=first_game_date,

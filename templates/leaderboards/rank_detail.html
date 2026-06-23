@@ -186,18 +186,22 @@
       {% for row in detail.placements %}
         <li class="list-group-item">
           <div class="d-flex justify-content-between gap-2">
-            <strong>{{ row.label }}</strong>
+            <strong>
+              {{ row.label }}
+              {{ row.weighted_count|floatformat:-1 }}
+              ({{ row.count_pct|floatformat:0 }}%)
+            </strong>
             <span class="text-end text-nowrap">
-              {{ row.weighted_count|floatformat:-1 }} finish{{ row.weighted_count|pluralize:"es" }}
-              &middot;
-              {{ row.finish_points|floatformat:1 }} pts
+              {{ row.avg_finish_points|floatformat:1 }} pts/game
             </span>
           </div>
           {% if row.field_sizes %}
             <div class="mt-2 d-flex flex-wrap gap-1">
               {% for size in row.field_sizes %}
                 <span class="badge text-bg-light border fw-normal">
-                  {{ size.player_count }}-player: {{ size.weighted_count|floatformat:-1 }}
+                  {{ size.player_count }}-player:
+                  {{ size.weighted_count|floatformat:-1 }}
+                  ({{ size.count_pct|floatformat:0 }}%)
                 </span>
               {% endfor %}
             </div>
@@ -214,14 +218,19 @@
       <div class="card-header">Losses by field size</div>
       <div class="card-body">
         <p class="mb-2">
-          <strong>{{ detail.loss_game_count }}</strong>
+          <strong>
+            {{ detail.loss_game_count|floatformat:-1 }}
+            ({{ detail.loss_pct|floatformat:0 }}%)
+          </strong>
           loss{{ detail.loss_game_count|pluralize:"es" }} total
         </p>
         {% if detail.loss_games_by_field_size %}
           <div class="d-flex flex-wrap gap-1">
             {% for size in detail.loss_games_by_field_size %}
               <span class="badge text-bg-light border fw-normal">
-                {{ size.player_count }}-player: {{ size.game_count }}
+                {{ size.player_count }}-player:
+                {{ size.game_count|floatformat:-1 }}
+                ({{ size.count_pct|floatformat:0 }}%)
               </span>
             {% endfor %}
           </div>

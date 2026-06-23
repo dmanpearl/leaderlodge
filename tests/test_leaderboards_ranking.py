@@ -376,8 +376,18 @@ def test_get_player_rank_detail_breakdown(user, group):
     second = next(row for row in detail.placements if row.label == "2nd")
     assert first.weighted_count == pytest.approx(1)
     assert second.weighted_count == pytest.approx(1)
+    assert first.count_pct == pytest.approx(50.0)
+    assert second.count_pct == pytest.approx(50.0)
+    assert sum(row.count_pct for row in detail.placements) == pytest.approx(100.0)
+    assert first.avg_finish_points == pytest.approx(
+        first.finish_points / first.weighted_count
+    )
+    assert second.avg_finish_points == pytest.approx(
+        second.finish_points / second.weighted_count
+    )
     assert first.field_sizes[0].player_count == 3
     assert second.field_sizes[0].player_count == 4
+    assert first.field_sizes[0].count_pct == pytest.approx(50.0)
     assert detail.supports_loser is True
     assert detail.loss_game_count >= 0
     assert detail.game_count == 2
