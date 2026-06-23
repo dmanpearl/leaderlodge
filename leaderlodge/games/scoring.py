@@ -125,6 +125,14 @@ def player_count_is_valid(count: int, game_type_code: str) -> bool:
     return game_type.min_players <= count <= game_type.max_players
 
 
+def default_participant_score_value(game_type_code: str) -> str:
+    """Initial score input for one participant; blank when lower scores win."""
+    game_type = get_game_type(game_type_code)
+    if game_type.score_direction == ScoreDirection.LOW_WINS:
+        return ""
+    return "0"
+
+
 def scoring_instructions(game_type_code: str) -> str:
     game_type = get_game_type(game_type_code)
     if game_type.score_direction == ScoreDirection.LOW_WINS:

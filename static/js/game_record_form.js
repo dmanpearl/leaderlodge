@@ -10,6 +10,31 @@
     return Number.isNaN(parsed) ? null : parsed;
   }
 
+  function materializeInitialScores(form) {
+    form.querySelectorAll("[data-score-input]").forEach((input) => {
+      if (
+        input.dataset.scoreTouched === "true" ||
+        input.value.trim() !== "" ||
+        input.dataset.initialScore === undefined ||
+        input.dataset.initialScore === ""
+      ) {
+        return;
+      }
+      input.value = input.dataset.initialScore;
+    });
+  }
+
+  function readScore(scoreInput) {
+    const raw = scoreInput.value.trim();
+    if (raw === "") {
+      return { played: false, score: null };
+    }
+    const parsed = parseScore(raw);
+    return parsed === null
+      ? { played: false, score: null }
+      : { played: true, score: parsed };
+  }
+
   function evaluateResults(rows, supportsLoser, scoreDirection, winTargetScore) {
     const active = rows.filter((row) => row.played && row.score !== null);
     const count = active.length;
@@ -56,18 +81,22 @@
   }
 
   function collectRows(form) {
-    return Array.from(form.querySelectorAll("[data-game-row]")).map((row) => {
-      const playerId = row.dataset.playerId;
-      const scoreInput = row.querySelector("[data-score-input]");
-      const score = parseScore(scoreInput.value);
-      const played = scoreInput.value.trim() !== "" && score !== null;
-      return {
-        playerId,
-        score: played ? score : null,
-        played,
-        resultCell: row.querySelector("[data-result-cell]"),
-      };
-    });
+    return Array.from(form.querySelectorAll("tr[data-game-row]"))
+      .map((row) => {
+        const scoreInput = row.querySelector("[data-score-input]");
+        const resultCell = row.querySelector("[data-result-cell]");
+        if (!scoreInput || !resultCell) {
+          return null;
+        }
+        const { played, score } = readScore(scoreInput);
+        return {
+          playerId: row.dataset.playerId,
+          score: played ? score : null,
+          played,
+          resultCell,
+        };
+      })
+      .filter(Boolean);
   }
 
   function renderBadge(label, className) {
@@ -76,8 +105,7 @@
 
   function renderResults(rows, evaluation) {
     rows.forEach((row) => {
-      const cell = row.resultCell;
-      cell.textContent = "";
+      row.resultCell.textContent = "";
       if (!row.played || row.score === null) {
         return;
       }
@@ -85,19 +113,25 @@
         const cls = evaluation.isDouble
           ? "result-badge result-badge--win-double"
           : "result-badge result-badge--win";
-        cell.innerHTML = renderBadge("Win", cls);
+        row.resultCell.innerHTML = renderBadge("Win", cls);
       } else if (evaluation.tieIds.has(row.playerId)) {
-        cell.innerHTML = renderBadge("Tie", "result-badge result-badge--tie");
+        row.resultCell.innerHTML = renderBadge("Tie", "result-badge result-badge--tie");
       } else if (evaluation.lossIds.has(row.playerId)) {
         const cls = evaluation.isDouble
           ? "result-badge result-badge--loss-double"
           : "result-badge result-badge--loss";
-        cell.innerHTML = renderBadge("Loss", cls);
+        row.resultCell.innerHTML = renderBadge("Loss", cls);
       }
     });
   }
 
   function updateForm(form) {
+    if (!form) {
+      return;
+    }
+
+    materializeInitialScores(form);
+
     const minPlayers = Number.parseInt(form.dataset.minPlayers, 10);
     const maxPlayers = Number.parseInt(form.dataset.maxPlayers, 10);
     const supportsLoser = form.dataset.supportsLoser === "true";
@@ -109,17 +143,6 @@
     const feedback = form.querySelector("[data-score-feedback]");
 
     const rows = collectRows(form);
-    rows.forEach((row) => {
-      const domRow = form.querySelector(
-        `[data-game-row][data-player-id="${row.playerId}"]`
-      );
-      const scoreInput = domRow.querySelector("[data-score-input]");
-      if (scoreInput.value.trim() !== "" && row.score === null) {
-        row.score = 0;
-        row.played = true;
-      }
-    });
-
     const activeRows = rows.filter((row) => row.played && row.score !== null);
     const evaluation = evaluateResults(
       activeRows,
@@ -132,7 +155,9 @@
     const countOk =
       evaluation.playerCount >= minPlayers &&
       evaluation.playerCount <= maxPlayers;
-    saveBtn.disabled = !countOk;
+    if (saveBtn) {
+      saveBtn.disabled = !countOk;
+    }
 
     if (feedback) {
       if (!countOk && evaluation.playerCount > 0) {
@@ -152,6 +177,33 @@
     }
   }
 
+  function refreshGameRecordForm() {
+    updateForm(document.getElementById("game-record-form"));
+  }
+
+  window.LeaderLodgeUpdateGameRecordForm = refreshGameRecordForm;
+
+  function watchParticipantRows(form) {
+    const tbody = form.querySelector("[data-participant-rows]");
+    if (!tbody) {
+      return;
+    }
+
+    const scheduleUpdate = () => {
+      window.requestAnimationFrame(() => {
+        updateForm(form);
+      });
+    };
+
+    const observer = new MutationObserver(scheduleUpdate);
+    observer.observe(tbody, { childList: true, subtree: true });
+    tbody.addEventListener("click", (event) => {
+      if (event.target.closest("[data-remove-participant]")) {
+        scheduleUpdate();
+      }
+    });
+  }
+
   function initGameRecordForm() {
     const form = document.getElementById("game-record-form");
     if (!form) {
@@ -159,13 +211,30 @@
     }
 
     form.addEventListener("input", (event) => {
-      if (event.target.matches("[data-score-input]")) {
-        updateForm(form);
+      if (event.isTrusted && event.target.matches("[data-score-input]")) {
+        event.target.dataset.scoreTouched = "true";
       }
+      updateForm(form);
     });
 
+    form.addEventListener("change", (event) => {
+      if (event.isTrusted && event.target.matches("[data-score-input]")) {
+        event.target.dataset.scoreTouched = "true";
+      }
+      updateForm(form);
+    });
+
+    form.addEventListener("submit", () => {
+      materializeInitialScores(form);
+    });
+
+    watchParticipantRows(form);
     updateForm(form);
   }
 
-  document.addEventListener("DOMContentLoaded", initGameRecordForm);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initGameRecordForm);
+  } else {
+    initGameRecordForm();
+  }
 })();

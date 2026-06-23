@@ -82,6 +82,7 @@
       this.roster = roster;
       this.tbody = tbody;
       this.form = form;
+      this.defaultParticipantScore = form.dataset.defaultParticipantScore ?? "";
       this.suggestions = [];
       this.activeIndex = -1;
       this.isOpen = false;
@@ -115,7 +116,6 @@
         const row = button.closest("[data-game-row]");
         if (row) {
           row.remove();
-          this.form.dispatchEvent(new Event("input", { bubbles: true }));
         }
       });
     }
@@ -330,11 +330,15 @@
       }
 
       const row = document.createElement("tr");
-      row.dataset.gameRow = "";
+      row.setAttribute("data-game-row", "");
       row.dataset.rowKey = rowKey;
       row.dataset.playerId = rowEntry.id
         ? String(rowEntry.id)
         : `guest:${normalizeForMatch(rowEntry.guestName)}`;
+
+      const initialScoreAttr = this.defaultParticipantScore
+        ? ` data-initial-score="${this.defaultParticipantScore}"`
+        : "";
 
       const detail =
         rowEntry.username ||
@@ -358,10 +362,12 @@
         </td>
         <td>
           <input
-            type="number"
+            type="text"
+            inputmode="numeric"
             name="participant_score"
             class="form-control form-control-sm"
-            data-score-input
+            data-score-input${initialScoreAttr}
+            value="${this.defaultParticipantScore}"
             style="max-width: 6rem;"
           />
         </td>
@@ -369,8 +375,11 @@
       `;
 
       this.tbody.appendChild(row);
-      row.querySelector("[data-score-input]").focus();
-      this.form.dispatchEvent(new Event("input", { bubbles: true }));
+      const scoreInput = row.querySelector("[data-score-input]");
+      if (this.defaultParticipantScore !== "") {
+        scoreInput.value = this.defaultParticipantScore;
+      }
+      this.input.focus();
     }
 
     open() {

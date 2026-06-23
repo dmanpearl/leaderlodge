@@ -211,6 +211,32 @@ def test_load_roster_shows_formatted_date(client, user, group):
 
 
 @pytest.mark.django_db
+def test_load_roster_defaults_score_to_zero_for_high_wins_games(client, user, group):
+    client.force_login(user)
+    for game_type_code in ("dominos", "backgammon", "mahjongg"):
+        response = client.post(
+            reverse("games:create"),
+            _load_roster_post(group, game_type_code=game_type_code),
+        )
+        content = response.content.decode()
+        assert response.status_code == 200
+        assert 'data-default-participant-score="0"' in content
+
+
+@pytest.mark.django_db
+def test_load_roster_leaves_score_blank_for_progressive_rummy(client, user, group):
+    client.force_login(user)
+    response = client.post(
+        reverse("games:create"),
+        _load_roster_post(group, game_type_code="progressiverummy"),
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert 'data-default-participant-score=""' in content
+
+
+@pytest.mark.django_db
 def test_load_roster_shows_low_wins_instructions_for_progressive_rummy(
     client, user, group
 ):

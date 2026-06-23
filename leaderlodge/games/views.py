@@ -19,7 +19,7 @@ from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import GAME_TYPES, game_type_choices, get_game_type
-from leaderlodge.games.scoring import scoring_instructions
+from leaderlodge.games.scoring import default_participant_score_value, scoring_instructions
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
@@ -460,6 +460,9 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "played_on_value": played_on_value,
             "played_on_display": played_on_display,
             "location_name": location_name,
+            "default_participant_score": (
+                default_participant_score_value(game_type.code) if game_type else ""
+            ),
         },
     )
 

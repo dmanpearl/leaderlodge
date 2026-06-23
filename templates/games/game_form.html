@@ -108,6 +108,7 @@
           data-supports-loser="{% if game_type.supports_loser %}true{% else %}false{% endif %}"
           data-score-direction="{{ game_type.score_direction }}"
           data-win-target-score="{% if game_type.win_target_score %}{{ game_type.win_target_score }}{% endif %}"
+          data-default-participant-score="{{ default_participant_score }}"
         >
           {% csrf_token %}
           <input type="hidden" name="action" value="save" />
@@ -170,11 +171,17 @@
                     </td>
                     <td>
                       <input
-                        type="number"
+                        type="text"
+                        inputmode="numeric"
                         name="participant_score"
                         class="form-control form-control-sm"
                         data-score-input
-                        value="{{ row.score }}"
+                        {% if row.score != "" %}
+                          value="{{ row.score }}"
+                        {% elif default_participant_score %}
+                          value="{{ default_participant_score }}"
+                          data-initial-score="{{ default_participant_score }}"
+                        {% endif %}
                         style="max-width: 6rem;"
                       />
                     </td>
@@ -194,8 +201,8 @@
 
 {% block extra_js %}
   {% if show_roster %}
-    <script src="{% static 'js/player_picker.js' %}"></script>
-    <script src="{% static 'js/game_record_form.js' %}"></script>
+    <script src="{% static 'js/game_record_form.js' %}?v=4"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=4"></script>
   {% else %}
     <script>
       document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
