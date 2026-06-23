@@ -36,6 +36,7 @@
       finishers use field max minus score. Score strength removed.
 - [x] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.
 - [x] Record Game: Default initial values to zero, so user doesn't have to enter a score if the player scored zero. However, do not do this for games like Progressive Rummy where lowest score wins.
+- [x] Bug: Mobile: Option menus for Player or Location are too high. Anchor suggestion lists to the field and flip within the viewport so typing + keyboard still work.
 
 ## Open Items
 
@@ -44,7 +45,6 @@
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
 - [ ] Record Game: Add an option to use the same players from the previous game of the same game-type.
-- [ ] Bug: Mobile: Option menus for Player or Location are too high. They appear offscreen above the top of the screen. Switch to native pickers on Mobile.
 - [ ] Record Game: Make the add player name field more prominent so the user knows what to enter next.
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings

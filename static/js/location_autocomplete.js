@@ -61,6 +61,36 @@
       .map((item) => item.location);
   }
 
+  function attachListToInput(input, listEl) {
+    const wrap = document.createElement("div");
+    wrap.className = "combobox-input-wrap";
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    wrap.appendChild(listEl);
+    return wrap;
+  }
+
+  function viewportHeight() {
+    return window.visualViewport?.height ?? window.innerHeight;
+  }
+
+  function adjustListPlacement(listEl, input) {
+    listEl.classList.remove("location-autocomplete-list--above");
+    const inputRect = input.getBoundingClientRect();
+    const spaceBelow = viewportHeight() - inputRect.bottom;
+    const spaceAbove = inputRect.top;
+    const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
+
+    if (spaceBelow < preferredHeight && spaceAbove > spaceBelow) {
+      listEl.classList.add("location-autocomplete-list--above");
+    }
+
+    const available = listEl.classList.contains("location-autocomplete-list--above")
+      ? spaceAbove
+      : spaceBelow;
+    listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
+  }
+
   class LocationAutocomplete {
     constructor(input, groupSelect, locationsUrlTemplate) {
       this.input = input;
@@ -71,13 +101,14 @@
       this.activeIndex = -1;
       this.isOpen = false;
       this.skipRefresh = false;
+
       this.listEl = document.createElement("ul");
       this.listEl.className = "location-autocomplete-list";
       this.listEl.setAttribute("role", "listbox");
       this.listEl.hidden = true;
       this.listId = `${input.id || "location"}-suggestions`;
       this.listEl.id = this.listId;
-      document.body.appendChild(this.listEl);
+      attachListToInput(input, this.listEl);
 
       this.input.setAttribute("role", "combobox");
       this.input.setAttribute("aria-autocomplete", "list");
@@ -90,13 +121,15 @@
       this.onFocus = this.onFocus.bind(this);
       this.reposition = this.reposition.bind(this);
       this.onGroupChange = this.onGroupChange.bind(this);
+      this.onViewportChange = this.reposition;
 
       this.input.addEventListener("input", this.onInput);
       this.input.addEventListener("keydown", this.onKeyDown);
       this.input.addEventListener("blur", this.onBlur);
       this.input.addEventListener("focus", this.onFocus);
-      window.addEventListener("resize", this.reposition);
-      window.addEventListener("scroll", this.reposition, true);
+      window.addEventListener("resize", this.onViewportChange);
+      window.visualViewport?.addEventListener("resize", this.onViewportChange);
+      window.visualViewport?.addEventListener("scroll", this.onViewportChange);
       if (this.groupSelect) {
         this.groupSelect.addEventListener("change", this.onGroupChange);
       }
@@ -258,10 +291,7 @@
       if (!this.isOpen) {
         return;
       }
-      const rect = this.input.getBoundingClientRect();
-      this.listEl.style.top = `${rect.bottom}px`;
-      this.listEl.style.left = `${rect.left}px`;
-      this.listEl.style.width = `${rect.width}px`;
+      adjustListPlacement(this.listEl, this.input);
     }
   }
 

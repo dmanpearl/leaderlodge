@@ -76,6 +76,131 @@
     return `guest-${normalizeForMatch(entry.guestName)}`;
   }
 
+  function existingRowKeys(tbody) {
+    return new Set(
+      Array.from(tbody.querySelectorAll("[data-game-row]")).map(
+        (row) => row.dataset.rowKey
+      )
+    );
+  }
+
+  function buildRowEntry({ entry, guestName }) {
+    if (entry) {
+      return {
+        id: entry.id,
+        label: entry.label,
+        username: entry.username,
+        kind: entry.kind,
+        guestName: "",
+      };
+    }
+    return {
+      id: "",
+      label: guestName,
+      username: null,
+      kind: "guest",
+      guestName,
+    };
+  }
+
+  function appendParticipantRow(tbody, rowEntry, defaultParticipantScore, focusEl) {
+    const rowKey = rowKeyForEntry(
+      rowEntry.id ? { id: rowEntry.id } : { guestName: rowEntry.guestName }
+    );
+    if (existingRowKeys(tbody).has(rowKey)) {
+      return false;
+    }
+
+    const row = document.createElement("tr");
+    row.setAttribute("data-game-row", "");
+    row.dataset.rowKey = rowKey;
+    row.dataset.playerId = rowEntry.id
+      ? String(rowEntry.id)
+      : `guest:${normalizeForMatch(rowEntry.guestName)}`;
+
+    const initialScoreAttr = defaultParticipantScore
+      ? ` data-initial-score="${defaultParticipantScore}"`
+      : "";
+
+    const detail =
+      rowEntry.username ||
+      (rowEntry.id && rowEntry.kind === "guest"
+        ? "Guest"
+        : rowEntry.id
+          ? ""
+          : "New guest");
+
+    row.innerHTML = `
+        <td>
+          <div class="d-flex align-items-center justify-content-between gap-2 participant-label">
+            <span>
+              ${rowEntry.label}
+              ${
+                detail
+                  ? `<span class="text-muted small ms-1">${detail === "Guest" || detail === "New guest" ? `<span class="badge text-bg-secondary">${detail}</span>` : `(${detail})`}</span>`
+                  : ""
+              }
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-remove-participant aria-label="Remove player">&times;</button>
+          </div>
+          <input type="hidden" name="participant_player_id" value="${rowEntry.id || ""}" />
+          <input type="hidden" name="participant_guest_name" value="${rowEntry.guestName || ""}" />
+        </td>
+        <td>
+          <input
+            type="text"
+            inputmode="numeric"
+            name="participant_score"
+            class="form-control form-control-sm"
+            data-score-input${initialScoreAttr}
+            value="${defaultParticipantScore}"
+            style="max-width: 6rem;"
+          />
+        </td>
+        <td data-result-cell></td>
+      `;
+
+    tbody.appendChild(row);
+    const scoreInput = row.querySelector("[data-score-input]");
+    if (defaultParticipantScore !== "") {
+      scoreInput.value = defaultParticipantScore;
+    }
+    if (focusEl) {
+      focusEl.focus();
+    }
+    return true;
+  }
+
+  function attachListToInput(input, listEl) {
+    const wrap = document.createElement("div");
+    wrap.className = "combobox-input-wrap";
+    input.parentNode.insertBefore(wrap, input);
+    wrap.appendChild(input);
+    wrap.appendChild(listEl);
+    return wrap;
+  }
+
+  function viewportHeight() {
+    return window.visualViewport?.height ?? window.innerHeight;
+  }
+
+  function adjustListPlacement(listEl, input) {
+    listEl.classList.remove("combobox-list--above");
+    const inputRect = input.getBoundingClientRect();
+    const spaceBelow = viewportHeight() - inputRect.bottom;
+    const spaceAbove = inputRect.top;
+    const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
+
+    if (spaceBelow < preferredHeight && spaceAbove > spaceBelow) {
+      listEl.classList.add("combobox-list--above");
+    }
+
+    const available = listEl.classList.contains("combobox-list--above")
+      ? spaceAbove
+      : spaceBelow;
+    listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
+  }
+
   class PlayerPicker {
     constructor(input, roster, tbody, form) {
       this.input = input;
@@ -94,19 +219,21 @@
       this.listEl.hidden = true;
       this.listId = `${input.id || "player-picker"}-suggestions`;
       this.listEl.id = this.listId;
-      document.body.appendChild(this.listEl);
+      attachListToInput(input, this.listEl);
 
       input.setAttribute("role", "combobox");
       input.setAttribute("aria-autocomplete", "list");
       input.setAttribute("aria-expanded", "false");
       input.setAttribute("aria-controls", this.listId);
 
+      this.onViewportChange = () => this.reposition();
       input.addEventListener("input", () => this.onInput());
       input.addEventListener("keydown", (event) => this.onKeyDown(event));
       input.addEventListener("blur", () => this.onBlur());
       input.addEventListener("focus", () => this.onFocus());
-      window.addEventListener("resize", () => this.reposition());
-      window.addEventListener("scroll", () => this.reposition(), true);
+      window.addEventListener("resize", this.onViewportChange);
+      window.visualViewport?.addEventListener("resize", this.onViewportChange);
+      window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
       tbody.addEventListener("click", (event) => {
         const button = event.target.closest("[data-remove-participant]");
@@ -121,11 +248,7 @@
     }
 
     existingRowKeys() {
-      return new Set(
-        Array.from(this.tbody.querySelectorAll("[data-game-row]")).map(
-          (row) => row.dataset.rowKey
-        )
-      );
+      return existingRowKeys(this.tbody);
     }
 
     onInput() {
@@ -303,83 +426,12 @@
     }
 
     addParticipant({ entry, guestName }) {
-      let rowEntry;
-      if (entry) {
-        rowEntry = {
-          id: entry.id,
-          label: entry.label,
-          username: entry.username,
-          kind: entry.kind,
-          guestName: "",
-        };
-      } else {
-        rowEntry = {
-          id: "",
-          label: guestName,
-          username: null,
-          kind: "guest",
-          guestName,
-        };
-      }
-
-      const rowKey = rowKeyForEntry(
-        rowEntry.id ? { id: rowEntry.id } : { guestName: rowEntry.guestName }
+      appendParticipantRow(
+        this.tbody,
+        buildRowEntry({ entry, guestName }),
+        this.defaultParticipantScore,
+        this.input
       );
-      if (this.existingRowKeys().has(rowKey)) {
-        return;
-      }
-
-      const row = document.createElement("tr");
-      row.setAttribute("data-game-row", "");
-      row.dataset.rowKey = rowKey;
-      row.dataset.playerId = rowEntry.id
-        ? String(rowEntry.id)
-        : `guest:${normalizeForMatch(rowEntry.guestName)}`;
-
-      const initialScoreAttr = this.defaultParticipantScore
-        ? ` data-initial-score="${this.defaultParticipantScore}"`
-        : "";
-
-      const detail =
-        rowEntry.username ||
-        (rowEntry.id && rowEntry.kind === "guest" ? "Guest" : rowEntry.id ? "" : "New guest");
-
-      row.innerHTML = `
-        <td>
-          <div class="d-flex align-items-center justify-content-between gap-2 participant-label">
-            <span>
-              ${rowEntry.label}
-              ${
-                detail
-                  ? `<span class="text-muted small ms-1">${detail === "Guest" || detail === "New guest" ? `<span class="badge text-bg-secondary">${detail}</span>` : `(${detail})`}</span>`
-                  : ""
-              }
-            </span>
-            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-remove-participant aria-label="Remove player">&times;</button>
-          </div>
-          <input type="hidden" name="participant_player_id" value="${rowEntry.id || ""}" />
-          <input type="hidden" name="participant_guest_name" value="${rowEntry.guestName || ""}" />
-        </td>
-        <td>
-          <input
-            type="text"
-            inputmode="numeric"
-            name="participant_score"
-            class="form-control form-control-sm"
-            data-score-input${initialScoreAttr}
-            value="${this.defaultParticipantScore}"
-            style="max-width: 6rem;"
-          />
-        </td>
-        <td data-result-cell></td>
-      `;
-
-      this.tbody.appendChild(row);
-      const scoreInput = row.querySelector("[data-score-input]");
-      if (this.defaultParticipantScore !== "") {
-        scoreInput.value = this.defaultParticipantScore;
-      }
-      this.input.focus();
     }
 
     open() {
@@ -403,10 +455,7 @@
       if (!this.isOpen) {
         return;
       }
-      const rect = this.input.getBoundingClientRect();
-      this.listEl.style.top = `${rect.bottom}px`;
-      this.listEl.style.left = `${rect.left}px`;
-      this.listEl.style.width = `${rect.width}px`;
+      adjustListPlacement(this.listEl, this.input);
     }
   }
 

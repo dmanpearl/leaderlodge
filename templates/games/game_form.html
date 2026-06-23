@@ -202,11 +202,11 @@
 {% block extra_js %}
   {% if show_roster %}
     <script src="{% static 'js/game_record_form.js' %}?v=4"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=4"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=7"></script>
   {% else %}
     <script>
       document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
     </script>
-    <script src="{% static 'js/location_autocomplete.js' %}"></script>
+    <script src="{% static 'js/location_autocomplete.js' %}?v=4"></script>
   {% endif %}
 {% endblock %}
