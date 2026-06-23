@@ -88,9 +88,9 @@
               >
                 <td class="leaderboard-sticky-col leaderboard-sticky-col--rank">{{ row.rank }}</td>
                 <td class="leaderboard-sticky-col leaderboard-sticky-col--player">{{ row.player.display_label }}</td>
-                <td>{{ row.rank_score|floatformat:2 }}</td>
+                <td>{{ row.rank_score|floatformat:1 }}</td>
                 <td>{{ row.wins|floatformat:-1 }}</td>
-                <td>{{ row.games_played|floatformat:-2 }}</td>
+                <td>{{ row.games_played|floatformat:-1 }}</td>
                 <td>{{ row.win_pct|floatformat:0 }}%</td>
                 {% if selected_game_type.supports_loser %}
                   <td>{{ row.losses|floatformat:-1 }}</td>

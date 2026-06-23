@@ -9,11 +9,13 @@ from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.leaderboards.ranking import (
     FINISH_POINTS_EXPONENT,
+    LOW_WINS_REFERENCE_SCORE,
     TIE_WIN_POINTS_FACTOR,
     apply_vesting_to_rank_score,
     compute_finish_points,
     compute_half_game_penalty_factor,
     compute_rank_score,
+    compute_score_magnitude,
     compute_vesting_multiplier,
 )
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
@@ -31,24 +33,62 @@ def group(user):
     return group
 
 
+def test_compute_score_magnitude_high_wins():
+    assert compute_score_magnitude(35, [35, 0, 0, 0], low_wins=False, placement=0) == 35
+    assert compute_score_magnitude(50, [50, 0, 0, 0], low_wins=False, placement=0) == 50
+    assert compute_score_magnitude(0, [35, 0, 0, 0], low_wins=False, placement=3) == 0
+
+
+def test_compute_score_magnitude_low_wins():
+    assert compute_score_magnitude(
+        20, [20, 35, 215, 480], low_wins=True, placement=0
+    ) == pytest.approx(LOW_WINS_REFERENCE_SCORE - 20)
+    assert compute_score_magnitude(
+        35, [20, 35, 215, 480], low_wins=True, placement=1
+    ) == pytest.approx(480 - 35)
+    assert compute_score_magnitude(
+        215, [20, 35, 215, 480], low_wins=True, placement=2
+    ) == pytest.approx(480 - 215)
+    assert compute_score_magnitude(
+        35, [20, 35, 215, 480], low_wins=True, placement=1
+    ) > compute_score_magnitude(215, [20, 35, 215, 480], low_wins=True, placement=2)
+
+
+def test_mahjongg_higher_winning_score_earns_more_finish_points():
+    low = compute_finish_points(
+        player_count=4,
+        placement=0,
+        score_magnitude=compute_score_magnitude(
+            25, [25, 0, 0, 0], low_wins=False, placement=0
+        ),
+    )
+    high = compute_finish_points(
+        player_count=4,
+        placement=0,
+        score_magnitude=compute_score_magnitude(
+            50, [50, 0, 0, 0], low_wins=False, placement=0
+        ),
+    )
+
+    assert high > low
+    assert low == pytest.approx(100.0)
+    assert high == pytest.approx(200.0)
+
+
 def test_compute_finish_points():
     assert compute_finish_points(player_count=2, placement=0) == pytest.approx(2.0)
     assert compute_finish_points(player_count=2, placement=1) == pytest.approx(0.0)
     assert compute_finish_points(player_count=5, placement=0) == pytest.approx(5.0)
-    assert compute_finish_points(player_count=5, placement=1) == pytest.approx(
-        3.247595, abs=0.001
-    )
+    assert compute_finish_points(player_count=5, placement=1) == pytest.approx(3.75)
     assert compute_finish_points(player_count=5, placement=4) == pytest.approx(0.0)
-    assert compute_finish_points(player_count=3, placement=1) == pytest.approx(
-        1.06066, abs=0.001
-    )
+    assert compute_finish_points(player_count=3, placement=1) == pytest.approx(1.5)
     assert compute_finish_points(player_count=5, placement=1) > compute_finish_points(
         player_count=3, placement=1
     )
     assert compute_finish_points(
         player_count=2, placement=0, is_tie=True
     ) == pytest.approx(2.0 * TIE_WIN_POINTS_FACTOR)
-    assert FINISH_POINTS_EXPONENT == 1.5
+    assert FINISH_POINTS_EXPONENT == 1.0
 
 
 def test_mahjongg_wall_game_losers_earn_no_finish_points(user, group):
@@ -82,7 +122,7 @@ def test_mahjongg_wall_game_losers_earn_no_finish_points(user, group):
     rankings = get_player_rankings(group, game_type_code="mahjongg")
     by_player = {row.player.pk: row for row in rankings}
 
-    assert by_player[players[0].pk].finish_points == pytest.approx(4.0)
+    assert by_player[players[0].pk].finish_points == pytest.approx(140.0)
     assert by_player[players[1].pk].finish_points == pytest.approx(0.0)
     assert by_player[players[2].pk].finish_points == pytest.approx(0.0)
     assert by_player[players[3].pk].finish_points == pytest.approx(0.0)
@@ -186,7 +226,7 @@ def test_middle_placement_earns_finish_points(user, group):
 
     assert alice_row.wins == 0
     assert alice_row.win_points == 0
-    assert alice_row.finish_points == pytest.approx(2.177, abs=0.01)
+    assert alice_row.finish_points == pytest.approx(80.0)
     assert alice_row.rank_score > 0
 
 
@@ -226,8 +266,18 @@ def test_tie_for_lead_uses_lower_place_and_earns_no_finish_points_in_two_player_
 
 
 def test_tie_applies_half_factor_when_finish_points_are_nonzero():
-    base = compute_finish_points(player_count=4, placement=2, is_tie=False)
-    tied = compute_finish_points(player_count=4, placement=2, is_tie=True)
+    base = compute_finish_points(
+        player_count=4,
+        placement=2,
+        is_tie=False,
+        score_magnitude=10,
+    )
+    tied = compute_finish_points(
+        player_count=4,
+        placement=2,
+        is_tie=True,
+        score_magnitude=10,
+    )
     assert tied == pytest.approx(base * TIE_WIN_POINTS_FACTOR)
 
 
@@ -289,7 +339,7 @@ def test_vesting_penalizes_one_game_wonders(user, group):
     vested_rankings = get_player_rankings(group, game_type_code="dominos")
     vested_winner = next(row for row in vested_rankings if row.wins > 0)
     assert vested_winner.games_played == pytest.approx(20)
-    assert vested_winner.rank_score == pytest.approx(2.0)
+    assert vested_winner.rank_score == pytest.approx(60.0)
     assert vested_winner.rank_score > winner.rank_score
 
 
@@ -411,7 +461,7 @@ def test_unvested_half_win_progressive_rummy_gets_penalized_rank_score(user, gro
 
     assert zach_row.games_played == pytest.approx(0.5)
     assert zach_row.wins == pytest.approx(0.5)
-    assert zach_row.rank_score == pytest.approx(4.0 * vesting**2)
+    assert zach_row.rank_score == pytest.approx(1920.0 * vesting**2, abs=1.0)
     assert zach_row.rank_score > jake_row.rank_score
     assert zach_row.rank < jake_row.rank
     assert zach_row.rank > david_row.rank

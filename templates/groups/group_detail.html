@@ -186,8 +186,8 @@
                       <span class="badge text-bg-secondary ms-1">Guest</span>
                     {% endif %}
                   </td>
-                  <td>{{ row.rank_score|floatformat:2 }}</td>
-                  <td>{{ row.games_played|floatformat:-2 }}</td>
+                  <td>{{ row.rank_score|floatformat:1 }}</td>
+                  <td>{{ row.games_played|floatformat:-1 }}</td>
                   <td>{{ row.wins|floatformat:-1 }}</td>
                   <td>{% if row.games_played %}{{ row.win_pct|floatformat:0 }}%{% else %}&mdash;{% endif %}</td>
                   {% if show_losses %}

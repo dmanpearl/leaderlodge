@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 TIE_WIN_POINTS_FACTOR = 0.5
-FINISH_POINTS_EXPONENT = 1.5
+FINISH_POINTS_EXPONENT = 1.0
+LOW_WINS_REFERENCE_SCORE = 500
+
 
 SORTABLE_COLUMNS = frozenset(
     {
@@ -26,19 +28,42 @@ def ordinal_place_label(placement: int) -> str:
     return f"{place}{suffix}"
 
 
+def compute_score_magnitude(
+    score: float,
+    game_scores: list[float],
+    *,
+    low_wins: bool,
+    placement: int,
+) -> float:
+    """
+    Raw score credit for one finish, oriented so higher is better.
+
+    High-wins games use the recorded score. Low-wins winners use a fixed
+    reference minus their score (performance alone). Other low-wins finishers
+    use field max minus score so a close second earns more than a far second.
+    """
+    score = float(score)
+    if low_wins:
+        if placement == 0:
+            return max(LOW_WINS_REFERENCE_SCORE - score, 0.0)
+        field_max = max(game_scores)
+        return max(field_max - score, 0.0)
+    return score
+
+
 def compute_finish_points(
     *,
     player_count: float,
     placement: float,
     weight: float = 1.0,
     is_tie: bool = False,
+    score_magnitude: float | None = None,
 ) -> float:
     """
     Field-weighted finish credit for one game result.
 
-    First place earns player_count × weight; last place earns 0. Intermediate
-    placements scale by (normalized distance)^FINISH_POINTS_EXPONENT.
-    Ties multiply that amount by TIE_WIN_POINTS_FACTOR.
+    finish = placement_ratio x player_count x weight x score_magnitude
+    Ties multiply by TIE_WIN_POINTS_FACTOR.
     """
     if player_count <= 1:
         return 0.0
@@ -49,6 +74,8 @@ def compute_finish_points(
     points = (ratio**FINISH_POINTS_EXPONENT) * player_count * weight
     if is_tie:
         points *= TIE_WIN_POINTS_FACTOR
+    if score_magnitude is not None:
+        points *= score_magnitude
     return points
 
 

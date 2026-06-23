@@ -16,7 +16,7 @@ from datetime import date
 from typing import TYPE_CHECKING
 
 from django.db.models import Case, F, FloatField, Q, Sum, Value, When
-from django.db.models.functions import Cast, Greatest, Power
+from django.db.models.functions import Cast
 
 from leaderlodge.games.list_stats import humanize_date_range
 from leaderlodge.games.registry import GAME_TYPES, ScoreDirection, get_game_type
@@ -30,6 +30,7 @@ from leaderlodge.leaderboards.ranking import (
     compute_half_game_penalty_factor,
     compute_percentage,
     compute_rank_score,
+    compute_score_magnitude,
     compute_vesting_multiplier,
     ordinal_place_label,
     rank_score_sort_key,
@@ -165,6 +166,7 @@ def get_player_rank_detail(
             player=player,
         )
         .select_related("game")
+        .prefetch_related("game__participant_results")
         .order_by("game__played_on", "game__pk", "pk")
     )
     if location_id is not None:
@@ -199,7 +201,7 @@ def get_player_rank_detail(
     best_score: ScoreHighlight | None = None
     worst_score: ScoreHighlight | None = None
 
-    for result in results_qs.iterator():
+    for result in results_qs:
         game = result.game
         played_on = game.played_on
         weight = game.double_weight / game.half_weight
@@ -257,6 +259,15 @@ def get_player_rank_detail(
             placement=placement,
             weight=weight,
             is_tie=result.result == GameParticipantResult.Result.TIE,
+            score_magnitude=compute_score_magnitude(
+                result.score,
+                [
+                    participant.score
+                    for participant in result.game.participant_results.all()
+                ],
+                low_wins=low_wins,
+                placement=placement,
+            ),
         )
         bucket["finish_points"] = float(bucket["finish_points"]) + finish_points
         by_size = bucket["by_size"]
@@ -514,25 +525,48 @@ def _standings_weight_factors():
     return weight, player_count
 
 
-def _finish_points_expression():
+def _finish_points_by_player(
+    results_qs,
+    *,
+    low_wins: bool,
+) -> dict[int, float]:
     from leaderlodge.games.models import GameParticipantResult
 
-    weight, player_count = _standings_weight_factors()
-    placement = Cast(F("placement"), FloatField())
-    slots_above_last = Greatest(player_count - Value(1.0), Value(1.0))
-    placement_distance = Greatest(
-        player_count - placement - Value(1.0),
-        Value(0.0),
+    rows = list(
+        results_qs.values(
+            "player_id",
+            "score",
+            "placement",
+            "result",
+            "game_id",
+            "game__player_count",
+            "game__double_weight",
+            "game__half_weight",
+        )
     )
-    ratio = placement_distance / slots_above_last
-    base = Power(ratio, Value(FINISH_POINTS_EXPONENT)) * player_count * weight
-    return Case(
-        When(
-            result=GameParticipantResult.Result.TIE,
-            then=base * Value(TIE_WIN_POINTS_FACTOR),
-        ),
-        default=base,
-    )
+    if not rows:
+        return {}
+
+    game_scores: dict[int, list[float]] = defaultdict(list)
+    for row in rows:
+        game_scores[row["game_id"]].append(row["score"])
+
+    totals: dict[int, float] = defaultdict(float)
+    for row in rows:
+        weight = row["game__double_weight"] / row["game__half_weight"]
+        totals[row["player_id"]] += compute_finish_points(
+            player_count=row["game__player_count"],
+            placement=row["placement"] if row["placement"] is not None else 0,
+            weight=weight,
+            is_tie=row["result"] == GameParticipantResult.Result.TIE,
+            score_magnitude=compute_score_magnitude(
+                row["score"],
+                game_scores[row["game_id"]],
+                low_wins=low_wins,
+                placement=row["placement"] if row["placement"] is not None else 0,
+            ),
+        )
+    return dict(totals)
 
 
 def _standings_for_game_type(
@@ -554,11 +588,11 @@ def _standings_for_game_type(
     if location_id is not None:
         results_qs = results_qs.filter(game__location_id=location_id)
 
+    finish_points_by_player = _finish_points_by_player(results_qs, low_wins=low_wins)
+
     weight, player_count = _standings_weight_factors()
     win_points_expr = player_count * weight
     tie_points_expr = player_count * weight * Value(TIE_WIN_POINTS_FACTOR)
-
-    finish_points_expr = _finish_points_expression()
     half_weighted_games_expr = Sum(
         Case(
             When(game__half_weight=2, then=weight),
@@ -580,7 +614,6 @@ def _standings_for_game_type(
             tie_points_expr,
             filter=Q(result=GameParticipantResult.Result.TIE),
         ),
-        finish_points=Sum(finish_points_expr),
     )
 
     players_by_id = {
@@ -599,7 +632,7 @@ def _standings_for_game_type(
         win_points = float(row["win_point_wins"] or 0) + float(
             row["win_point_ties"] or 0
         )
-        finish_points = float(row["finish_points"] or 0)
+        finish_points = finish_points_by_player.get(player.pk, 0.0)
         raw_rank_score = compute_rank_score(
             points_total=finish_points,
             games_played=games_played,

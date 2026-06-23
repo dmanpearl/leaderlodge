@@ -39,11 +39,13 @@ All ranking logic lives in `leaderlodge/leaderboards/service.py` and
 - `get_player_stats(group, player)` -- per-game-type stats for a single player
 
 Phase 2 ranks by field-weighted finish points within each game type. For each
-game result, normalized placement distance is raised to the power 1.5, then
-multiplied by player count and game weight (double/half). Last place earns 0.
-Tied scores use lower-place tie ranking (ties share the worst placement in
-their score group). Ties multiply finish credit by 0.5. Raw rank score is
-total finish points divided by weighted games played.
+game result, normalized placement distance is multiplied by player count, game
+weight (double/half), and in-game score magnitude. High-wins games use the raw
+score; Progressive Rummy winners use a fixed reference minus their score
+(performance alone), and other low-wins finishers use field max minus score so a
+close second earns more than a far second. Last place earns 0 placement credit.
+Tied scores use lower-place tie ranking. Ties multiply finish credit by 0.5. Raw
+rank score is total finish points divided by weighted games played.
 
 High-wins game types (dominos, backgammon, mahjongg): unvested scores are
 multiplied by vesting progress (lower displayed score until fully vested at

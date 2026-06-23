@@ -111,7 +111,7 @@
                               {% if card.composite %}
                                 <td class="text-truncate" style="max-width: 6rem;">{{ row.group_name }}</td>
                               {% endif %}
-                              <td>{{ row.rank_score|floatformat:2 }}</td>
+                              <td>{{ row.rank_score|floatformat:1 }}</td>
                             </tr>
                           {% endfor %}
                         </tbody>

@@ -29,30 +29,30 @@
         <dd class="col-5 col-sm-7">{{ detail.ranking.rank|default:"—" }}</dd>
 
         <dt class="col-7 col-sm-5">Score (displayed)</dt>
-        <dd class="col-5 col-sm-7">{{ detail.ranking.rank_score|floatformat:2 }}</dd>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.rank_score|floatformat:1 }}</dd>
 
         <dt class="col-7 col-sm-5">Finish points total</dt>
-        <dd class="col-5 col-sm-7">{{ detail.ranking.finish_points|floatformat:2 }}</dd>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.finish_points|floatformat:1 }}</dd>
 
         <dt class="col-7 col-sm-5">Weighted games played</dt>
-        <dd class="col-5 col-sm-7">{{ detail.ranking.games_played|floatformat:-2 }}</dd>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.games_played|floatformat:-1 }}</dd>
 
         <dt class="col-7 col-sm-5">Raw average</dt>
         <dd class="col-5 col-sm-7">
-          {{ detail.ranking.finish_points|floatformat:2 }}
-          &divide;
-          {{ detail.ranking.games_played|floatformat:-2 }}
+          {{ detail.ranking.finish_points|floatformat:1 }}
+          /
+          {{ detail.ranking.games_played|floatformat:-1 }}
           =
-          {{ detail.raw_rank_score|floatformat:2 }}
+          {{ detail.raw_rank_score|floatformat:1 }}
         </dd>
 
         <dt class="col-7 col-sm-5">Vesting multiplier</dt>
         <dd class="col-5 col-sm-7">
           {% if detail.vesting_multiplier == 1 %}
-            1.00 (fully vested at {{ detail.vesting_count }}+ games)
+            1.0 (fully vested at {{ detail.vesting_count }}+ games)
           {% else %}
-            {{ detail.vesting_multiplier|floatformat:3 }}
-            <span class="text-muted">({{ detail.ranking.games_played|floatformat:-2 }} of {{ detail.vesting_count }} games)</span>
+            {{ detail.vesting_multiplier|floatformat:1 }}
+            <span class="text-muted">({{ detail.ranking.games_played|floatformat:-1 }} of {{ detail.vesting_count }} games)</span>
           {% endif %}
         </dd>
 
@@ -60,12 +60,12 @@
           <dt class="col-7 col-sm-5">Adjusted score</dt>
           <dd class="col-5 col-sm-7">
             {% if detail.score_low_wins %}
-              {{ detail.raw_rank_score|floatformat:2 }}
-              &times; {{ detail.vesting_multiplier|floatformat:3 }}^2
+              {{ detail.raw_rank_score|floatformat:1 }}
+              &times; {{ detail.vesting_multiplier|floatformat:1 }}^2
             {% else %}
-              {{ detail.raw_rank_score|floatformat:2 }} &times; {{ detail.vesting_multiplier|floatformat:3 }}
+              {{ detail.raw_rank_score|floatformat:1 }} &times; {{ detail.vesting_multiplier|floatformat:1 }}
             {% endif %}
-            = {{ detail.ranking.rank_score|floatformat:2 }}
+            = {{ detail.ranking.rank_score|floatformat:1 }}
           </dd>
         {% endif %}
 
@@ -73,7 +73,7 @@
         <dd class="col-5 col-sm-7">{{ detail.ranking.wins|floatformat:-1 }} ({{ detail.ranking.win_pct|floatformat:0 }}%)</dd>
 
         <dt class="col-7 col-sm-5">Win points</dt>
-        <dd class="col-5 col-sm-7">{{ detail.ranking.win_points|floatformat:2 }}</dd>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.win_points|floatformat:1 }}</dd>
 
         {% if detail.supports_loser %}
           <dt class="col-7 col-sm-5">Losses</dt>
@@ -86,8 +86,10 @@
         {% endif %}
       </dl>
       <p class="text-muted small mb-0 mt-3">
-        Each finish earns field-weighted placement points (distance ratio
-        ^{{ detail.finish_points_exponent }}). Score is the average finish
+        Each finish earns field-weighted placement credit (distance from last place
+        times player count) multiplied by in-game score magnitude (raw score for
+        high-wins games; reference minus score for Progressive Rummy winners, field
+        max minus score for other low-wins finishers). Score is the average finish
         points per weighted game{% if detail.score_low_wins %}, multiplied by vesting progress squared when game count is below {{ detail.vesting_count }} (stronger dampening for unvested players){% else %}, scaled by vesting when game count is below {{ detail.vesting_count }}{% endif %}. Wins, losses, and games above use weighted counts
         (half games count as 0.5) to match the leaderboard.
       </p>
@@ -186,16 +188,16 @@
           <div class="d-flex justify-content-between gap-2">
             <strong>{{ row.label }}</strong>
             <span class="text-end text-nowrap">
-              {{ row.weighted_count|floatformat:-2 }} finish{{ row.weighted_count|pluralize:"es" }}
+              {{ row.weighted_count|floatformat:-1 }} finish{{ row.weighted_count|pluralize:"es" }}
               &middot;
-              {{ row.finish_points|floatformat:2 }} pts
+              {{ row.finish_points|floatformat:1 }} pts
             </span>
           </div>
           {% if row.field_sizes %}
             <div class="mt-2 d-flex flex-wrap gap-1">
               {% for size in row.field_sizes %}
                 <span class="badge text-bg-light border fw-normal">
-                  {{ size.player_count }}-player: {{ size.weighted_count|floatformat:-2 }}
+                  {{ size.player_count }}-player: {{ size.weighted_count|floatformat:-1 }}
                 </span>
               {% endfor %}
             </div>

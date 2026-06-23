@@ -31,10 +31,13 @@
 - [x] Rank Algorithm (Progressive Rummy): Unvested dampening via vesting^2 (not divide).
       Descending sort like other game types. Half-game rank penalty deferred.
       Zach: raw 4.0 x 0.518^2 = ~1.07, rank ~13 on manpearl (beats one-game losers).
+- [x] Rank Algorithm: Finish credit = placement x score magnitude (linear, no ^1.5).
+      High-wins use raw score; PR winners use reference minus score; other PR
+      finishers use field max minus score. Score strength removed.
 
 ## Open Items
 
-- [ ] Rank Algorithm: Determine if we are multiplying by place * points, place, or points. place * points could be better than place^1.5. Incorporating points in addition to place is a way to give more value to same place result with higher points. Evaluate best method and implement
+- [ ] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
 - [ ] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.
