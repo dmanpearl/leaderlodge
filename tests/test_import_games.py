@@ -12,6 +12,7 @@ from openpyxl import Workbook
 from leaderlodge.games.importing.progressiverummy import parse_progressiverummy_workbook
 from leaderlodge.games.importing.scorekeeper import parse_scorekeeper_workbook
 from leaderlodge.games.importing.service import (
+    import_games_file,
     import_mahjongg_file,
     import_progressiverummy_file,
     import_scorekeeper_file,
@@ -24,6 +25,7 @@ from leaderlodge.groups.services import (
     create_group_with_owner,
     resolve_seed_player,
 )
+from tests.fixtures.test_seeds import EXPECTED_IMPORT_SUMMARIES, committed_test_seed_paths
 
 
 @pytest.fixture
@@ -346,25 +348,23 @@ def test_resolve_seed_player_reuses_existing_after_integrity_error(group):
 
 
 @pytest.mark.django_db
-def test_import_real_backgammon_seed(group, user):
-    path = Path("data/seeds/backgammon/backgammon_seed_2026-06-16.xlsx")
-    if not path.is_file():
-        pytest.skip("Seed file not present")
+def test_import_committed_test_seeds(group, user):
+    for game_type, path in committed_test_seed_paths(Path(".")):
+        if not path.is_file():
+            pytest.skip(f"Test seed missing: {path.name}")
 
-    summary = import_scorekeeper_file(
-        path=path,
-        group=group,
-        game_type_code="backgammon",
-        recorded_by=user,
-    )
-
-    assert summary.parsed == 5
-    assert summary.created == 5
-    assert Game.objects.filter(
-        group=group,
-        game_type_code="backgammon",
-        import_source="backgammon_seed_2026-06-16",
-    ).count() == 5
+        summary = import_games_file(
+            path=path,
+            group=group,
+            game_type_code=game_type,
+            recorded_by=user,
+        )
+        expected_parsed, expected_created, expected_skipped = EXPECTED_IMPORT_SUMMARIES[
+            game_type
+        ]
+        assert summary.parsed == expected_parsed
+        assert summary.created == expected_created
+        assert summary.skipped == expected_skipped
 
 
 def _write_progressiverummy(path: Path, rows: list[tuple]) -> None:
@@ -481,29 +481,6 @@ def test_import_progressiverummy_command(group, user, progressiverummy_spreadshe
     ).count() == 3
 
 
-@pytest.mark.django_db
-def test_import_real_progressiverummy_seed(group, user):
-    path = Path("data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx")
-    if not path.is_file():
-        pytest.skip("Seed file not present")
-
-    summary = import_progressiverummy_file(
-        path=path,
-        group=group,
-        recorded_by=user,
-    )
-
-    assert summary.parsed > 500
-    assert summary.created > 500
-    assert summary.skipped == summary.parsed - summary.created
-    half_games = Game.objects.filter(
-        group=group,
-        game_type_code="progressiverummy",
-        half_weight=2,
-    ).count()
-    assert half_games > 50
-
-
 def _write_mahjongg(path: Path, rows: list[tuple]) -> None:
     workbook = Workbook()
     worksheet = workbook.active
@@ -582,20 +559,3 @@ def test_import_mahjongg_command(group, user, mahjongg_spreadsheet):
         group=group,
         import_source="mahjongg_seed_test",
     ).count() == 2
-
-
-@pytest.mark.django_db
-def test_import_real_mahjongg_seed(group, user):
-    path = Path("data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx")
-    if not path.is_file():
-        pytest.skip("Seed file not present")
-
-    summary = import_mahjongg_file(
-        path=path,
-        group=group,
-        recorded_by=user,
-    )
-
-    assert summary.parsed > 0
-    assert summary.created > 0
-    assert summary.created + summary.skipped == summary.parsed
