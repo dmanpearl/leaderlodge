@@ -34,13 +34,14 @@
 - [x] Rank Algorithm: Finish credit = placement x score magnitude (linear, no ^1.5).
       High-wins use raw score; PR winners use reference minus score; other PR
       finishers use field max minus score. Score strength removed.
+- [x] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.
 
 ## Open Items
 
+- [ ] Mobile browser: When I type url "leaderlo...", Website preview shows "Dashboard | LeaderLodge". I don't want the word 'Dashboard' to be there
 - [ ] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
-- [ ] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.
 - [ ] Record Game: Add an option to use the same players from the previous game of the same game-type.
 - [ ] Leaderboard: Mah Jongg: Revisit ranking algorithm for this game because only one player gets scores. I don't want to share ties between all losers. Make sure zero points in a game does not score any ranking score. Evaluate exactly what happens now for zero point ties
 - [ ] Bug: Mobile: Option menus for Player or Location are too high. They appear offscreen above the top of the screen. Switch to native pickers on Mobile.

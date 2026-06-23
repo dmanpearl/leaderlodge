@@ -57,12 +57,25 @@ def test_get_or_create_location_deduplicates_accents(user):
 
 
 @pytest.mark.django_db
-def test_get_or_create_location_fuzzy_merges_prefix_variants(user):
+def test_get_or_create_location_does_not_merge_shorter_prefix(user):
     group = create_group_with_owner(user=user, name="Dom Club")
     library = group.location_library
 
-    first = get_or_create_location(library=library, name="Zinque, Venice")
-    second = get_or_create_location(library=library, name="Zinque")
+    first = get_or_create_location(library=library, name="Preston - Passover")
+    second = get_or_create_location(library=library, name="Preston")
+
+    assert first.pk != second.pk
+    assert Location.objects.filter(library=library).count() == 2
+    assert second.name == "Preston"
+
+
+@pytest.mark.django_db
+def test_get_or_create_location_fuzzy_merges_longer_extensions(user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+
+    first = get_or_create_location(library=library, name="Zinque")
+    second = get_or_create_location(library=library, name="Zinque, Venice")
 
     assert first.pk == second.pk
     assert Location.objects.filter(library=library).count() == 1
@@ -93,10 +106,11 @@ def test_find_fuzzy_location_match_returns_none_when_ambiguous(user):
     assert match is None
 
 
-def test_score_location_match_prefers_prefix():
-    assert score_location_match("zinque", "zinque venice") > score_location_match(
-        "zinque", "superior zinque"
+def test_score_location_match_prefers_longer_extension():
+    assert score_location_match("zinque venice", "zinque") > score_location_match(
+        "zinque venice", "superior zinque"
     )
+    assert score_location_match("zinque", "zinque venice") == -1
 
 
 @pytest.mark.django_db
@@ -149,6 +163,27 @@ def test_group_locations_api_requires_membership(client, user):
     response = client.get(reverse("groups:locations", kwargs={"pk": group.pk}))
 
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_record_game_creates_distinct_shorter_location(client, user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    add_guest_player(group=group, display_name="Pat")
+    get_or_create_location(library=group.location_library, name="Preston - Passover")
+    client.force_login(user)
+
+    load_data = _load_roster_post(group)
+    load_data["location_name"] = "Preston"
+    client.post(reverse("games:create"), load_data)
+
+    save_data = _save_game_post(group)
+    save_data["location_name"] = "Preston"
+    response = client.post(reverse("games:create"), save_data)
+
+    assert response.status_code == 302
+    game = Game.objects.get()
+    assert game.location.name == "Preston"
+    assert Location.objects.filter(library=group.location_library).count() == 2
 
 
 @pytest.mark.django_db

@@ -37,6 +37,9 @@ def score_location_match(query_normalized: str, candidate_normalized: str) -> in
         return 200
 
     if candidate_normalized.startswith(query_normalized):
+        if len(query_normalized) < len(candidate_normalized):
+            # "Preston" must not merge into an existing "Preston - Passover".
+            return -1
         return 100 - (len(candidate_normalized) - len(query_normalized))
 
     if query_normalized.startswith(candidate_normalized):
@@ -53,6 +56,8 @@ def score_location_match(query_normalized: str, candidate_normalized: str) -> in
         if query_index < len(query_normalized) and char == query_normalized[query_index]:
             query_index += 1
     if query_index == len(query_normalized):
+        if len(query_normalized) < len(candidate_normalized):
+            return -1
         return MIN_SUBSEQUENCE_MERGE_SCORE
 
     return -1
@@ -139,6 +144,9 @@ def get_or_create_location(*, library: LocationLibrary, name: str) -> Location:
 
     fuzzy_match = find_fuzzy_location_match(library=library, cleaned=cleaned)
     if fuzzy_match is not None:
+        if len(cleaned) > len(fuzzy_match.name):
+            fuzzy_match.name = cleaned
+            fuzzy_match.save(update_fields=["name"])
         return fuzzy_match
 
     return Location.objects.create(
