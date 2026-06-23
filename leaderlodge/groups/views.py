@@ -4,6 +4,7 @@ from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from leaderlodge.accounts.game_selection import resolve_game_type_code
+from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.forms import GroupForm, GroupMemberForm, GroupPlayerForm
 from leaderlodge.groups.models import Group
@@ -12,9 +13,10 @@ from leaderlodge.groups.player_search import search_group_players
 from leaderlodge.groups.services import (
     add_guest_player,
     add_group_member,
+    can_view_group,
     create_group_with_owner,
-    user_groups,
     user_is_member,
+    visible_groups,
 )
 from leaderlodge.leaderboards.ranking import SORTABLE_COLUMNS
 from leaderlodge.leaderboards.service import get_group_roster_standings
@@ -80,9 +82,9 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
     }
 
 
-@login_required
+@demo_or_login_required
 def group_list(request: HttpRequest) -> HttpResponse:
-    groups = user_groups(request.user).order_by("name")
+    groups = visible_groups(request.user).order_by("name")
     return render(
         request,
         "groups/group_list.html",
@@ -112,10 +114,10 @@ def group_create(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
+@demo_or_login_required
 def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
     group = get_object_or_404(Group, pk=pk)
-    if not user_is_member(request.user, group):
+    if not can_view_group(request.user, group):
         raise Http404
 
     return render(
@@ -125,10 +127,10 @@ def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@login_required
+@demo_or_login_required
 def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
     group = get_object_or_404(Group, pk=pk)
-    if not user_is_member(request.user, group):
+    if not can_view_group(request.user, group):
         raise Http404
 
     locations = [
@@ -138,10 +140,10 @@ def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
     return JsonResponse({"locations": locations})
 
 
-@login_required
+@demo_or_login_required
 def group_players_search(request: HttpRequest, pk: int) -> JsonResponse:
     group = get_object_or_404(Group, pk=pk)
-    if not user_is_member(request.user, group):
+    if not can_view_group(request.user, group):
         raise Http404
 
     query = request.GET.get("q", "")

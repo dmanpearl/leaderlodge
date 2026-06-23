@@ -37,6 +37,7 @@
 - [x] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.
 - [x] Record Game: Default initial values to zero, so user doesn't have to enter a score if the player scored zero. However, do not do this for games like Progressive Rummy where lowest score wins.
 - [x] Bug: Mobile: Option menus for Player or Location are too high. Anchor suggestion lists to the field and flip within the viewport so typing + keyboard still work.
+- [x] Guest Mode: Must showcase Groups and +Add pages even though access is meaningless.
 
 ## Open Items
 

@@ -5,9 +5,19 @@
 {% block content %}
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
     <h1 class="h3 mb-0">Groups</h1>
-    <a href="{% url 'groups:create' %}" class="btn btn-primary">
-      <i class="bi bi-plus-lg"></i> Create Group
-    </a>
+    {% if is_guest_demo %}
+      <button
+        type="button"
+        class="btn btn-primary"
+        data-guest-login-prompt="{{ guest_login_prompt }}"
+      >
+        <i class="bi bi-plus-lg"></i> Create Group
+      </button>
+    {% else %}
+      <a href="{% url 'groups:create' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Create Group
+      </a>
+    {% endif %}
   </div>
 
   {% if groups %}
@@ -45,8 +55,20 @@
     <div class="card">
       <div class="card-body text-center py-5">
         <p class="text-muted mb-3">You are not in any groups yet.</p>
-        <a href="{% url 'groups:create' %}" class="btn btn-primary">Create your first group</a>
+        {% if is_guest_demo %}
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-guest-login-prompt="{{ guest_login_prompt }}"
+          >
+            Create your first group
+          </button>
+        {% else %}
+          <a href="{% url 'groups:create' %}" class="btn btn-primary">Create your first group</a>
+        {% endif %}
       </div>
     </div>
   {% endif %}
+
+  {% include "includes/guest_demo_notice.html" %}
 {% endblock %}

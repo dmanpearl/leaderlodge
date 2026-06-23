@@ -79,11 +79,22 @@
             </div>
           </div>
           <div class="mt-3">
-            <button type="submit" class="btn btn-outline-primary">Continue</button>
+            {% if is_guest_demo %}
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                data-guest-login-prompt="{{ guest_login_prompt }}"
+              >
+                Continue
+              </button>
+            {% else %}
+              <button type="submit" class="btn btn-outline-primary">Continue</button>
+            {% endif %}
           </div>
         </form>
       </div>
     </div>
+    {% include "includes/guest_demo_notice.html" %}
   {% endif %}
 
   {% if show_roster %}

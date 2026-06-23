@@ -78,6 +78,9 @@ def test_setup_demo_creates_group_and_imports(demo_group_seeded_once):
     group = demo_group_seeded_once
     assert group.is_demo is True
     assert group.created_by.username == "admin"
+    from leaderlodge.groups.demo import DEMO_GROUP_DESCRIPTION
+
+    assert group.description == DEMO_GROUP_DESCRIPTION
 
     for game_type, expected in EXPECTED_GAME_COUNTS.items():
         assert (

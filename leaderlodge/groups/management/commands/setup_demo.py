@@ -119,6 +119,12 @@ class Command(BaseCommand):
                 group.is_demo = True
                 group.save(update_fields=["is_demo"])
 
+        if group.description != DEMO_GROUP_DESCRIPTION:
+            updates.append("description")
+            if not dry_run:
+                group.description = DEMO_GROUP_DESCRIPTION
+                group.save(update_fields=["description"])
+
         if updates:
             action = "Would update" if dry_run else "Updated"
             self.stdout.write(f"{action} group {DEMO_GROUP_NAME!r}: {', '.join(updates)}.")

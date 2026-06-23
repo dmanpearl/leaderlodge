@@ -1,5 +1,4 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.http import Http404, HttpRequest, HttpResponse
@@ -26,6 +25,7 @@ from leaderlodge.groups.services import (
     can_edit_group,
     can_view_group,
     editable_groups,
+    get_demo_group,
     single_user_group,
     visible_groups,
 )
@@ -323,7 +323,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required
+@demo_or_login_required
 def game_create(request: HttpRequest) -> HttpResponse:
     show_roster = False
     participant_error = None
@@ -336,7 +336,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
         if action == "save":
             show_roster = True
             post_for_rows = request.POST
-        elif action == "load_roster" and form.is_valid():
+        elif action == "load_roster" and form.is_valid() and request.user.is_authenticated:
             show_roster = True
             persist_game_type_code(
                 request,
@@ -349,19 +349,31 @@ def game_create(request: HttpRequest) -> HttpResponse:
             initial["group"] = request.GET.get("group")
         elif preferred_group_id(request):
             initial["group"] = preferred_group_id(request)
-        elif not request.GET.get("setup"):
+        elif not request.GET.get("setup") and request.user.is_authenticated:
             single = _single_user_group(request.user)
             if single:
                 initial["group"] = single.pk
+        elif not request.GET.get("setup") and not request.user.is_authenticated:
+            demo = get_demo_group()
+            if demo is not None:
+                initial["group"] = demo.pk
         saved_game_type = preferred_game_type_code(request)
         if saved_game_type in GAME_TYPES:
             initial["game_type_code"] = saved_game_type
-        elif request.user.is_authenticated:
-            initial["game_type_code"] = game_type_choices()[0][0]
+        elif request.user.is_authenticated or get_demo_group() is not None:
+            choices = game_type_choices()
+            if choices:
+                initial["game_type_code"] = choices[0][0]
         form = GameRecordForm(user=request.user, initial=initial)
 
     group = _resolve_group(request, form)
-    if group and not can_edit_group(request.user, group):
+    if request.method == "POST" and group:
+        action = request.POST.get("action")
+        if action in ("load_roster", "save") and not can_edit_group(
+            request.user, group
+        ):
+            raise Http404
+    if show_roster and group and not can_edit_group(request.user, group):
         raise Http404
 
     if show_roster and group:
@@ -383,6 +395,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
             participant_rows = _participant_rows_from_post(group, post_for_rows)
 
     if request.method == "POST" and request.POST.get("action") == "save" and group:
+        if not request.user.is_authenticated:
+            raise Http404
         save_form = GameRecordForm(
             {
                 "group": request.POST.get("group"),

@@ -21,9 +21,19 @@
       <a href="{% url 'leaderboards:index' %}?group={{ group.pk }}" class="btn btn-outline-primary btn-sm">
         Leaderboard
       </a>
-      <a href="{% url 'games:create' %}?group={{ group.pk }}" class="btn btn-primary btn-sm">
-        Record Game
-      </a>
+      {% if is_guest_demo %}
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          data-guest-login-prompt="{{ guest_login_prompt }}"
+        >
+          Record Game
+        </button>
+      {% else %}
+        <a href="{% url 'games:create' %}?group={{ group.pk }}" class="btn btn-primary btn-sm">
+          Record Game
+        </a>
+      {% endif %}
     </div>
   </div>
 
@@ -65,6 +75,7 @@
         <p class="text-muted mb-4">No members yet.</p>
       {% endif %}
 
+      {% if not is_guest_demo %}
       <h2 class="h6">Add member</h2>
       {# TODO: Replace all-users dropdown with a secure, private, scalable invite method. #}
       <form method="post" action="{% url 'groups:member_add' group.pk %}" class="row g-2 align-items-start">
@@ -79,6 +90,7 @@
           <button type="submit" class="btn btn-primary">Add</button>
         </div>
       </form>
+      {% endif %}
     </div>
   </div>
 
@@ -205,6 +217,7 @@
         <p class="text-muted mb-4">Record a game to see player standings.</p>
       {% endif %}
 
+      {% if not is_guest_demo %}
       <h2 class="h6">Add guest</h2>
       <p class="text-muted small mb-2">
         No login — for someone who plays occasionally but doesn&apos;t have an account.
@@ -221,6 +234,9 @@
           <button type="submit" class="btn btn-primary">Add</button>
         </div>
       </form>
+      {% endif %}
     </div>
   </div>
+
+  {% include "includes/guest_demo_notice.html" %}
 {% endblock %}

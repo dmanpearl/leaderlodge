@@ -50,9 +50,12 @@
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
+    {% load static %}
     {% if user.is_authenticated %}
-      {% load static %}
       <script src="{% static 'js/account_menu.js' %}"></script>
+    {% endif %}
+    {% if is_guest_demo %}
+      <script src="{% static 'js/guest_demo.js' %}"></script>
     {% endif %}
     {% block extra_js %}{% endblock %}
   </body>

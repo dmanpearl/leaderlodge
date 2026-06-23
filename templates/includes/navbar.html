@@ -38,8 +38,6 @@
               Leaders
             </a>
           </li>
-        {% endif %}
-        {% if user.is_authenticated %}
           <li class="nav-item">
             <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'groups:list' %}">
               <i class="bi bi-people navbar-nav-icon" aria-hidden="true"></i>
@@ -47,7 +45,7 @@
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:create' %}{% if preferred_group_id %}?group={{ preferred_group_id }}{% endif %}">
+            <a class="nav-link d-inline-flex align-items-center gap-1" href="{% url 'games:create' %}{% if preferred_group_id %}?group={{ preferred_group_id }}{% elif demo_group %}?group={{ demo_group.pk }}{% endif %}">
               <i class="bi bi-plus-lg navbar-nav-icon" aria-hidden="true"></i>
               Add
             </a>
