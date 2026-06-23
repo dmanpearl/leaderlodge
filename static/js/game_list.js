@@ -60,8 +60,38 @@
     footer.classList.toggle("d-none", !overflowsViewport);
   }
 
+  function initTitleSelect() {
+    const select = document.getElementById("filter-game-type");
+    if (!select) {
+      return;
+    }
+
+    const measurer = document.createElement("span");
+    measurer.setAttribute("aria-hidden", "true");
+    measurer.style.cssText =
+      "position:absolute;visibility:hidden;white-space:nowrap;pointer-events:none;";
+    document.body.appendChild(measurer);
+
+    function resizeTitleSelect() {
+      const option = select.options[select.selectedIndex];
+      if (!option) {
+        return;
+      }
+
+      const style = window.getComputedStyle(select);
+      measurer.style.font = style.font;
+      measurer.textContent = option.text;
+      select.style.width = `${measurer.offsetWidth}px`;
+    }
+
+    resizeTitleSelect();
+    select.addEventListener("change", resizeTitleSelect);
+    window.addEventListener("resize", resizeTitleSelect);
+  }
+
   function init() {
     initStatsCollapse();
+    initTitleSelect();
     updateFooterHeader();
     window.addEventListener("resize", updateFooterHeader);
   }

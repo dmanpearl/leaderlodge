@@ -100,6 +100,43 @@
   background-color: #e9ecef;
 }
 
+.game-list-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.game-list-title-select {
+  width: auto;
+  max-width: calc(100% - 1.25rem);
+  font-size: calc(1.275rem + 0.3vw);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--bs-heading-color, inherit);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none;
+  background-color: transparent;
+  background-image: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.game-list-title-chevron {
+  font-size: 0.75em;
+  line-height: 1;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.game-list-title-select:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
 .game-list-stats-table td.game-list-stats-cell--best {
   background-color: #198754 !important;
   color: #fff !important;
@@ -171,7 +208,7 @@
   gap: 0.5rem !important;
 }
 
-.game-list-density--compact .game-list-page-header .h3 {
+.game-list-density--compact .game-list-page-header .game-list-title-select {
   font-size: 1.25rem;
 }
 
@@ -237,7 +274,7 @@
   gap: 0.25rem !important;
 }
 
-.game-list-density--dense .game-list-page-header .h3 {
+.game-list-density--dense .game-list-page-header .game-list-title-select {
   font-size: 1rem;
   font-weight: 600;
 }
