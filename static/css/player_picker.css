@@ -50,17 +50,70 @@
 }
 
 .game-record-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 28rem) max-content;
+  grid-template-rows: auto auto;
+  column-gap: 1rem;
+  row-gap: 0.35rem;
+  align-items: end;
   margin-top: 1.25rem;
 }
 
+.game-record-footer-label {
+  grid-column: 1;
+  grid-row: 1;
+  margin-bottom: 0;
+}
+
+.game-record-footer-field {
+  grid-column: 1;
+  grid-row: 2;
+  max-width: none;
+}
+
+.game-record-footer-save {
+  display: contents;
+}
+
+.game-record-footer .game-record-save {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: start;
+}
+
+.game-record-footer .game-record-feedback {
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: start;
+}
+
+@media (max-width: 767.98px) {
+  .game-record-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .game-record-footer-label {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .game-record-footer-field {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .game-record-footer .game-record-save {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .game-record-footer .game-record-feedback {
+    grid-column: 1;
+    grid-row: 4;
+  }
+}
+
 .game-record-save-col {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
   flex-shrink: 0;
 }
 
@@ -82,6 +135,10 @@
   flex: 1 1 14rem;
   max-width: 28rem;
   margin-bottom: 0;
+}
+
+.game-record-footer-field.player-picker-cta-wrap {
+  flex: none;
 }
 
 .player-picker-cta-label {

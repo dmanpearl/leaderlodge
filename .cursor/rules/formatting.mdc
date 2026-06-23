@@ -1,0 +1,34 @@
+---
+description: Run Black and Prettier on edited files before finishing
+alwaysApply: true
+---
+
+# Formatting
+
+When you edit files, format them before finishing the task. Do not ask the user to run formatters manually.
+
+## Python
+
+Run Black on every Python file you create or modify:
+
+```bash
+source venv/bin/activate
+black path/to/file.py
+```
+
+## CSS
+
+Run Prettier on CSS files you create or modify:
+
+```bash
+npx prettier --write path/to/file.css
+```
+
+Use project config from `.prettierrc`. Prefer formatting only the files you touched.
+
+## Do not Prettier-format
+
+- **Django templates** (`templates/**/*.html`) — breaks `{% %}` and `{{ }}` tags
+- **JavaScript** (`static/js/**/*.js`) — can break project conventions; format by hand
+
+These paths are listed in `.prettierignore`. Format templates and JS by hand to match surrounding style.
