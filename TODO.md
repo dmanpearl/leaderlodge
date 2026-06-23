@@ -28,20 +28,13 @@
 - [x] Game selection persistent storage or central location affecting all views. Use setting per logged in user. Add reset settings option. When user selects Record Game or Leaderboard, the current game type is maintained.
 - [x] Mah Jongg: Wall Game (aka Tie with all zeros): Verify Leaderboard behavior
 - [x] Tests (pytest): Make another pass at optimizing and speeding up tests. Remove redundant and unnecessary tests. Look for shared setup opportunities
+- [x] Rank Algorithm (Progressive Rummy): Unvested dampening via vesting^2 (not divide).
+      Descending sort like other game types. Half-game rank penalty deferred.
+      Zach: raw 4.0 x 0.518^2 = ~1.07, rank ~13 on manpearl (beats one-game losers).
 
 ## Open Items
 
 - [ ] Rank Algorithm: Determine if we are multiplying by place * points, place, or points. place * points could be better than place^1.5. Incorporating points in addition to place is a way to give more value to same place result with higher points. Evaluate best method and implement
-- [ ] Rank Algorithm (Progressive Rummy): Invert vesting for LOW_WINS — unvested players
-      should get rank_score inflated (~divide by vesting progress, not multiply).
-      Half games should double rank penalty for PR, not 0.5x weight in average.
-      May require ascending sort for PR (lower score = better rank).
-      Zach case: 1 half win, score 20, currently #2 in production at 2.07; target ~8.x penalized.
-      - Zach’s game (Apr 26, 2021, ½, scores 20/35/215/480)
-      - Current math: raw 4.0 × 0.518 = 2.07
-      - Intended math: raw 4.0 ÷ 0.518 ≈ 7.7, plus ×2 half penalty
-      - Open decision: ascending sort for PR vs display transform
-      - Explicitly not a tie-placement bug
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
 - [ ] Record Game: Location field: type-ahead doesn't allow sub-text of a saved location. Example: Doesn't allow 'Preston' if 'Preston - Passover' already exists.

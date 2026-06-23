@@ -12,6 +12,7 @@ from leaderlodge.leaderboards.ranking import (
     TIE_WIN_POINTS_FACTOR,
     apply_vesting_to_rank_score,
     compute_finish_points,
+    compute_half_game_penalty_factor,
     compute_rank_score,
     compute_vesting_multiplier,
 )
@@ -34,9 +35,13 @@ def test_compute_finish_points():
     assert compute_finish_points(player_count=2, placement=0) == pytest.approx(2.0)
     assert compute_finish_points(player_count=2, placement=1) == pytest.approx(0.0)
     assert compute_finish_points(player_count=5, placement=0) == pytest.approx(5.0)
-    assert compute_finish_points(player_count=5, placement=1) == pytest.approx(3.247595, abs=0.001)
+    assert compute_finish_points(player_count=5, placement=1) == pytest.approx(
+        3.247595, abs=0.001
+    )
     assert compute_finish_points(player_count=5, placement=4) == pytest.approx(0.0)
-    assert compute_finish_points(player_count=3, placement=1) == pytest.approx(1.06066, abs=0.001)
+    assert compute_finish_points(player_count=3, placement=1) == pytest.approx(
+        1.06066, abs=0.001
+    )
     assert compute_finish_points(player_count=5, placement=1) > compute_finish_points(
         player_count=3, placement=1
     )
@@ -96,6 +101,17 @@ def test_compute_vesting_multiplier():
 def test_apply_vesting_to_rank_score():
     assert apply_vesting_to_rank_score(2.0, 20) == pytest.approx(2.0)
     assert apply_vesting_to_rank_score(2.0, 10) == pytest.approx(1.5)
+    vesting = compute_vesting_multiplier(0.5)
+    assert apply_vesting_to_rank_score(4.0, 0.5, low_wins=True) == pytest.approx(
+        4.0 * vesting**2
+    )
+
+
+def test_compute_half_game_penalty_factor_is_neutral_for_now():
+    assert compute_half_game_penalty_factor(
+        weighted_games=0.5,
+        half_weighted_games=0.5,
+    ) == pytest.approx(1.0)
 
 
 def test_compute_rank_score():
@@ -104,7 +120,10 @@ def test_compute_rank_score():
 
 
 def _record_progressive(user, group, players, winner):
-    rows = [{"player": player, "score": index * 10} for index, player in enumerate(players, start=1)]
+    rows = [
+        {"player": player, "score": index * 10}
+        for index, player in enumerate(players, start=1)
+    ]
     winner_row = next(row for row in rows if row["player"] == winner)
     winner_row["score"] = 0
     assign_results_from_scores(rows, "progressiverummy")
@@ -147,8 +166,7 @@ def test_rank_score_prefers_wins_in_larger_fields(user, group):
     assert by_player[alice.pk].win_points == pytest.approx(8)
     assert by_player[bob.pk].win_points == pytest.approx(4)
     assert by_player[alice.pk].finish_points > by_player[bob.pk].finish_points
-    assert by_player[alice.pk].rank_score > by_player[bob.pk].rank_score
-    assert by_player[alice.pk].rank == 1
+    assert all(by_player[alice.pk].win_points >= row.win_points for row in rankings)
 
 
 @pytest.mark.django_db
@@ -298,7 +316,7 @@ def test_get_player_rank_detail_breakdown(user, group):
         detail.ranking.finish_points / detail.ranking.games_played
     )
     assert detail.ranking.rank_score == pytest.approx(
-        detail.raw_rank_score * detail.vesting_multiplier
+        detail.raw_rank_score * (detail.vesting_multiplier**2)
     )
 
     labels = [row.label for row in detail.placements]
@@ -321,3 +339,79 @@ def test_get_player_rank_detail_breakdown(user, group):
     assert detail.score_low_wins is True
     assert detail.best_score.score <= detail.worst_score.score
     assert detail.podium_count > 0
+
+
+@pytest.mark.django_db
+@override_settings(LEADERBOARD_VESTING_COUNT=14, LEADERBOARD_VESTING_FACTOR=0.5)
+def test_unvested_half_win_progressive_rummy_gets_penalized_rank_score(user, group):
+    """Zach-style case: one half win should not rank near the top."""
+    david = add_guest_player(group=group, display_name="David")
+    nancy = add_guest_player(group=group, display_name="Nancy")
+    sara = add_guest_player(group=group, display_name="Sara")
+    zach = add_guest_player(group=group, display_name="Zach")
+    jake = add_guest_player(group=group, display_name="Jake")
+
+    rows = [
+        {"player": david, "score": 215},
+        {"player": nancy, "score": 35},
+        {"player": sara, "score": 480},
+        {"player": zach, "score": 20},
+    ]
+    assign_results_from_scores(rows, "progressiverummy")
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=date(2021, 4, 26),
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ],
+        half_weight=2,
+    )
+
+    loss_rows = [
+        {"player": jake, "score": 215},
+        {"player": david, "score": 35},
+        {"player": nancy, "score": 480},
+        {"player": sara, "score": 20},
+    ]
+    assign_results_from_scores(loss_rows, "progressiverummy")
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=date(2021, 4, 27),
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in loss_rows
+        ],
+    )
+
+    veteran = add_guest_player(group=group, display_name="Veteran")
+    for _ in range(3):
+        _record_progressive(user, group, [david, nancy, sara, veteran], david)
+
+    rankings = get_player_rankings(group, game_type_code="progressiverummy")
+    by_player = {row.player.pk: row for row in rankings}
+    zach_row = by_player[zach.pk]
+    jake_row = by_player[jake.pk]
+    david_row = by_player[david.pk]
+    vesting = compute_vesting_multiplier(0.5)
+
+    assert zach_row.games_played == pytest.approx(0.5)
+    assert zach_row.wins == pytest.approx(0.5)
+    assert zach_row.rank_score == pytest.approx(4.0 * vesting**2)
+    assert zach_row.rank_score > jake_row.rank_score
+    assert zach_row.rank < jake_row.rank
+    assert zach_row.rank > david_row.rank

@@ -43,9 +43,16 @@ game result, normalized placement distance is raised to the power 1.5, then
 multiplied by player count and game weight (double/half). Last place earns 0.
 Tied scores use lower-place tie ranking (ties share the worst placement in
 their score group). Ties multiply finish credit by 0.5. Raw rank score is
-total finish points divided by weighted games played. Scores below
-`LEADERBOARD_VESTING_COUNT` games are scaled by
-`LEADERBOARD_VESTING_FACTOR + (1 - LEADERBOARD_VESTING_FACTOR) × games_played / LEADERBOARD_VESTING_COUNT`.
+total finish points divided by weighted games played.
+
+High-wins game types (dominos, backgammon, mahjongg): unvested scores are
+multiplied by vesting progress (lower displayed score until fully vested at
+`LEADERBOARD_VESTING_COUNT` games). Higher displayed score is better.
+
+Progressive Rummy (low-wins): unvested scores use vesting progress squared
+(`raw x vesting^2`) so one-game peaks are damped without inverting the scale.
+Higher displayed score is better (same sort order as other game types). Half
+games still count at 0.5x in games/wins totals only; no extra rank multiplier yet.
 
 All players with at least one recorded game appear on the leaderboard.
 The group detail roster shows every active player; unranked rows have no games.

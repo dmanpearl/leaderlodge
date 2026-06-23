@@ -27,10 +27,12 @@ from leaderlodge.leaderboards.ranking import (
     TIE_WIN_POINTS_FACTOR,
     apply_vesting_to_rank_score,
     compute_finish_points,
+    compute_half_game_penalty_factor,
     compute_percentage,
     compute_rank_score,
     compute_vesting_multiplier,
     ordinal_place_label,
+    rank_score_sort_key,
 )
 
 if TYPE_CHECKING:
@@ -89,6 +91,7 @@ class PlayerRankDetail:
     vesting_multiplier: float
     vesting_count: int
     vesting_factor: float
+    half_game_penalty: float
     placements: tuple[PlacementBreakdown, ...]
     loss_game_count: int
     loss_games_by_field_size: tuple[FieldSizeGameCount, ...]
@@ -128,12 +131,16 @@ def _update_score_highlight(
     if low_wins:
         if score < best.score or (score == best.score and played_on < best.played_on):
             best = highlight
-        if score > worst.score or (score == worst.score and played_on > worst.played_on):
+        if score > worst.score or (
+            score == worst.score and played_on > worst.played_on
+        ):
             worst = highlight
     else:
         if score > best.score or (score == best.score and played_on < best.played_on):
             best = highlight
-        if score < worst.score or (score == worst.score and played_on > worst.played_on):
+        if score < worst.score or (
+            score == worst.score and played_on > worst.played_on
+        ):
             worst = highlight
     return best, worst
 
@@ -167,7 +174,11 @@ def get_player_rank_detail(
         return None
 
     placement_stats: dict[int, dict[str, object]] = defaultdict(
-        lambda: {"weighted_count": 0.0, "finish_points": 0.0, "by_size": defaultdict(float)}
+        lambda: {
+            "weighted_count": 0.0,
+            "finish_points": 0.0,
+            "by_size": defaultdict(float),
+        }
     )
     loss_games_by_size: dict[int, int] = defaultdict(int)
     loss_game_count = 0
@@ -182,6 +193,7 @@ def get_player_rank_detail(
     half_game_count = 0
     podium_count = 0
     weighted_games = 0.0
+    half_weighted_games = 0.0
     weighted_field_size = 0.0
     weighted_score_total = 0.0
     best_score: ScoreHighlight | None = None
@@ -191,6 +203,8 @@ def get_player_rank_detail(
         game = result.game
         played_on = game.played_on
         weight = game.double_weight / game.half_weight
+        if game.half_weight == 2:
+            half_weighted_games += weight
         player_count = game.player_count
         placement = result.placement if result.placement is not None else 0
         game_count += 1
@@ -208,7 +222,10 @@ def get_player_rank_detail(
         elif result.result == GameParticipantResult.Result.TIE:
             tie_count += 1
 
-        if game_type.supports_loser and result.result == GameParticipantResult.Result.LOSS:
+        if (
+            game_type.supports_loser
+            and result.result == GameParticipantResult.Result.LOSS
+        ):
             loss_game_count += 1
             loss_games_by_size[player_count] += 1
             if first_loss_date is None or played_on < first_loss_date:
@@ -266,7 +283,10 @@ def get_player_rank_detail(
     if ranking_row is None:
         return None
 
-    rankings = _assign_ranks([row for row in standings if row.games_played > 0])
+    rankings = _assign_ranks(
+        [row for row in standings if row.games_played > 0],
+        low_wins=low_wins,
+    )
     rank_by_player = {row.player.pk: row.rank for row in rankings}
     ranking = replace(ranking_row, rank=rank_by_player.get(player.pk))
 
@@ -275,6 +295,10 @@ def get_player_rank_detail(
         games_played=ranking.games_played,
     )
     vesting_multiplier = compute_vesting_multiplier(ranking.games_played)
+    half_game_penalty = compute_half_game_penalty_factor(
+        weighted_games=weighted_games,
+        half_weighted_games=half_weighted_games,
+    )
 
     placements: list[PlacementBreakdown] = []
     for placement in sorted(placement_stats):
@@ -304,6 +328,7 @@ def get_player_rank_detail(
         vesting_multiplier=vesting_multiplier,
         vesting_count=settings.LEADERBOARD_VESTING_COUNT,
         vesting_factor=settings.LEADERBOARD_VESTING_FACTOR,
+        half_game_penalty=half_game_penalty,
         placements=tuple(placements),
         loss_game_count=loss_game_count,
         loss_games_by_field_size=loss_games_by_field_size,
@@ -358,7 +383,8 @@ def get_player_rankings(
             location_id=location_id,
         )
         active = [row for row in standings if row.games_played > 0]
-        rankings.extend(_assign_ranks(active))
+        low_wins = get_game_type(code).score_direction == ScoreDirection.LOW_WINS
+        rankings.extend(_assign_ranks(active, low_wins=low_wins))
 
     return rankings
 
@@ -378,8 +404,7 @@ def get_group_roster_standings(
     from leaderlodge.groups.models import GroupPlayer
 
     stats_by_player = {
-        row.player.pk: row
-        for row in _standings_for_game_type(group, game_type_code)
+        row.player.pk: row for row in _standings_for_game_type(group, game_type_code)
     }
     game_type = get_game_type(game_type_code)
 
@@ -391,13 +416,11 @@ def get_group_roster_standings(
         rows.append(row)
 
     eligible = [row for row in rows if row.games_played > 0]
-    ranked = _assign_ranks(eligible)
+    low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
+    ranked = _assign_ranks(eligible, low_wins=low_wins)
     rank_by_player = {row.player.pk: row.rank for row in ranked}
 
-    merged = [
-        replace(row, rank=rank_by_player.get(row.player.pk))
-        for row in rows
-    ]
+    merged = [replace(row, rank=rank_by_player.get(row.player.pk)) for row in rows]
     return sort_standings(merged, sort=sort, ascending=ascending)
 
 
@@ -522,6 +545,7 @@ def _standings_for_game_type(
     from leaderlodge.groups.models import GroupPlayer
 
     game_type = get_game_type(game_type_code)
+    low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
 
     results_qs = GameParticipantResult.objects.filter(
         game__group=group,
@@ -535,9 +559,17 @@ def _standings_for_game_type(
     tie_points_expr = player_count * weight * Value(TIE_WIN_POINTS_FACTOR)
 
     finish_points_expr = _finish_points_expression()
+    half_weighted_games_expr = Sum(
+        Case(
+            When(game__half_weight=2, then=weight),
+            default=Value(0.0),
+            output_field=FloatField(),
+        )
+    )
 
     stats = results_qs.values("player_id").annotate(
         games_played=Sum(weight),
+        half_weighted_games=half_weighted_games_expr,
         wins=Sum(weight, filter=Q(result=GameParticipantResult.Result.WIN)),
         losses=Sum(weight, filter=Q(result=GameParticipantResult.Result.LOSS)),
         win_point_wins=Sum(
@@ -572,7 +604,16 @@ def _standings_for_game_type(
             points_total=finish_points,
             games_played=games_played,
         )
-        rank_score = apply_vesting_to_rank_score(raw_rank_score, games_played)
+        half_game_penalty = compute_half_game_penalty_factor(
+            weighted_games=games_played,
+            half_weighted_games=float(row["half_weighted_games"] or 0),
+        )
+        rank_score = apply_vesting_to_rank_score(
+            raw_rank_score,
+            games_played,
+            low_wins=low_wins,
+            half_game_penalty=half_game_penalty,
+        )
         rows.append(
             PlayerRanking(
                 player=player,
@@ -608,17 +649,15 @@ def _empty_player_ranking(player: GroupPlayer, game_type) -> PlayerRanking:
     )
 
 
-def _default_standings_sort_key(row: PlayerRanking) -> tuple:
-    return (
-        -row.rank_score,
-        -row.games_played,
-        -row.finish_points,
-        row.player.display_label.lower(),
+def _assign_ranks(
+    rows: list[PlayerRanking],
+    *,
+    low_wins: bool = False,
+) -> list[PlayerRanking]:
+    ordered = sorted(
+        rows,
+        key=lambda row: rank_score_sort_key(row, low_wins=low_wins),
     )
-
-
-def _assign_ranks(rows: list[PlayerRanking]) -> list[PlayerRanking]:
-    ordered = sorted(rows, key=_default_standings_sort_key)
     ranked: list[PlayerRanking] = []
     for index, row in enumerate(ordered, start=1):
         ranked.append(replace(row, rank=index))

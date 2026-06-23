@@ -57,9 +57,14 @@
         </dd>
 
         {% if detail.vesting_multiplier != 1 %}
-          <dt class="col-7 col-sm-5">Vested score</dt>
+          <dt class="col-7 col-sm-5">Adjusted score</dt>
           <dd class="col-5 col-sm-7">
-            {{ detail.raw_rank_score|floatformat:2 }} &times; {{ detail.vesting_multiplier|floatformat:3 }}
+            {% if detail.score_low_wins %}
+              {{ detail.raw_rank_score|floatformat:2 }}
+              &times; {{ detail.vesting_multiplier|floatformat:3 }}^2
+            {% else %}
+              {{ detail.raw_rank_score|floatformat:2 }} &times; {{ detail.vesting_multiplier|floatformat:3 }}
+            {% endif %}
             = {{ detail.ranking.rank_score|floatformat:2 }}
           </dd>
         {% endif %}
@@ -82,9 +87,8 @@
       </dl>
       <p class="text-muted small mb-0 mt-3">
         Each finish earns field-weighted placement points (distance ratio
-        <sup>{{ detail.finish_points_exponent }}</sup>). Score is the average finish
-        points per weighted game, scaled by vesting when game count is below
-        {{ detail.vesting_count }}. Wins, losses, and games above use weighted counts
+        ^{{ detail.finish_points_exponent }}). Score is the average finish
+        points per weighted game{% if detail.score_low_wins %}, multiplied by vesting progress squared when game count is below {{ detail.vesting_count }} (stronger dampening for unvested players){% else %}, scaled by vesting when game count is below {{ detail.vesting_count }}{% endif %}. Wins, losses, and games above use weighted counts
         (half games count as 0.5) to match the leaderboard.
       </p>
     </div>

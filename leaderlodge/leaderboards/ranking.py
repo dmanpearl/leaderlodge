@@ -95,11 +95,53 @@ def compute_linear_vesting_multiplier(
     return vesting_factor * games_played / vesting_count
 
 
+LOW_WINS_VESTING_EXPONENT = 2.0
+
+
+def compute_half_game_penalty_factor(
+    *,
+    weighted_games: float,
+    half_weighted_games: float,
+) -> float:
+    """
+    Reserved for a future Progressive Rummy half-game rank adjustment.
+
+    Half games still count at 0.5x in games/wins/finish totals; rank score does
+    not apply an extra multiplier yet.
+    """
+    return 1.0
+
+
 def apply_vesting_to_rank_score(
     raw_rank_score: float,
     games_played: float,
+    *,
+    low_wins: bool = False,
+    half_game_penalty: float = 1.0,
 ) -> float:
-    return raw_rank_score * compute_vesting_multiplier(games_played)
+    vesting_multiplier = compute_vesting_multiplier(games_played)
+    if vesting_multiplier <= 0:
+        return 0.0
+
+    if low_wins:
+        return raw_rank_score * (vesting_multiplier**LOW_WINS_VESTING_EXPONENT)
+
+    return raw_rank_score * vesting_multiplier
+
+
+def rank_score_sort_key(
+    row,
+    *,
+    low_wins: bool = False,
+) -> tuple:
+    """Sort key for rank assignment: higher rank score is better."""
+    del low_wins
+    return (
+        -row.rank_score,
+        -row.games_played,
+        -row.finish_points,
+        row.player.display_label.lower(),
+    )
 
 
 def compute_percentage(numerator: float, denominator: float) -> float:
