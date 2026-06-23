@@ -138,7 +138,7 @@
       if (minPlayers === maxPlayers) {
         return `Enter a score for each player (${current} of ${minPlayers}).`;
       }
-      return `Enter a score for each player (${current} of ${minPlayers}–${maxPlayers}).`;
+      return `Enter a score for each player (${current} of ${minPlayers}-${maxPlayers}).`;
     }
     return "";
   }
@@ -205,7 +205,7 @@
       if (countMessage) {
         setFeedback(feedback, countMessage, "warning");
       } else if (evaluation.isDouble) {
-        setFeedback(feedback, "Double game — counts as 2 in standings.", "info");
+        setFeedback(feedback, "Double game: counts as 2 in standings.", "info");
       } else {
         setFeedback(feedback, "", "none");
       }

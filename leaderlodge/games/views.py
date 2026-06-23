@@ -394,11 +394,11 @@ def game_create(request: HttpRequest) -> HttpResponse:
             initial["group"] = request.GET.get("group")
         elif preferred_group_id(request):
             initial["group"] = preferred_group_id(request)
-        elif not request.GET.get("setup") and request.user.is_authenticated:
+        elif request.user.is_authenticated:
             single = _single_user_group(request.user)
             if single:
                 initial["group"] = single.pk
-        elif not request.GET.get("setup") and not request.user.is_authenticated:
+        elif not request.user.is_authenticated:
             demo = get_demo_group()
             if demo is not None:
                 initial["group"] = demo.pk

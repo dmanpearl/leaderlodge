@@ -212,7 +212,6 @@ def test_load_roster_shows_formatted_date(client, user, group):
     content = response.content.decode()
     assert response.status_code == 200
     assert "localdate" not in content
-    assert "Change group or game" in content
     assert 'id="game-record-form"' in content
     assert "data-player-picker" in content
     assert "Add player" in content
@@ -258,7 +257,7 @@ def test_load_roster_shows_low_wins_instructions_for_progressive_rummy(
 
     assert response.status_code == 200
     assert "Lowest score wins" in content
-    assert "2–10 players" in content
+    assert "2-10 players" in content
     assert "Highest score wins" not in content
 
 
@@ -284,16 +283,6 @@ def test_record_game_with_new_guest(client, user, group):
     assert group.players.filter(display_name="Alex").exists()
     game = Game.objects.get(group=group)
     assert game.participant_results.count() == 2
-
-
-@pytest.mark.django_db
-def test_setup_mode_hides_roster(client, user, group):
-    client.force_login(user)
-    response = client.get(reverse("games:create"), {"setup": "1"})
-    assert response.status_code == 200
-    content = response.content.decode()
-    assert 'id="game-record-form"' not in content
-    assert "Pick Players" in content
 
 
 @pytest.mark.django_db

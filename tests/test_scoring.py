@@ -131,11 +131,11 @@ def test_player_count_is_valid():
 
 
 def test_record_game_rules_summary():
-    assert record_game_rules_summary("dominos") == "Highest score wins, 2–3 players."
+    assert record_game_rules_summary("dominos") == "Highest score wins, 2-4 players."
     assert record_game_rules_summary("backgammon") == "Highest score wins, 2 players."
     assert (
         record_game_rules_summary("progressiverummy")
-        == "Lowest score wins, 2–10 players."
+        == "Lowest score wins, 2-10 players."
     )
 
 

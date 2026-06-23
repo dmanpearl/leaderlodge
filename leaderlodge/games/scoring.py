@@ -142,7 +142,7 @@ def record_game_rules_summary(game_type_code: str) -> str:
     if game_type.min_players == game_type.max_players:
         players_text = f"{game_type.min_players} players"
     else:
-        players_text = f"{game_type.min_players}–{game_type.max_players} players"
+        players_text = f"{game_type.min_players}-{game_type.max_players} players"
     return f"{win_text}, {players_text}."
 
 

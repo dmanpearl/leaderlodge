@@ -44,8 +44,10 @@
 
 ## Open Items
 
+- [ ] Record Game view: "Type player name" and "Save" buttons should be vertically justified. Instead, "Save" is too high. It is vertically top justified with the "Add Players" label.
+
 - [ ] Navbar Mobile: Instead of drop-down menu of items, display Games, Leaders, Groups, and Add as icons only for limited width environments
-- [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile)
+- [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
 - [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [ ] Mobile Native Controls: Explore controls that can be converted to native as we did for the Player and Location drop-downs.
 - [ ] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
@@ -58,6 +60,5 @@
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
 - [ ] Stats view: Spin-up/Spin-down control is wrong. Should be down/right, not down/up.
 - [ ] Game detail view (maybe)
-- [ ] Calculate leaderboards
-- [ ] Filter leaderboards (month, game)
+- [ ] Filter leaderboards by year and month
 - [ ] Merge similar locations tool
