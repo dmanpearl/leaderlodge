@@ -30,8 +30,24 @@ nav.navbar.bg-primary .navbar-nav .nav-link {
   padding-bottom: 0.3125rem;
 }
 
-nav.navbar.bg-primary .navbar-toggler {
-  padding: 0.25rem 0.5625rem;
+nav.navbar.bg-primary .navbar-nav-main .nav-link {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+  nav.navbar.bg-primary .navbar-nav-main .nav-link {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+
+  nav.navbar.bg-primary .navbar-nav-main .navbar-nav-icon {
+    font-size: 1.25em;
+  }
+
+  nav.navbar.bg-primary .navbar-brand-text {
+    font-size: 1rem;
+  }
 }
 
 .navbar-dark .navbar-user-icon,
