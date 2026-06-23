@@ -54,7 +54,7 @@
     <div class="card">
       <div class="card-body text-center py-5">
         <p class="text-muted mb-3">No games recorded for {{ selected_group.name }} yet.</p>
-        <a href="{% url 'games:create' %}?group={{ selected_group.pk }}" class="btn btn-primary">Record a game</a>
+        <a href="{% url 'games:create' %}?group={{ selected_group.pk }}{% if selected_game_type_code %}&game_type_code={{ selected_game_type_code }}{% endif %}" class="btn btn-primary">Record a game</a>
       </div>
     </div>
   {% elif rankings %}

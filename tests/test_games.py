@@ -258,7 +258,7 @@ def test_load_roster_shows_low_wins_instructions_for_progressive_rummy(
 
     assert response.status_code == 200
     assert "Lowest score wins" in content
-    assert "Highest score loses" in content
+    assert "2–10 players" in content
     assert "Highest score wins" not in content
 
 
@@ -525,6 +525,103 @@ def test_reuse_roster_stays_on_setup_without_previous_game(client, user, group):
     assert response.status_code == 200
     assert "Pick Players" in content
     assert "Type player name" not in content
+
+
+@pytest.mark.django_db
+def test_reuse_roster_does_not_use_other_game_type(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _save_game_post(group, game_type_code="dominos"))
+
+    response = client.post(
+        reverse("games:create"),
+        _reuse_roster_post(group, game_type_code="progressiverummy"),
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "Pick Players" in content
+    assert "Type player name" not in content
+    assert "No previous game found" in content
+
+
+@pytest.mark.django_db
+def test_reuse_roster_uses_progressive_rummy_not_dominos(client, user, group):
+    from datetime import date
+
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.groups.services import add_guest_player
+
+    add_guest_player(group=group, display_name="Alex")
+    players = list(group.players.order_by("pk")[:3])
+    client.force_login(user)
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 3, 1),
+        participants=[
+            ParticipantInput(
+                player=players[0], score=30, result="win", placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=20, result="played", placement=1
+            ),
+        ],
+    )
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=date(2026, 2, 1),
+        participants=[
+            ParticipantInput(
+                player=players[0], score=10, result="win", placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=20, result="played", placement=1
+            ),
+            ParticipantInput(
+                player=players[2], score=30, result="loss", placement=2
+            ),
+        ],
+    )
+
+    response = client.post(
+        reverse("games:create"),
+        _reuse_roster_post(group, game_type_code="progressiverummy"),
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "Progressive Rummy" in content
+    assert players[2].display_label in content
+    assert content.count('data-game-row') == 3
+
+
+@pytest.mark.django_db
+def test_record_game_setup_honors_game_type_query_param(client, user, group):
+    from leaderlodge.accounts.game_selection import (
+        GAME_SELECTION_NAMESPACE,
+        GAME_TYPE_CODE_KEY,
+    )
+    from leaderlodge.accounts.ui_settings import set_ui_settings
+
+    set_ui_settings(
+        user,
+        GAME_SELECTION_NAMESPACE,
+        {GAME_TYPE_CODE_KEY: "dominos"},
+    )
+    client.force_login(user)
+
+    response = client.get(
+        reverse("games:create"),
+        {"group": str(group.pk), "game_type": "progressiverummy"},
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert 'value="progressiverummy" selected' in content
+    assert 'value="dominos" selected' not in content
 
 
 @pytest.mark.django_db

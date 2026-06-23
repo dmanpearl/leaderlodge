@@ -1,18 +1,30 @@
 """Load participants from the most recent game for a group and game type."""
 
 from leaderlodge.games.models import Game
+from leaderlodge.games.registry import GAME_TYPES
 from leaderlodge.groups.models import Group
+
+
+def most_recent_game(group: Group, game_type_code: str) -> Game | None:
+    """Latest game for this exact group and game type, or None."""
+    if game_type_code not in GAME_TYPES:
+        return None
+
+    return (
+        Game.objects.filter(
+            group_id=group.pk,
+            game_type_code=game_type_code,
+        )
+        .order_by("-played_on", "-created_at", "-pk")
+        .first()
+    )
 
 
 def previous_game_participant_rows(
     group: Group, game_type_code: str
 ) -> list[dict]:
     """Players from the latest game for this exact group and game type."""
-    game = (
-        Game.objects.filter(group=group, game_type_code=game_type_code)
-        .order_by("-played_on", "-pk")
-        .first()
-    )
+    game = most_recent_game(group, game_type_code)
     if game is None:
         return []
 

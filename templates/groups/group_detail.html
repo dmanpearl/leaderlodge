@@ -30,7 +30,7 @@
           Record Game
         </button>
       {% else %}
-        <a href="{% url 'games:create' %}?group={{ group.pk }}" class="btn btn-primary btn-sm">
+        <a href="{% url 'games:create' %}?group={{ group.pk }}{% if selected_game_type_code %}&game_type_code={{ selected_game_type_code }}{% endif %}" class="btn btn-primary btn-sm">
           Record Game
         </a>
       {% endif %}

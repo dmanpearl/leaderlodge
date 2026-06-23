@@ -16,18 +16,25 @@
   let fetchTimer = null;
   let fetchId = 0;
 
+  function clearReuseAction() {
+    button.disabled = true;
+    summary.textContent = "";
+  }
+
   async function updateReuseAction() {
     const groupId = groupSelect.value;
     const gameType = gameSelect.value;
     if (!groupId || !gameType) {
-      button.disabled = true;
-      summary.textContent = "";
+      clearReuseAction();
       return;
     }
 
     const requestId = ++fetchId;
     try {
-      const params = new URLSearchParams({ group: groupId, game_type: gameType });
+      const params = new URLSearchParams({
+        group: groupId,
+        game_type_code: gameType,
+      });
       const response = await fetch(`${previewUrl}?${params.toString()}`, {
         headers: { Accept: "application/json" },
       });
@@ -42,13 +49,13 @@
       summary.textContent = data.available ? data.summary : "";
     } catch (_error) {
       if (requestId === fetchId) {
-        button.disabled = true;
-        summary.textContent = "";
+        clearReuseAction();
       }
     }
   }
 
   function scheduleUpdate() {
+    clearReuseAction();
     window.clearTimeout(fetchTimer);
     fetchTimer = window.setTimeout(updateReuseAction, 150);
   }

@@ -3,7 +3,11 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from datetime import date
 
-from leaderlodge.games.reuse_players import previous_game_participant_rows, reuse_players_summary
+from leaderlodge.games.reuse_players import (
+    most_recent_game,
+    previous_game_participant_rows,
+    reuse_players_summary,
+)
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 
@@ -57,6 +61,52 @@ def test_previous_game_participant_rows_returns_latest_game(user, group):
         players[1].display_label,
         players[0].display_label,
     ]
+
+
+@pytest.mark.django_db
+def test_most_recent_game_is_scoped_by_group_and_game_type(user, group):
+    players = list(group.players.order_by("pk")[:2])
+    other_group = create_group_with_owner(user=user, name="Other Club")
+    add_guest_player(group=other_group, display_name="Alex")
+
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 1, 1),
+        participants=[
+            ParticipantInput(
+                player=players[0], score=30, result="win", placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=20, result="played", placement=1
+            ),
+        ],
+    )
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="backgammon",
+        played_on=date(2026, 2, 1),
+        participants=[
+            ParticipantInput(
+                player=players[1], score=1, result="win", placement=0
+            ),
+            ParticipantInput(
+                player=players[0], score=0, result="played", placement=1
+            ),
+        ],
+    )
+
+    dominos_game = most_recent_game(group, "dominos")
+    backgammon_game = most_recent_game(group, "backgammon")
+    other_group_game = most_recent_game(other_group, "dominos")
+
+    assert dominos_game is not None
+    assert dominos_game.game_type_code == "dominos"
+    assert backgammon_game is not None
+    assert backgammon_game.game_type_code == "backgammon"
+    assert other_group_game is None
 
 
 @pytest.mark.django_db
@@ -147,7 +197,7 @@ def test_game_reuse_preview_endpoint(client, user, group):
     client.force_login(user)
     response = client.get(
         reverse("games:reuse_preview"),
-        {"group": str(group.pk), "game_type": "dominos"},
+        {"group": str(group.pk), "game_type_code": "dominos"},
     )
     assert response.status_code == 200
     data = response.json()

@@ -133,19 +133,21 @@ def default_participant_score_value(game_type_code: str) -> str:
     return "0"
 
 
-def scoring_instructions(game_type_code: str) -> str:
+def record_game_rules_summary(game_type_code: str) -> str:
     game_type = get_game_type(game_type_code)
     if game_type.score_direction == ScoreDirection.LOW_WINS:
-        win_text = "Lowest score wins; tied low scores are a tie"
-        loss_text = "Highest score loses; tied high scores are all losses"
+        win_text = "Lowest score wins"
     else:
-        win_text = "Highest score wins; tied high scores are a tie"
-        loss_text = "Lowest score loses; tied low scores are all losses"
+        win_text = "Highest score wins"
+    if game_type.min_players == game_type.max_players:
+        players_text = f"{game_type.min_players} players"
+    else:
+        players_text = f"{game_type.min_players}–{game_type.max_players} players"
+    return f"{win_text}, {players_text}."
 
-    parts = [win_text]
-    if game_type.supports_loser:
-        parts.append(loss_text)
-    return ". ".join(parts) + "."
+
+def scoring_instructions(game_type_code: str) -> str:
+    return record_game_rules_summary(game_type_code)
 
 
 assign_winner_loser_from_scores = assign_results_from_scores

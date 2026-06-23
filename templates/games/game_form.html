@@ -6,7 +6,7 @@
 {% block extra_css %}
   {% if show_roster %}
     <link rel="stylesheet" href="{% static 'css/games.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=9" />
+    <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=10" />
   {% else %}
     <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}" />
     <link rel="stylesheet" href="{% static 'css/game_setup.css' %}" />
@@ -117,17 +117,12 @@
 
   {% if show_roster %}
     <div class="card">
-      <div class="card-header">{{ game_type.name }} results</div>
       <div class="card-body">
         {% if participant_error %}
           <div class="alert alert-danger">{{ participant_error }}</div>
         {% endif %}
 
-        <p class="text-muted small">
-          Enter scores for each player.
-          {{ scoring_instructions }}
-          {{ game_type.name }} requires {{ game_type.min_players }} to {{ game_type.max_players }} players.
-        </p>
+        <p class="text-muted small mb-3">{{ game_rules_summary }}</p>
 
         <form
           method="post"
@@ -148,8 +143,6 @@
 
           {{ roster|json_script:"game-roster-data" }}
 
-          <div class="alert alert-warning d-none small py-2" data-score-feedback role="status"></div>
-
           <div class="table-responsive">
             <table class="table table-striped align-middle">
               <thead>
@@ -160,6 +153,9 @@
                 </tr>
               </thead>
               <tbody data-participant-rows>
+                <tr data-participant-empty class="text-muted{% if participant_rows %} d-none{% endif %}">
+                  <td colspan="3">No players yet — add players below.</td>
+                </tr>
                 {% for row in participant_rows %}
                   <tr
                     data-game-row
@@ -223,9 +219,12 @@
                 />
               </div>
             </div>
-            <button type="submit" class="btn btn-primary btn-lg game-record-save" data-save-button disabled>
-              Save game
-            </button>
+            <div class="game-record-save-col">
+              <button type="submit" class="btn btn-primary btn-lg game-record-save" data-save-button disabled>
+                Save game
+              </button>
+              <div class="game-record-feedback small" data-score-feedback role="status" aria-live="polite"></div>
+            </div>
           </div>
         </form>
       </div>
@@ -235,7 +234,7 @@
 
 {% block extra_js %}
   {% if show_roster %}
-    <script src="{% static 'js/game_record_form.js' %}?v=4"></script>
+    <script src="{% static 'js/game_record_form.js' %}?v=5"></script>
     <script src="{% static 'js/player_picker.js' %}?v=9"></script>
   {% else %}
     <script>
@@ -243,7 +242,7 @@
     </script>
     <script src="{% static 'js/location_autocomplete.js' %}?v=4"></script>
     {% if not is_guest_demo %}
-      <script src="{% static 'js/game_setup_reuse.js' %}?v=2"></script>
+      <script src="{% static 'js/game_setup_reuse.js' %}?v=3"></script>
     {% endif %}
   {% endif %}
 {% endblock %}

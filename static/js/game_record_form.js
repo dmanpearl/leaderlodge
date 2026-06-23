@@ -125,12 +125,49 @@
     });
   }
 
+  function formatPlayerCountFeedback(minPlayers, maxPlayers, current) {
+    if (current <= 0) {
+      return "";
+    }
+    if (current > maxPlayers) {
+      const extra = current - maxPlayers;
+      const noun = extra === 1 ? "player" : "players";
+      return `Too many scores entered (${current}; ${maxPlayers} max). Remove ${extra} ${noun}.`;
+    }
+    if (current < minPlayers) {
+      if (minPlayers === maxPlayers) {
+        return `Enter a score for each player (${current} of ${minPlayers}).`;
+      }
+      return `Enter a score for each player (${current} of ${minPlayers}–${maxPlayers}).`;
+    }
+    return "";
+  }
+
+  function updateEmptyRow(form) {
+    const tbody = form.querySelector("[data-participant-rows]");
+    const emptyRow = tbody ? tbody.querySelector("[data-participant-empty]") : null;
+    if (!tbody || !emptyRow) {
+      return;
+    }
+    const hasPlayers = tbody.querySelector("[data-game-row]") !== null;
+    emptyRow.classList.toggle("d-none", hasPlayers);
+  }
+
+  function setFeedback(feedback, message, tone) {
+    if (!feedback) {
+      return;
+    }
+    feedback.textContent = message;
+    feedback.dataset.tone = tone;
+  }
+
   function updateForm(form) {
     if (!form) {
       return;
     }
 
     materializeInitialScores(form);
+    updateEmptyRow(form);
 
     const minPlayers = Number.parseInt(form.dataset.minPlayers, 10);
     const maxPlayers = Number.parseInt(form.dataset.maxPlayers, 10);
@@ -160,19 +197,17 @@
     }
 
     if (feedback) {
-      if (!countOk && evaluation.playerCount > 0) {
-        feedback.textContent = `Enter scores for ${minPlayers} to ${maxPlayers} players. Currently ${evaluation.playerCount}.`;
-        feedback.classList.remove("d-none");
+      const countMessage = formatPlayerCountFeedback(
+        minPlayers,
+        maxPlayers,
+        evaluation.playerCount
+      );
+      if (countMessage) {
+        setFeedback(feedback, countMessage, "warning");
       } else if (evaluation.isDouble) {
-        feedback.textContent = "Double game — counts as 2 in standings.";
-        feedback.classList.remove("d-none");
-        feedback.classList.remove("alert-warning");
-        feedback.classList.add("alert-info");
+        setFeedback(feedback, "Double game — counts as 2 in standings.", "info");
       } else {
-        feedback.textContent = "";
-        feedback.classList.add("d-none");
-        feedback.classList.add("alert-warning");
-        feedback.classList.remove("alert-info");
+        setFeedback(feedback, "", "none");
       }
     }
   }

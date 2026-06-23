@@ -23,7 +23,10 @@ from leaderlodge.games.reuse_players import (
     previous_game_participant_rows,
     reuse_players_summary,
 )
-from leaderlodge.games.scoring import default_participant_score_value, scoring_instructions
+from leaderlodge.games.scoring import (
+    default_participant_score_value,
+    record_game_rules_summary,
+)
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
@@ -37,7 +40,6 @@ from leaderlodge.groups.services import (
 from leaderlodge.accounts.game_selection import (
     all_game_type_codes,
     persist_game_type_code,
-    preferred_game_type_code,
     resolve_game_type_code,
 )
 from leaderlodge.accounts.group_selection import (
@@ -232,6 +234,24 @@ def _single_user_group(user) -> Group | None:
     return single_user_group(user)
 
 
+def _requested_game_type_code(request: HttpRequest) -> str:
+    return (
+        request.GET.get("game_type_code", "").strip()
+        or request.GET.get("game_type", "").strip()
+    )
+
+
+def _reuse_lookup_codes(form: GameRecordForm) -> tuple[Group, str] | None:
+    """Group and game type submitted with reuse_roster / load_roster."""
+    if not form.is_valid():
+        return None
+    group = form.cleaned_data.get("group")
+    game_type_code = form.cleaned_data.get("game_type_code")
+    if group is None or not game_type_code or game_type_code not in GAME_TYPES:
+        return None
+    return group, game_type_code
+
+
 def _resolve_group(request: HttpRequest, form: GameRecordForm) -> Group | None:
     raw_id = request.POST.get("group") or request.GET.get("group")
     if raw_id:
@@ -347,24 +367,27 @@ def game_create(request: HttpRequest) -> HttpResponse:
             and form.is_valid()
             and request.user.is_authenticated
         ):
-            group = form.cleaned_data["group"]
-            game_type_code = form.cleaned_data["game_type_code"]
-            if action == "reuse_roster":
-                reused_participant_rows = previous_game_participant_rows(
-                    group, game_type_code
-                )
-                if not reused_participant_rows:
-                    messages.info(
-                        request,
-                        "No previous game found for this group and game type.",
+            lookup = _reuse_lookup_codes(form)
+            if lookup is None:
+                show_roster = False
+            else:
+                group, game_type_code = lookup
+                if action == "reuse_roster":
+                    reused_participant_rows = previous_game_participant_rows(
+                        group, game_type_code
                     )
+                    if not reused_participant_rows:
+                        messages.info(
+                            request,
+                            "No previous game found for this group and game type.",
+                        )
+                    else:
+                        show_roster = True
                 else:
                     show_roster = True
-            else:
-                show_roster = True
-            if show_roster:
-                persist_game_type_code(request, game_type_code)
-                persist_group_id(request, group.pk)
+                if show_roster:
+                    persist_game_type_code(request, game_type_code)
+                    persist_group_id(request, group.pk)
     else:
         initial = {}
         if request.GET.get("group"):
@@ -379,13 +402,11 @@ def game_create(request: HttpRequest) -> HttpResponse:
             demo = get_demo_group()
             if demo is not None:
                 initial["group"] = demo.pk
-        saved_game_type = preferred_game_type_code(request)
-        if saved_game_type in GAME_TYPES:
-            initial["game_type_code"] = saved_game_type
-        elif request.user.is_authenticated or get_demo_group() is not None:
-            choices = game_type_choices()
-            if choices:
-                initial["game_type_code"] = choices[0][0]
+        initial["game_type_code"] = resolve_game_type_code(
+            request,
+            requested=_requested_game_type_code(request),
+            available_codes=all_game_type_codes(),
+        )
         form = GameRecordForm(user=request.user, initial=initial)
 
     group = _resolve_group(request, form)
@@ -489,8 +510,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "group": group,
             "participant_rows": participant_rows,
             "roster": roster,
-            "scoring_instructions": (
-                scoring_instructions(game_type.code) if game_type else ""
+            "game_rules_summary": (
+                record_game_rules_summary(game_type.code) if game_type else ""
             ),
             "game_type": game_type,
             "show_roster": show_roster and group is not None and game_type is not None,
@@ -508,8 +529,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
 @login_required
 def game_reuse_preview(request: HttpRequest) -> JsonResponse:
     group_id = request.GET.get("group", "").strip()
-    game_type_code = request.GET.get("game_type", "").strip()
-    if not group_id.isdigit() or not game_type_code:
+    game_type_code = _requested_game_type_code(request)
+    if not group_id.isdigit() or game_type_code not in GAME_TYPES:
         return JsonResponse({"available": False, "summary": "", "labels": []})
 
     group = Group.objects.filter(pk=int(group_id)).first()

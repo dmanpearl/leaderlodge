@@ -12,7 +12,7 @@
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 game-list-page-header mb-3">
     <h1 class="h3 mb-0">{{ selected_game_type.name }}</h1>
     {% if can_record_games %}
-      <a href="{% url 'games:create' %}{% if params.group %}?group={{ params.group }}{% endif %}" class="btn btn-primary game-list-record-btn">
+      <a href="{% url 'games:create' %}?{% if params.group %}group={{ params.group }}&{% endif %}game_type={{ params.game_type }}" class="btn btn-primary game-list-record-btn">
         <i class="bi bi-plus-lg"></i> <span class="game-list-record-label">Record Game</span>
       </a>
     {% endif %}

@@ -45,6 +45,7 @@
 ## Open Items
 
 - [ ] Navbar Mobile: Instead of drop-down menu of items, display Games, Leaders, Groups, and Add as icons only for limited width environments
+- [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile)
 - [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [ ] Mobile Native Controls: Explore controls that can be converted to native as we did for the Player and Location drop-downs.
 - [ ] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
