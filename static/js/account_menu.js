@@ -15,7 +15,9 @@
 
     var url = resetBtn.dataset.url;
     var csrf =
-      (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
+      (window.leaderlodgeGetCsrfToken && window.leaderlodgeGetCsrfToken()) ||
+      (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] ||
+      "";
 
     fetch(url, {
       method: "POST",

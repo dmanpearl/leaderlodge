@@ -172,6 +172,11 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:dashboard"
 LOGOUT_REDIRECT_URL = "core:dashboard"
 
+# Keep CSRF cookie across sleep/wake; slide session on activity (breaking-news pattern).
+CSRF_COOKIE_AGE = 60 * 60 * 24 * 365
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14
+SESSION_SAVE_EVERY_REQUEST = True
+
 DEMO_MODE_ENABLED = os.environ.get("DEMO_MODE_ENABLED", "true").lower() in (
     "true",
     "1",

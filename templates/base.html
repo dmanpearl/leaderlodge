@@ -38,7 +38,7 @@
     <link rel="stylesheet" href="{% static 'css/site.css' %}" />
     {% block extra_css %}{% endblock %}
   </head>
-  <body class="bg-light">
+  <body class="bg-light" data-csrf-refresh-url="{% url 'accounts:csrf_token' %}">
     {% include "includes/navbar.html" %}
     {% include "includes/demo_banner.html" %}
     <main class="container py-4">
@@ -50,6 +50,7 @@
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
+    <script src="{% static 'js/csrf_refresh.js' %}"></script>
     {% load static %}
     {% if user.is_authenticated %}
       <script src="{% static 'js/account_menu.js' %}"></script>

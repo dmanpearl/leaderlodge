@@ -17,6 +17,11 @@ urlpatterns = [
         name="logout",
     ),
     path(
+        "api/csrf-token/",
+        views.csrf_token,
+        name="csrf_token",
+    ),
+    path(
         "api/ui-settings/reset/",
         views.reset_preferences,
         name="reset_preferences",

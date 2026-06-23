@@ -1,10 +1,18 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, JsonResponse
-from django.views.decorators.http import require_POST
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_GET, require_POST
 
 from leaderlodge.accounts.game_selection import SESSION_GAME_TYPE_CODE
 from leaderlodge.accounts.group_selection import SESSION_GROUP_ID
 from leaderlodge.accounts.ui_settings import reset_ui_settings
+
+
+@require_GET
+@ensure_csrf_cookie
+def csrf_token(request: HttpRequest) -> JsonResponse:
+    return JsonResponse({"csrfToken": get_token(request)})
 
 
 @login_required
