@@ -61,6 +61,15 @@ def _load_roster_post(group, *, game_type_code="dominos"):
     }
 
 
+def _reuse_roster_post(group, *, game_type_code="dominos"):
+    return {
+        "action": "reuse_roster",
+        "group": str(group.pk),
+        "game_type_code": game_type_code,
+        "played_on": timezone.localdate().isoformat(),
+    }
+
+
 @pytest.mark.django_db
 def test_record_dominos_game(client, user, group):
     client.force_login(user)
@@ -157,7 +166,7 @@ def test_auto_select_single_group(client, user, group):
     content = response.content.decode()
     assert "Dom Club" in content
     assert "Choose a game" in content
-    assert "Continue" in content
+    assert "Pick Players" in content
     assert 'id="game-record-form"' not in content
 
 
@@ -284,7 +293,7 @@ def test_setup_mode_hides_roster(client, user, group):
     assert response.status_code == 200
     content = response.content.decode()
     assert 'id="game-record-form"' not in content
-    assert "Continue" in content
+    assert "Pick Players" in content
 
 
 @pytest.mark.django_db
@@ -489,3 +498,49 @@ def test_game_detail_for_member(client, user, group):
 
     assert response.status_code == 200
     assert "Dom Club" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_reuse_roster_prefills_previous_players(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.post(reverse("games:create"), _reuse_roster_post(group))
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "Type player name" in content
+    players = list(group.players.order_by("pk")[:2])
+    assert players[0].display_label in content
+    assert players[1].display_label in content
+
+
+@pytest.mark.django_db
+def test_reuse_roster_stays_on_setup_without_previous_game(client, user, group):
+    client.force_login(user)
+    response = client.post(reverse("games:create"), _reuse_roster_post(group))
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "Pick Players" in content
+    assert "Type player name" not in content
+
+
+@pytest.mark.django_db
+def test_reuse_preview_url_on_setup_page(client, user, group):
+    client.force_login(user)
+    empty = client.get(reverse("games:create"))
+    content = empty.content.decode()
+    assert reverse("games:reuse_preview") in content
+    assert 'id="reuse-players-btn"' in content
+
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    preview = client.get(
+        reverse("games:reuse_preview"),
+        {"group": str(group.pk), "game_type": "dominos"},
+    )
+    players = list(group.players.order_by("pk")[:2])
+    assert preview.json()["summary"] == f"{players[0].display_label}, {players[1].display_label}"

@@ -1,0 +1,59 @@
+(function () {
+  const form = document.getElementById("game-setup-form");
+  if (!form) {
+    return;
+  }
+
+  const previewUrl = form.dataset.reusePreviewUrl;
+  const groupSelect = form.querySelector('[name="group"]');
+  const gameSelect = form.querySelector('[name="game_type_code"]');
+  const button = document.getElementById("reuse-players-btn");
+  const summary = document.getElementById("reuse-players-summary");
+  if (!previewUrl || !groupSelect || !gameSelect || !button || !summary) {
+    return;
+  }
+
+  let fetchTimer = null;
+  let fetchId = 0;
+
+  async function updateReuseAction() {
+    const groupId = groupSelect.value;
+    const gameType = gameSelect.value;
+    if (!groupId || !gameType) {
+      button.disabled = true;
+      summary.textContent = "";
+      return;
+    }
+
+    const requestId = ++fetchId;
+    try {
+      const params = new URLSearchParams({ group: groupId, game_type: gameType });
+      const response = await fetch(`${previewUrl}?${params.toString()}`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok || requestId !== fetchId) {
+        return;
+      }
+      const data = await response.json();
+      if (requestId !== fetchId) {
+        return;
+      }
+      button.disabled = !data.available;
+      summary.textContent = data.available ? data.summary : "";
+    } catch (_error) {
+      if (requestId === fetchId) {
+        button.disabled = true;
+        summary.textContent = "";
+      }
+    }
+  }
+
+  function scheduleUpdate() {
+    window.clearTimeout(fetchTimer);
+    fetchTimer = window.setTimeout(updateReuseAction, 150);
+  }
+
+  groupSelect.addEventListener("change", scheduleUpdate);
+  gameSelect.addEventListener("change", scheduleUpdate);
+  updateReuseAction();
+})();

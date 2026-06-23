@@ -6,9 +6,10 @@
 {% block extra_css %}
   {% if show_roster %}
     <link rel="stylesheet" href="{% static 'css/games.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/player_picker.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=9" />
   {% else %}
     <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/game_setup.css' %}" />
   {% endif %}
 {% endblock %}
 
@@ -42,9 +43,8 @@
   {% else %}
     <div class="card mb-3">
       <div class="card-body">
-        <form method="post">
+        <form method="post" id="game-setup-form"{% if not is_guest_demo %} data-reuse-preview-url="{% url 'games:reuse_preview' %}"{% endif %}>
           {% csrf_token %}
-          <input type="hidden" name="action" value="load_roster" />
           {% if form.non_field_errors %}
             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
           {% endif %}
@@ -78,17 +78,35 @@
               {% endif %}
             </div>
           </div>
-          <div class="mt-3">
+          <div class="game-setup-actions mt-3">
             {% if is_guest_demo %}
               <button
                 type="button"
-                class="btn btn-outline-primary"
+                class="btn btn-primary"
                 data-guest-login-prompt="{{ guest_login_prompt }}"
               >
-                Continue
+                Pick Players
               </button>
+              <div class="reuse-players-action">
+                <button type="button" class="btn btn-outline-primary" disabled>Reuse Players</button>
+              </div>
             {% else %}
-              <button type="submit" class="btn btn-outline-primary">Continue</button>
+              <button type="submit" name="action" value="load_roster" class="btn btn-primary">
+                Pick Players
+              </button>
+              <div class="reuse-players-action">
+                <button
+                  type="submit"
+                  name="action"
+                  value="reuse_roster"
+                  id="reuse-players-btn"
+                  class="btn btn-outline-primary"
+                  disabled
+                >
+                  Reuse Players
+                </button>
+                <div id="reuse-players-summary" class="reuse-players-summary text-muted"></div>
+              </div>
             {% endif %}
           </div>
         </form>
@@ -106,7 +124,7 @@
         {% endif %}
 
         <p class="text-muted small">
-          Add each player who took part, then enter scores.
+          Enter scores for each player.
           {{ scoring_instructions }}
           {{ game_type.name }} requires {{ game_type.min_players }} to {{ game_type.max_players }} players.
         </p>
@@ -129,21 +147,6 @@
           <input type="hidden" name="location_name" value="{{ location_name }}" />
 
           {{ roster|json_script:"game-roster-data" }}
-
-          <div class="player-picker-wrap mb-3">
-            <label for="player-picker-input" class="form-label">Add player</label>
-            <input
-              type="text"
-              id="player-picker-input"
-              class="form-control"
-              data-player-picker
-              placeholder="Search roster or type a new guest name"
-              autocomplete="off"
-            />
-            <div class="form-text">
-              Pick someone from the group roster, or enter a new name to add a guest to the group permanently.
-            </div>
-          </div>
 
           <div class="alert alert-warning d-none small py-2" data-score-feedback role="status"></div>
 
@@ -203,7 +206,27 @@
             </table>
           </div>
 
-          <button type="submit" class="btn btn-primary" data-save-button disabled>Save game</button>
+          <div class="game-record-footer">
+            <div class="player-picker-wrap player-picker-cta-wrap">
+              <label for="player-picker-input" class="form-label player-picker-cta-label">
+                <i class="bi bi-person-plus-fill" aria-hidden="true"></i> Add player
+              </label>
+              <div class="combobox-input-wrap player-picker-field">
+                <input
+                  type="text"
+                  id="player-picker-input"
+                  class="form-control form-control-lg player-picker-cta-input"
+                  data-player-picker
+                  placeholder="Type player name"
+                  autocomplete="off"
+                  {% if not participant_rows %}autofocus{% endif %}
+                />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg game-record-save" data-save-button disabled>
+              Save game
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -213,11 +236,14 @@
 {% block extra_js %}
   {% if show_roster %}
     <script src="{% static 'js/game_record_form.js' %}?v=4"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=7"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=9"></script>
   {% else %}
     <script>
       document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
     </script>
     <script src="{% static 'js/location_autocomplete.js' %}?v=4"></script>
+    {% if not is_guest_demo %}
+      <script src="{% static 'js/game_setup_reuse.js' %}?v=2"></script>
+    {% endif %}
   {% endif %}
 {% endblock %}

@@ -1,7 +1,8 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.http import Http404, HttpRequest, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
@@ -18,6 +19,10 @@ from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import GAME_TYPES, game_type_choices, get_game_type
+from leaderlodge.games.reuse_players import (
+    previous_game_participant_rows,
+    reuse_players_summary,
+)
 from leaderlodge.games.scoring import default_participant_score_value, scoring_instructions
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.models import Group, GroupPlayer, Location
@@ -328,6 +333,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     show_roster = False
     participant_error = None
     post_for_rows = None
+    reused_participant_rows = None
     game_type = None
 
     if request.method == "POST":
@@ -336,13 +342,29 @@ def game_create(request: HttpRequest) -> HttpResponse:
         if action == "save":
             show_roster = True
             post_for_rows = request.POST
-        elif action == "load_roster" and form.is_valid() and request.user.is_authenticated:
-            show_roster = True
-            persist_game_type_code(
-                request,
-                form.cleaned_data["game_type_code"],
-            )
-            persist_group_id(request, form.cleaned_data["group"].pk)
+        elif (
+            action in ("load_roster", "reuse_roster")
+            and form.is_valid()
+            and request.user.is_authenticated
+        ):
+            group = form.cleaned_data["group"]
+            game_type_code = form.cleaned_data["game_type_code"]
+            if action == "reuse_roster":
+                reused_participant_rows = previous_game_participant_rows(
+                    group, game_type_code
+                )
+                if not reused_participant_rows:
+                    messages.info(
+                        request,
+                        "No previous game found for this group and game type.",
+                    )
+                else:
+                    show_roster = True
+            else:
+                show_roster = True
+            if show_roster:
+                persist_game_type_code(request, game_type_code)
+                persist_group_id(request, group.pk)
     else:
         initial = {}
         if request.GET.get("group"):
@@ -369,7 +391,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     group = _resolve_group(request, form)
     if request.method == "POST" and group:
         action = request.POST.get("action")
-        if action in ("load_roster", "save") and not can_edit_group(
+        if action in ("load_roster", "reuse_roster", "save") and not can_edit_group(
             request.user, group
         ):
             raise Http404
@@ -393,6 +415,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
         roster = roster_for_group(group)
         if post_for_rows is not None:
             participant_rows = _participant_rows_from_post(group, post_for_rows)
+        elif reused_participant_rows is not None:
+            participant_rows = reused_participant_rows
 
     if request.method == "POST" and request.POST.get("action") == "save" and group:
         if not request.user.is_authenticated:
@@ -479,6 +503,20 @@ def game_create(request: HttpRequest) -> HttpResponse:
             ),
         },
     )
+
+
+@login_required
+def game_reuse_preview(request: HttpRequest) -> JsonResponse:
+    group_id = request.GET.get("group", "").strip()
+    game_type_code = request.GET.get("game_type", "").strip()
+    if not group_id.isdigit() or not game_type_code:
+        return JsonResponse({"available": False, "summary": "", "labels": []})
+
+    group = Group.objects.filter(pk=int(group_id)).first()
+    if group is None or not can_edit_group(request.user, group):
+        raise Http404
+
+    return JsonResponse(reuse_players_summary(group, game_type_code))
 
 
 @demo_or_login_required

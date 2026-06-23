@@ -172,10 +172,13 @@
   }
 
   function attachListToInput(input, listEl) {
-    const wrap = document.createElement("div");
-    wrap.className = "combobox-input-wrap";
-    input.parentNode.insertBefore(wrap, input);
-    wrap.appendChild(input);
+    let wrap = input.closest(".combobox-input-wrap");
+    if (!wrap) {
+      wrap = document.createElement("div");
+      wrap.className = "combobox-input-wrap";
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(input);
+    }
     wrap.appendChild(listEl);
     return wrap;
   }
@@ -287,9 +290,13 @@
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
         this.moveActive(-1);
-      } else if (event.key === "Enter" && this.activeIndex >= 0) {
+      } else if (event.key === "Enter") {
         event.preventDefault();
-        this.selectSuggestion(this.suggestions[this.activeIndex]);
+        if (this.activeIndex >= 0) {
+          this.selectSuggestion(this.suggestions[this.activeIndex]);
+        } else {
+          this.tryAddGuestFromInput();
+        }
       } else if (event.key === "Escape") {
         event.preventDefault();
         this.close();

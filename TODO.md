@@ -39,17 +39,19 @@
 - [x] Bug: Mobile: Option menus for Player or Location are too high. Anchor suggestion lists to the field and flip within the viewport so typing + keyboard still work.
 - [x] Guest Mode: Must showcase Groups and +Add pages even though access is meaningless.
 - [x] Home page title: use "LeaderLodge" only (drop "Dashboard") so mobile URL/history previews show the brand name.
+- [x] Record Game: Add an option to use the same players from the previous game of the same game-type.
+- [x] Record Game: Make the add player name field more prominent so the user knows what to enter next.
 
 ## Open Items
 
+- [ ] Navbar Mobile: Instead of drop-down menu of items, display Games, Leaders, Groups, and Add as icons only for limited width environments
+- [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
+- [ ] Mobile Native Controls: Explore controls that can be converted to native as we did for the Player and Location drop-downs.
 - [ ] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
-- [ ] Record Game: Add an option to use the same players from the previous game of the same game-type.
-- [ ] Record Game: Make the add player name field more prominent so the user knows what to enter next.
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
-- [ ] When user begins the Record Game process, implement an optional way to use same participants as the previous game.
 - [ ] Group members: Replace all-users dropdown with a secure, private, scalable invite method (email/link, not a public account picker)
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
