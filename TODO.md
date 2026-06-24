@@ -54,6 +54,8 @@
 
 ## Open Items
 
+- [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view
+- [ ] Style: Dashboard dates are word-wrapped on mobile. Use more narrow format, move Group column right
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Remove from Group: Owner should be able to remove a member
 - [ ] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead

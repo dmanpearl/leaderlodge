@@ -13,9 +13,10 @@ from leaderlodge.accounts.email_verification import (
     email_verification_token_generator,
     is_email_verified,
     mark_email_verified,
-    mark_verification_email_sent,
+    record_verification_email_sent,
     send_welcome_email,
-    verification_email_sent_this_session,
+    should_auto_send_verification,
+    verification_email_pending,
 )
 from leaderlodge.accounts.forms import SignupForm
 from leaderlodge.accounts.game_selection import SESSION_GAME_TYPE_CODE
@@ -49,7 +50,7 @@ def signup(request: HttpRequest) -> HttpResponse:
         login(request, user)
         try:
             send_welcome_email(request=request, user=user)
-            mark_verification_email_sent(request, user)
+            record_verification_email_sent(user)
             messages.success(
                 request,
                 "Welcome to LeaderLodge! We sent a confirmation link to your email.",
@@ -100,22 +101,17 @@ def verify_email(request: HttpRequest) -> HttpResponse:
     if is_email_verified(request.user):
         return render(request, "accounts/verify_email.html", {"verified": True})
 
-    should_send = request.method == "POST" or not verification_email_sent_this_session(
-        request, request.user
+    should_send = request.method == "POST" or should_auto_send_verification(
+        request.user
     )
     if should_send:
         try:
             send_welcome_email(request=request, user=request.user)
-            mark_verification_email_sent(request, request.user)
+            record_verification_email_sent(request.user)
             if request.method == "POST":
                 messages.success(
                     request,
-                    "We sent a confirmation link to your email address.",
-                )
-            else:
-                messages.info(
-                    request,
-                    f"We sent a confirmation link to {request.user.email}.",
+                    "We sent another confirmation link to your email address.",
                 )
         except ValueError:
             messages.error(
@@ -130,4 +126,11 @@ def verify_email(request: HttpRequest) -> HttpResponse:
         if request.method == "POST":
             return redirect("accounts:verify_email")
 
-    return render(request, "accounts/verify_email.html", {"verified": False})
+    return render(
+        request,
+        "accounts/verify_email.html",
+        {
+            "verified": False,
+            "email_pending": verification_email_pending(request.user),
+        },
+    )

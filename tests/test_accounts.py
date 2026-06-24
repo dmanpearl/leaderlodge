@@ -129,11 +129,14 @@ def test_verify_email_page_sends_on_first_get(client, user):
     assert response.status_code == 200
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == ["david@example.com"]
+    user.profile.refresh_from_db()
+    assert user.profile.verification_email_sent_at is not None
 
     mail.outbox.clear()
     response = client.get(reverse("accounts:verify_email"))
     assert response.status_code == 200
     assert len(mail.outbox) == 0
+    assert "We sent a confirmation link" in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -142,6 +145,9 @@ def test_verify_email_page_resends_on_post(client, user):
     user.set_password("secret-pass")
     user.save(update_fields=["email", "password"])
     client.force_login(user)
+
+    client.get(reverse("accounts:verify_email"))
+    mail.outbox.clear()
 
     response = client.post(reverse("accounts:verify_email"))
     assert response.status_code == 302
@@ -157,7 +163,8 @@ def test_navbar_shows_account_name_in_mobile_dropdown(client, user):
 
     content = client.get(reverse("core:dashboard")).content.decode()
 
-    assert 'class="dropdown-header mb-0">David</h6>' in content
+    assert 'class="dropdown-header mb-0">' in content
+    assert "David" in content
     assert "d-md-none" in content
 
 
@@ -171,23 +178,25 @@ def test_navbar_shows_verify_email_for_unverified_user(client, user):
 
     assert reverse("accounts:verify_email") in content
     assert "Verify Email" in content
-    assert "Email verified" not in content
+    assert "account-verified-badge" not in content
 
 
 @pytest.mark.django_db
-def test_navbar_shows_verified_status_for_verified_user(client, user):
+def test_navbar_shows_verified_badge_for_verified_user(client, user):
     from django.utils import timezone
 
     user.email = "david@example.com"
-    user.save(update_fields=["email"])
+    user.first_name = "David"
+    user.save(update_fields=["email", "first_name"])
     user.profile.email_verified_at = timezone.now()
     user.profile.save(update_fields=["email_verified_at"])
     client.force_login(user)
 
     content = client.get(reverse("core:dashboard")).content.decode()
 
-    assert "Email verified" in content
-    assert reverse("accounts:verify_email") not in content
+    assert content.count("account-verified-badge") == 2
+    assert "Verify Email" not in content
+    assert 'dropdown-item-text d-flex align-items-center gap-2 text-success' not in content
 
 
 @pytest.mark.django_db

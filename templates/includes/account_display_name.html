@@ -1,0 +1,9 @@
+<span class="account-name-with-badge{% if badge_variant %} account-name-with-badge--{{ badge_variant }}{% endif %}">
+  {{ user_display_name }}
+  {% if user_email_verified %}
+    <span class="account-verified-badge" title="Email verified">
+      <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+      <span class="visually-hidden">Email verified</span>
+    </span>
+  {% endif %}
+</span>

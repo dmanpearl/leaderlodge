@@ -10,7 +10,12 @@ class UserProfileInline(admin.StackedInline):
     can_delete = False
     extra = 0
     readonly_fields = ("email_verified",)
-    fields = ("email_verified_at", "email_verified", "ui_settings")
+    fields = (
+        "email_verified_at",
+        "email_verified",
+        "verification_email_sent_at",
+        "ui_settings",
+    )
 
 
 class UserAdmin(BaseUserAdmin):

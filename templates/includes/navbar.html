@@ -66,23 +66,20 @@
             role="button"
             data-bs-toggle="dropdown"
             aria-expanded="false"
-            aria-label="{{ user.username }}"
+            aria-label="{% if user_email_verified %}{{ user_display_name }}, email verified{% else %}{{ user_display_name }}{% endif %}"
           >
             <i class="bi bi-person navbar-user-icon" aria-hidden="true"></i>
-            <span class="navbar-account-label d-none d-md-inline">{{ user.username }}</span>
+            <span class="navbar-account-label d-none d-md-inline">
+              {% include "includes/account_display_name.html" with badge_variant="navbar" %}
+            </span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountMenu">
             <li class="d-md-none">
-              <h6 class="dropdown-header mb-0">{{ user_display_name }}</h6>
+              <h6 class="dropdown-header mb-0">
+                {% include "includes/account_display_name.html" with badge_variant="dropdown" %}
+              </h6>
             </li>
-            {% if user_email_verified %}
-              <li>
-                <span class="dropdown-item-text d-flex align-items-center gap-2 text-success">
-                  <i class="bi bi-check-circle-fill navbar-menu-icon" aria-hidden="true"></i>
-                  Email verified
-                </span>
-              </li>
-            {% else %}
+            {% if not user_email_verified %}
               <li>
                 <a
                   class="dropdown-item d-flex align-items-center gap-2"
@@ -92,8 +89,8 @@
                   Verify Email
                 </a>
               </li>
+              <li><hr class="dropdown-divider"></li>
             {% endif %}
-            <li><hr class="dropdown-divider"></li>
             {% if user.is_staff or user.is_superuser %}
               <li>
                 <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'admin:index' %}">

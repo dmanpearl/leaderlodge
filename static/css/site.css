@@ -71,6 +71,33 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link {
   line-height: 1;
 }
 
+.account-name-with-badge {
+  position: relative;
+  display: inline-block;
+  padding-right: 0.45em;
+}
+
+.account-verified-badge {
+  position: absolute;
+  top: -0.3em;
+  right: -0.45em;
+  font-size: 0.72em;
+  line-height: 1;
+  color: #75b798;
+}
+
+.account-name-with-badge--navbar .account-verified-badge {
+  color: #198754;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.account-name-with-badge--dropdown .account-verified-badge {
+  color: #198754;
+  background: var(--bs-body-bg);
+  border-radius: 50%;
+}
+
 .dropdown-menu .navbar-menu-icon {
   color: var(--bs-body-color);
 }

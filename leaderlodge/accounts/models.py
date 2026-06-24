@@ -16,6 +16,11 @@ class UserProfile(models.Model):
         blank=True,
         help_text="When the user confirmed ownership of their email address.",
     )
+    verification_email_sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When we last sent a verification link to the user's email.",
+    )
 
     class Meta:
         verbose_name = "User Profile"
@@ -46,4 +51,5 @@ def _clear_email_verification_on_email_change(sender, instance, **kwargs):
     if previous_email is not None and previous_email != instance.email:
         UserProfile.objects.filter(user_id=instance.pk).update(
             email_verified_at=None,
+            verification_email_sent_at=None,
         )

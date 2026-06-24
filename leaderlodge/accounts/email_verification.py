@@ -13,8 +13,6 @@ from leaderlodge.accounts.models import UserProfile
 
 logger = logging.getLogger(__name__)
 
-VERIFICATION_EMAIL_SESSION_KEY = "verification_email_sent_user_id"
-
 
 class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
     def _make_hash_value(self, user, timestamp):
@@ -34,6 +32,29 @@ def is_email_verified(user) -> bool:
     if profile is None:
         return False
     return profile.email_verified_at is not None
+
+
+def verification_email_pending(user) -> bool:
+    profile = getattr(user, "profile", None)
+    if profile is None:
+        return False
+    return (
+        profile.verification_email_sent_at is not None
+        and profile.email_verified_at is None
+    )
+
+
+def should_auto_send_verification(user) -> bool:
+    profile = getattr(user, "profile", None)
+    if profile is None:
+        return True
+    return profile.verification_email_sent_at is None
+
+
+def record_verification_email_sent(user) -> None:
+    profile = user.profile
+    profile.verification_email_sent_at = timezone.now()
+    profile.save(update_fields=["verification_email_sent_at"])
 
 
 def mark_email_verified(user) -> None:
@@ -78,11 +99,3 @@ def send_welcome_email(*, request, user) -> None:
     except Exception:
         logger.exception("Welcome email delivery failed for user pk %s", user.pk)
         raise
-
-
-def mark_verification_email_sent(request, user) -> None:
-    request.session[VERIFICATION_EMAIL_SESSION_KEY] = user.pk
-
-
-def verification_email_sent_this_session(request, user) -> bool:
-    return request.session.get(VERIFICATION_EMAIL_SESSION_KEY) == user.pk
