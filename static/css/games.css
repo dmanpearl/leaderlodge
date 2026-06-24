@@ -103,14 +103,14 @@
 .game-list-title-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   max-width: 100%;
   min-width: 0;
 }
 
 .game-list-title-select {
   width: auto;
-  max-width: calc(100% - 1.25rem);
+  max-width: calc(100% - 1.5rem);
   font-size: calc(1.275rem + 0.3vw);
   font-weight: 500;
   line-height: 1.2;
@@ -123,6 +123,7 @@
   background-image: none;
   padding: 0;
   cursor: pointer;
+  overflow: visible;
 }
 
 .game-list-title-chevron {
@@ -130,6 +131,7 @@
   line-height: 1;
   pointer-events: none;
   flex-shrink: 0;
+  margin-left: 0.1rem;
 }
 
 .game-list-title-select:focus {

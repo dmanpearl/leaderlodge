@@ -80,8 +80,10 @@
 
       const style = window.getComputedStyle(select);
       measurer.style.font = style.font;
+      measurer.style.letterSpacing = style.letterSpacing;
       measurer.textContent = option.text;
-      select.style.width = `${measurer.offsetWidth}px`;
+      // Select boxes clip the last glyph when width matches text exactly.
+      select.style.width = `${Math.ceil(measurer.getBoundingClientRect().width) + 4}px`;
     }
 
     resizeTitleSelect();

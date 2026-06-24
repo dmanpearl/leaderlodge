@@ -49,6 +49,9 @@
 
 ## Open Items
 
+- [ ] Bug: Games View: Menu item 'Dominos' truncated off part of trailing 's' by the spindown char, move it to the right
+- [ ] Matchup View: Create new screen to compares a list of players head-to-head in their group for a given game-type. Navigate directly to the matchup screen after saving a game.
+- [ ] Matchup View: How to access??
 - [ ] Leaderboard graphs of leaders over time
 - [ ] New Account: Add ability for users to create accounts, recove passwords, email and/or phone options, 2FA options
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
