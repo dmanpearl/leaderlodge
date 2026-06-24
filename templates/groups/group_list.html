@@ -37,9 +37,9 @@
                 <td>
                   <a href="{% url 'groups:detail' group.pk %}">{{ group.name }}</a>
                 </td>
-                <td class="text-muted">
+                <td class="text-muted text-wrap">
                   {% if group.description %}
-                    {{ group.description|truncatewords:12 }}
+                    {{ group.description }}
                   {% else %}
                     &mdash;
                   {% endif %}

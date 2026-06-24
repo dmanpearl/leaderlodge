@@ -50,24 +50,22 @@
 - [x] ddbfa18 Matchup View: Create new screen to compares a list of players head-to-head in their group for a given game-type. Navigate directly to the matchup screen after saving a game.
 - [x] ded329e Matchup View: Game list - click a game row to open matchup for that game's players
 - [x] 7ba260e Matchup View: Game detail - Matchup button in footer (Games / Leaderboard / Matchup)
-- [x] User Account (phase 1): Self-service signup, login, and password reset (email-based; production SMTP pending)
+- [x] 61f17e9 User Account: Self-service signup, login, password reset, welcome email, email verification
+- [x] Groups: Owner/Editor/Member roles with member management (remove member, assign roles; editors cannot modify owners)
 
 ## Open Items
 
 - [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view
 - [ ] Style: Dashboard dates are word-wrapped on mobile. Use more narrow format, move Group column right
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
-- [ ] Remove from Group: Owner should be able to remove a member
 - [ ] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
 - [ ] Bug: Game View: Clicking a game row should navigate to the Game Detail screen. Currently incorrectly navigates to the Matchup view
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI) (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
 - [ ] Offline mode: Allow game entry in limited connection environments
 - [ ] Leaderboard graphs of leaders over time
-- [ ] User Account: Welcome email when a user creates an account
-- [ ] User Account: Email verification link to confirm address after signup. Link is added to the new user welcome email
-- [ ] User Account (phase 2): Group invites by email/link - replace all-users member picker
-- [ ] User Account (phase 3): 2FA and phone login options
+- [ ] User Account: Group invites by email/link - replace all-users member picker
+- [ ] User Account: 2FA and phone login options
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
 - [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [ ] Mobile Native Controls: Explore controls that can be converted to native as we did for the Player and Location drop-downs.
@@ -78,7 +76,6 @@
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
-- [ ] Game detail view (maybe)
 - [ ] Merge similar locations tool
 - [ ] Add About Box and contact us form.
 - [ ] iOS: Build native mobile app for iPhone and iPad

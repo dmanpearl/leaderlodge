@@ -71,6 +71,7 @@ class Group(models.Model):
 class GroupMembership(models.Model):
     class Role(models.TextChoices):
         OWNER = "owner", "Owner"
+        EDITOR = "editor", "Editor"
         MEMBER = "member", "Member"
 
     group = models.ForeignKey(
@@ -87,6 +88,7 @@ class GroupMembership(models.Model):
         max_length=10,
         choices=Role.choices,
         default=Role.MEMBER,
+        help_text="Owner and Editor can manage members; Member is view and play only.",
     )
     joined_at = models.DateTimeField(auto_now_add=True)
 

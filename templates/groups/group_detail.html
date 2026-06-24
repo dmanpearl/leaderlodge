@@ -18,6 +18,9 @@
       {% endif %}
     </div>
     <div class="d-flex gap-2">
+      {% if can_manage_members and not is_guest_demo %}
+        <a href="{% url 'groups:edit' group.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
+      {% endif %}
       <a href="{% url 'leaderboards:index' %}?group={{ group.pk }}{% if selected_game_type_code %}&amp;game_type_code={{ selected_game_type_code }}{% endif %}{% if selected_period.year %}&amp;year={{ selected_period.year }}{% endif %}{% if selected_period.month %}&amp;month={{ selected_period.month }}{% endif %}" class="btn btn-outline-primary btn-sm">
         Leaderboard
       </a>
@@ -41,8 +44,9 @@
     <div class="card-header">Members</div>
     <div class="card-body">
       <p class="text-muted small mb-3">
-        People with LeaderLodge logins who can see this group. Adding a member
-        also adds them to the player roster when needed.
+        People with LeaderLodge logins who can see this group. Owners and Editors
+        can manage membership. Adding a member also adds them to the player roster
+        when needed.
       </p>
 
       {% if member_rows %}
@@ -53,10 +57,14 @@
                 <th scope="col">User</th>
                 <th scope="col">Role</th>
                 <th scope="col">Joined</th>
+                {% if can_manage_members %}
+                  <th scope="col"><span class="visually-hidden">Actions</span></th>
+                {% endif %}
               </tr>
             </thead>
             <tbody>
-              {% for membership in member_rows %}
+              {% for row in member_rows %}
+                {% with membership=row.membership %}
                 <tr>
                   <td>
                     {{ membership.user.username }}
@@ -64,9 +72,47 @@
                       <span class="text-muted small">({{ membership.user.get_full_name|default:membership.user.first_name }})</span>
                     {% endif %}
                   </td>
-                  <td>{{ membership.get_role_display }}</td>
+                  <td>
+                    {% if row.role_choices|length > 1 %}
+                      <form
+                        method="post"
+                        action="{% url 'groups:member_update_role' group.pk membership.pk %}"
+                        class="d-flex flex-wrap gap-2 align-items-center"
+                      >
+                        {% csrf_token %}
+                        <select
+                          name="role"
+                          class="form-select form-select-sm w-auto"
+                          onchange="this.form.submit()"
+                        >
+                          {% for value, label in row.role_choices %}
+                            <option value="{{ value }}" {% if membership.role == value %}selected{% endif %}>
+                              {{ label }}
+                            </option>
+                          {% endfor %}
+                        </select>
+                      </form>
+                    {% else %}
+                      {{ membership.get_role_display }}
+                    {% endif %}
+                  </td>
                   <td>{{ membership.joined_at|date:"M j, Y" }}</td>
+                  {% if can_manage_members %}
+                    <td class="text-end">
+                      {% if row.can_remove %}
+                        <form
+                          method="post"
+                          action="{% url 'groups:member_remove' group.pk membership.pk %}"
+                          class="d-inline"
+                        >
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  {% endif %}
                 </tr>
+                {% endwith %}
               {% endfor %}
             </tbody>
           </table>
@@ -75,21 +121,44 @@
         <p class="text-muted mb-4">No members yet.</p>
       {% endif %}
 
-      {% if not is_guest_demo %}
-      <h2 class="h6">Add member</h2>
-      {# TODO: Replace all-users dropdown with a secure, private, scalable invite method. #}
-      <form method="post" action="{% url 'groups:member_add' group.pk %}" class="row g-2 align-items-start">
-        {% csrf_token %}
-        <div class="col-12 col-sm-auto flex-grow-1">
-          {{ member_form.user }}
-          {% if member_form.user.errors %}
-            <div class="invalid-feedback d-block">{{ member_form.user.errors }}</div>
-          {% endif %}
+      {% if can_manage_members and not is_guest_demo %}
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          {# TODO: Replace all-users dropdown with a secure, private, scalable invite method. #}
+          <form
+            method="post"
+            action="{% url 'groups:member_add' group.pk %}"
+            class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2"
+          >
+            {% csrf_token %}
+            <span class="fw-semibold flex-shrink-0">Add member</span>
+            <div class="flex-sm-grow-1">
+              {{ member_form.user.as_widget }}
+              {% if member_form.user.errors %}
+                <div class="invalid-feedback d-block">{{ member_form.user.errors }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary flex-shrink-0">Add</button>
+          </form>
         </div>
-        <div class="col-12 col-sm-auto">
-          <button type="submit" class="btn btn-primary">Add</button>
+        <div class="col-12 col-lg-6">
+          <form
+            method="post"
+            action="{% url 'groups:player_add' group.pk %}"
+            class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2"
+          >
+            {% csrf_token %}
+            <span class="fw-semibold flex-shrink-0">Add guest</span>
+            <div class="flex-sm-grow-1">
+              {{ player_form.display_name.as_widget }}
+              {% if player_form.display_name.errors %}
+                <div class="invalid-feedback d-block">{{ player_form.display_name.errors }}</div>
+              {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary flex-shrink-0">Add</button>
+          </form>
         </div>
-      </form>
+      </div>
       {% endif %}
     </div>
   </div>
@@ -123,12 +192,6 @@
           {% endif %}
         </form>
       {% endif %}
-      <p class="text-muted small mb-3">
-        Everyone who can be scored in games. Members appear here automatically.
-        {% if selected_game_type %}
-          Rankings use field-weighted wins for {{ selected_game_type.name }}{% if period_label %} in {{ period_label }}{% endif %}.
-        {% endif %}
-      </p>
 
       {% if standings %}
         <div class="table-responsive mb-4">
@@ -185,12 +248,66 @@
                     >Loss %</a>
                   </th>
                 {% endif %}
+                {% if can_manage_members %}
+                  <th scope="col"><span class="visually-hidden">Actions</span></th>
+                {% endif %}
               </tr>
             </thead>
             <tbody>
-              {% for row in standings %}
+              {% for row in standings_rows %}
+                {% with standing=row.standing %}
                 <tr>
-                  <td>{% if row.rank %}{{ row.rank }}{% else %}&mdash;{% endif %}</td>
+                  <td>{% if standing.rank %}{{ standing.rank }}{% else %}&mdash;{% endif %}</td>
+                  <td>
+                    {{ standing.player.display_label }}
+                    {% if standing.player.linked_user %}
+                      <span class="text-muted small">({{ standing.player.linked_user.username }})</span>
+                    {% else %}
+                      <span class="badge text-bg-secondary ms-1">Guest</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ standing.rank_score|floatformat:1 }}</td>
+                  <td>{{ standing.games_played|floatformat:-1 }}</td>
+                  <td>{{ standing.wins|floatformat:-1 }}</td>
+                  <td>{% if standing.games_played %}{{ standing.win_pct|floatformat:0 }}%{% else %}&mdash;{% endif %}</td>
+                  {% if show_losses %}
+                    <td>{{ standing.losses|floatformat:-1 }}</td>
+                    <td>{% if standing.games_played %}{{ standing.loss_pct|floatformat:0 }}%{% else %}&mdash;{% endif %}</td>
+                  {% endif %}
+                  {% if can_manage_members %}
+                    <td class="text-end">
+                      {% if row.can_remove %}
+                        <form
+                          method="post"
+                          action="{% url 'groups:player_remove' group.pk standing.player.pk %}"
+                          class="d-inline"
+                        >
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  {% endif %}
+                </tr>
+                {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% elif roster_players %}
+        <div class="table-responsive mb-4">
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                {% if can_manage_members %}
+                  <th scope="col"><span class="visually-hidden">Actions</span></th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in roster_players %}
+                <tr>
                   <td>
                     {{ row.player.display_label }}
                     {% if row.player.linked_user %}
@@ -199,13 +316,19 @@
                       <span class="badge text-bg-secondary ms-1">Guest</span>
                     {% endif %}
                   </td>
-                  <td>{{ row.rank_score|floatformat:1 }}</td>
-                  <td>{{ row.games_played|floatformat:-1 }}</td>
-                  <td>{{ row.wins|floatformat:-1 }}</td>
-                  <td>{% if row.games_played %}{{ row.win_pct|floatformat:0 }}%{% else %}&mdash;{% endif %}</td>
-                  {% if show_losses %}
-                    <td>{{ row.losses|floatformat:-1 }}</td>
-                    <td>{% if row.games_played %}{{ row.loss_pct|floatformat:0 }}%{% else %}&mdash;{% endif %}</td>
+                  {% if can_manage_members %}
+                    <td class="text-end">
+                      {% if row.can_remove %}
+                        <form
+                          method="post"
+                          action="{% url 'groups:player_remove' group.pk row.player.pk %}"
+                          class="d-inline"
+                        >
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                        </form>
+                      {% endif %}
+                    </td>
                   {% endif %}
                 </tr>
               {% endfor %}
@@ -216,25 +339,6 @@
         <p class="text-muted mb-4">No games recorded for this group yet.</p>
       {% else %}
         <p class="text-muted mb-4">Record a game to see player standings.</p>
-      {% endif %}
-
-      {% if not is_guest_demo %}
-      <h2 class="h6">Add guest</h2>
-      <p class="text-muted small mb-2">
-        No login — for someone who plays occasionally but doesn&apos;t have an account.
-      </p>
-      <form method="post" action="{% url 'groups:player_add' group.pk %}" class="row g-2 align-items-start">
-        {% csrf_token %}
-        <div class="col-12 col-sm-auto flex-grow-1">
-          {{ player_form.display_name }}
-          {% if player_form.display_name.errors %}
-            <div class="invalid-feedback d-block">{{ player_form.display_name.errors }}</div>
-          {% endif %}
-        </div>
-        <div class="col-12 col-sm-auto">
-          <button type="submit" class="btn btn-primary">Add</button>
-        </div>
-      </form>
       {% endif %}
     </div>
   </div>

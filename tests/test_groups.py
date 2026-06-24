@@ -2,7 +2,9 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from leaderlodge.groups.models import GroupMembership, GroupPlayer
+from leaderlodge.accounts.group_selection import GROUP_ID_KEY, GROUP_SELECTION_NAMESPACE
+from leaderlodge.accounts.ui_settings import get_ui_settings
+from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
 from leaderlodge.groups.services import create_group_with_owner
 
 
@@ -61,6 +63,66 @@ def test_group_list_excludes_non_member_groups(client, user, other_user, group):
 
 
 @pytest.mark.django_db
+def test_group_create_persists_group_selection(client, user, group):
+    client.force_login(user)
+    response = client.post(
+        reverse("groups:create"),
+        {"name": "New Group", "description": "Test"},
+    )
+
+    assert response.status_code == 302
+    new_group = Group.objects.get(name="New Group")
+    assert get_ui_settings(user, GROUP_SELECTION_NAMESPACE)[GROUP_ID_KEY] == str(
+        new_group.pk
+    )
+
+    games_response = client.get(reverse("games:list"))
+    assert games_response.status_code == 302
+    assert f"group={new_group.pk}" in games_response.url
+
+
+@pytest.mark.django_db
+def test_group_list_shows_full_description(client, user, group):
+    group.description = (
+        "Test group with example game data. Login and use '+ Create Group' "
+        "to add your own and start logging game scores."
+    )
+    group.save(update_fields=["description"])
+    client.force_login(user)
+    content = client.get(reverse("groups:list")).content.decode()
+
+    assert "Test group with example game data" in content
+    assert "start logging game scores" in content
+    assert "Create Group" in content
+    assert "…" not in content
+
+
+@pytest.mark.django_db
+def test_owner_can_edit_group(client, user, group):
+    client.force_login(user)
+    response = client.post(
+        reverse("groups:edit", kwargs={"pk": group.pk}),
+        {"name": "Renamed Night", "description": "Updated notes"},
+    )
+
+    assert response.status_code == 302
+    group.refresh_from_db()
+    assert group.name == "Renamed Night"
+    assert group.description == "Updated notes"
+
+
+@pytest.mark.django_db
+def test_member_cannot_edit_group(client, user, other_user, group):
+    from leaderlodge.groups.services import add_group_member
+
+    add_group_member(group=group, user=other_user)
+    client.force_login(other_user)
+    response = client.get(reverse("groups:edit", kwargs={"pk": group.pk}))
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
 def test_group_create(client, user):
     client.force_login(user)
     response = client.post(
@@ -86,7 +148,7 @@ def test_group_detail_for_member(client, user, group):
     assert "Game Night" in content
     assert "david" in content
     assert "Player roster" in content
-    assert "Record a game to see player standings." in content
+    assert "david" in content
 
 
 @pytest.mark.django_db

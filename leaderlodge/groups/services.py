@@ -5,6 +5,7 @@ from django.db import IntegrityError, transaction
 from leaderlodge.groups.locations import create_location_library
 from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
 from leaderlodge.groups.names import format_user_display_name
+from leaderlodge.groups.permissions import can_manage_members, get_membership
 
 
 def player_display_name(user: AbstractBaseUser) -> str:
@@ -192,6 +193,12 @@ def can_edit_group(user: AbstractBaseUser | None, group: Group) -> bool:
     return user_is_member(user, group)
 
 
+def can_manage_group_members(user: AbstractBaseUser | None, group: Group) -> bool:
+    if group.is_demo:
+        return False
+    return can_manage_members(get_membership(user, group))
+
+
 def visible_groups(user: AbstractBaseUser | None):
     group_ids: set[int] = set()
     if user and user.is_authenticated:
@@ -260,3 +267,26 @@ def add_group_member(
         )
         _get_or_create_linked_player(group=group, user=user)
     return membership
+
+
+def _unlink_member_from_roster(*, group: Group, user: AbstractBaseUser) -> None:
+    player = group.players.filter(linked_user=user).first()
+    if player is None:
+        return
+    player.linked_user = None
+    player.save(update_fields=["linked_user"])
+
+
+def remove_group_member(*, membership: GroupMembership) -> None:
+    with transaction.atomic():
+        _unlink_member_from_roster(group=membership.group, user=membership.user)
+        membership.delete()
+
+
+def remove_roster_player(*, player: GroupPlayer) -> None:
+    if player.game_results.exists():
+        player.linked_user = None
+        player.is_active = False
+        player.save(update_fields=["linked_user", "is_active"])
+    else:
+        player.delete()
