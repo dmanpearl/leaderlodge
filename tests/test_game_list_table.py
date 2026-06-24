@@ -82,6 +82,22 @@ def test_game_list_shows_player_scores_and_result_shading(client, user, group):
 
 
 @pytest.mark.django_db
+def test_game_list_rows_link_to_matchup(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    game = group.games.get()
+    response = client.get(reverse("games:list"), follow=True)
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert 'class="game-list-row"' in content
+    assert f'data-href="/games/matchup/?game={game.pk}"' in content
+    assert reverse("games:detail", kwargs={"pk": game.pk}) not in content
+
+
+@pytest.mark.django_db
 def test_game_list_shows_weight_column_when_game_type_filtered(client, user, group):
     players = list(group.players.order_by("pk"))
     while len(players) < 2:

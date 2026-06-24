@@ -91,9 +91,31 @@
     window.addEventListener("resize", resizeTitleSelect);
   }
 
+  function initRowNavigation() {
+    document.querySelectorAll(".game-list-row[data-href]").forEach((row) => {
+      const navigate = () => {
+        window.location = row.dataset.href;
+      };
+
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("a")) {
+          return;
+        }
+        navigate();
+      });
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          navigate();
+        }
+      });
+    });
+  }
+
   function init() {
     initStatsCollapse();
     initTitleSelect();
+    initRowNavigation();
     updateFooterHeader();
     window.addEventListener("resize", updateFooterHeader);
   }
