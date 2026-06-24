@@ -72,6 +72,9 @@
             <span class="navbar-account-label d-none d-md-inline">{{ user.username }}</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountMenu">
+            <li class="d-md-none">
+              <h6 class="dropdown-header mb-0">{{ user_display_name }}</h6>
+            </li>
             {% if user_email_verified %}
               <li>
                 <span class="dropdown-item-text d-flex align-items-center gap-2 text-success">

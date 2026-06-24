@@ -133,6 +133,18 @@ def test_verify_email_page_resends_confirmation(client, user):
 
 
 @pytest.mark.django_db
+def test_navbar_shows_account_name_in_mobile_dropdown(client, user):
+    user.first_name = "David"
+    user.save(update_fields=["first_name"])
+    client.force_login(user)
+
+    content = client.get(reverse("core:dashboard")).content.decode()
+
+    assert 'class="dropdown-header mb-0">David</h6>' in content
+    assert "d-md-none" in content
+
+
+@pytest.mark.django_db
 def test_navbar_shows_verify_email_for_unverified_user(client, user):
     user.email = "david@example.com"
     user.save(update_fields=["email"])
