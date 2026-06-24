@@ -54,6 +54,7 @@
 
 ## Open Items
 
+- [ ] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
 - [ ] Bug: Game View: Clicking a game row should navigate to the Game Detail screen. Currently incorrectly navigates to the Matchup view
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI) (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)

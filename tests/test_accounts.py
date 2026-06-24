@@ -165,6 +165,16 @@ def test_password_reset_email_uses_request_host(client, user):
 
 
 @pytest.mark.django_db
+def test_anonymous_navbar_uses_account_dropdown(client):
+    content = client.get(reverse("accounts:login")).content.decode()
+
+    assert 'id="guestAccountMenu"' in content
+    assert reverse("accounts:signup") in content
+    assert reverse("accounts:login") in content
+    assert 'btn btn-outline-light btn-sm' not in content
+
+
+@pytest.mark.django_db
 def test_signup_page_linked_from_login(client):
     content = client.get(reverse("accounts:login")).content.decode()
     assert reverse("accounts:signup") in content
