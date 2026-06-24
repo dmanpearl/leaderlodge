@@ -41,6 +41,7 @@ from leaderlodge.leaderboards.ranking import (
 )
 
 if TYPE_CHECKING:
+    from leaderlodge.games.models import Game
     from leaderlodge.groups.models import Group, GroupPlayer
 
 
@@ -615,12 +616,76 @@ def _finish_points_by_player(
     return dict(totals)
 
 
+def filter_results_through_game(
+    results_qs,
+    game: Game,
+    *,
+    include_game: bool,
+):
+    """Limit participant results to games at or before a cutoff game."""
+    if include_game:
+        return results_qs.filter(
+            Q(game__played_on__lt=game.played_on)
+            | Q(game__played_on=game.played_on, game__pk__lte=game.pk)
+        )
+    return results_qs.filter(
+        Q(game__played_on__lt=game.played_on)
+        | Q(game__played_on=game.played_on, game__pk__lt=game.pk)
+    )
+
+
+def get_standings_at_game(
+    group: Group,
+    game_type_code: str,
+    game: Game,
+    *,
+    include_game: bool,
+) -> list[PlayerRanking]:
+    """Leaderboard standings using only games through the cutoff game."""
+    from leaderlodge.games.models import GameParticipantResult
+
+    period = LeaderboardPeriod.all_time()
+    results_qs = GameParticipantResult.objects.filter(
+        game__group=group,
+        game__game_type_code=game_type_code,
+    )
+    results_qs = filter_results_by_period(results_qs, period)
+    results_qs = filter_results_through_game(
+        results_qs, game, include_game=include_game
+    )
+    return _standings_for_game_type(
+        group,
+        game_type_code,
+        period=period,
+        results_qs=results_qs,
+    )
+
+
+def get_ranked_standings_at_game(
+    group: Group,
+    game_type_code: str,
+    game: Game,
+    *,
+    include_game: bool,
+) -> list[PlayerRanking]:
+    standings = get_standings_at_game(
+        group,
+        game_type_code,
+        game,
+        include_game=include_game,
+    )
+    active = [row for row in standings if row.games_played > 0]
+    low_wins = get_game_type(game_type_code).score_direction == ScoreDirection.LOW_WINS
+    return _assign_ranks(active, low_wins=low_wins)
+
+
 def _standings_for_game_type(
     group: Group,
     game_type_code: str,
     *,
     location_id: int | None = None,
     period: LeaderboardPeriod | None = None,
+    results_qs=None,
 ) -> list[PlayerRanking]:
     from leaderlodge.games.models import GameParticipantResult
     from leaderlodge.groups.models import GroupPlayer
@@ -631,13 +696,14 @@ def _standings_for_game_type(
     if period is None:
         period = LeaderboardPeriod.all_time()
 
-    results_qs = GameParticipantResult.objects.filter(
-        game__group=group,
-        game__game_type_code=game_type_code,
-    )
-    if location_id is not None:
-        results_qs = results_qs.filter(game__location_id=location_id)
-    results_qs = filter_results_by_period(results_qs, period)
+    if results_qs is None:
+        results_qs = GameParticipantResult.objects.filter(
+            game__group=group,
+            game__game_type_code=game_type_code,
+        )
+        if location_id is not None:
+            results_qs = results_qs.filter(game__location_id=location_id)
+        results_qs = filter_results_by_period(results_qs, period)
 
     finish_points_by_player = _finish_points_by_player(results_qs, low_wins=low_wins)
 

@@ -46,14 +46,16 @@
 - [x] 4c63ee3 Stats view: Spin-up/Spin-down control is wrong. Should be down/right, not down/up.
 - [x] fe6126e Filter leaderboards by year and month
 - [x] 5914a36 CSRF: Auto-refresh stale form tokens when a tab or phone wakes from sleep (visibility/bfcache fetch to `/accounts/api/csrf-token/`); extend session and CSRF cookie lifetimes
+- [x] af74338 Bug: Games View: Menu item 'Dominos' truncated off part of trailing 's' by the spindown char, move the chevron icon to the right
+- [x] Matchup View: Create new screen to compares a list of players head-to-head in their group for a given game-type. Navigate directly to the matchup screen after saving a game.
 
 ## Open Items
 
-- [ ] Bug: Games View: Menu item 'Dominos' truncated off part of trailing 's' by the spindown char, move it to the right
-- [ ] Matchup View: Create new screen to compares a list of players head-to-head in their group for a given game-type. Navigate directly to the matchup screen after saving a game.
-- [ ] Matchup View: How to access??
+- [ ] Matchup View: How to access?
+- [ ] Matchup View: Manage/change/select players for comparrison
 - [ ] Leaderboard graphs of leaders over time
-- [ ] New Account: Add ability for users to create accounts, recove passwords, email and/or phone options, 2FA options
+- [ ] User Account: Add ability for users to create accounts, email and/or phone options, 2FA options
+- [ ] User Account: Lost password recovery
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
 - [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [ ] Mobile Native Controls: Explore controls that can be converted to native as we did for the Player and Location drop-downs.

@@ -365,3 +365,89 @@
   --bs-table-cell-padding-y: 0.2rem;
   --bs-table-cell-padding-x: 0.35rem;
 }
+
+.matchup-table-wrap {
+  overflow: auto;
+  max-width: 100%;
+}
+
+.matchup-table .matchup-player-col {
+  min-width: 7rem;
+  vertical-align: middle;
+}
+
+.matchup-table .matchup-sticky-label-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 6.5rem;
+  max-width: 7.5rem;
+  background-color: var(--bs-table-bg);
+  box-shadow: 1px 0 0 var(--bs-border-color);
+  white-space: normal;
+  vertical-align: middle;
+}
+
+.matchup-table tbody th.matchup-sticky-label-col {
+  font-family:
+    "Arial Narrow", "Helvetica Neue Condensed", "Liberation Sans Narrow",
+    sans-serif;
+  font-stretch: condensed;
+  font-variation-settings: "wdth" 75;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.matchup-table thead th.matchup-sticky-label-col,
+.matchup-table thead th.matchup-player-col {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.matchup-table thead .matchup-sticky-label-col {
+  z-index: 3;
+}
+
+.matchup-cell--up,
+.matchup-player-col--up {
+  background-color: rgba(25, 135, 84, 0.14) !important;
+}
+
+.matchup-cell--down,
+.matchup-player-col--down {
+  background-color: rgba(220, 53, 69, 0.12) !important;
+}
+
+.matchup-cell--overtook,
+.matchup-player-col--up.matchup-player-col--up {
+  box-shadow: inset 0 0 0 2px rgba(25, 135, 84, 0.55);
+}
+
+.matchup-cell--overtook {
+  background-color: rgba(25, 135, 84, 0.22) !important;
+}
+
+.matchup-cell--overtaken,
+.matchup-player-col--down.matchup-player-col--down {
+  box-shadow: inset 0 0 0 2px rgba(220, 53, 69, 0.45);
+}
+
+.matchup-cell--overtaken {
+  background-color: rgba(220, 53, 69, 0.18) !important;
+}
+
+.matchup-change-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.matchup-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  column-gap: 0.5rem;
+  row-gap: 0.5rem;
+}

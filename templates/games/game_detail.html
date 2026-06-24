@@ -8,13 +8,6 @@
 {% endblock %}
 
 {% block content %}
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'games:list' %}">Games</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ game_type.name }}</li>
-    </ol>
-  </nav>
-
   <div class="mb-3">
     <h1 class="h3 mb-1">
       {{ game_type.name }}

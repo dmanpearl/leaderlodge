@@ -14,7 +14,10 @@ from leaderlodge.games.forms import (
     prepare_participant_rows,
 )
 from leaderlodge.groups.player_search import roster_for_group
-from leaderlodge.games.list_density import game_list_date_format, resolve_game_list_density
+from leaderlodge.games.list_density import (
+    game_list_date_format,
+    resolve_game_list_density,
+)
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
 from leaderlodge.games.models import Game, GameParticipantResult
@@ -27,6 +30,7 @@ from leaderlodge.games.scoring import (
     default_participant_score_value,
     record_game_rules_summary,
 )
+from leaderlodge.games.matchup import build_matchup_view
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
@@ -490,7 +494,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 )
                 persist_group_id(request, group.pk)
                 messages.success(request, "Game recorded.")
-                return redirect("games:detail", pk=game.pk)
+                return redirect(f"{reverse('games:matchup')}?game={game.pk}")
 
     played_on_value = ""
     played_on_display = ""
@@ -541,11 +545,39 @@ def game_reuse_preview(request: HttpRequest) -> JsonResponse:
 
 
 @demo_or_login_required
+def game_matchup(request: HttpRequest) -> HttpResponse:
+    game_id = request.GET.get("game")
+    if not game_id:
+        raise Http404
+
+    game = get_object_or_404(
+        Game.objects.select_related(
+            "group", "location", "recorded_by"
+        ).prefetch_related("participant_results__player__linked_user"),
+        pk=game_id,
+    )
+    if not can_view_group(request.user, game.group):
+        raise Http404
+
+    matchup = build_matchup_view(game)
+    return render(
+        request,
+        "games/matchup.html",
+        {
+            "matchup": matchup,
+            "game": game,
+            "game_type": get_game_type(game.game_type_code),
+            "is_double": game.double_weight == 2,
+            "is_half": game.half_weight == 2,
+        },
+    )
+
+
 def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     game = get_object_or_404(
-        Game.objects.select_related("group", "recorded_by", "location").prefetch_related(
-            "participant_results__player"
-        ),
+        Game.objects.select_related(
+            "group", "recorded_by", "location"
+        ).prefetch_related("participant_results__player"),
         pk=pk,
     )
     if not can_view_group(request.user, game.group):
