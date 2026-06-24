@@ -92,11 +92,101 @@ def test_verify_email_confirm_marks_profile_verified(client):
     ).group(1)
 
     response = client.get(verify_url)
+    content = response.content.decode()
     assert response.status_code == 200
-    assert "Email confirmed" in response.content.decode()
+    assert "verifyme@example.com" in content
+    assert "Your email address" in content
 
     profile = UserProfile.objects.get(user__email="verifyme@example.com")
     assert profile.email_verified_at is not None
+
+
+@pytest.mark.django_db
+def test_verify_email_confirm_shows_mismatch_when_other_user_logged_in(client):
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    from leaderlodge.accounts.email_verification import (
+        email_verification_token_generator,
+    )
+
+    user_a = User.objects.create_user(
+        username="david_manpearl",
+        email="david_manpearl@hotmail.com",
+        password="secret-pass",
+    )
+    user_b = User.objects.create_user(
+        username="dmanpearl",
+        email="dmanpearl@gmail.com",
+        password="secret-pass",
+        first_name="David",
+    )
+    client.force_login(user_b)
+
+    uidb64 = urlsafe_base64_encode(force_bytes(user_a.pk))
+    token = email_verification_token_generator.make_token(user_a)
+    response = client.get(
+        reverse(
+            "accounts:verify_email_confirm",
+            kwargs={"uidb64": uidb64, "token": token},
+        )
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "david_manpearl@hotmail.com" in content
+    assert "You're signed in as" in content
+    assert "David" in content
+    assert "Continue as David" in content
+    assert "Sign in as david_manpearl" in content
+    user_a.profile.refresh_from_db()
+    user_b.profile.refresh_from_db()
+    assert user_a.profile.email_verified_at is not None
+    assert user_b.profile.email_verified_at is None
+
+
+@pytest.mark.django_db
+def test_verify_email_sign_in_logs_out_and_redirects_to_login(client, user):
+    user.set_password("secret-pass")
+    user.save(update_fields=["password"])
+    client.force_login(user)
+
+    response = client.post(
+        reverse("accounts:verify_email_sign_in"),
+        {"username": user.username},
+    )
+
+    assert response.status_code == 302
+    assert response.url == reverse("accounts:login")
+    assert "_auth_user_id" not in client.session
+
+
+@pytest.mark.django_db
+def test_verify_email_confirm_anonymous_shows_sign_in(client, user):
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    from leaderlodge.accounts.email_verification import (
+        email_verification_token_generator,
+    )
+
+    user.email = "david@example.com"
+    user.save(update_fields=["email"])
+    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+    token = email_verification_token_generator.make_token(user)
+
+    response = client.get(
+        reverse(
+            "accounts:verify_email_confirm",
+            kwargs={"uidb64": uidb64, "token": token},
+        )
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "david@example.com" in content
+    assert reverse("accounts:login") in content
+    assert "You're signed in as" not in content
 
 
 @pytest.mark.django_db

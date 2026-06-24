@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -22,6 +22,7 @@ from leaderlodge.accounts.forms import SignupForm
 from leaderlodge.accounts.game_selection import SESSION_GAME_TYPE_CODE
 from leaderlodge.accounts.group_selection import SESSION_GROUP_ID
 from leaderlodge.accounts.ui_settings import reset_ui_settings
+from leaderlodge.groups.names import format_user_display_name
 
 
 @require_GET
@@ -74,6 +75,50 @@ def _user_from_uidb64(uidb64: str) -> User | None:
         return None
 
 
+def _verify_email_confirm_context(
+    request: HttpRequest,
+    verified_user: User,
+    *,
+    already_verified: bool,
+) -> dict:
+    if request.user.is_authenticated:
+        session_match = (
+            "same" if request.user.pk == verified_user.pk else "different"
+        )
+    else:
+        session_match = "anonymous"
+
+    return {
+        "verified_user": verified_user,
+        "verified_display_name": format_user_display_name(verified_user),
+        "verified_email": verified_user.email,
+        "already_verified": already_verified,
+        "session_match": session_match,
+        "session_display_name": (
+            format_user_display_name(request.user)
+            if request.user.is_authenticated
+            else ""
+        ),
+    }
+
+
+def _render_verify_email_complete(
+    request: HttpRequest,
+    verified_user: User,
+    *,
+    already_verified: bool,
+) -> HttpResponse:
+    return render(
+        request,
+        "accounts/verify_email_complete.html",
+        _verify_email_confirm_context(
+            request,
+            verified_user,
+            already_verified=already_verified,
+        ),
+    )
+
+
 @require_GET
 def verify_email_confirm(request: HttpRequest, uidb64: str, token: str) -> HttpResponse:
     user = _user_from_uidb64(uidb64)
@@ -81,18 +126,24 @@ def verify_email_confirm(request: HttpRequest, uidb64: str, token: str) -> HttpR
         return render(request, "accounts/verify_email_invalid.html", status=400)
 
     if is_email_verified(user):
-        return render(
-            request,
-            "accounts/verify_email_complete.html",
-            {"already_verified": True},
+        return _render_verify_email_complete(
+            request, user, already_verified=True
         )
 
     mark_email_verified(user)
-    return render(
-        request,
-        "accounts/verify_email_complete.html",
-        {"already_verified": False},
-    )
+    return _render_verify_email_complete(request, user, already_verified=False)
+
+
+@require_POST
+def verify_email_sign_in(request: HttpRequest) -> HttpResponse:
+    username = request.POST.get("username", "").strip()
+    logout(request)
+    if username:
+        messages.info(
+            request,
+            f"Sign in as {username} to see your verified status.",
+        )
+    return redirect("accounts:login")
 
 
 @login_required

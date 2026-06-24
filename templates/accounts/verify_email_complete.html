@@ -8,19 +8,68 @@
       <div class="card shadow-sm">
         <div class="card-body">
           <h1 class="h4 mb-3">Email confirmed</h1>
-          {% if already_verified %}
-            <p class="text-muted mb-0">
-              This email address was already confirmed. You're all set.
+
+          {% if session_match == "same" %}
+            {% if already_verified %}
+              <p class="text-muted mb-3">
+                Your email address <strong>{{ verified_email }}</strong> was already confirmed.
+              </p>
+            {% else %}
+              <p class="text-muted mb-3">
+                <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+                Your email address <strong>{{ verified_email }}</strong> is confirmed.
+              </p>
+            {% endif %}
+            <a href="{% url 'core:dashboard' %}" class="btn btn-primary w-100">
+              Continue to LeaderLodge
+            </a>
+
+          {% elif session_match == "different" %}
+            {% if already_verified %}
+              <p class="text-muted mb-3">
+                The email address <strong>{{ verified_email }}</strong>
+                ({{ verified_display_name }}) was already confirmed.
+              </p>
+            {% else %}
+              <p class="text-muted mb-3">
+                <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+                The email address <strong>{{ verified_email }}</strong>
+                ({{ verified_display_name }}) is now confirmed.
+              </p>
+            {% endif %}
+            <p class="text-muted mb-4">
+              You're signed in as <strong>{{ session_display_name }}</strong>.
             </p>
+            <div class="d-grid gap-2">
+              <a href="{% url 'core:dashboard' %}" class="btn btn-primary">
+                Continue as {{ session_display_name }}
+              </a>
+              <form method="post" action="{% url 'accounts:verify_email_sign_in' %}">
+                {% csrf_token %}
+                <input type="hidden" name="username" value="{{ verified_user.username }}">
+                <button type="submit" class="btn btn-outline-primary w-100">
+                  Sign in as {{ verified_display_name }}
+                </button>
+              </form>
+            </div>
+
           {% else %}
-            <p class="text-muted mb-0">
-              <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
-              Thanks for confirming your email address.
-            </p>
+            {% if already_verified %}
+              <p class="text-muted mb-3">
+                The email address <strong>{{ verified_email }}</strong>
+                ({{ verified_display_name }}) was already confirmed.
+              </p>
+            {% else %}
+              <p class="text-muted mb-3">
+                <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+                The email address <strong>{{ verified_email }}</strong>
+                ({{ verified_display_name }}) is now confirmed.
+              </p>
+            {% endif %}
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary w-100">
+              Sign in
+            </a>
           {% endif %}
-          <p class="text-muted small mb-0 mt-3">
-            <a href="{% url 'core:dashboard' %}">Continue to LeaderLodge</a>
-          </p>
         </div>
       </div>
     </div>

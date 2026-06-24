@@ -36,6 +36,11 @@ urlpatterns = [
         name="verify_email_confirm",
     ),
     path(
+        "verify-email/sign-in/",
+        views.verify_email_sign_in,
+        name="verify_email_sign_in",
+    ),
+    path(
         "password-reset/",
         auth_views.PasswordResetView.as_view(
             template_name="accounts/password_reset_form.html",
