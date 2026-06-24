@@ -6,10 +6,13 @@ from django.contrib.auth.forms import (
     SetPasswordForm,
 )
 from django.core.exceptions import ValidationError
+from django.core.mail import EmailMultiAlternatives
+from django.template import loader
 
 from leaderlodge.accounts.registration import unique_username_for_email
 
 User = get_user_model()
+logger = __import__("logging").getLogger(__name__)
 
 
 def _form_control(widget):
@@ -126,6 +129,47 @@ class StyledPasswordResetForm(PasswordResetForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _form_control(self.fields["email"].widget)
+
+    def save(self, *args, **kwargs):
+        email = self.cleaned_data["email"]
+        users = list(self.get_users(email))
+        if not users:
+            logger.warning(
+                "Password reset requested for email with no active matching account: %s",
+                email,
+            )
+        else:
+            logger.info(
+                "Sending password reset email to %s for user pk(s) %s",
+                email,
+                [user.pk for user in users],
+            )
+        return super().save(*args, **kwargs)
+
+    def send_mail(
+        self,
+        subject_template_name,
+        email_template_name,
+        context,
+        from_email,
+        to_email,
+        html_email_template_name=None,
+    ):
+        subject = loader.render_to_string(subject_template_name, context)
+        subject = "".join(subject.splitlines())
+        body = loader.render_to_string(email_template_name, context)
+        email_message = EmailMultiAlternatives(subject, body, from_email, [to_email])
+        if html_email_template_name is not None:
+            html_email = loader.render_to_string(html_email_template_name, context)
+            email_message.attach_alternative(html_email, "text/html")
+        try:
+            email_message.send()
+        except Exception:
+            logger.exception(
+                "Password reset email delivery failed for user pk %s",
+                context["user"].pk,
+            )
+            raise
 
 
 class StyledSetPasswordForm(SetPasswordForm):

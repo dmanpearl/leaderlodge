@@ -26,6 +26,16 @@ urlpatterns = [
     ),
     path("signup/", views.signup, name="signup"),
     path(
+        "verify-email/",
+        views.verify_email,
+        name="verify_email",
+    ),
+    path(
+        "verify/<uidb64>/<token>/",
+        views.verify_email_confirm,
+        name="verify_email_confirm",
+    ),
+    path(
         "password-reset/",
         auth_views.PasswordResetView.as_view(
             template_name="accounts/password_reset_form.html",

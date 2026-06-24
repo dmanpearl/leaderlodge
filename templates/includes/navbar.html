@@ -72,6 +72,25 @@
             <span class="navbar-account-label d-none d-md-inline">{{ user.username }}</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountMenu">
+            {% if user_email_verified %}
+              <li>
+                <span class="dropdown-item-text d-flex align-items-center gap-2 text-success">
+                  <i class="bi bi-check-circle-fill navbar-menu-icon" aria-hidden="true"></i>
+                  Email verified
+                </span>
+              </li>
+            {% else %}
+              <li>
+                <a
+                  class="dropdown-item d-flex align-items-center gap-2"
+                  href="{% url 'accounts:verify_email' %}"
+                >
+                  <i class="bi bi-envelope-check navbar-menu-icon" aria-hidden="true"></i>
+                  Verify Email
+                </a>
+              </li>
+            {% endif %}
+            <li><hr class="dropdown-divider"></li>
             {% if user.is_staff or user.is_superuser %}
               <li>
                 <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'admin:index' %}">

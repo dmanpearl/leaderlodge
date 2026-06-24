@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Verify email | LeaderLodge{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-12 col-sm-8 col-md-5">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          {% if verified %}
+            <h1 class="h4 mb-3">Email verified</h1>
+            <p class="text-muted mb-3">
+              <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+              Your email address is already confirmed.
+            </p>
+            <a href="{% url 'core:dashboard' %}" class="btn btn-primary">Back to dashboard</a>
+          {% else %}
+            <h1 class="h4 mb-3">Verify your email</h1>
+            <p class="text-muted mb-3">
+              We sent a confirmation link to <strong>{{ user.email }}</strong> when you signed up.
+              Open that link to confirm your address.
+            </p>
+            <p class="text-muted small mb-4">
+              Didn't get it? Check spam or junk, then request another link below.
+            </p>
+            <form method="post">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-primary w-100">Send confirmation link</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

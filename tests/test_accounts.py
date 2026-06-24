@@ -52,7 +52,129 @@ def test_signup_creates_user_profile_and_logs_in(client):
     user = User.objects.get(email="newplayer@example.com")
     assert user.first_name == "New"
     assert user.username == "newplayer"
-    assert UserProfile.objects.filter(user=user).exists()
+    profile = UserProfile.objects.get(user=user)
+    assert profile.email_verified_at is None
+
+
+@pytest.mark.django_db
+def test_signup_sends_welcome_email_with_verification_link(client):
+    response = client.post(
+        reverse("accounts:signup"),
+        {
+            "email": "newplayer@example.com",
+            "password1": "strong-pass-123",
+            "password2": "strong-pass-123",
+        },
+    )
+
+    assert response.status_code == 302
+    assert len(mail.outbox) == 1
+    message = mail.outbox[0]
+    assert message.to == ["newplayer@example.com"]
+    assert "Welcome to LeaderLodge" in message.subject
+    match = re.search(r"http://testserver(/accounts/verify/[^\s]+)", message.body)
+    assert match is not None
+
+
+@pytest.mark.django_db
+def test_verify_email_confirm_marks_profile_verified(client):
+    client.post(
+        reverse("accounts:signup"),
+        {
+            "email": "verifyme@example.com",
+            "password1": "strong-pass-123",
+            "password2": "strong-pass-123",
+        },
+    )
+    verify_url = re.search(
+        r"http://testserver(/accounts/verify/[^\s]+)",
+        mail.outbox[0].body,
+    ).group(1)
+
+    response = client.get(verify_url)
+    assert response.status_code == 200
+    assert "Email confirmed" in response.content.decode()
+
+    profile = UserProfile.objects.get(user__email="verifyme@example.com")
+    assert profile.email_verified_at is not None
+
+
+@pytest.mark.django_db
+def test_verify_email_confirm_rejects_invalid_token(client, user):
+    from django.utils.encoding import force_bytes
+    from django.utils.http import urlsafe_base64_encode
+
+    user.email = "david@example.com"
+    user.save(update_fields=["email"])
+    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+
+    response = client.get(
+        reverse(
+            "accounts:verify_email_confirm",
+            kwargs={"uidb64": uidb64, "token": "invalid-token"},
+        )
+    )
+
+    assert response.status_code == 400
+    assert user.profile.email_verified_at is None
+
+
+@pytest.mark.django_db
+def test_verify_email_page_resends_confirmation(client, user):
+    user.email = "david@example.com"
+    user.set_password("secret-pass")
+    user.save(update_fields=["email", "password"])
+    client.force_login(user)
+
+    response = client.post(reverse("accounts:verify_email"))
+    assert response.status_code == 302
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ["david@example.com"]
+
+
+@pytest.mark.django_db
+def test_navbar_shows_verify_email_for_unverified_user(client, user):
+    user.email = "david@example.com"
+    user.save(update_fields=["email"])
+    client.force_login(user)
+
+    content = client.get(reverse("core:dashboard")).content.decode()
+
+    assert reverse("accounts:verify_email") in content
+    assert "Verify Email" in content
+    assert "Email verified" not in content
+
+
+@pytest.mark.django_db
+def test_navbar_shows_verified_status_for_verified_user(client, user):
+    from django.utils import timezone
+
+    user.email = "david@example.com"
+    user.save(update_fields=["email"])
+    user.profile.email_verified_at = timezone.now()
+    user.profile.save(update_fields=["email_verified_at"])
+    client.force_login(user)
+
+    content = client.get(reverse("core:dashboard")).content.decode()
+
+    assert "Email verified" in content
+    assert reverse("accounts:verify_email") not in content
+
+
+@pytest.mark.django_db
+def test_changing_user_email_clears_verification(user):
+    from django.utils import timezone
+
+    user.email = "david@example.com"
+    user.save(update_fields=["email"])
+    user.profile.email_verified_at = timezone.now()
+    user.profile.save(update_fields=["email_verified_at"])
+
+    user.email = "newaddr@example.com"
+    user.save(update_fields=["email"])
+
+    user.profile.refresh_from_db()
+    assert user.profile.email_verified_at is None
 
 
 @pytest.mark.django_db

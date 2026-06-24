@@ -260,6 +260,10 @@ print('BREVO_API_KEY set', '=', bool(getattr(settings, 'ANYMAIL', {}).get('BREVO
 - **500 / worker timeout on password reset (~30s)**: Railway is blocking SMTP. Set `BREVO_API_KEY` (API v3 key) and redeploy. Remove reliance on `EMAIL_HOST` SMTP vars.
 - **535 Authentication failed (`SMTPAuthenticationError`)** on laptop only: wrong SMTP credentials, or you are still on the SMTP backend locally. Production should use `anymail.backends.brevo.EmailBackend` when `BREVO_API_KEY` is set.
 - **Brevo shows sent, nothing in inbox**: check spam; confirm domain authentication is green in Brevo.
-- **Reset form succeeds but no mail**: user must be active with a usable password and a matching email on file.
+- **302 but no email received**: Django always redirects to "Check your email" even when no account matches (anti-enumeration). Check:
+  - The address on the form **exactly matches** the user's `email` field in Admin (accounts created before signup, or via `createsuperuser`, often have a blank email).
+  - Brevo **Transactional** log for a send attempt at that time.
+  - Railway deploy logs for `Password reset requested for email with no active matching account` or `Password reset email delivery failed`.
+  - Run against production DB: `railway run python manage.py shell -c "from django.contrib.auth import get_user_model; print(list(get_user_model().objects.filter(email__iexact='YOUR_EMAIL').values('username','email','is_active')))"`
 - **Reset link host looks wrong**: links mirror the hostname on the reset form; both apex and www are valid if both resolve to the app.
 - **Local dev**: no Railway vars needed; watch the runserver console for reset links.

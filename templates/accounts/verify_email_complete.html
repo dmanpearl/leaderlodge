@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Email confirmed | LeaderLodge{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-12 col-sm-8 col-md-5">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h1 class="h4 mb-3">Email confirmed</h1>
+          {% if already_verified %}
+            <p class="text-muted mb-0">
+              This email address was already confirmed. You're all set.
+            </p>
+          {% else %}
+            <p class="text-muted mb-0">
+              <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+              Thanks for confirming your email address.
+            </p>
+          {% endif %}
+          <p class="text-muted small mb-0 mt-3">
+            <a href="{% url 'core:dashboard' %}">Continue to LeaderLodge</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
