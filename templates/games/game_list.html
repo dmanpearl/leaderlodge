@@ -174,7 +174,7 @@
                 class="game-list-row"
                 role="link"
                 tabindex="0"
-                data-href="{% url 'games:matchup' %}?game={{ row.game.pk }}"
+                data-href="{% url 'games:detail' row.game.pk %}"
               >
                 <td class="game-list-nowrap-col">{{ row.game.played_on|date:date_format }}</td>
                 {% if show_group_column %}

@@ -31,7 +31,7 @@ def _record_game(client, group, players, scores):
 
 
 @pytest.mark.django_db
-def test_save_game_redirects_to_matchup(client, user, group):
+def test_save_game_redirects_to_game_detail(client, user, group):
     players = list(group.players.order_by("pk")[:2])
     client.force_login(user)
     response = _record_game(
@@ -43,7 +43,7 @@ def test_save_game_redirects_to_matchup(client, user, group):
 
     assert response.status_code == 302
     game = Game.objects.get(group=group)
-    assert response["Location"] == f"/games/matchup/?game={game.pk}"
+    assert response["Location"] == reverse("games:detail", kwargs={"pk": game.pk})
 
 
 @pytest.mark.django_db

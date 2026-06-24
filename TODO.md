@@ -47,12 +47,12 @@
 - [x] fe6126e Filter leaderboards by year and month
 - [x] 5914a36 CSRF: Auto-refresh stale form tokens when a tab or phone wakes from sleep (visibility/bfcache fetch to `/accounts/api/csrf-token/`); extend session and CSRF cookie lifetimes
 - [x] af74338 Bug: Games View: Menu item 'Dominos' truncated off part of trailing 's' by the spindown char, move the chevron icon to the right
-- [x] ddbfa18 Matchup View: Create new screen to compares a list of players head-to-head in their group for a given game-type. Navigate directly to the matchup screen after saving a game.
-- [x] Matchup View: Game list — click a game row to open matchup for that game's players
-- [x] Matchup View: Game detail — Matchup button in footer (Games / Leaderboard / Matchup)
+- [x] ddbfa18 Matchup View: Create new screen to compares a list of players head-to-head in their group for a given game-type.
+- [x] ded329e Matchup View: Game detail as hub — game list rows and post-save redirect land on game detail; Matchup via footer button
 
 ## Open Items
 
+- [ ] Offline mode: Al
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
 - [ ] Leaderboard graphs of leaders over time

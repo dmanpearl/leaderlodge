@@ -494,7 +494,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 )
                 persist_group_id(request, group.pk)
                 messages.success(request, "Game recorded.")
-                return redirect(f"{reverse('games:matchup')}?game={game.pk}")
+                return redirect("games:detail", pk=game.pk)
 
     played_on_value = ""
     played_on_display = ""

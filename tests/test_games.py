@@ -484,9 +484,11 @@ def test_game_detail_for_member(client, user, group):
     client.post(reverse("games:create"), _save_game_post(group))
     game = Game.objects.get()
     response = client.get(reverse("games:detail", kwargs={"pk": game.pk}))
+    content = response.content.decode()
 
     assert response.status_code == 200
-    assert "Dom Club" in response.content.decode()
+    assert "Dom Club" in content
+    assert f'href="/games/matchup/?game={game.pk}"' in content
 
 
 @pytest.mark.django_db
