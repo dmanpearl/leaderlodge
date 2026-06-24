@@ -106,6 +106,16 @@
         <li class="nav-item ms-md-2">
           <a
             class="btn btn-outline-light btn-sm d-inline-flex align-items-center gap-1"
+            href="{% url 'accounts:signup' %}"
+            aria-label="Create account"
+          >
+            <span class="navbar-account-label d-none d-md-inline">Sign up</span>
+            <span class="d-md-none">Sign up</span>
+          </a>
+        </li>
+        <li class="nav-item ms-md-1">
+          <a
+            class="btn btn-outline-light btn-sm d-inline-flex align-items-center gap-1"
             href="{% url 'accounts:login' %}"
             aria-label="Login"
           >

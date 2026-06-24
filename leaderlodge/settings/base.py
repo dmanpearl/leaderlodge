@@ -186,3 +186,26 @@ DEMO_MODE_ENABLED = os.environ.get("DEMO_MODE_ENABLED", "true").lower() in (
 MIN_GAMES_FOR_LEADERBOARD = 1
 LEADERBOARD_VESTING_COUNT = 14
 LEADERBOARD_VESTING_FACTOR = 0.5
+
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "DEFAULT_FROM_EMAIL",
+    "LeaderLodge <noreply@leaderlodge.com>",
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+if EMAIL_HOST:
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+    if EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend":
+        EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

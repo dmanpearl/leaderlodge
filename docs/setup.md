@@ -114,3 +114,132 @@ railway run python manage.py setup_demo
 ```
 
 Use `--owner USERNAME` if you have multiple superusers and want a specific group owner. No Django admin step is required to set **Is demo**.
+
+## User accounts
+
+Self-service signup, login (email or username), and password reset are at `/accounts/signup/`, `/accounts/login/`, and `/accounts/password-reset/`.
+
+Locally, outbound email uses the **console backend** (messages print in the runserver terminal). Production uses **Brevo** via SMTP; see [Production email (Brevo)](#production-email-brevo) below.
+
+## Production email (Brevo)
+
+LeaderLodge uses a **separate Brevo account** (free tier) for outbound mail from `@leaderlodge.com`. Your **pixelmonks.com** contact form can stay on **Resend** unchanged. You do not need a second Resend domain or the paid Resend plan.
+
+Porkbun is only used for **DNS records** on `leaderlodge.com` (not mailboxes). Railway holds the SMTP credentials.
+
+### Why Brevo for LeaderLodge
+
+| | **Resend (pixelmonks.com)** | **Brevo (leaderlodge.com)** |
+|--|--|--|
+| Account | Keep as-is for pixelmonks.com | New free Brevo account for LeaderLodge only |
+| Domain | `pixelmonks.com` | `leaderlodge.com` only |
+| Cost | Your current plan | Free tier (300 emails/day; plenty for password reset and invites) |
+
+### Website vs email hostnames
+
+| Hostname | Role |
+|----------|------|
+| `leaderlodge.com` | Website and password-reset links when users visit the apex URL |
+| `www.leaderlodge.com` | Website and password-reset links when users visit the www URL |
+| `@leaderlodge.com` (e.g. `noreply@leaderlodge.com`) | **From** address in Brevo (apex domain only; never `www@...`) |
+
+Both website hostnames are already in `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS`. Password-reset emails use whichever hostname the user submitted the form from, so links work on both.
+
+**Before email setup**, confirm both URLs load the app:
+
+1. Railway > your web service > **Networking** > add custom domains `leaderlodge.com` and `www.leaderlodge.com` if not already present.
+2. In Porkbun DNS for `leaderlodge.com`:
+   - **Apex** (`@`): ALIAS/ANAME to Railway's target (from `railway domain status` or the Railway networking panel).
+   - **www**: CNAME to Railway's www target (or to `leaderlodge.com` if Porkbun supports flattening to the same target).
+3. Open `https://leaderlodge.com/` and `https://www.leaderlodge.com/` and confirm both show LeaderLodge.
+
+Brevo domain authentication uses the **apex** domain only (`leaderlodge.com`). That covers sending from `@leaderlodge.com` addresses. You do **not** add `www.leaderlodge.com` as a separate domain in Brevo.
+
+### Overview
+
+| Piece | Role |
+|-------|------|
+| **Brevo** | Sends LeaderLodge password-reset and future invite mail |
+| **Porkbun DNS** | Web records for apex + www; plus TXT/CNAME records Brevo requires for mail |
+| **Railway variables** | SMTP host, port, login email, SMTP key, from-address |
+
+### Step 1: Create a Brevo account for LeaderLodge
+
+1. Sign up at [brevo.com](https://www.brevo.com) with an email you check (can be the same person as pixelmonks.com; this is a **separate account** from Resend).
+2. Complete Brevo's account verification if prompted.
+3. You do **not** need a paid Brevo plan for LeaderLodge.
+
+### Step 2: Authenticate `leaderlodge.com` in Brevo
+
+1. In Brevo, open **Settings** (gear) > **Senders, Domains & Dedicated IPs** > **Domains**.
+2. Click **Add a domain** and enter `leaderlodge.com` (apex only, not `www.leaderlodge.com`).
+3. Brevo shows DNS records to add (typically DKIM CNAME/TXT and an SPF TXT). Leave that page open.
+
+These mail records live in the same Porkbun zone as your web DNS. They do not replace your existing apex/www web records.
+
+### Step 3: Add Brevo DNS records in Porkbun
+
+1. Log in to [porkbun.com](https://porkbun.com).
+2. **Domain Management** > **leaderlodge.com** > **DNS** (Edit DNS).
+3. For **each record Brevo lists**, add a matching row in Porkbun:
+   - **Type**: same as Brevo (CNAME or TXT)
+   - **Host**: copy exactly from Brevo (not `@` or `www` unless Brevo says so)
+   - **Answer / Value**: copy exactly from Brevo
+4. Save. Do **not** remove or change existing apex/www web records unless Brevo or Railway explicitly tells you to.
+5. Back in Brevo, click to **Authenticate** / verify the domain.
+6. DNS can take 5 minutes to a few hours. Wait until Brevo shows the domain as authenticated.
+
+You are editing **DNS**, not Porkbun email forwarding. No mailbox setup is required.
+
+### Step 4: Create an SMTP key and from-address
+
+1. In Brevo, go to **Settings** > **SMTP & API** > **SMTP**.
+2. Click **Generate a new SMTP key** (name it e.g. `LeaderLodge Railway`). Copy the key; you may not see it again.
+3. Note the **SMTP server** (`smtp-relay.brevo.com`) and **Login** (your Brevo account email) shown on the same page.
+4. After domain authentication, use this from-address:
+
+   `LeaderLodge <noreply@leaderlodge.com>`
+
+   You do not need a real inbox at that address. Do not use `www.leaderlodge.com` in the from-address.
+
+### Step 5: Railway environment variables
+
+In the LeaderLodge Railway service, add:
+
+| Variable | Value |
+|----------|--------|
+| `DEFAULT_FROM_EMAIL` | `LeaderLodge <noreply@leaderlodge.com>` |
+| `EMAIL_HOST` | `smtp-relay.brevo.com` |
+| `EMAIL_PORT` | `587` |
+| `EMAIL_HOST_USER` | your Brevo login email |
+| `EMAIL_HOST_PASSWORD` | your Brevo SMTP key |
+| `EMAIL_USE_TLS` | `true` |
+
+Redeploy after saving. When `EMAIL_HOST` is set, the app switches from the console backend to SMTP automatically.
+
+### Step 6: Test on production
+
+Test **both** website hostnames:
+
+1. Use an account with an email you control (or sign up fresh on production).
+2. Visit `https://leaderlodge.com/accounts/password-reset/`, submit the form, and complete the reset flow.
+3. Repeat from `https://www.leaderlodge.com/accounts/password-reset/`.
+4. Confirm each email's reset link uses the same hostname you submitted from (`leaderlodge.com` vs `www.leaderlodge.com`).
+5. Check the Brevo **Transactional** / **Email** logs and your inbox (including spam).
+
+Optional smoke test from Railway:
+
+```bash
+railway run python manage.py shell -c "
+from django.core.mail import send_mail
+send_mail('LeaderLodge test', 'SMTP works.', None, ['YOUR_EMAIL@example.com'])
+"
+```
+
+### Troubleshooting
+
+- **Brevo shows sent, nothing in inbox**: check spam; confirm domain authentication is green in Brevo.
+- **SMTP auth error**: `EMAIL_HOST_USER` is your Brevo **login email**; `EMAIL_HOST_PASSWORD` is the **SMTP key**, not your Brevo account password.
+- **Reset form succeeds but no mail**: user must be active with a usable password and a matching email on file.
+- **Reset link host looks wrong**: links mirror the hostname on the reset form; both apex and www are valid if both resolve to the app.
+- **Local dev**: no Railway vars needed; watch the runserver console for reset links.

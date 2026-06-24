@@ -49,8 +49,16 @@ The project requires `DJANGO_SECRET_KEY`. **Never commit secrets to Git.**
 | `DJANGO_ALLOWED_HOST` | Optional | Extra hostname appended to `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` |
 | `DJANGO_TIME_ZONE` | Optional | IANA timezone for calendar dates (default: `America/Los_Angeles`) |
 | `DEMO_MODE_ENABLED` | Optional | Public read-only demo group browsing (default: `true`) |
+| `DEFAULT_FROM_EMAIL` | Production | Brevo from-address (e.g. `LeaderLodge <noreply@leaderlodge.com>`) |
+| `EMAIL_HOST` | Production | `smtp-relay.brevo.com` |
+| `EMAIL_PORT` | Production | `587` |
+| `EMAIL_HOST_USER` | Production | Brevo login email |
+| `EMAIL_HOST_PASSWORD` | Production | Brevo SMTP key |
+| `EMAIL_USE_TLS` | Production | `true` |
 
-Copy `.env.example` to `.env` for local development. On Railway, set variables in the dashboard — do not upload a `.env` file.
+Copy `.env.example` to `.env` for local development. On Railway, set variables in the dashboard - do not upload a `.env` file.
+
+Production email setup (Brevo + Porkbun DNS): [docs/setup.md#production-email-brevo](docs/setup.md#production-email-brevo). pixelmonks.com can stay on Resend separately.
 
 `leaderlodge.com`, `www.leaderlodge.com`, and Railway's `RAILWAY_PUBLIC_DOMAIN` are already configured in settings. You do not need to set `ALLOWED_HOSTS` manually unless you add another hostname.
 

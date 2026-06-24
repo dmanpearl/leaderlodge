@@ -18,3 +18,5 @@ DATABASES = {
 
 # Fast hasher — user fixtures are created in almost every integration test.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

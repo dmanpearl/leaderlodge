@@ -1,6 +1,7 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Login | LeaderLodge{% endblock %}
+{% block title %}Sign in | LeaderLodge{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
@@ -12,40 +13,24 @@
             {% csrf_token %}
             {{ form.non_field_errors }}
             <div class="mb-3">
-              <label for="id_username" class="form-label">Username</label>
-              <input
-                type="text"
-                name="username"
-                autofocus
-                required
-                class="form-control"
-                id="id_username"
-              />
+              <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label }}</label>
+              {{ form.username }}
+              {{ form.username.errors }}
             </div>
             <div class="mb-3">
-              <label for="id_password" class="form-label">Password</label>
-              <div class="input-group">
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  class="form-control"
-                  id="id_password"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary"
-                  id="login-password-toggle"
-                  aria-label="Show password"
-                  aria-pressed="false"
-                  aria-controls="id_password"
-                >
-                  <i class="bi bi-eye" id="login-password-toggle-icon" aria-hidden="true"></i>
-                </button>
-              </div>
+              <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label }}</label>
+              {% include "accounts/includes/password_input.html" with field=form.password toggle_id="login-password-toggle" icon_id="login-password-toggle-icon" autocomplete="current-password" %}
+              {{ form.password.errors }}
             </div>
-            <button type="submit" class="btn btn-primary w-100">Login</button>
+            <button type="submit" class="btn btn-primary w-100">Sign in</button>
           </form>
+          <p class="text-muted small mb-0 mt-3 text-center">
+            <a href="{% url 'accounts:password_reset' %}">Forgot password?</a>
+          </p>
+          <p class="text-muted small mb-0 mt-2 text-center">
+            New here?
+            <a href="{% url 'accounts:signup' %}">Create an account</a>
+          </p>
         </div>
       </div>
     </div>
@@ -53,23 +38,5 @@
 {% endblock %}
 
 {% block extra_js %}
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const input = document.getElementById("id_password");
-      const toggle = document.getElementById("login-password-toggle");
-      const icon = document.getElementById("login-password-toggle-icon");
-      if (!input || !toggle || !icon) {
-        return;
-      }
-
-      toggle.addEventListener("click", () => {
-        const showing = input.type === "text";
-        input.type = showing ? "password" : "text";
-        icon.classList.toggle("bi-eye", showing);
-        icon.classList.toggle("bi-eye-slash", !showing);
-        toggle.setAttribute("aria-label", showing ? "Show password" : "Hide password");
-        toggle.setAttribute("aria-pressed", String(!showing));
-      });
-    });
-  </script>
+  <script src="{% static 'js/auth_password_toggle.js' %}"></script>
 {% endblock %}

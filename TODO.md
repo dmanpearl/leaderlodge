@@ -47,17 +47,20 @@
 - [x] fe6126e Filter leaderboards by year and month
 - [x] 5914a36 CSRF: Auto-refresh stale form tokens when a tab or phone wakes from sleep (visibility/bfcache fetch to `/accounts/api/csrf-token/`); extend session and CSRF cookie lifetimes
 - [x] af74338 Bug: Games View: Menu item 'Dominos' truncated off part of trailing 's' by the spindown char, move the chevron icon to the right
-- [x] ddbfa18 Matchup View: Create new screen to compares a list of players head-to-head in their group for a given game-type.
-- [x] ded329e Matchup View: Game detail as hub — game list rows and post-save redirect land on game detail; Matchup via footer button
+- [x] ddbfa18 Matchup View: Create new screen to compares a list of players head-to-head in their group for a given game-type. Navigate directly to the matchup screen after saving a game.
+- [x] ded329e Matchup View: Game list - click a game row to open matchup for that game's players
+- [x] 7ba260e Matchup View: Game detail - Matchup button in footer (Games / Leaderboard / Matchup)
+- [x] User Account (phase 1): Self-service signup, login, and password reset (email-based; production SMTP pending)
 
 ## Open Items
 
-- [ ] Offline mode: Al
-- [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
+- [ ] Bug: Game View: Clicking a game row should navigate to the Game Detail screen. Currently incorrectly navigates to the Matchup view
+- [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI) (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
+- [ ] Offline mode: Allow game entry in limited connection environments
 - [ ] Leaderboard graphs of leaders over time
-- [ ] User Account: Add ability for users to create accounts, email and/or phone options, 2FA options
-- [ ] User Account: Lost password recovery
+- [ ] User Account (phase 2): Group invites by email/link - replace all-users member picker
+- [ ] User Account (phase 3): 2FA and phone login options
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
 - [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [ ] Mobile Native Controls: Explore controls that can be converted to native as we did for the Player and Location drop-downs.
@@ -66,8 +69,10 @@
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
-- [ ] Group members: Replace all-users dropdown with a secure, private, scalable invite method (email/link, not a public account picker)
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
 - [ ] Game detail view (maybe)
 - [ ] Merge similar locations tool
+- [ ] Add About Box and contact us form.
+- [ ] iOS: Build native mobile app for iPhone and iPad
+- [ ] Android: Build native mobile app for Android
