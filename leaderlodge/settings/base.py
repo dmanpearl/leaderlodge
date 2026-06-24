@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "anymail",
     "leaderlodge.core",
     "leaderlodge.accounts",
     "leaderlodge.groups",
@@ -193,19 +194,29 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 )
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-EMAIL_BACKEND = os.environ.get(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend",
-)
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
-if EMAIL_HOST:
-    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() in (
-        "true",
-        "1",
-        "yes",
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+
+if BREVO_API_KEY:
+    # Railway blocks outbound SMTP; Brevo's HTTPS API works from the platform.
+    EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+    ANYMAIL = {
+        "BREVO_API_KEY": BREVO_API_KEY,
+    }
+else:
+    EMAIL_BACKEND = os.environ.get(
+        "EMAIL_BACKEND",
+        "django.core.mail.backends.console.EmailBackend",
     )
-    if EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend":
-        EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+    if EMAIL_HOST:
+        EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+        EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+        EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+        EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        EMAIL_TIMEOUT = int(os.environ.get("EMAIL_TIMEOUT", "10"))
+        if EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend":
+            EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

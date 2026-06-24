@@ -119,13 +119,15 @@ Use `--owner USERNAME` if you have multiple superusers and want a specific group
 
 Self-service signup, login (email or username), and password reset are at `/accounts/signup/`, `/accounts/login/`, and `/accounts/password-reset/`.
 
-Locally, outbound email uses the **console backend** (messages print in the runserver terminal). Production uses **Brevo** via SMTP; see [Production email (Brevo)](#production-email-brevo) below.
+Locally, outbound email uses the **console backend** (messages print in the runserver terminal). Production uses **Brevo's HTTPS API** via django-anymail; see [Production email (Brevo)](#production-email-brevo) below.
 
 ## Production email (Brevo)
 
 LeaderLodge uses a **separate Brevo account** (free tier) for outbound mail from `@leaderlodge.com`. Your **pixelmonks.com** contact form can stay on **Resend** unchanged. You do not need a second Resend domain or the paid Resend plan.
 
-Porkbun is only used for **DNS records** on `leaderlodge.com` (not mailboxes). Railway holds the SMTP credentials.
+Porkbun is only used for **DNS records** on `leaderlodge.com` (not mailboxes). Railway holds the Brevo API key.
+
+**Railway blocks outbound SMTP** (ports 587/465). Password reset must use Brevo's **API**, not `smtp-relay.brevo.com`. The app uses django-anymail when `BREVO_API_KEY` is set.
 
 ### Why Brevo for LeaderLodge
 
@@ -161,7 +163,7 @@ Brevo domain authentication uses the **apex** domain only (`leaderlodge.com`). T
 |-------|------|
 | **Brevo** | Sends LeaderLodge password-reset and future invite mail |
 | **Porkbun DNS** | Web records for apex + www; plus TXT/CNAME records Brevo requires for mail |
-| **Railway variables** | SMTP host, port, login email, SMTP key, from-address |
+| **Railway variables** | Brevo API key and from-address |
 
 ### Step 1: Create a Brevo account for LeaderLodge
 
@@ -191,11 +193,11 @@ These mail records live in the same Porkbun zone as your web DNS. They do not re
 
 You are editing **DNS**, not Porkbun email forwarding. No mailbox setup is required.
 
-### Step 4: Create an SMTP key and from-address
+### Step 4: Create a Brevo API key and from-address
 
-1. In Brevo, go to **Settings** > **SMTP & API** > **SMTP**.
-2. Click **Generate a new SMTP key** (name it e.g. `LeaderLodge Railway`). Copy the key; you may not see it again.
-3. Note the **SMTP server** (`smtp-relay.brevo.com`) and **Login** (your Brevo account email) shown on the same page.
+1. In Brevo, go to **Settings** > **SMTP & API** > **API Keys**.
+2. Click **Generate a new API key** (name it e.g. `LeaderLodge Railway`). Copy the key (`xkeysib-...`); you may not see it again.
+3. This is an **API v3 key**, not an SMTP key. Do not use the SMTP tab key here.
 4. After domain authentication, use this from-address:
 
    `LeaderLodge <noreply@leaderlodge.com>`
@@ -208,14 +210,12 @@ In the LeaderLodge Railway service, add:
 
 | Variable | Value |
 |----------|--------|
+| `BREVO_API_KEY` | your Brevo API v3 key (`xkeysib-...`) |
 | `DEFAULT_FROM_EMAIL` | `LeaderLodge <noreply@leaderlodge.com>` |
-| `EMAIL_HOST` | `smtp-relay.brevo.com` |
-| `EMAIL_PORT` | `587` |
-| `EMAIL_HOST_USER` | your Brevo login email |
-| `EMAIL_HOST_PASSWORD` | your Brevo SMTP key |
-| `EMAIL_USE_TLS` | `true` |
 
-Redeploy after saving. When `EMAIL_HOST` is set, the app switches from the console backend to SMTP automatically.
+Redeploy after saving. When `BREVO_API_KEY` is set, the app uses Brevo's HTTPS API (django-anymail).
+
+You can remove the old SMTP variables (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`) from Railway; they are not used when `BREVO_API_KEY` is set.
 
 ### Step 6: Test on production
 
@@ -227,19 +227,39 @@ Test **both** website hostnames:
 4. Confirm each email's reset link uses the same hostname you submitted from (`leaderlodge.com` vs `www.leaderlodge.com`).
 5. Check the Brevo **Transactional** / **Email** logs and your inbox (including spam).
 
-Optional smoke test from Railway:
+Optional smoke test from your laptop (uses Railway production variables):
 
 ```bash
 railway run python manage.py shell -c "
+from django.conf import settings
 from django.core.mail import send_mail
-send_mail('LeaderLodge test', 'SMTP works.', None, ['YOUR_EMAIL@example.com'])
+send_mail(
+    'LeaderLodge test',
+    'Brevo API works.',
+    settings.DEFAULT_FROM_EMAIL,
+    ['YOUR_EMAIL@example.com'],
+)
+"
+```
+
+**If you use a local `.env` file:** `load_dotenv(override=True)` in settings makes `.env` win over variables injected by `railway run`. For this smoke test, comment out any `BREVO_API_KEY` or `EMAIL_*` lines in `.env` so Railway's values are used.
+
+Check which backend Django sees:
+
+```bash
+railway run python manage.py shell -c "
+from django.conf import settings
+print('EMAIL_BACKEND', '=', settings.EMAIL_BACKEND)
+print('DEFAULT_FROM_EMAIL', '=', settings.DEFAULT_FROM_EMAIL)
+print('BREVO_API_KEY set', '=', bool(getattr(settings, 'ANYMAIL', {}).get('BREVO_API_KEY')))
 "
 ```
 
 ### Troubleshooting
 
+- **500 / worker timeout on password reset (~30s)**: Railway is blocking SMTP. Set `BREVO_API_KEY` (API v3 key) and redeploy. Remove reliance on `EMAIL_HOST` SMTP vars.
+- **535 Authentication failed (`SMTPAuthenticationError`)** on laptop only: wrong SMTP credentials, or you are still on the SMTP backend locally. Production should use `anymail.backends.brevo.EmailBackend` when `BREVO_API_KEY` is set.
 - **Brevo shows sent, nothing in inbox**: check spam; confirm domain authentication is green in Brevo.
-- **SMTP auth error**: `EMAIL_HOST_USER` is your Brevo **login email**; `EMAIL_HOST_PASSWORD` is the **SMTP key**, not your Brevo account password.
 - **Reset form succeeds but no mail**: user must be active with a usable password and a matching email on file.
 - **Reset link host looks wrong**: links mirror the hostname on the reset form; both apex and www are valid if both resolve to the app.
 - **Local dev**: no Railway vars needed; watch the runserver console for reset links.

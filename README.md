@@ -50,11 +50,7 @@ The project requires `DJANGO_SECRET_KEY`. **Never commit secrets to Git.**
 | `DJANGO_TIME_ZONE` | Optional | IANA timezone for calendar dates (default: `America/Los_Angeles`) |
 | `DEMO_MODE_ENABLED` | Optional | Public read-only demo group browsing (default: `true`) |
 | `DEFAULT_FROM_EMAIL` | Production | Brevo from-address (e.g. `LeaderLodge <noreply@leaderlodge.com>`) |
-| `EMAIL_HOST` | Production | `smtp-relay.brevo.com` |
-| `EMAIL_PORT` | Production | `587` |
-| `EMAIL_HOST_USER` | Production | Brevo login email |
-| `EMAIL_HOST_PASSWORD` | Production | Brevo SMTP key |
-| `EMAIL_USE_TLS` | Production | `true` |
+| `BREVO_API_KEY` | Production | Brevo API v3 key (`xkeysib-...`); uses HTTPS API (Railway blocks SMTP) |
 
 Copy `.env.example` to `.env` for local development. On Railway, set variables in the dashboard - do not upload a `.env` file.
 
