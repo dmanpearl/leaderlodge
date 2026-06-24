@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import EmailMultiAlternatives
 from django.template import loader
@@ -11,6 +12,8 @@ from django.utils.http import urlsafe_base64_encode
 from leaderlodge.accounts.models import UserProfile
 
 logger = logging.getLogger(__name__)
+
+VERIFICATION_EMAIL_SESSION_KEY = "verification_email_sent_user_id"
 
 
 class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
@@ -52,7 +55,8 @@ def build_verification_url(request, user) -> str:
 
 def send_welcome_email(*, request, user) -> None:
     if not user.email:
-        return
+        logger.warning("Skipped welcome email for user pk %s: no email on file", user.pk)
+        raise ValueError("User has no email address on file.")
 
     verify_url = build_verification_url(request, user)
     context = {
@@ -65,12 +69,20 @@ def send_welcome_email(*, request, user) -> None:
     email_message = EmailMultiAlternatives(
         subject,
         body,
-        None,
+        settings.DEFAULT_FROM_EMAIL,
         [user.email],
     )
     try:
         email_message.send()
-        logger.info("Sent welcome email to user pk %s", user.pk)
+        logger.info("Sent welcome email to %s for user pk %s", user.email, user.pk)
     except Exception:
         logger.exception("Welcome email delivery failed for user pk %s", user.pk)
         raise
+
+
+def mark_verification_email_sent(request, user) -> None:
+    request.session[VERIFICATION_EMAIL_SESSION_KEY] = user.pk
+
+
+def verification_email_sent_this_session(request, user) -> bool:
+    return request.session.get(VERIFICATION_EMAIL_SESSION_KEY) == user.pk

@@ -120,7 +120,24 @@ def test_verify_email_confirm_rejects_invalid_token(client, user):
 
 
 @pytest.mark.django_db
-def test_verify_email_page_resends_confirmation(client, user):
+def test_verify_email_page_sends_on_first_get(client, user):
+    user.email = "david@example.com"
+    user.save(update_fields=["email"])
+    client.force_login(user)
+
+    response = client.get(reverse("accounts:verify_email"))
+    assert response.status_code == 200
+    assert len(mail.outbox) == 1
+    assert mail.outbox[0].to == ["david@example.com"]
+
+    mail.outbox.clear()
+    response = client.get(reverse("accounts:verify_email"))
+    assert response.status_code == 200
+    assert len(mail.outbox) == 0
+
+
+@pytest.mark.django_db
+def test_verify_email_page_resends_on_post(client, user):
     user.email = "david@example.com"
     user.set_password("secret-pass")
     user.save(update_fields=["email", "password"])

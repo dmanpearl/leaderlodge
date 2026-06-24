@@ -13,7 +13,9 @@ from leaderlodge.accounts.email_verification import (
     email_verification_token_generator,
     is_email_verified,
     mark_email_verified,
+    mark_verification_email_sent,
     send_welcome_email,
+    verification_email_sent_this_session,
 )
 from leaderlodge.accounts.forms import SignupForm
 from leaderlodge.accounts.game_selection import SESSION_GAME_TYPE_CODE
@@ -47,6 +49,7 @@ def signup(request: HttpRequest) -> HttpResponse:
         login(request, user)
         try:
             send_welcome_email(request=request, user=user)
+            mark_verification_email_sent(request, user)
             messages.success(
                 request,
                 "Welcome to LeaderLodge! We sent a confirmation link to your email.",
@@ -97,18 +100,34 @@ def verify_email(request: HttpRequest) -> HttpResponse:
     if is_email_verified(request.user):
         return render(request, "accounts/verify_email.html", {"verified": True})
 
-    if request.method == "POST":
+    should_send = request.method == "POST" or not verification_email_sent_this_session(
+        request, request.user
+    )
+    if should_send:
         try:
             send_welcome_email(request=request, user=request.user)
-            messages.success(
+            mark_verification_email_sent(request, request.user)
+            if request.method == "POST":
+                messages.success(
+                    request,
+                    "We sent a confirmation link to your email address.",
+                )
+            else:
+                messages.info(
+                    request,
+                    f"We sent a confirmation link to {request.user.email}.",
+                )
+        except ValueError:
+            messages.error(
                 request,
-                "We sent a confirmation link to your email address.",
+                "Your account does not have an email address on file.",
             )
         except Exception:
             messages.error(
                 request,
                 "We could not send the email right now. Please try again in a few minutes.",
             )
-        return redirect("accounts:verify_email")
+        if request.method == "POST":
+            return redirect("accounts:verify_email")
 
     return render(request, "accounts/verify_email.html", {"verified": False})

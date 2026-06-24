@@ -54,6 +54,7 @@
 
 ## Open Items
 
+- [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Remove from Group: Owner should be able to remove a member
 - [ ] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
 - [ ] Bug: Game View: Clicking a game row should navigate to the Game Detail screen. Currently incorrectly navigates to the Matchup view
