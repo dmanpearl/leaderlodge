@@ -54,12 +54,15 @@
 
 ## Open Items
 
+- [ ] Remove from Group: Owner should be able to remove a member
 - [ ] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
 - [ ] Bug: Game View: Clicking a game row should navigate to the Game Detail screen. Currently incorrectly navigates to the Matchup view
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI) (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
 - [ ] Offline mode: Allow game entry in limited connection environments
 - [ ] Leaderboard graphs of leaders over time
+- [ ] User Account: Welcome email when a user creates an account
+- [ ] User Account: Email verification link to confirm address after signup. Link is added to the new user welcome email
 - [ ] User Account (phase 2): Group invites by email/link - replace all-users member picker
 - [ ] User Account (phase 3): 2FA and phone login options
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
