@@ -112,6 +112,10 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link {
   cursor: pointer;
 }
 
+.group-list-row {
+  cursor: pointer;
+}
+
 @media (max-width: 767.98px) {
   .leaderboard-table .leaderboard-sticky-col {
     position: sticky;

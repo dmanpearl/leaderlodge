@@ -86,6 +86,17 @@ def test_group_create_persists_group_selection(client, user, group):
 
 
 @pytest.mark.django_db
+def test_group_list_rows_link_to_detail(client, user, group):
+    client.force_login(user)
+    detail_url = reverse("groups:detail", kwargs={"pk": group.pk})
+    content = client.get(reverse("groups:list")).content.decode()
+
+    assert 'class="group-list-row"' in content
+    assert f'data-href="{detail_url}"' in content
+    assert f'<a href="{detail_url}">' not in content
+
+
+@pytest.mark.django_db
 def test_group_list_shows_full_description(client, user, group):
     group.description = (
         "Test group with example game data. Login and use '+ Create Group' "
