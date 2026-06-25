@@ -1,14 +1,21 @@
 (function () {
-  const STORAGE_KEY = "leaderlodge.gameListStatsOpen";
+  const STATS_STORAGE_KEY = "leaderlodge.gameListStatsOpen";
+  const TYPE_STORAGE_KEY = "leaderlodge.gameListTypeOpen";
 
-  function initStatsCollapse() {
-    const collapse = document.getElementById("game-list-stats");
+  function initCollapseSection({
+    collapseId,
+    iconId,
+    storageKey,
+    defaultOpen = false,
+    onToggle,
+  }) {
+    const collapse = document.getElementById(collapseId);
     if (!collapse) {
       return;
     }
 
-    const stored = window.sessionStorage.getItem(STORAGE_KEY);
-    const shouldOpen = stored === null ? false : stored === "true";
+    const stored = window.sessionStorage.getItem(storageKey);
+    const shouldOpen = stored === null ? defaultOpen : stored === "true";
     const instance = bootstrap.Collapse.getOrCreateInstance(collapse, {
       toggle: false,
     });
@@ -20,24 +27,53 @@
     }
 
     collapse.addEventListener("shown.bs.collapse", () => {
-      window.sessionStorage.setItem(STORAGE_KEY, "true");
-      updateToggleIcon(true);
+      window.sessionStorage.setItem(storageKey, "true");
+      updateCollapseIcon(iconId, true);
+      onToggle?.(true);
     });
     collapse.addEventListener("hidden.bs.collapse", () => {
-      window.sessionStorage.setItem(STORAGE_KEY, "false");
-      updateToggleIcon(false);
+      window.sessionStorage.setItem(storageKey, "false");
+      updateCollapseIcon(iconId, false);
+      onToggle?.(false);
     });
 
-    updateToggleIcon(shouldOpen);
+    updateCollapseIcon(iconId, shouldOpen);
+    onToggle?.(shouldOpen);
   }
 
-  function updateToggleIcon(isOpen) {
-    const icon = document.getElementById("game-list-stats-icon");
+  function updateCollapseIcon(iconId, isOpen) {
+    const icon = document.getElementById(iconId);
     if (!icon) {
       return;
     }
     icon.classList.toggle("bi-chevron-down", isOpen);
     icon.classList.toggle("bi-chevron-right", !isOpen);
+  }
+
+  function initStatsCollapse() {
+    initCollapseSection({
+      collapseId: "game-list-stats",
+      iconId: "game-list-stats-icon",
+      storageKey: STATS_STORAGE_KEY,
+      defaultOpen: false,
+    });
+  }
+
+  function initTypeFiltersCollapse() {
+    const defaultOpen = window.matchMedia("(min-width: 768px)").matches;
+
+    initCollapseSection({
+      collapseId: "game-list-type-filters",
+      iconId: "game-list-type-icon",
+      storageKey: TYPE_STORAGE_KEY,
+      defaultOpen,
+      onToggle(isOpen) {
+        const summary = document.getElementById("game-list-filters-summary");
+        if (summary) {
+          summary.hidden = isOpen;
+        }
+      },
+    });
   }
 
   function updateFooterHeader() {
@@ -114,6 +150,7 @@
 
   function init() {
     initStatsCollapse();
+    initTypeFiltersCollapse();
     initTitleSelect();
     initRowNavigation();
     updateFooterHeader();

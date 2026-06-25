@@ -301,6 +301,44 @@ def test_game_list_for_member(client, user, group):
 
 
 @pytest.mark.django_db
+def test_game_list_type_filters_collapsible(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    content = client.get(reverse("games:list"), follow=True).content.decode()
+
+    assert 'id="game-list-type-filters"' in content
+    assert 'data-bs-target="#game-list-type-filters"' in content
+    assert ">Filters</span>" in content
+    assert 'id="game-list-filters-summary"' in content
+    assert "(Dom Club)" in content
+    assert 'id="filter-group"' in content
+
+
+@pytest.mark.django_db
+def test_game_list_filter_summary_lists_group_and_location(client, user, group):
+    client.force_login(user)
+    load = _load_roster_post(group)
+    load["location_name"] = "Sally"
+    client.post(reverse("games:create"), load)
+    save = _save_game_post(group)
+    save["location_name"] = "Sally"
+    client.post(reverse("games:create"), save)
+
+    from leaderlodge.groups.models import Location
+
+    location = Location.objects.get(name="Sally")
+    content = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos", "location": str(location.pk)},
+        follow=True,
+    ).content.decode()
+
+    assert "(Dom Club, Sally)" in content
+
+
+@pytest.mark.django_db
 def test_game_list_pagination(client, user, group, monkeypatch):
     from leaderlodge.games import views as game_views
 

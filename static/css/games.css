@@ -158,6 +158,21 @@
   color: #212529 !important;
 }
 
+.game-list-filters-header {
+  padding: 0.5rem 1rem;
+}
+
+.game-list-filters-toggle {
+  gap: 0.25rem 0.5rem;
+  justify-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.game-list-filters-summary {
+  text-align: start;
+}
+
 .game-list-table-foot th {
   border-top-width: 2px;
   background-color: var(--bs-table-bg);
@@ -242,6 +257,10 @@
   --bs-gutter-y: 0.5rem;
 }
 
+.game-list-density--compact .game-list-filters-header {
+  padding: 0.35rem 0.75rem;
+}
+
 .game-list-density--compact .game-list-stats-header {
   padding: 0.35rem 0.75rem;
 }
@@ -320,6 +339,10 @@
 
 .game-list-density--dense #game-list-filters {
   --bs-gutter-y: 0.25rem;
+}
+
+.game-list-density--dense .game-list-filters-header {
+  padding: 0 0.5rem;
 }
 
 .game-list-density--dense .game-list-stats-header {

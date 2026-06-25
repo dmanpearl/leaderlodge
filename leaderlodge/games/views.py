@@ -193,6 +193,39 @@ def _game_list_has_filters(params: dict[str, str]) -> bool:
     return any(params[key] for key in ("group", "player", "location"))
 
 
+def _game_list_filter_summary(
+    *,
+    params: dict[str, str],
+    groups,
+    players,
+    locations,
+) -> str:
+    labels: list[str] = []
+
+    if params["group"].isdigit():
+        group_id = int(params["group"])
+        for group in groups:
+            if group.pk == group_id:
+                labels.append(group.name)
+                break
+
+    if params["player"].isdigit():
+        player_id = int(params["player"])
+        for player in players:
+            if player.pk == player_id:
+                labels.append(player.display_label)
+                break
+
+    if params["location"].isdigit():
+        location_id = int(params["location"])
+        for location in locations:
+            if location.pk == location_id:
+                labels.append(location.name)
+                break
+
+    return ", ".join(labels)
+
+
 def _participant_rows_from_post(group, post):
     rows = []
     player_ids = post.getlist("participant_player_id")
@@ -335,6 +368,12 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "params": params,
             "filter_query": _game_list_filter_query(params),
             "has_filters": _game_list_has_filters(params),
+            "filter_summary": _game_list_filter_summary(
+                params=params,
+                groups=groups,
+                players=players,
+                locations=locations,
+            ),
             "show_empty_filters_message": has_any_games,
             "groups": groups,
             "game_types": game_type_choices(),

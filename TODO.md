@@ -62,9 +62,10 @@
 - [x] 1b26602 Dashboard: Recent Games: Move Group column to the right of Winner
 - [x] b540e80 After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
 - [x] Record Game View > Mobile Undo Zoom after score entry: iOS automatically zooms in for typing in score values. Clicking out of the field dismisses the keyboard, but does not restore the original zoom factor
+- [x] Mobile: Games list filt   ers — collapse Group, Player, Location, and Date behind a "Type" spin-down (same pattern as Stats); desktop keeps filters always visible
 
 ## Open Items
-
+- [ ] Games View: Create a spin-down section called 'Type' (or siimilar) that wraps Group, Player, Location, and Date in the same way that 'Stats' wraps its contents.
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
@@ -77,7 +78,6 @@
 - [ ] Mobile: Record Game location — on viewports ≤767px, replace fuzzy combobox (`static/js/location_autocomplete.js`, `GameRecordForm.location_name` in `leaderlodge/games/forms.py`) with native `<select>` of group locations (fetch via `groups:locations` JSON or server-rendered options) plus "Other…" revealing a text field for new locations. Keep desktop fuzzy autocomplete (sub-string match per `dc93a1e`). Setup form is `templates/games/game_form.html` when `show_roster` is false.
 - [ ] Mobile: Record Game roster header — replace static "Recording for" card (`templates/games/game_form.html` when `show_roster`) with inline native controls: Group `<select>`, Game `<select>`, Date `<input type="date">`, optional Location (select/datalist per location mobile item). Remove "Recording for" label; use icons + nowrap chips; submit to change context without returning to setup step. Extends open item "Recording For" links/buttons UX. Preserve hidden fields / POST shape expected by `game_create` save action in `leaderlodge/games/views.py`.
 - [ ] Mobile: Games list game-type title — `templates/games/game_list.html` `#filter-game-type` uses `appearance: none` and custom chevron (`static/css/games.css` `.game-list-title-select`). On mobile, restore native `<select>` appearance (full-width, platform picker) or move game type into the filter card. Do not break `game_list.js` title width measurement on desktop.
-- [ ] Mobile: Games list filters — collapse the four filter selects (Group, Player, Location, Sort in `templates/games/game_list.html` `#game-list-filters`) behind a "Filters" `<details>` or button on ≤767px. Keep native `<select>` inside; preserve `onchange="this.form.submit()"` and query param names (`group`, `player`, `location`, `sort`, `game_type`).
 - [ ] Mobile: Leaderboard and group roster period — replace separate Year/Month `<select>`s (`templates/includes/leaderboard_period_filters.html`, used on `leaderboard.html` and `group_detail.html` roster) with `<input type="month">` when a specific month is needed, plus "All years" / clear option. Wire to existing `year`/`month` GET params and period logic in leaderboard views.
 - [ ] Mobile: Group roster row actions — replace Bootstrap dropdown (`templates/groups/includes/roster_player_actions.html`, "Invite with email", "Remove from Group") with inline icon buttons or a native `<select>` action menu on ≤767px. Avoid dropdown scroll clipping and small hit targets. Keep desktop dropdown if preferred.
 - [ ] Mobile: Group roster invite — replace Bootstrap modal (`#roster-invite-modal` in `templates/groups/group_detail.html`) with inline expandable form below the row or a dedicated page on mobile. Email field should stay `type="email"` in normal document flow (keyboard-safe). Preserve POST to `groups:player_invite`.
