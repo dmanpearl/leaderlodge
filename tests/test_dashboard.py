@@ -50,6 +50,21 @@ def test_dashboard_shows_recent_games(client, user, group):
 
 
 @pytest.mark.django_db
+def test_dashboard_recent_game_rows_link_to_detail(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    game = group.games.get()
+    detail_url = reverse("games:detail", kwargs={"pk": game.pk})
+    content = client.get(reverse("core:dashboard")).content.decode()
+
+    assert 'class="dashboard-recent-game-row"' in content
+    assert f'data-href="{detail_url}"' in content
+    assert f'<a href="{detail_url}">' not in content
+
+
+@pytest.mark.django_db
 def test_dashboard_shows_top_players(client, user, group):
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))

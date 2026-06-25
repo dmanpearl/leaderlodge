@@ -57,11 +57,11 @@
 - [x] ad419e3 User Account: Group email invites with guest roster, join-page signup, and member/player removal rules (618eca8, 98e61c2, 0ec9266)
 - [x] b61a500 Profile view: Account menu profile page with user information (Navbar > Account > Profile)
 - [x] 909a7dc Groups View: Make entire row a link to the Group detail view, so the hyperlink style group name can be normal
-- [ ] Record Game View > Points fields: When the user types a digit into the field populated with a leading zero, the new digit replaces the zero
+- [x] b3c9af0 Record Game View > Points fields: When the user types a digit into the field populated with a leading zero, the new digit replaces the zero
+- [x] Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, entire row instead; remove underline link format from date)
 
 ## Open Items
 
-- [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, entire row instead; remove underline link format from date)
 - [ ] Dashboard: Recent Games: Move Group column to the right of Winner
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
