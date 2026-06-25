@@ -224,6 +224,126 @@ def test_plain_member_cannot_send_invite(client, group, invitee):
 
 
 @pytest.mark.django_db
+def test_cannot_invite_duplicate_pending_email(client, owner, group):
+    client.force_login(owner)
+    first = client.post(
+        reverse("groups:invite_send", kwargs={"pk": group.pk}),
+        {"email": "friend@example.com", "player_name": "Friend"},
+    )
+    assert first.status_code == 302
+
+    response = client.post(
+        reverse("groups:invite_send", kwargs={"pk": group.pk}),
+        {"email": "friend@example.com", "player_name": "Friend Again"},
+    )
+    assert response.status_code == 400
+    assert "already pending" in response.content.decode()
+    assert GroupInvite.objects.filter(
+        group=group,
+        email="friend@example.com",
+        revoked_at__isnull=True,
+    ).count() == 1
+
+
+@pytest.mark.django_db
+def test_cannot_invite_member_email(client, owner, group, invitee):
+    add_group_member(group=group, user=invitee)
+    client.force_login(owner)
+    response = client.post(
+        reverse("groups:invite_send", kwargs={"pk": group.pk}),
+        {"email": invitee.email, "player_name": "Alice"},
+    )
+    assert response.status_code == 400
+    assert "already belongs to a group member" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_cannot_player_invite_duplicate_pending_email(client, owner, group):
+    guest = add_guest_player(group=group, display_name="Pat")
+    other_guest = add_guest_player(group=group, display_name="Sam")
+    create_email_invite(
+        group=group,
+        email="pat@example.com",
+        invited_by=owner,
+        player_name="Pat",
+    )
+    client.force_login(owner)
+    response = client.post(
+        reverse(
+            "groups:player_invite",
+            kwargs={"pk": group.pk, "player_pk": other_guest.pk},
+        ),
+        {"email": "pat@example.com"},
+        follow=True,
+    )
+    assert response.status_code == 200
+    assert "already pending" in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_join_page_creates_account_and_joins_group(client, owner, group):
+    invite = create_email_invite(
+        group=group,
+        email="brandnew@example.com",
+        invited_by=owner,
+        player_name="Brand",
+    )
+    guest_pk = invite.guest_player_id
+
+    response = client.post(
+        reverse("groups:invite_accept", kwargs={"token": invite.token}),
+        {
+            "first_name": "Brandon",
+            "last_name": "New",
+            "password1": "ComplexPass123!",
+            "password2": "ComplexPass123!",
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    user = User.objects.get(email="brandnew@example.com")
+    assert user.first_name == "Brandon"
+    assert user.last_name == "New"
+    assert GroupMembership.objects.filter(group=group, user=user).exists()
+    guest = GroupPlayer.objects.get(pk=guest_pk)
+    assert guest.linked_user_id == user.pk
+    assert len(mail.outbox) == 2
+
+
+@pytest.mark.django_db
+def test_join_page_shows_display_name_for_inviter(client, owner, group):
+    owner.first_name = "David"
+    owner.last_name = "Pearl"
+    owner.save(update_fields=["first_name", "last_name"])
+    invite = create_email_invite(
+        group=group,
+        email="friend@example.com",
+        invited_by=owner,
+    )
+    content = client.get(
+        reverse("groups:invite_accept", kwargs={"token": invite.token})
+    ).content.decode()
+    assert "David P." in content
+    assert owner.username not in content.split("invited you")[0]
+
+
+@pytest.mark.django_db
+def test_create_email_invite_rejects_duplicate_pending_email(group, owner):
+    create_email_invite(
+        group=group,
+        email="friend@example.com",
+        invited_by=owner,
+    )
+    with pytest.raises(ValueError, match="already pending"):
+        create_email_invite(
+            group=group,
+            email="friend@example.com",
+            invited_by=owner,
+        )
+
+
+@pytest.mark.django_db
 def test_invite_for_token_lookup(group, owner):
     invite = create_email_invite(
         group=group,

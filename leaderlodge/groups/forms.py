@@ -51,11 +51,16 @@ class GroupInviteEmailForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_email(self):
-        from leaderlodge.groups.invites import user_is_member_by_email
+        from leaderlodge.groups.invites import (
+            pending_invite_for_email,
+            user_is_member_by_email,
+        )
 
         email = self.cleaned_data["email"].strip().lower()
         if self.group and user_is_member_by_email(self.group, email):
             raise forms.ValidationError("That email already belongs to a group member.")
+        if self.group and pending_invite_for_email(self.group, email) is not None:
+            raise forms.ValidationError("An invite is already pending for that email.")
         return email
 
 
@@ -75,22 +80,38 @@ class GuestInviteEmailForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_email(self):
-        from leaderlodge.groups.invites import user_is_member_by_email
+        from leaderlodge.groups.invites import (
+            pending_invite_for_email,
+            user_is_member_by_email,
+        )
 
         email = self.cleaned_data["email"].strip().lower()
         if self.group and user_is_member_by_email(self.group, email):
             raise forms.ValidationError("That email already belongs to a group member.")
+        if self.group and pending_invite_for_email(self.group, email) is not None:
+            raise forms.ValidationError("An invite is already pending for that email.")
         return email
 
 
 class InviteAcceptForm(forms.Form):
     first_name = forms.CharField(
-        label="First name",
+        label="First",
         max_length=150,
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
                 "autocomplete": "given-name",
+            }
+        ),
+    )
+    last_name = forms.CharField(
+        label="Last",
+        required=False,
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "family-name",
             }
         ),
     )

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load display_names static %}
 
 {% block title %}{{ group.name }} | LeaderLodge{% endblock %}
 
@@ -69,7 +69,7 @@
               <tr>
                 <th scope="col">User</th>
                 <th scope="col">Role</th>
-                <th scope="col">Joined</th>
+                <th scope="col" class="group-members-joined-col">Joined</th>
                 {% if can_manage_members %}
                   <th scope="col"><span class="visually-hidden">Actions</span></th>
                 {% endif %}
@@ -80,10 +80,7 @@
                 {% with membership=row.membership %}
                 <tr>
                   <td>
-                    {{ membership.user.username }}
-                    {% if membership.user.first_name %}
-                      <span class="text-muted small">({{ membership.user.get_full_name|default:membership.user.first_name }})</span>
-                    {% endif %}
+                    {% include "includes/user_name_display.html" with user=membership.user %}
                   </td>
                   <td>
                     {% if row.role_choices|length > 1 %}
@@ -109,7 +106,7 @@
                       {{ membership.get_role_display }}
                     {% endif %}
                   </td>
-                  <td>{{ membership.joined_at|date:table_date_format }}</td>
+                  <td class="group-members-joined-col">{{ membership.joined_at|date:table_date_format }}</td>
                   {% if can_manage_members %}
                     <td class="text-end">
                       {% if row.can_remove %}
@@ -119,7 +116,7 @@
                           class="d-inline"
                         >
                           {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from Group" aria-label="Remove from Group {{ membership.user.username }}">
+                          <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from Group" aria-label="Remove from Group {{ membership.user|user_display_name }}">
                             <i class="bi bi-person-x" aria-hidden="true"></i>
                           </button>
                         </form>

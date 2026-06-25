@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from django.contrib.auth.models import User
 from django.core.management import call_command
+from django.urls import reverse
 from io import StringIO
 from openpyxl import Workbook
 
@@ -20,6 +21,10 @@ from leaderlodge.games.importing.service import (
 from leaderlodge.games.models import Game
 from leaderlodge.groups.models import GroupMembership, GroupPlayer
 from leaderlodge.groups.names import format_user_display_name
+from leaderlodge.groups.templatetags.display_names import (
+    user_primary_label,
+    user_shows_username_suffix,
+)
 from leaderlodge.groups.services import (
     add_guest_player,
     create_group_with_owner,
@@ -85,6 +90,31 @@ def test_format_user_display_name():
 
     user = User(username="david")
     assert format_user_display_name(user) == "david"
+
+
+def test_user_primary_label_and_username_suffix():
+    user = User(username="dmanpearl", first_name="David")
+    assert user_primary_label(user) == "David"
+    assert user_shows_username_suffix(user) is True
+
+    user = User(username="david", first_name="David")
+    assert user_primary_label(user) == "David"
+    assert user_shows_username_suffix(user) is False
+
+    user = User(username="dmanpearl")
+    assert user_primary_label(user) == "dmanpearl"
+    assert user_shows_username_suffix(user) is False
+
+
+@pytest.mark.django_db
+def test_group_detail_shows_first_with_username(client, user, group):
+    user.username = "dmanpearl"
+    user.save(update_fields=["username"])
+    client.force_login(user)
+    content = client.get(reverse("groups:detail", kwargs={"pk": group.pk})).content.decode()
+    assert "David" in content
+    assert "dmanpearl" in content
+    assert "user-name-username-suffix" in content
 
 
 @pytest.mark.django_db

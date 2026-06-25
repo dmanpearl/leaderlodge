@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load display_names %}
 
 {% block title %}LeaderLodge{% endblock %}
 
@@ -11,7 +12,7 @@
           {% if is_demo_landing %}
             <p class="text-muted mb-0">Sample games and leaderboards for all supported game types.</p>
           {% else %}
-            <p class="text-muted mb-0">Welcome, {{ user.username }}.</p>
+            <p class="text-muted mb-0">Welcome, {{ user|user_display_name }}.</p>
           {% endif %}
         </div>
         {% if can_record_games %}

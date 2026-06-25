@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load display_names static %}
 
 {% block title %}Group invite | LeaderLodge{% endblock %}
 
@@ -15,16 +16,17 @@
           {% else %}
             <h1 class="h4 mb-2">Join {{ group.name }}</h1>
             <p class="text-muted mb-3">
-              {{ invite.invited_by.get_username }} invited you to join this group.
-              {% if invite.guest_player %}
-                You are on the roster as <strong>{{ invite.guest_player.display_name }}</strong>.
-              {% endif %}
+              {{ invite.invited_by|user_display_name }} invited you to join this group.
             </p>
 
             {% if session_match == "member" %}
               <p class="mb-3">You are already a member of this group.</p>
               <a href="{% url 'groups:detail' group.pk %}" class="btn btn-primary">Open group</a>
             {% elif session_match == "match" %}
+              <dl class="row mb-3 small">
+                <dt class="col-sm-3 text-muted">Email</dt>
+                <dd class="col-sm-9 mb-2">{{ invite.email }}</dd>
+              </dl>
               <form method="post" action="{{ accept_url }}">
                 {% csrf_token %}
                 <div class="mb-3">
@@ -32,36 +34,83 @@
                     {{ accept_form.first_name.label }}
                   </label>
                   {{ accept_form.first_name }}
-                  <div class="form-text">
-                    This becomes your first name on LeaderLodge. Group owners are notified if you change it from the roster name above.
-                  </div>
                   {{ accept_form.first_name.errors }}
+                </div>
+                <div class="mb-3">
+                  <label for="{{ accept_form.last_name.id_for_label }}" class="form-label">
+                    {{ accept_form.last_name.label }}
+                  </label>
+                  {{ accept_form.last_name }}
+                  {{ accept_form.last_name.errors }}
                 </div>
                 <button type="submit" class="btn btn-primary">Accept invite</button>
               </form>
             {% elif session_match == "mismatch" %}
-              <p class="text-muted mb-3">
-                This invite was sent to <strong>{{ invite.email }}</strong>.
-                Sign in with that email to accept.
+              <dl class="row mb-3 small">
+                <dt class="col-sm-3 text-muted">Email</dt>
+                <dd class="col-sm-9 mb-0">{{ invite.email }}</dd>
+              </dl>
+              <p class="text-muted mb-0">
+                Sign in with that email to accept this invite.
               </p>
-              <div class="d-flex flex-wrap gap-2">
-                <a href="{{ login_url }}" class="btn btn-primary">Sign in</a>
-                <a href="{% url 'accounts:logout' %}?next={{ signup_url|urlencode }}" class="btn btn-outline-secondary">
-                  Switch account
-                </a>
-              </div>
+              <p class="small text-muted text-center mb-0 mt-4">
+                Already have an account?
+                <a href="{{ login_url }}">Sign in</a>
+                ·
+                <a href="{% url 'accounts:logout' %}?next={{ accept_url|urlencode }}">Switch account</a>
+              </p>
             {% else %}
-              <p class="text-muted mb-3">
-                Create an account or sign in to accept. You will confirm your first name before joining.
+              <dl class="row mb-3 small">
+                <dt class="col-sm-3 text-muted">Email</dt>
+                <dd class="col-sm-9 mb-0">{{ invite.email }}</dd>
+              </dl>
+              <form method="post" action="{{ accept_url }}" novalidate>
+                {% csrf_token %}
+                {% if join_form.non_field_errors %}
+                  <div class="alert alert-danger py-2">{{ join_form.non_field_errors }}</div>
+                {% endif %}
+                <div class="mb-3">
+                  <label for="{{ join_form.first_name.id_for_label }}" class="form-label">
+                    {{ join_form.first_name.label }}
+                  </label>
+                  {{ join_form.first_name }}
+                  {{ join_form.first_name.errors }}
+                </div>
+                <div class="mb-3">
+                  <label for="{{ join_form.last_name.id_for_label }}" class="form-label">
+                    {{ join_form.last_name.label }}
+                  </label>
+                  {{ join_form.last_name }}
+                  {{ join_form.last_name.errors }}
+                </div>
+                <div class="mb-3">
+                  <label for="{{ join_form.password1.id_for_label }}" class="form-label">
+                    {{ join_form.password1.label }}
+                  </label>
+                  {% include "accounts/includes/password_input.html" with field=join_form.password1 toggle_id="join-password1-toggle" icon_id="join-password1-toggle-icon" autocomplete="new-password" %}
+                  {{ join_form.password1.errors }}
+                </div>
+                <div class="mb-3">
+                  <label for="{{ join_form.password2.id_for_label }}" class="form-label">
+                    {{ join_form.password2.label }}
+                  </label>
+                  {% include "accounts/includes/password_input.html" with field=join_form.password2 toggle_id="join-password2-toggle" icon_id="join-password2-toggle-icon" autocomplete="new-password" %}
+                  {{ join_form.password2.errors }}
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Create account</button>
+              </form>
+              <p class="small text-muted text-center mb-0 mt-4">
+                Already have an account?
+                <a href="{{ login_url }}">Sign in</a>
               </p>
-              <div class="d-flex flex-wrap gap-2">
-                <a href="{{ signup_url }}" class="btn btn-primary">Create account</a>
-                <a href="{{ login_url }}" class="btn btn-outline-secondary">Sign in</a>
-              </div>
             {% endif %}
           {% endif %}
         </div>
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/auth_password_toggle.js' %}"></script>
 {% endblock %}

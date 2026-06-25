@@ -52,10 +52,11 @@
 - [x] 7ba260e Matchup View: Game detail - Matchup button in footer (Games / Leaderboard / Matchup)
 - [x] 61f17e9 User Account: Self-service signup, login, password reset, welcome email, email verification
 - [x] Groups: Owner/Editor/Member roles with member management (remove member, assign roles; editors cannot modify owners)
+- [x] Dashboard name display should follow naming rules that would result in "Welcome, David" instead of the current "Welcome, dmanpearl"
 
 ## Open Items
 
-- [ ] Dashboard name display should follow naming rules that would result in "Welcome, David" instead of the current "Welcome, dmanpearl"
+- [ ] Profile view: Add new view with user information accessible by Navbar > Account > menu
 - [ ] Groups View: Make entire row a link to the Group detail view, so the hyperlink style group name can be normal
 - [ ] Record Game View > Points fields: When the user types a digit into the field populated with a leading zero, the new digit replaces the zero
 - [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, I think it should be row instead)

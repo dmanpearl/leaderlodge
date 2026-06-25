@@ -1,0 +1,4 @@
+{% load display_names %}
+<span class="user-name-display">
+  {{ user|user_primary_label }}{% if user|user_shows_username_suffix %}<span class="text-muted small user-name-username-suffix"> ({{ user.username }})</span>{% endif %}
+</span>

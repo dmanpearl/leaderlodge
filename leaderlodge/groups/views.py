@@ -1,9 +1,15 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from leaderlodge.accounts.email_verification import (
+    record_verification_email_sent,
+    send_welcome_email,
+)
+from leaderlodge.accounts.forms import InviteJoinSignupForm
 from leaderlodge.accounts.game_selection import resolve_game_type_code
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
@@ -415,6 +421,9 @@ def player_invite(request: HttpRequest, pk: int, player_pk: int) -> HttpResponse
                 )
         except ValueError as exc:
             messages.error(request, str(exc))
+    else:
+        for error in form.errors.get("email", []):
+            messages.error(request, error)
 
     return redirect("groups:detail", pk=group.pk)
 
@@ -448,10 +457,13 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
 
     group = invite.group
     accept_url = reverse("groups:invite_accept", kwargs={"token": token})
-    signup_url = f"{reverse('accounts:signup')}?invite={token}"
     login_url = f"{reverse('accounts:login')}?next={accept_url}"
 
     default_first_name = default_first_name_for_invite(invite)
+    join_form = InviteJoinSignupForm(
+        initial={"first_name": default_first_name},
+        invite=invite,
+    )
     accept_form = InviteAcceptForm(initial={"first_name": default_first_name})
     session_match = "anonymous"
     if request.user.is_authenticated:
@@ -464,28 +476,59 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
 
     if request.method == "POST":
         if not request.user.is_authenticated:
-            return redirect(login_url)
-        accept_form = InviteAcceptForm(request.POST)
-        if accept_form.is_valid():
-            try:
-                if not invite_email_matches_user(invite, request.user):
-                    messages.error(
+            join_form = InviteJoinSignupForm(request.POST, invite=invite)
+            if join_form.is_valid():
+                user = join_form.save()
+                login(request, user)
+                try:
+                    send_welcome_email(request=request, user=user)
+                    record_verification_email_sent(user)
+                    messages.success(
                         request,
-                        f"This invite was sent to {invite.email}. "
-                        "Sign in with that email to accept.",
+                        "Welcome to LeaderLodge! We sent a confirmation link to your email.",
                     )
-                    return redirect("groups:invite_accept", token=token)
-                accept_group_invite(
-                    invite=invite,
-                    user=request.user,
-                    first_name=accept_form.cleaned_data["first_name"],
-                )
-                persist_group_id(request, group.pk)
-                messages.success(request, f'You joined "{group.name}".')
-                return redirect("groups:detail", pk=group.pk)
-            except ValueError as exc:
-                messages.error(request, str(exc))
-        session_match = "match"
+                except Exception:
+                    messages.warning(
+                        request,
+                        "Your account was created, but we could not send the welcome email. "
+                        "Use Verify Email in the account menu to try again.",
+                    )
+                try:
+                    accept_group_invite(
+                        invite=invite,
+                        user=user,
+                        first_name=user.first_name,
+                        last_name=user.last_name,
+                    )
+                    persist_group_id(request, group.pk)
+                    messages.success(request, f'You joined "{group.name}".')
+                    return redirect("groups:detail", pk=group.pk)
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+            session_match = "anonymous"
+        else:
+            accept_form = InviteAcceptForm(request.POST)
+            if accept_form.is_valid():
+                try:
+                    if not invite_email_matches_user(invite, request.user):
+                        messages.error(
+                            request,
+                            f"This invite was sent to {invite.email}. "
+                            "Sign in with that email to accept.",
+                        )
+                        return redirect("groups:invite_accept", token=token)
+                    accept_group_invite(
+                        invite=invite,
+                        user=request.user,
+                        first_name=accept_form.cleaned_data["first_name"],
+                        last_name=accept_form.cleaned_data.get("last_name", ""),
+                    )
+                    persist_group_id(request, group.pk)
+                    messages.success(request, f'You joined "{group.name}".')
+                    return redirect("groups:detail", pk=group.pk)
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+            session_match = "match"
 
     return render(
         request,
@@ -495,11 +538,10 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
             "group": group,
             "invalid": False,
             "session_match": session_match,
-            "signup_url": signup_url,
             "login_url": login_url,
             "accept_url": accept_url,
             "accept_form": accept_form,
-            "default_first_name": default_first_name,
+            "join_form": join_form,
         },
     )
 

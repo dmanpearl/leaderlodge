@@ -19,6 +19,16 @@ def group(user):
 
 
 @pytest.mark.django_db
+def test_dashboard_welcome_uses_display_name(client, user, group):
+    user.first_name = "David"
+    user.save(update_fields=["first_name"])
+    client.force_login(user)
+    content = client.get(reverse("core:dashboard")).content.decode()
+    assert "Welcome, David." in content
+    assert "Welcome, david." not in content
+
+
+@pytest.mark.django_db
 def test_dashboard_requires_login(client):
     response = client.get(reverse("core:dashboard"))
     assert response.status_code == 302

@@ -74,6 +74,17 @@ class SignupForm(forms.Form):
             }
         ),
     )
+    last_name = forms.CharField(
+        label="Last name",
+        required=False,
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "family-name",
+            }
+        ),
+    )
     password1 = forms.CharField(
         label="Password",
         strip=False,
@@ -143,6 +154,77 @@ class SignupForm(forms.Form):
             email=email,
             password=self.cleaned_data["password1"],
             first_name=self.cleaned_data.get("first_name", "").strip(),
+            last_name=self.cleaned_data.get("last_name", "").strip(),
+        )
+
+
+class InviteJoinSignupForm(forms.Form):
+    first_name = forms.CharField(
+        label="First",
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "given-name",
+            }
+        ),
+    )
+    last_name = forms.CharField(
+        label="Last",
+        required=False,
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "family-name",
+            }
+        ),
+    )
+    password1 = forms.CharField(
+        label="Password",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+    password2 = forms.CharField(
+        label="Confirm password",
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "new-password",
+            }
+        ),
+    )
+
+    def __init__(self, *args, invite=None, **kwargs):
+        self.invite = invite
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        password1 = cleaned.get("password1")
+        password2 = cleaned.get("password2")
+        if password1:
+            password_validation.validate_password(password1)
+        if password1 and password2 and password1 != password2:
+            self.add_error("password2", "The two password fields didn’t match.")
+        if self.invite and User.objects.filter(email__iexact=self.invite.email).exists():
+            raise ValidationError("An account with this email already exists.")
+        return cleaned
+
+    def save(self):
+        email = self.invite.email.strip().lower()
+        return User.objects.create_user(
+            username=unique_username_for_email(email),
+            email=email,
+            password=self.cleaned_data["password1"],
+            first_name=self.cleaned_data["first_name"].strip(),
+            last_name=self.cleaned_data.get("last_name", "").strip(),
         )
 
 

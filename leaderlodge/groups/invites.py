@@ -63,6 +63,21 @@ def pending_invites_for_group(group: Group):
     ).select_related("guest_player", "invited_by")
 
 
+def pending_invite_for_email(group: Group, email: str) -> GroupInvite | None:
+    now = timezone.now()
+    return (
+        group.invites.filter(
+            kind=GroupInvite.Kind.EMAIL,
+            email__iexact=email.strip(),
+            accepted_at__isnull=True,
+            revoked_at__isnull=True,
+            expires_at__gt=now,
+        )
+        .select_related("guest_player")
+        .first()
+    )
+
+
 def _revoke_pending_email_invites(*, group: Group, email: str) -> None:
     for invite in group.invites.filter(
         kind=GroupInvite.Kind.EMAIL,
@@ -110,8 +125,8 @@ def create_email_invite(
     normalized_email = email.strip().lower()
     if user_is_member_by_email(group, normalized_email):
         raise ValueError("That email already belongs to a group member.")
-
-    _revoke_pending_email_invites(group=group, email=normalized_email)
+    if pending_invite_for_email(group, normalized_email) is not None:
+        raise ValueError("An invite is already pending for that email.")
 
     display_name = _unique_guest_name(
         group,
@@ -148,8 +163,9 @@ def create_email_invite_for_guest(
     normalized_email = email.strip().lower()
     if user_is_member_by_email(group, normalized_email):
         raise ValueError("That email already belongs to a group member.")
-
-    _revoke_pending_email_invites(group=group, email=normalized_email)
+    pending = pending_invite_for_email(group, normalized_email)
+    if pending is not None and pending.guest_player_id != guest_player.pk:
+        raise ValueError("An invite is already pending for that email.")
 
     return GroupInvite.objects.create(
         group=group,
@@ -253,6 +269,7 @@ def accept_group_invite(
     invite: GroupInvite,
     user: AbstractBaseUser,
     first_name: str | None = None,
+    last_name: str | None = None,
 ) -> GroupMembership:
     if not invite.is_pending:
         raise ValueError("This invite is no longer valid.")
@@ -263,12 +280,18 @@ def accept_group_invite(
     if invite.guest_player_id and invite.guest_player is not None:
         roster_name = invite.guest_player.display_name
 
+    update_fields: list[str] = []
     if first_name is not None:
         user.first_name = first_name.strip()
-        user.save(update_fields=["first_name"])
+        update_fields.append("first_name")
     elif not (user.first_name or "").strip() and roster_name:
         user.first_name = roster_name
-        user.save(update_fields=["first_name"])
+        update_fields.append("first_name")
+    if last_name is not None:
+        user.last_name = last_name.strip()
+        update_fields.append("last_name")
+    if update_fields:
+        user.save(update_fields=update_fields)
 
     if user_is_member(user, invite.group):
         invite.accepted_at = timezone.now()

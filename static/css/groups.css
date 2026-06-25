@@ -29,3 +29,9 @@
 .group-roster-table thead th a {
   font-weight: inherit;
 }
+
+@media (max-width: 767.98px) {
+  .group-members-joined-col {
+    display: none;
+  }
+}

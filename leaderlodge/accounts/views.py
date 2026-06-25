@@ -87,7 +87,12 @@ def signup(request: HttpRequest) -> HttpResponse:
             )
         if invite is not None:
             try:
-                accept_group_invite(invite=invite, user=user)
+                accept_group_invite(
+                    invite=invite,
+                    user=user,
+                    first_name=user.first_name,
+                    last_name=user.last_name,
+                )
                 persist_group_id(request, invite.group_id)
                 messages.success(request, f'You joined "{invite.group.name}".')
                 return redirect("groups:detail", pk=invite.group_id)
