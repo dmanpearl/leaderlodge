@@ -60,12 +60,12 @@
 - [x] b3c9af0 Record Game View > Points fields: When the user types a digit into the field populated with a leading zero, the new digit replaces the zero
 - [x] db89c5e Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, entire row instead; remove underline link format from date)
 - [x] 1b26602 Dashboard: Recent Games: Move Group column to the right of Winner
-- [x] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
+- [x] b540e80 After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
 
 ## Open Items
 
+- [ ] Record Game View > Mobile Undo Zoom after score entry: iOS automatically zooms in for typing in score values. Clicking out of the field dismisses the keyboard, but does not restore the original zoom factor
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
-- [ ] Bug: Game View: Clicking a game row should navigate to the Game Detail screen. Currently incorrectly navigates to the Matchup view
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
 - [ ] Offline mode: Allow game entry in limited connection environments
@@ -73,7 +73,15 @@
 - [ ] User Account: 2FA and phone login options
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
 - [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
-- [ ] Mobile Native Controls: Explore controls that can be converted to native as we did for the Player and Location drop-downs.
+- [ ] Mobile: Record Game player picker — on viewports ≤767px, replace fuzzy combobox (`static/js/player_picker.js`, `templates/games/game_form.html` `#player-picker-input`) with native `<select>` of roster players (from `data-player-picker` JSON roster) plus an "Add new guest…" option that reveals a plain text input. Keep desktop combobox unchanged. Reuse `appendParticipantRow` logic; ensure new rows still work with `game_record_form.js` score preview. Match existing guest vs linked-player behavior in `player_picker.js`.
+- [ ] Mobile: Record Game location — on viewports ≤767px, replace fuzzy combobox (`static/js/location_autocomplete.js`, `GameRecordForm.location_name` in `leaderlodge/games/forms.py`) with native `<select>` of group locations (fetch via `groups:locations` JSON or server-rendered options) plus "Other…" revealing a text field for new locations. Keep desktop fuzzy autocomplete (sub-string match per `dc93a1e`). Setup form is `templates/games/game_form.html` when `show_roster` is false.
+- [ ] Mobile: Record Game roster header — replace static "Recording for" card (`templates/games/game_form.html` when `show_roster`) with inline native controls: Group `<select>`, Game `<select>`, Date `<input type="date">`, optional Location (select/datalist per location mobile item). Remove "Recording for" label; use icons + nowrap chips; submit to change context without returning to setup step. Extends open item "Recording For" links/buttons UX. Preserve hidden fields / POST shape expected by `game_create` save action in `leaderlodge/games/views.py`.
+- [ ] Mobile: Games list game-type title — `templates/games/game_list.html` `#filter-game-type` uses `appearance: none` and custom chevron (`static/css/games.css` `.game-list-title-select`). On mobile, restore native `<select>` appearance (full-width, platform picker) or move game type into the filter card. Do not break `game_list.js` title width measurement on desktop.
+- [ ] Mobile: Games list filters — collapse the four filter selects (Group, Player, Location, Sort in `templates/games/game_list.html` `#game-list-filters`) behind a "Filters" `<details>` or button on ≤767px. Keep native `<select>` inside; preserve `onchange="this.form.submit()"` and query param names (`group`, `player`, `location`, `sort`, `game_type`).
+- [ ] Mobile: Leaderboard and group roster period — replace separate Year/Month `<select>`s (`templates/includes/leaderboard_period_filters.html`, used on `leaderboard.html` and `group_detail.html` roster) with `<input type="month">` when a specific month is needed, plus "All years" / clear option. Wire to existing `year`/`month` GET params and period logic in leaderboard views.
+- [ ] Mobile: Group roster row actions — replace Bootstrap dropdown (`templates/groups/includes/roster_player_actions.html`, "Invite with email", "Remove from Group") with inline icon buttons or a native `<select>` action menu on ≤767px. Avoid dropdown scroll clipping and small hit targets. Keep desktop dropdown if preferred.
+- [ ] Mobile: Group roster invite — replace Bootstrap modal (`#roster-invite-modal` in `templates/groups/group_detail.html`) with inline expandable form below the row or a dedicated page on mobile. Email field should stay `type="email"` in normal document flow (keyboard-safe). Preserve POST to `groups:player_invite`.
+- [ ] Mobile: Group members role select — inline `form-select-sm` role dropdown in members table (`templates/groups/group_detail.html`) needs ≥44px tap targets on mobile; consider row action sheet or full-width select below username. POST to `groups:member_update_role` unchanged.
 - [ ] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
