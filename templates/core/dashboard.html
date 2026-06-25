@@ -33,7 +33,7 @@
       <div class="card h-100">
         <div class="card-header d-flex justify-content-between align-items-center">
           <span>Recent Games</span>
-          <a href="{% url 'games:list' %}" class="small">View all</a>
+          <a href="{% url 'games:list' %}{% if preferred_games_list_query %}?{{ preferred_games_list_query }}{% endif %}" class="small">View all</a>
         </div>
         <div class="card-body p-0">
           {% if recent_games %}

@@ -282,6 +282,9 @@ def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
     if not can_view_group(request.user, group):
         raise Http404
 
+    if request.user.is_authenticated:
+        persist_group_id(request, group.pk)
+
     return render(
         request,
         "groups/group_detail.html",
