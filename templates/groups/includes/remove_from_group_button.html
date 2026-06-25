@@ -1,0 +1,27 @@
+{% if remove_url_name %}
+  <form
+    method="post"
+    action="{% url remove_url_name group.pk remove_target_pk %}"
+    class="d-inline"
+  >
+    {% csrf_token %}
+    <button
+      type="submit"
+      class="btn btn-sm btn-outline-danger"
+      title="Remove from Group"
+      aria-label="Remove from Group {{ label }}"
+    >
+      <i class="bi bi-person-x" aria-hidden="true"></i>
+    </button>
+  </form>
+{% elif show_remove %}
+  <button
+    type="button"
+    class="btn btn-sm btn-outline-danger"
+    disabled
+    title="{{ disabled_reason }}"
+    aria-label="Remove from Group {{ label }} (disabled)"
+  >
+    <i class="bi bi-person-x" aria-hidden="true"></i>
+  </button>
+{% endif %}

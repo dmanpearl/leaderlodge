@@ -15,7 +15,11 @@ def user(db):
 
 @pytest.fixture
 def other_user(db):
-    return User.objects.create_user(username="alice", password="test-pass-123")
+    return User.objects.create_user(
+        username="alice",
+        email="alice@example.com",
+        password="test-pass-123",
+    )
 
 
 @pytest.fixture
@@ -184,11 +188,18 @@ def test_add_guest_player_duplicate_name(client, user, group):
 
 
 @pytest.mark.django_db
-def test_add_group_member(client, user, other_user, group):
-    client.force_login(user)
+def test_accept_invite_adds_group_member(client, user, other_user, group):
+    from leaderlodge.groups.invites import create_email_invite
+
+    invite = create_email_invite(
+        group=group,
+        email=other_user.email,
+        invited_by=user,
+    )
+    client.force_login(other_user)
     response = client.post(
-        reverse("groups:member_add", kwargs={"pk": group.pk}),
-        {"user": other_user.pk},
+        reverse("groups:invite_accept", kwargs={"token": invite.token}),
+        {"first_name": "Alice"},
     )
 
     assert response.status_code == 302
@@ -204,14 +215,20 @@ def test_add_group_member(client, user, other_user, group):
 
 
 @pytest.mark.django_db
-def test_add_group_member_grants_group_access(client, user, other_user, group):
-    client.force_login(user)
+def test_accept_invite_grants_group_access(client, user, other_user, group):
+    from leaderlodge.groups.invites import create_email_invite
+
+    invite = create_email_invite(
+        group=group,
+        email=other_user.email,
+        invited_by=user,
+    )
+    client.force_login(other_user)
     client.post(
-        reverse("groups:member_add", kwargs={"pk": group.pk}),
-        {"user": other_user.pk},
+        reverse("groups:invite_accept", kwargs={"token": invite.token}),
+        {"first_name": "Alice"},
     )
 
-    client.force_login(other_user)
     response = client.get(reverse("groups:list"))
 
     assert response.status_code == 200
@@ -219,43 +236,52 @@ def test_add_group_member_grants_group_access(client, user, other_user, group):
 
 
 @pytest.mark.django_db
-def test_add_group_member_rejects_existing_member(client, user, group):
+def test_invite_send_rejects_existing_member(client, user, group):
     client.force_login(user)
     response = client.post(
-        reverse("groups:member_add", kwargs={"pk": group.pk}),
-        {"user": user.pk},
+        reverse("groups:invite_send", kwargs={"pk": group.pk}),
+        {"email": user.email},
     )
 
     assert response.status_code == 400
 
 
 @pytest.mark.django_db
-def test_add_group_member_hidden_from_non_member(client, other_user, group):
+def test_invite_send_hidden_from_non_member(client, other_user, group):
     client.force_login(other_user)
     response = client.post(
-        reverse("groups:member_add", kwargs={"pk": group.pk}),
-        {"user": other_user.pk},
+        reverse("groups:invite_send", kwargs={"pk": group.pk}),
+        {"email": "other@example.com"},
     )
 
     assert response.status_code == 404
 
 
 @pytest.mark.django_db
-def test_add_group_member_links_existing_guest_player(client, user, group):
+def test_accept_invite_links_guest_player(client, user, group):
+    from leaderlodge.groups.invites import create_email_invite
+
     nancy = User.objects.create_user(
         username="nmanpearl",
+        email="nancy@example.com",
         password="test-pass-123",
         first_name="Nancy",
     )
-    guest = GroupPlayer.objects.create(group=group, display_name="Nancy")
-    client.force_login(user)
+    invite = create_email_invite(
+        group=group,
+        email=nancy.email,
+        invited_by=user,
+        player_name="Nancy",
+    )
+    guest_pk = invite.guest_player_id
+    client.force_login(nancy)
     response = client.post(
-        reverse("groups:member_add", kwargs={"pk": group.pk}),
-        {"user": nancy.pk},
+        reverse("groups:invite_accept", kwargs={"token": invite.token}),
+        {"first_name": "Nancy"},
     )
 
     assert response.status_code == 302
-    guest.refresh_from_db()
+    guest = GroupPlayer.objects.get(pk=guest_pk)
     assert guest.linked_user_id == nancy.pk
     assert GroupMembership.objects.filter(group=group, user=nancy).exists()
     assert group.players.filter(display_name__iexact="Nancy").count() == 1

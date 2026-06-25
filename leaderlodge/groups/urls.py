@@ -17,7 +17,18 @@ urlpatterns = [
         views.player_remove,
         name="player_remove",
     ),
-    path("<int:pk>/members/add/", views.member_add, name="member_add"),
+    path("<int:pk>/members/add/", views.invite_send, name="invite_send"),
+    path(
+        "<int:pk>/players/<int:player_pk>/invite/",
+        views.player_invite,
+        name="player_invite",
+    ),
+    path(
+        "<int:pk>/invites/<int:invite_pk>/revoke/",
+        views.invite_revoke,
+        name="invite_revoke",
+    ),
+    path("join/<str:token>/", views.invite_accept, name="invite_accept"),
     path(
         "<int:pk>/members/<int:membership_pk>/role/",
         views.member_update_role,

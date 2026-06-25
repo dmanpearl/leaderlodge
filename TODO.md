@@ -55,7 +55,10 @@
 
 ## Open Items
 
-- [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view
+- [ ] Dashboard name display should follow naming rules that would result in "Welcome, David" instead of the current "Welcome, dmanpearl"
+- [ ] Groups View: Make entire row a link to the Group detail view, so the hyperlink style group name can be normal
+- [ ] Record Game View > Points fields: When the user types a digit into the field populated with a leading zero, the new digit replaces the zero
+- [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, I think it should be row instead)
 - [ ] Style: Dashboard dates are word-wrapped on mobile. Use more narrow format, move Group column right
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead

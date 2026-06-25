@@ -1,0 +1,7 @@
+{{ display_name }} ({{ email }}) accepted your invitation to join "{{ group.name }}".
+
+They were on the roster as {{ roster_name }}, but signed up using the first name {{ chosen_first_name }}.
+
+Their LeaderLodge display name is now {{ display_name }}.
+
+LeaderLodge

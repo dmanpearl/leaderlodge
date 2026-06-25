@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from leaderlodge.groups.names import format_user_display_name
 
@@ -133,3 +134,65 @@ class GroupPlayer(models.Model):
 
     def __str__(self) -> str:
         return f"{self.display_label} ({self.group.name})"
+
+
+class GroupInvite(models.Model):
+    class Kind(models.TextChoices):
+        EMAIL = "email", "Email"
+        SHARE = "share", "Share link"
+
+    group = models.ForeignKey(
+        Group,
+        on_delete=models.CASCADE,
+        related_name="invites",
+    )
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    email = models.EmailField(blank=True)
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="sent_group_invites",
+    )
+    token = models.CharField(max_length=64, unique=True)
+    guest_player = models.ForeignKey(
+        GroupPlayer,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invites",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="accepted_group_invites",
+    )
+    guest_preexisting = models.BooleanField(
+        default=False,
+        help_text="True when the invite targets a guest already on the roster.",
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["token"]),
+            models.Index(fields=["group", "kind"]),
+        ]
+
+    def __str__(self) -> str:
+        if self.kind == self.Kind.SHARE:
+            return f"Share link for {self.group.name}"
+        return f"Invite {self.email} to {self.group.name}"
+
+    @property
+    def is_pending(self) -> bool:
+        return (
+            self.accepted_at is None
+            and self.revoked_at is None
+            and self.expires_at > timezone.now()
+        )

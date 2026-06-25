@@ -26,6 +26,6 @@ def test_resolve_game_list_density(table_players, stats_players, expected):
 
 
 def test_game_list_date_format_by_density():
-    assert game_list_date_format("comfortable") == "M j, Y"
+    assert game_list_date_format("comfortable") == "n/j/y"
     assert game_list_date_format("compact") == "n/j/y"
     assert game_list_date_format("dense") == "n/j/y"

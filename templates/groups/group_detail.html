@@ -1,8 +1,14 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ group.name }} | LeaderLodge{% endblock %}
 
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/groups.css' %}" />
+{% endblock %}
+
 {% block content %}
+<div class="group-detail-page">
   <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="{% url 'groups:list' %}">Groups</a></li>
@@ -17,7 +23,7 @@
         <p class="text-muted mb-0">{{ group.description }}</p>
       {% endif %}
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
       {% if can_manage_members and not is_guest_demo %}
         <a href="{% url 'groups:edit' group.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
       {% endif %}
@@ -41,11 +47,24 @@
   </div>
 
   <div class="card mb-3">
-    <div class="card-header">Members</div>
+    <div class="card-header d-flex align-items-center">
+      <button
+        class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex align-items-center gap-2"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#group-members-body"
+        aria-expanded="true"
+        aria-controls="group-members-body"
+      >
+        <i id="group-members-icon" class="bi bi-chevron-down" aria-hidden="true"></i>
+        <span class="fw-semibold">Members</span>
+      </button>
+    </div>
+    <div id="group-members-body" class="collapse show">
     <div class="card-body">
       {% if member_rows %}
         <div class="table-responsive mb-4">
-          <table class="table table-striped mb-0">
+          <table class="table table-striped table-sm mb-0">
             <thead>
               <tr>
                 <th scope="col">User</th>
@@ -90,7 +109,7 @@
                       {{ membership.get_role_display }}
                     {% endif %}
                   </td>
-                  <td>{{ membership.joined_at|date:"M j, Y" }}</td>
+                  <td>{{ membership.joined_at|date:table_date_format }}</td>
                   {% if can_manage_members %}
                     <td class="text-end">
                       {% if row.can_remove %}
@@ -100,7 +119,9 @@
                           class="d-inline"
                         >
                           {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                          <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from Group" aria-label="Remove from Group {{ membership.user.username }}">
+                            <i class="bi bi-person-x" aria-hidden="true"></i>
+                          </button>
                         </form>
                       {% endif %}
                     </td>
@@ -116,34 +137,40 @@
       {% endif %}
 
       {% if can_manage_members and not is_guest_demo %}
-      <div class="row g-3">
-        <div class="col-12 col-lg-6">
-          {# TODO: Replace all-users dropdown with a secure, private, scalable invite method. #}
+      <div class="row row-cols-1 row-cols-lg-2 g-3 mx-0 mb-3">
+        <div class="col">
+          <div class="fw-semibold mb-2">Invite member</div>
           <form
             method="post"
-            action="{% url 'groups:member_add' group.pk %}"
-            class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2"
+            action="{% url 'groups:invite_send' group.pk %}"
+            class="group-detail-actions d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-end"
           >
             {% csrf_token %}
-            <span class="fw-semibold flex-shrink-0">Add member</span>
-            <div class="flex-sm-grow-1">
-              {{ member_form.user.as_widget }}
-              {% if member_form.user.errors %}
-                <div class="invalid-feedback d-block">{{ member_form.user.errors }}</div>
-              {% endif %}
+            <div class="group-detail-form-fields flex-grow-1 d-flex flex-column flex-md-row gap-2">
+              {{ invite_form.email.as_widget }}
+              {{ invite_form.player_name.as_widget }}
             </div>
-            <button type="submit" class="btn btn-primary flex-shrink-0">Add</button>
+            <button type="submit" class="btn btn-primary flex-shrink-0">Send</button>
+            {% if invite_form.non_field_errors %}
+              <div class="invalid-feedback d-block w-100 order-last">{{ invite_form.non_field_errors }}</div>
+            {% endif %}
+            {% if invite_form.email.errors %}
+              <div class="invalid-feedback d-block w-100 order-last">{{ invite_form.email.errors }}</div>
+            {% endif %}
+            {% if invite_form.player_name.errors %}
+              <div class="invalid-feedback d-block w-100 order-last">{{ invite_form.player_name.errors }}</div>
+            {% endif %}
           </form>
         </div>
-        <div class="col-12 col-lg-6">
+        <div class="col">
+          <div class="fw-semibold mb-2">Add guest</div>
           <form
             method="post"
             action="{% url 'groups:player_add' group.pk %}"
-            class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2"
+            class="group-detail-actions d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-end"
           >
             {% csrf_token %}
-            <span class="fw-semibold flex-shrink-0">Add guest</span>
-            <div class="flex-sm-grow-1">
+            <div class="group-detail-form-fields flex-grow-1">
               {{ player_form.display_name.as_widget }}
               {% if player_form.display_name.errors %}
                 <div class="invalid-feedback d-block">{{ player_form.display_name.errors }}</div>
@@ -153,7 +180,50 @@
           </form>
         </div>
       </div>
+
+      {% if pending_invites %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Invite</th>
+                <th scope="col">Player</th>
+                <th scope="col">Expires</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for invite in pending_invites %}
+                <tr>
+                  <td>{{ invite.email }}</td>
+                  <td>
+                    {% if invite.guest_player %}
+                      {{ invite.guest_player.display_name }}
+                    {% else %}
+                      &mdash;
+                    {% endif %}
+                  </td>
+                  <td>{{ invite.expires_at|date:table_date_format }}</td>
+                  <td class="text-end">
+                    <form
+                      method="post"
+                      action="{% url 'groups:invite_revoke' group.pk invite.pk %}"
+                      class="d-inline"
+                    >
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Revoke" aria-label="Revoke invite for {{ invite.email }}">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       {% endif %}
+      {% endif %}
+    </div>
     </div>
   </div>
 
@@ -161,7 +231,7 @@
     <div class="card-header">Player roster</div>
     <div class="card-body">
       {% if game_type_options %}
-        <form method="get" class="row g-3 align-items-end mb-3" id="group-standings-filters">
+        <form method="get" class="row g-3 align-items-end mb-3 mx-0" id="group-standings-filters">
           <div class="col-12 col-sm-6 col-lg-4 col-xl">
             <label for="roster-game-type" class="form-label">Game</label>
             <select
@@ -189,57 +259,57 @@
 
       {% if standings %}
         <div class="table-responsive mb-4">
-          <table class="table table-striped mb-0">
+          <table class="table table-striped table-sm mb-0 group-roster-table">
             <thead>
               <tr>
                 <th scope="col">
                   <a
                     href="?{% if filter_query %}{{ filter_query }}&{% endif %}sort=rank&dir={% if standings_sort == 'rank' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
-                    class="text-decoration-none{% if standings_sort == 'rank' %} fw-semibold{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'rank' %} text-body{% else %} text-muted{% endif %}"
                   >Rank</a>
                 </th>
                 <th scope="col">
                   <a
                     href="?{% if filter_query %}{{ filter_query }}&{% endif %}sort=name&dir={% if standings_sort == 'name' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
-                    class="text-decoration-none{% if standings_sort == 'name' %} fw-semibold{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'name' %} text-body{% else %} text-muted{% endif %}"
                   >Name</a>
                 </th>
                 <th scope="col">
                   <a
                     href="?{% if filter_query %}{{ filter_query }}&{% endif %}sort=score&dir={% if standings_sort == 'score' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
-                    class="text-decoration-none{% if standings_sort == 'score' %} fw-semibold{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'score' %} text-body{% else %} text-muted{% endif %}"
                   >Score</a>
                 </th>
                 <th scope="col">
                   <a
                     href="?{% if filter_query %}{{ filter_query }}&{% endif %}sort=games&dir={% if standings_sort == 'games' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
-                    class="text-decoration-none{% if standings_sort == 'games' %} fw-semibold{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'games' %} text-body{% else %} text-muted{% endif %}"
                   >Games</a>
                 </th>
                 <th scope="col">
                   <a
                     href="?{% if filter_query %}{{ filter_query }}&{% endif %}sort=wins&dir={% if standings_sort == 'wins' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
-                    class="text-decoration-none{% if standings_sort == 'wins' %} fw-semibold{% endif %}"
+                    class="text-decoration-none{% if standings_sort == 'wins' %} text-body{% else %} text-muted{% endif %}"
                   >Wins</a>
                 </th>
                 <th scope="col">
                   <a
                     href="?{% if filter_query %}{{ filter_query }}&{% endif %}sort=win_pct&dir={% if standings_sort == 'win_pct' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
-                    class="text-decoration-none{% if standings_sort == 'win_pct' %} fw-semibold{% endif %}"
-                  >Win %</a>
+                    class="text-decoration-none{% if standings_sort == 'win_pct' %} text-body{% else %} text-muted{% endif %}"
+                  >%</a>
                 </th>
                 {% if show_losses %}
                   <th scope="col">
                     <a
                       href="?{% if filter_query %}{{ filter_query }}&{% endif %}sort=losses&dir={% if standings_sort == 'losses' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
-                      class="text-decoration-none{% if standings_sort == 'losses' %} fw-semibold{% endif %}"
+                      class="text-decoration-none{% if standings_sort == 'losses' %} text-body{% else %} text-muted{% endif %}"
                     >Losses</a>
                   </th>
                   <th scope="col">
                     <a
                       href="?{% if filter_query %}{{ filter_query }}&{% endif %}sort=loss_pct&dir={% if standings_sort == 'loss_pct' and standings_dir == 'asc' %}desc{% else %}asc{% endif %}"
-                      class="text-decoration-none{% if standings_sort == 'loss_pct' %} fw-semibold{% endif %}"
-                    >Loss %</a>
+                      class="text-decoration-none{% if standings_sort == 'loss_pct' %} text-body{% else %} text-muted{% endif %}"
+                    >%</a>
                   </th>
                 {% endif %}
                 {% if can_manage_members %}
@@ -257,7 +327,9 @@
                     {% if standing.player.linked_user %}
                       <span class="text-muted small">({{ standing.player.linked_user.username }})</span>
                     {% else %}
-                      <span class="badge text-bg-secondary ms-1">Guest</span>
+                      <span class="badge text-bg-secondary ms-1" title="Guest">
+                        <span class="d-none d-md-inline">Guest</span><span class="d-md-none">G</span>
+                      </span>
                     {% endif %}
                   </td>
                   <td>{{ standing.rank_score|floatformat:1 }}</td>
@@ -270,16 +342,7 @@
                   {% endif %}
                   {% if can_manage_members %}
                     <td class="text-end">
-                      {% if row.can_remove %}
-                        <form
-                          method="post"
-                          action="{% url 'groups:player_remove' group.pk standing.player.pk %}"
-                          class="d-inline"
-                        >
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                        </form>
-                      {% endif %}
+                      {% include "groups/includes/roster_player_actions.html" with row=row player=standing.player %}
                     </td>
                   {% endif %}
                 </tr>
@@ -290,7 +353,7 @@
         </div>
       {% elif roster_players %}
         <div class="table-responsive mb-4">
-          <table class="table table-striped mb-0">
+          <table class="table table-striped table-sm mb-0 group-roster-table">
             <thead>
               <tr>
                 <th scope="col">Name</th>
@@ -307,21 +370,14 @@
                     {% if row.player.linked_user %}
                       <span class="text-muted small">({{ row.player.linked_user.username }})</span>
                     {% else %}
-                      <span class="badge text-bg-secondary ms-1">Guest</span>
+                      <span class="badge text-bg-secondary ms-1" title="Guest">
+                        <span class="d-none d-md-inline">Guest</span><span class="d-md-none">G</span>
+                      </span>
                     {% endif %}
                   </td>
                   {% if can_manage_members %}
                     <td class="text-end">
-                      {% if row.can_remove %}
-                        <form
-                          method="post"
-                          action="{% url 'groups:player_remove' group.pk row.player.pk %}"
-                          class="d-inline"
-                        >
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                        </form>
-                      {% endif %}
+                      {% include "groups/includes/roster_player_actions.html" with row=row player=row.player %}
                     </td>
                   {% endif %}
                 </tr>
@@ -337,5 +393,105 @@
     </div>
   </div>
 
+  {% if can_manage_members and not is_guest_demo %}
+    <div
+      class="modal fade"
+      id="roster-invite-modal"
+      tabindex="-1"
+      aria-labelledby="roster-invite-modal-label"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="post" id="roster-invite-form">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h2 class="modal-title h5" id="roster-invite-modal-label">Invite player</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-3">
+                Send an email invitation for <strong id="roster-invite-player-name"></strong>.
+              </p>
+              <label for="roster-invite-email" class="form-label">Email</label>
+              <input
+                type="email"
+                name="email"
+                id="roster-invite-email"
+                class="form-control"
+                placeholder="Email address"
+                autocomplete="email"
+                required
+              />
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Send invite</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
   {% include "includes/guest_demo_notice.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    (function () {
+      const membersBody = document.getElementById("group-members-body");
+      const membersIcon = document.getElementById("group-members-icon");
+      if (membersBody && membersIcon) {
+        membersBody.addEventListener("show.bs.collapse", () => {
+          membersIcon.classList.replace("bi-chevron-right", "bi-chevron-down");
+        });
+        membersBody.addEventListener("hide.bs.collapse", () => {
+          membersIcon.classList.replace("bi-chevron-down", "bi-chevron-right");
+        });
+      }
+
+      const emailInput = document.getElementById("invite-email");
+      const nameInput = document.getElementById("invite-player-name");
+      if (emailInput && nameInput) {
+        function defaultNameFromEmail(email) {
+          const local = email.split("@")[0] || "";
+          const first = local.split(".")[0].split("_")[0].trim();
+          if (!first) return "";
+          return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+        }
+
+        emailInput.addEventListener("input", () => {
+          if (nameInput.dataset.userEdited === "true") return;
+          nameInput.value = defaultNameFromEmail(emailInput.value.trim());
+        });
+
+        nameInput.addEventListener("input", () => {
+          nameInput.dataset.userEdited = nameInput.value.trim() ? "true" : "false";
+        });
+      }
+
+      const rosterInviteModal = document.getElementById("roster-invite-modal");
+      if (rosterInviteModal) {
+        const rosterInviteForm = document.getElementById("roster-invite-form");
+        const rosterInviteEmail = document.getElementById("roster-invite-email");
+        const rosterInvitePlayerName = document.getElementById("roster-invite-player-name");
+        const modal = bootstrap.Modal.getOrCreateInstance(rosterInviteModal);
+
+        document.querySelectorAll("[data-roster-invite]").forEach((button) => {
+          button.addEventListener("click", () => {
+            rosterInviteForm.action = button.dataset.inviteUrl;
+            rosterInvitePlayerName.textContent = button.dataset.playerName;
+            rosterInviteEmail.value = "";
+            modal.show();
+          });
+        });
+
+        rosterInviteModal.addEventListener("shown.bs.modal", () => {
+          rosterInviteEmail.focus();
+        });
+      }
+    })();
+  </script>
 {% endblock %}

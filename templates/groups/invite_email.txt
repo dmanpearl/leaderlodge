@@ -1,0 +1,14 @@
+Hi,
+
+{{ invited_by.get_username }} invited you to join the group "{{ group.name }}" on LeaderLodge.
+
+{% if player_name %}You are already on the roster as {{ player_name }} so games can be recorded before you sign up. Accepting the invite links your account to that player profile.{% endif %}
+
+Accept the invite:
+{{ accept_url }}
+
+This link expires in 7 days.
+
+If you did not expect this invitation, you can ignore this email.
+
+LeaderLodge

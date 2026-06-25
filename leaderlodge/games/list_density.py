@@ -20,6 +20,4 @@ def resolve_game_list_density(*, table_player_count: int, stats_player_count: in
 
 
 def game_list_date_format(density: str) -> str:
-    if density == "comfortable":
-        return "M j, Y"
     return "n/j/y"

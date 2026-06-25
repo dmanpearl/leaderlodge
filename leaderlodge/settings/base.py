@@ -104,6 +104,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "leaderlodge.core.context_processors.demo_context",
+                "leaderlodge.core.context_processors.table_formats",
                 "leaderlodge.accounts.context_processors.ui_preferences_context",
             ],
         },

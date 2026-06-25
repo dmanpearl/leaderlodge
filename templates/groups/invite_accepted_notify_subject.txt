@@ -1,0 +1,1 @@
+{{ display_name }} joined {{ group.name }} on LeaderLodge

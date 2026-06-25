@@ -8,24 +8,44 @@ from leaderlodge.accounts.game_selection import resolve_game_type_code
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.accounts.group_selection import persist_group_id
-from leaderlodge.groups.forms import GroupForm, GroupMemberForm, GroupPlayerForm
+from leaderlodge.groups.forms import (
+    GroupForm,
+    GroupInviteEmailForm,
+    GuestInviteEmailForm,
+    InviteAcceptForm,
+    GroupPlayerForm,
+)
+from leaderlodge.groups.invites import (
+    accept_group_invite,
+    create_email_invite,
+    create_email_invite_for_guest,
+    default_first_name_for_invite,
+    invite_email_matches_user,
+    invite_for_token,
+    pending_invites_for_group,
+    revoke_group_invite,
+    send_invite_email,
+)
+from leaderlodge.groups.locations import locations_for_group
 from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
+from leaderlodge.groups.player_search import search_group_players
 from leaderlodge.groups.permissions import (
+    can_invite_roster_player,
     can_manage_members,
     can_remove_membership,
-    can_remove_roster_player,
     can_set_membership_role,
     get_membership,
     role_choice_options,
+    roster_remove_state,
 )
 from leaderlodge.groups.services import (
     add_guest_player,
-    add_group_member,
     can_manage_group_members,
     can_view_group,
     create_group_with_owner,
     remove_group_member,
     remove_roster_player,
+    user_is_member,
     visible_groups,
 )
 from leaderlodge.leaderboards.period import (
@@ -128,24 +148,30 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
             period=selected_period,
         )
         for row in standings:
+            remove_state = roster_remove_state(
+                actor_membership, row.player, group
+            )
             standings_rows.append(
                 {
                     "standing": row,
-                    "can_remove": can_remove_roster_player(
+                    "can_invite": can_invite_roster_player(
                         actor_membership, row.player, group
                     ),
+                    **remove_state,
                 }
             )
     else:
         for player in group.players.filter(is_active=True).select_related(
             "linked_user"
         ):
+            remove_state = roster_remove_state(actor_membership, player, group)
             roster_players.append(
                 {
                     "player": player,
-                    "can_remove": can_remove_roster_player(
+                    "can_invite": can_invite_roster_player(
                         actor_membership, player, group
                     ),
+                    **remove_state,
                 }
             )
 
@@ -159,7 +185,10 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         "group": group,
         "member_rows": member_rows,
         "can_manage_members": can_manage_members,
-        "member_form": GroupMemberForm(group=group),
+        "pending_invites": (
+            list(pending_invites_for_group(group)) if can_manage_members else []
+        ),
+        "invite_form": GroupInviteEmailForm(group=group),
         "standings": standings,
         "standings_rows": standings_rows,
         "roster_players": roster_players,
@@ -307,7 +336,7 @@ def player_add(request: HttpRequest, pk: int) -> HttpResponse:
 
 
 @login_required
-def member_add(request: HttpRequest, pk: int) -> HttpResponse:
+def invite_send(request: HttpRequest, pk: int) -> HttpResponse:
     group = get_object_or_404(Group, pk=pk)
     if not can_manage_group_members(request.user, group):
         raise Http404
@@ -315,23 +344,163 @@ def member_add(request: HttpRequest, pk: int) -> HttpResponse:
     if request.method != "POST":
         return redirect("groups:detail", pk=group.pk)
 
-    form = GroupMemberForm(request.POST, group=group)
+    form = GroupInviteEmailForm(request.POST, group=group)
     if form.is_valid():
-        member = form.cleaned_data["user"]
-        add_group_member(group=group, user=member)
-        messages.success(
-            request,
-            f"Added {member.get_username()} as a group member.",
-        )
-        return redirect("groups:detail", pk=group.pk)
+        try:
+            invite = create_email_invite(
+                group=group,
+                email=form.cleaned_data["email"],
+                invited_by=request.user,
+                player_name=form.cleaned_data.get("player_name", ""),
+            )
+            try:
+                send_invite_email(request=request, invite=invite)
+                messages.success(
+                    request,
+                    f"Invitation sent to {invite.email}. "
+                    f"They were added to the roster as a guest until they accept.",
+                )
+            except Exception:
+                messages.warning(
+                    request,
+                    f"Invite created for {invite.email}, but the email could not be sent. "
+                    "Ask them to use the link from a previous message or resend the invite.",
+                )
+            return redirect("groups:detail", pk=group.pk)
+        except ValueError as exc:
+            form.add_error(None, str(exc))
 
     context = _group_detail_context(group, request)
-    context["member_form"] = form
+    context["invite_form"] = form
     return render(
         request,
         "groups/group_detail.html",
         context,
         status=400,
+    )
+
+
+@login_required
+def player_invite(request: HttpRequest, pk: int, player_pk: int) -> HttpResponse:
+    group = get_object_or_404(Group, pk=pk)
+    player = get_object_or_404(GroupPlayer, pk=player_pk, group=group)
+    actor_membership = get_membership(request.user, group)
+    if actor_membership is None or not can_invite_roster_player(
+        actor_membership, player, group
+    ):
+        raise Http404
+
+    if request.method != "POST":
+        return redirect("groups:detail", pk=group.pk)
+
+    form = GuestInviteEmailForm(request.POST, group=group)
+    if form.is_valid():
+        try:
+            invite = create_email_invite_for_guest(
+                group=group,
+                guest_player=player,
+                email=form.cleaned_data["email"],
+                invited_by=request.user,
+            )
+            try:
+                send_invite_email(request=request, invite=invite)
+                messages.success(
+                    request,
+                    f"Invitation sent to {invite.email} for {player.display_name}.",
+                )
+            except Exception:
+                messages.warning(
+                    request,
+                    f"Invite created for {invite.email}, but the email could not be sent.",
+                )
+        except ValueError as exc:
+            messages.error(request, str(exc))
+
+    return redirect("groups:detail", pk=group.pk)
+
+
+@login_required
+def invite_revoke(request: HttpRequest, pk: int, invite_pk: int) -> HttpResponse:
+    group = get_object_or_404(Group, pk=pk)
+    if not can_manage_group_members(request.user, group):
+        raise Http404
+
+    if request.method != "POST":
+        return redirect("groups:detail", pk=group.pk)
+
+    from leaderlodge.groups.models import GroupInvite
+
+    invite = get_object_or_404(GroupInvite, pk=invite_pk, group=group)
+    revoke_group_invite(invite=invite)
+    messages.success(request, "Invite revoked.")
+    return redirect("groups:detail", pk=group.pk)
+
+
+def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
+    invite = invite_for_token(token)
+    if invite is None or not invite.is_pending:
+        return render(
+            request,
+            "groups/invite_accept.html",
+            {"invite": None, "invalid": True},
+            status=404,
+        )
+
+    group = invite.group
+    accept_url = reverse("groups:invite_accept", kwargs={"token": token})
+    signup_url = f"{reverse('accounts:signup')}?invite={token}"
+    login_url = f"{reverse('accounts:login')}?next={accept_url}"
+
+    default_first_name = default_first_name_for_invite(invite)
+    accept_form = InviteAcceptForm(initial={"first_name": default_first_name})
+    session_match = "anonymous"
+    if request.user.is_authenticated:
+        if user_is_member(request.user, group):
+            session_match = "member"
+        elif invite_email_matches_user(invite, request.user):
+            session_match = "match"
+        else:
+            session_match = "mismatch"
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            return redirect(login_url)
+        accept_form = InviteAcceptForm(request.POST)
+        if accept_form.is_valid():
+            try:
+                if not invite_email_matches_user(invite, request.user):
+                    messages.error(
+                        request,
+                        f"This invite was sent to {invite.email}. "
+                        "Sign in with that email to accept.",
+                    )
+                    return redirect("groups:invite_accept", token=token)
+                accept_group_invite(
+                    invite=invite,
+                    user=request.user,
+                    first_name=accept_form.cleaned_data["first_name"],
+                )
+                persist_group_id(request, group.pk)
+                messages.success(request, f'You joined "{group.name}".')
+                return redirect("groups:detail", pk=group.pk)
+            except ValueError as exc:
+                messages.error(request, str(exc))
+        session_match = "match"
+
+    return render(
+        request,
+        "groups/invite_accept.html",
+        {
+            "invite": invite,
+            "group": group,
+            "invalid": False,
+            "session_match": session_match,
+            "signup_url": signup_url,
+            "login_url": login_url,
+            "accept_url": accept_url,
+            "accept_form": accept_form,
+            "default_first_name": default_first_name,
+        },
     )
 
 
@@ -374,12 +543,15 @@ def member_remove(request: HttpRequest, pk: int, membership_pk: int) -> HttpResp
 
     username = membership.user.get_username()
     if can_remove_membership(actor_membership, membership):
-        remove_group_member(membership=membership)
-        messages.success(
-            request,
-            f"Removed {username} from the group. They remain on the roster as a guest "
-            "player for past games.",
-        )
+        outcome = remove_group_member(membership=membership)
+        if outcome == "converted":
+            messages.success(
+                request,
+                f"Removed {username} from the group. They remain on the roster as a "
+                "guest player for past games.",
+            )
+        else:
+            messages.success(request, f"Removed {username} from the group.")
     else:
         messages.error(request, f"You cannot remove {username} from the group.")
 
@@ -391,8 +563,11 @@ def player_remove(request: HttpRequest, pk: int, player_pk: int) -> HttpResponse
     group = get_object_or_404(Group, pk=pk)
     player = get_object_or_404(GroupPlayer, pk=player_pk, group=group)
     actor_membership = get_membership(request.user, group)
-    if actor_membership is None or not can_remove_roster_player(
-        actor_membership, player, group
+    remove_state = roster_remove_state(actor_membership, player, group)
+    if (
+        actor_membership is None
+        or not remove_state["can_remove"]
+        or remove_state["remove_url_name"] != "groups:player_remove"
     ):
         raise Http404
 
@@ -400,6 +575,9 @@ def player_remove(request: HttpRequest, pk: int, player_pk: int) -> HttpResponse
         return redirect("groups:detail", pk=group.pk)
 
     name = player.display_label
-    remove_roster_player(player=player)
+    try:
+        remove_roster_player(player=player)
+    except ValueError:
+        raise Http404 from None
     messages.success(request, f"Removed {name} from the roster.")
     return redirect("groups:detail", pk=group.pk)

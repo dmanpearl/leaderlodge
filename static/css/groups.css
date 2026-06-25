@@ -1,0 +1,31 @@
+.group-detail-page {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.group-detail-page .card-body > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.group-detail-page .group-detail-actions {
+  min-width: 0;
+}
+
+.group-detail-page .group-detail-actions .form-control {
+  min-width: 0;
+  width: 100%;
+}
+
+.group-detail-page .group-detail-form-fields {
+  min-width: 0;
+}
+
+.group-roster-table thead th {
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.group-roster-table thead th a {
+  font-weight: inherit;
+}

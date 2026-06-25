@@ -277,16 +277,30 @@ def _unlink_member_from_roster(*, group: Group, user: AbstractBaseUser) -> None:
     player.save(update_fields=["linked_user"])
 
 
-def remove_group_member(*, membership: GroupMembership) -> None:
+def player_has_games(player: GroupPlayer) -> bool:
+    return player.game_results.exists()
+
+
+def remove_group_member(*, membership: GroupMembership) -> str:
+    """Remove membership. Returns ``converted`` or ``removed``."""
     with transaction.atomic():
-        _unlink_member_from_roster(group=membership.group, user=membership.user)
+        player = membership.group.players.filter(linked_user=membership.user).first()
+        if player is not None and player_has_games(player):
+            _unlink_member_from_roster(group=membership.group, user=membership.user)
+            membership.delete()
+            return "converted"
         membership.delete()
+        if player is not None:
+            player.delete()
+        return "removed"
 
 
 def remove_roster_player(*, player: GroupPlayer) -> None:
-    if player.game_results.exists():
-        player.linked_user = None
-        player.is_active = False
-        player.save(update_fields=["linked_user", "is_active"])
-    else:
-        player.delete()
+    if player_has_games(player):
+        raise ValueError("Cannot remove a player with recorded games.")
+    if player.linked_user_id and GroupMembership.objects.filter(
+        group_id=player.group_id,
+        user_id=player.linked_user_id,
+    ).exists():
+        raise ValueError("Remove the member from the group instead.")
+    player.delete()

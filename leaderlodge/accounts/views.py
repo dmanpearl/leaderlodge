@@ -22,6 +22,13 @@ from leaderlodge.accounts.forms import SignupForm
 from leaderlodge.accounts.game_selection import SESSION_GAME_TYPE_CODE
 from leaderlodge.accounts.group_selection import SESSION_GROUP_ID
 from leaderlodge.accounts.ui_settings import reset_ui_settings
+from leaderlodge.accounts.group_selection import persist_group_id
+from leaderlodge.groups.invites import (
+    accept_group_invite,
+    default_first_name_for_invite,
+    invite_for_token,
+)
+from leaderlodge.groups.models import GroupInvite
 from leaderlodge.groups.names import format_user_display_name
 
 
@@ -42,10 +49,26 @@ def reset_preferences(request: HttpRequest) -> JsonResponse:
 
 @require_http_methods(["GET", "POST"])
 def signup(request: HttpRequest) -> HttpResponse:
+    invite_token = request.GET.get("invite", "").strip() or request.POST.get(
+        "invite_token", ""
+    ).strip()
+    invite = invite_for_token(invite_token) if invite_token else None
+    if invite is not None and not invite.is_pending:
+        invite = None
+
     if request.user.is_authenticated:
+        if invite is not None:
+            return redirect("groups:invite_accept", token=invite.token)
         return redirect("core:dashboard")
 
-    form = SignupForm(request.POST or None)
+    lock_email = invite is not None
+    invite_first_name = default_first_name_for_invite(invite) if invite else ""
+    form = SignupForm(
+        request.POST or None,
+        invite_email=invite.email if lock_email else "",
+        lock_email=lock_email,
+        invite_first_name=invite_first_name,
+    )
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
@@ -62,9 +85,25 @@ def signup(request: HttpRequest) -> HttpResponse:
                 "Your account was created, but we could not send the welcome email. "
                 "Use Verify Email in the account menu to try again.",
             )
+        if invite is not None:
+            try:
+                accept_group_invite(invite=invite, user=user)
+                persist_group_id(request, invite.group_id)
+                messages.success(request, f'You joined "{invite.group.name}".')
+                return redirect("groups:detail", pk=invite.group_id)
+            except ValueError as exc:
+                messages.error(request, str(exc))
         return redirect("core:dashboard")
 
-    return render(request, "accounts/signup.html", {"form": form})
+    return render(
+        request,
+        "accounts/signup.html",
+        {
+            "form": form,
+            "invite": invite,
+            "invite_token": invite.token if invite else "",
+        },
+    )
 
 
 def _user_from_uidb64(uidb64: str) -> User | None:

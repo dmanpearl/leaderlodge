@@ -44,7 +44,7 @@
                     &mdash;
                   {% endif %}
                 </td>
-                <td>{{ group.created_at|date:"M j, Y" }}</td>
+                <td>{{ group.created_at|date:table_date_format }}</td>
               </tr>
             {% endfor %}
           </tbody>

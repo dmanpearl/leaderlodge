@@ -9,8 +9,16 @@
       <div class="card shadow-sm">
         <div class="card-body">
           <h1 class="h4 mb-3">Create account</h1>
+          {% if invite %}
+            <p class="text-muted small mb-3">
+              Create an account to join <strong>{{ invite.group.name }}</strong>.
+            </p>
+          {% endif %}
           <form method="post" novalidate>
             {% csrf_token %}
+            {% if invite_token %}
+              <input type="hidden" name="invite_token" value="{{ invite_token }}" />
+            {% endif %}
             {{ form.non_field_errors }}
             <div class="mb-3">
               <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
@@ -20,7 +28,13 @@
             <div class="mb-3">
               <label for="{{ form.first_name.id_for_label }}" class="form-label">{{ form.first_name.label }}</label>
               {{ form.first_name }}
-              <div class="form-text">Optional. Shown on leaderboards and rosters.</div>
+              {% if invite %}
+                <div class="form-text">
+                  Defaults from the roster name. Group owners are notified if you change it when you join.
+                </div>
+              {% else %}
+                <div class="form-text">Optional. Shown on leaderboards and rosters.</div>
+              {% endif %}
               {{ form.first_name.errors }}
             </div>
             <div class="mb-3">

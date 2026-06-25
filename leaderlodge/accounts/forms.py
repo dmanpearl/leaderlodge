@@ -95,8 +95,29 @@ class SignupForm(forms.Form):
         ),
     )
 
+    def __init__(
+        self,
+        *args,
+        invite_email: str = "",
+        lock_email: bool = False,
+        invite_first_name: str = "",
+        **kwargs,
+    ):
+        self.invite_email = invite_email.strip().lower()
+        self.lock_email = lock_email
+        super().__init__(*args, **kwargs)
+        if self.invite_email:
+            self.fields["email"].initial = self.invite_email
+        if self.lock_email:
+            self.fields["email"].widget.attrs["readonly"] = True
+        if invite_first_name and not self.initial.get("first_name"):
+            self.fields["first_name"].initial = invite_first_name
+
     def clean_email(self):
-        email = self.cleaned_data["email"].strip().lower()
+        if self.lock_email and self.invite_email:
+            email = self.invite_email
+        else:
+            email = self.cleaned_data["email"].strip().lower()
         if User.objects.filter(email__iexact=email).exists():
             raise ValidationError("An account with this email already exists.")
         return email

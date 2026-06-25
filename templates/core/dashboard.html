@@ -50,7 +50,7 @@
                   {% for row in recent_games %}
                     <tr>
                       <td>
-                        <a href="{% url 'games:detail' row.game.pk %}">{{ row.game.played_on|date:"M j, Y" }}</a>
+                        <a href="{% url 'games:detail' row.game.pk %}">{{ row.game.played_on|date:table_date_format }}</a>
                       </td>
                       <td>{{ row.game.group.name }}</td>
                       <td>
@@ -134,7 +134,7 @@
       <div class="col-12">
         <div class="card">
           <div class="card-body text-center py-4">
-            <p class="text-muted mb-3">Create a group to get started. To join someone else's group, you'll need an invite from the owner (coming soon).</p>
+            <p class="text-muted mb-3">Create a group to get started, or accept an invite from a group owner.</p>
             <a href="{% url 'groups:create' %}" class="btn btn-outline-primary btn-sm">Create a group</a>
           </div>
         </div>

@@ -1,19 +1,6 @@
 from django import forms
-from django.contrib.auth import get_user_model
 
-from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
-from leaderlodge.groups.names import format_user_display_name
-
-User = get_user_model()
-
-
-class UserMemberChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        label = format_user_display_name(obj)
-        username = obj.get_username()
-        if label != username:
-            return f"{username} ({label})"
-        return username
+from leaderlodge.groups.models import Group, GroupPlayer
 
 
 class GroupForm(forms.ModelForm):
@@ -34,6 +21,81 @@ class GroupForm(forms.ModelForm):
         }
 
 
+class GroupInviteEmailForm(forms.Form):
+    email = forms.EmailField(
+        label="Email",
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Email address",
+                "autocomplete": "email",
+                "id": "invite-email",
+            }
+        ),
+    )
+    player_name = forms.CharField(
+        label="Player name",
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Name",
+                "id": "invite-player-name",
+            }
+        ),
+    )
+
+    def __init__(self, *args, group=None, **kwargs):
+        self.group = group
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        from leaderlodge.groups.invites import user_is_member_by_email
+
+        email = self.cleaned_data["email"].strip().lower()
+        if self.group and user_is_member_by_email(self.group, email):
+            raise forms.ValidationError("That email already belongs to a group member.")
+        return email
+
+
+class GuestInviteEmailForm(forms.Form):
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "class": "form-control form-control-sm",
+                "placeholder": "Email to invite",
+                "autocomplete": "email",
+            }
+        ),
+    )
+
+    def __init__(self, *args, group=None, **kwargs):
+        self.group = group
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        from leaderlodge.groups.invites import user_is_member_by_email
+
+        email = self.cleaned_data["email"].strip().lower()
+        if self.group and user_is_member_by_email(self.group, email):
+            raise forms.ValidationError("That email already belongs to a group member.")
+        return email
+
+
+class InviteAcceptForm(forms.Form):
+    first_name = forms.CharField(
+        label="First name",
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "autocomplete": "given-name",
+            }
+        ),
+    )
+
+
 class GroupPlayerForm(forms.ModelForm):
     class Meta:
         model = GroupPlayer
@@ -43,7 +105,7 @@ class GroupPlayerForm(forms.ModelForm):
             "display_name": forms.TextInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Guest name",
+                    "placeholder": "Name",
                 }
             ),
         }
@@ -62,32 +124,3 @@ class GroupPlayerForm(forms.ModelForm):
         ):
             raise forms.ValidationError("That name is already on the roster.")
         return name
-
-
-class GroupMemberForm(forms.Form):
-    # TODO: Replace listing all users with a secure, private, scalable invite
-    # method (e.g. email invite link), not a public account picker.
-    user = UserMemberChoiceField(
-        queryset=User.objects.none(),
-        label="User account",
-        empty_label="Choose a user…",
-        widget=forms.Select(attrs={"class": "form-select"}),
-    )
-
-    def __init__(self, *args, group=None, **kwargs):
-        self.group = group
-        super().__init__(*args, **kwargs)
-        if group is not None:
-            member_ids = group.memberships.values_list("user_id", flat=True)
-            self.fields["user"].queryset = User.objects.exclude(
-                pk__in=member_ids
-            ).order_by("username")
-
-    def clean_user(self):
-        user = self.cleaned_data["user"]
-        if (
-            self.group
-            and GroupMembership.objects.filter(group=self.group, user=user).exists()
-        ):
-            raise forms.ValidationError("That user is already a member.")
-        return user

@@ -1,4 +1,5 @@
 from leaderlodge.core.decorators import demo_mode_enabled
+from leaderlodge.core.formats import TABLE_DATE_FORMAT
 from leaderlodge.groups.demo import GUEST_DEMO_PAGE_NOTICE, GUEST_LOGIN_PROMPT
 from leaderlodge.groups.services import get_demo_group
 
@@ -15,3 +16,7 @@ def demo_context(request):
         "guest_login_prompt": GUEST_LOGIN_PROMPT if guest_showcase else "",
         "guest_demo_page_notice": GUEST_DEMO_PAGE_NOTICE if guest_showcase else "",
     }
+
+
+def table_formats(request):
+    return {"table_date_format": TABLE_DATE_FORMAT}

@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from leaderlodge.groups.models import (
     Group,
+    GroupInvite,
     GroupMembership,
     GroupPlayer,
     Location,
@@ -52,6 +53,14 @@ class GroupAdmin(admin.ModelAdmin):
     search_fields = ("name", "description")
     list_filter = ("is_demo", "location_library")
     inlines = [GroupMembershipInline, GroupPlayerInline]
+
+
+@admin.register(GroupInvite)
+class GroupInviteAdmin(admin.ModelAdmin):
+    list_display = ("group", "kind", "email", "invited_by", "expires_at", "accepted_at")
+    list_filter = ("kind", "accepted_at", "revoked_at")
+    search_fields = ("email", "token", "group__name")
+    readonly_fields = ("token", "created_at")
 
 
 @admin.register(GroupMembership)

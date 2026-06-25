@@ -1,0 +1,18 @@
+{% if row.can_invite or row.show_remove %}
+  <div class="d-inline-flex align-items-center gap-1 justify-content-end">
+    {% if row.can_invite %}
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-primary"
+        title="Invite"
+        aria-label="Invite {{ player.display_label }}"
+        data-roster-invite
+        data-player-name="{{ player.display_label }}"
+        data-invite-url="{% url 'groups:player_invite' group.pk player.pk %}"
+      >
+        <i class="bi bi-envelope-plus" aria-hidden="true"></i>
+      </button>
+    {% endif %}
+    {% include "groups/includes/remove_from_group_button.html" with label=player.display_label remove_url_name=row.remove_url_name remove_target_pk=row.remove_target_pk show_remove=row.show_remove disabled_reason=row.disabled_reason %}
+  </div>
+{% endif %}
