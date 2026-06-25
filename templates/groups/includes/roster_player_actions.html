@@ -15,12 +15,13 @@
         <li>
           <button
             type="button"
-            class="dropdown-item"
+            class="dropdown-item d-flex align-items-center gap-2"
             data-roster-invite
             data-player-name="{{ player.display_label }}"
             data-invite-url="{% url 'groups:player_invite' group.pk player.pk %}"
           >
-            Invite
+            <i class="bi bi-envelope" aria-hidden="true"></i>
+            Invite with email
           </button>
         </li>
       {% endif %}
@@ -31,7 +32,8 @@
             action="{% url row.remove_url_name group.pk row.remove_target_pk %}"
           >
             {% csrf_token %}
-            <button type="submit" class="dropdown-item text-danger">
+            <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2">
+              <i class="bi bi-person-x" aria-hidden="true"></i>
               Remove from Group
             </button>
           </form>
@@ -39,9 +41,10 @@
       {% elif row.show_remove %}
         <li>
           <span
-            class="dropdown-item disabled text-muted"
+            class="dropdown-item disabled text-muted d-flex align-items-center gap-2"
             title="{{ row.disabled_reason }}"
           >
+            <i class="bi bi-person-x" aria-hidden="true"></i>
             Remove from Group
           </span>
         </li>

@@ -27,9 +27,7 @@ def is_last_owner(membership: GroupMembership) -> bool:
     return membership.role == Role.OWNER and owner_count(membership.group) <= 1
 
 
-def assignable_roles(
-    actor: GroupMembership, target: GroupMembership
-) -> list[str]:
+def assignable_roles(actor: GroupMembership, target: GroupMembership) -> list[str]:
     if not can_manage_members(actor):
         return []
     if actor.role == Role.EDITOR and target.role == Role.OWNER:
@@ -59,9 +57,7 @@ def can_set_membership_role(
     return new_role in assignable_roles(actor, target)
 
 
-def can_remove_membership(
-    actor: GroupMembership, target: GroupMembership
-) -> bool:
+def can_remove_membership(actor: GroupMembership, target: GroupMembership) -> bool:
     if not can_manage_members(actor):
         return False
     if is_last_owner(target):
@@ -116,7 +112,7 @@ def roster_remove_state(
             "remove_url_name": "",
             "remove_target_pk": None,
             "disabled_reason": (
-                "Cannot remove from group — this player has recorded games."
+                "Cannot remove from group - this player has recorded games."
             ),
         }
 
@@ -135,10 +131,7 @@ def can_remove_roster_player(
     group: Group,
 ) -> bool:
     state = roster_remove_state(actor, player, group)
-    return (
-        state["can_remove"]
-        and state["remove_url_name"] == "groups:player_remove"
-    )
+    return state["can_remove"] and state["remove_url_name"] == "groups:player_remove"
 
 
 def can_invite_roster_player(
