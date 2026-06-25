@@ -191,6 +191,21 @@ def verify_email_sign_in(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@require_GET
+def profile(request: HttpRequest) -> HttpResponse:
+    from leaderlodge.groups.services import user_groups
+
+    return render(
+        request,
+        "accounts/profile.html",
+        {
+            "email_verified": is_email_verified(request.user),
+            "group_count": user_groups(request.user).count(),
+        },
+    )
+
+
+@login_required
 @require_http_methods(["GET", "POST"])
 def verify_email(request: HttpRequest) -> HttpResponse:
     if is_email_verified(request.user):

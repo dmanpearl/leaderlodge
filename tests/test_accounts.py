@@ -415,6 +415,41 @@ def test_password_reset_email_uses_request_host(client, user):
 
 
 @pytest.mark.django_db
+def test_profile_requires_login(client):
+    response = client.get(reverse("accounts:profile"))
+    assert response.status_code == 302
+    assert reverse("accounts:login") in response.url
+
+
+@pytest.mark.django_db
+def test_profile_shows_user_information(client, user):
+    user.first_name = "David"
+    user.last_name = "Pearl"
+    user.email = "david@example.com"
+    user.save(update_fields=["first_name", "last_name", "email"])
+    client.force_login(user)
+    content = client.get(reverse("accounts:profile")).content.decode()
+
+    assert "Profile" in content
+    assert "David" in content
+    assert "Pearl" in content
+    assert "david@example.com" in content
+    assert "david" in content
+    assert "Unverified" in content
+    assert reverse("accounts:verify_email") in content
+    assert reverse("accounts:password_reset") in content
+    assert reverse("groups:list") in content
+
+
+@pytest.mark.django_db
+def test_navbar_includes_profile_link(client, user):
+    client.force_login(user)
+    content = client.get(reverse("core:dashboard")).content.decode()
+    assert reverse("accounts:profile") in content
+    assert "Profile" in content
+
+
+@pytest.mark.django_db
 def test_anonymous_navbar_uses_account_dropdown(client):
     content = client.get(reverse("accounts:login")).content.decode()
 

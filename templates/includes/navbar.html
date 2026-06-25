@@ -91,6 +91,15 @@
               </li>
               <li><hr class="dropdown-divider"></li>
             {% endif %}
+            <li>
+              <a
+                class="dropdown-item d-flex align-items-center gap-2"
+                href="{% url 'accounts:profile' %}"
+              >
+                <i class="bi bi-person-vcard navbar-menu-icon" aria-hidden="true"></i>
+                Profile
+              </a>
+            </li>
             {% if user.is_staff or user.is_superuser %}
               <li>
                 <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'admin:index' %}">

@@ -51,24 +51,25 @@
 - [x] ded329e Matchup View: Game list - click a game row to open matchup for that game's players
 - [x] 7ba260e Matchup View: Game detail - Matchup button in footer (Games / Leaderboard / Matchup)
 - [x] 61f17e9 User Account: Self-service signup, login, password reset, welcome email, email verification
-- [x] Groups: Owner/Editor/Member roles with member management (remove member, assign roles; editors cannot modify owners)
-- [x] Dashboard name display should follow naming rules that would result in "Welcome, David" instead of the current "Welcome, dmanpearl"
+- [x] 18f0d62 Groups: Owner/Editor/Member roles with member management (remove member, assign roles; editors cannot modify owners)
+- [x] 618eca8 Dashboard welcome uses display-name rules (e.g. "Welcome, David" not username)
+- [x] ad419e3 Tables use compact text and n/j/y dates (Dashboard, Groups, Game list, Group detail)
+- [x] ad419e3 User Account: Group email invites with guest roster, join-page signup, and member/player removal rules (618eca8, 98e61c2, 0ec9266)
+- [x] Profile view: Account menu profile page with user information (Navbar > Account > Profile)
 
 ## Open Items
 
-- [ ] Profile view: Add new view with user information accessible by Navbar > Account > menu
 - [ ] Groups View: Make entire row a link to the Group detail view, so the hyperlink style group name can be normal
 - [ ] Record Game View > Points fields: When the user types a digit into the field populated with a leading zero, the new digit replaces the zero
-- [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, I think it should be row instead)
-- [ ] Style: Dashboard dates are word-wrapped on mobile. Use more narrow format, move Group column right
+- [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, entire row instead; remove underline link format from date)
+- [ ] Dashboard: Recent Games: Move Group column to the right of Winner
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
 - [ ] Bug: Game View: Clicking a game row should navigate to the Game Detail screen. Currently incorrectly navigates to the Matchup view
-- [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI) (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
+- [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
 - [ ] Offline mode: Allow game entry in limited connection environments
 - [ ] Leaderboard graphs of leaders over time
-- [ ] User Account: Group invites by email/link - replace all-users member picker
 - [ ] User Account: 2FA and phone login options
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
 - [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "

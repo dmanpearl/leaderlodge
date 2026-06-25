@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load display_names %}
+
+{% block title %}Profile | LeaderLodge{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h1 class="h4 mb-3">Profile</h1>
+          <dl class="row mb-4 rank-detail-dl">
+            <dt class="col-5 col-sm-4 text-muted">Name</dt>
+            <dd class="col-7 col-sm-8 mb-2">
+              {% include "includes/user_name_display.html" with user=user %}
+            </dd>
+
+            <dt class="col-5 col-sm-4 text-muted">First</dt>
+            <dd class="col-7 col-sm-8 mb-2">{{ user.first_name|default:"—" }}</dd>
+
+            <dt class="col-5 col-sm-4 text-muted">Last</dt>
+            <dd class="col-7 col-sm-8 mb-2">{{ user.last_name|default:"—" }}</dd>
+
+            <dt class="col-5 col-sm-4 text-muted">Username</dt>
+            <dd class="col-7 col-sm-8 mb-2">{{ user.username }}</dd>
+
+            <dt class="col-5 col-sm-4 text-muted">Email</dt>
+            <dd class="col-7 col-sm-8 mb-2">
+              {% if user.email %}
+                {{ user.email }}
+                {% if email_verified %}
+                  <span class="badge text-bg-success ms-1">Verified</span>
+                {% else %}
+                  <span class="badge text-bg-secondary ms-1">Unverified</span>
+                {% endif %}
+              {% else %}
+                &mdash;
+              {% endif %}
+            </dd>
+
+            <dt class="col-5 col-sm-4 text-muted">Member since</dt>
+            <dd class="col-7 col-sm-8 mb-2">{{ user.date_joined|date:table_date_format }}</dd>
+
+            <dt class="col-5 col-sm-4 text-muted">Groups</dt>
+            <dd class="col-7 col-sm-8 mb-0">
+              <a href="{% url 'groups:list' %}">{{ group_count }}</a>
+            </dd>
+          </dl>
+
+          <div class="d-flex flex-wrap gap-2">
+            {% if not email_verified %}
+              <a href="{% url 'accounts:verify_email' %}" class="btn btn-outline-primary btn-sm">
+                Verify email
+              </a>
+            {% endif %}
+            <a href="{% url 'accounts:password_reset' %}" class="btn btn-outline-secondary btn-sm">
+              Change password
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
