@@ -56,11 +56,11 @@
 - [x] ad419e3 Tables use compact text and n/j/y dates (Dashboard, Groups, Game list, Group detail)
 - [x] ad419e3 User Account: Group email invites with guest roster, join-page signup, and member/player removal rules (618eca8, 98e61c2, 0ec9266)
 - [x] b61a500 Profile view: Account menu profile page with user information (Navbar > Account > Profile)
-- [x] Groups View: Make entire row a link to the Group detail view, so the hyperlink style group name can be normal
+- [x] 909a7dc Groups View: Make entire row a link to the Group detail view, so the hyperlink style group name can be normal
+- [ ] Record Game View > Points fields: When the user types a digit into the field populated with a leading zero, the new digit replaces the zero
 
 ## Open Items
 
-- [ ] Record Game View > Points fields: When the user types a digit into the field populated with a leading zero, the new digit replaces the zero
 - [ ] Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, entire row instead; remove underline link format from date)
 - [ ] Dashboard: Recent Games: Move Group column to the right of Winner
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

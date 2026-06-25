@@ -239,11 +239,30 @@
     });
   }
 
+  function selectDefaultScoreOnFocus(input) {
+    if (input.dataset.scoreTouched === "true") {
+      return;
+    }
+    const initial = input.dataset.initialScore;
+    if (initial === undefined || initial === "") {
+      return;
+    }
+    if (input.value === initial) {
+      input.select();
+    }
+  }
+
   function initGameRecordForm() {
     const form = document.getElementById("game-record-form");
     if (!form) {
       return;
     }
+
+    form.addEventListener("focusin", (event) => {
+      if (event.target.matches("[data-score-input]")) {
+        selectDefaultScoreOnFocus(event.target);
+      }
+    });
 
     form.addEventListener("input", (event) => {
       if (event.isTrusted && event.target.matches("[data-score-input]")) {
