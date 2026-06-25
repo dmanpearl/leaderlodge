@@ -159,6 +159,17 @@ class SignupForm(forms.Form):
 
 
 class InviteJoinSignupForm(forms.Form):
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "readonly": True,
+                "autocomplete": "username",
+                "tabindex": "-1",
+                "class": "visually-hidden",
+                "aria-hidden": "true",
+            }
+        ),
+    )
     first_name = forms.CharField(
         label="First",
         max_length=150,
@@ -204,6 +215,14 @@ class InviteJoinSignupForm(forms.Form):
     def __init__(self, *args, invite=None, **kwargs):
         self.invite = invite
         super().__init__(*args, **kwargs)
+        if invite is not None:
+            self.fields["email"].initial = invite.email
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        if self.invite and email != self.invite.email.strip().lower():
+            raise ValidationError("Email does not match this invite.")
+        return email
 
     def clean(self):
         cleaned = super().clean()

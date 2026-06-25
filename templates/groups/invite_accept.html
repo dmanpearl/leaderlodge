@@ -66,6 +66,7 @@
               </dl>
               <form method="post" action="{{ accept_url }}" novalidate>
                 {% csrf_token %}
+                {{ join_form.email }}
                 {% if join_form.non_field_errors %}
                   <div class="alert alert-danger py-2">{{ join_form.non_field_errors }}</div>
                 {% endif %}

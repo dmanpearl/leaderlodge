@@ -293,6 +293,7 @@ def test_join_page_creates_account_and_joins_group(client, owner, group):
     response = client.post(
         reverse("groups:invite_accept", kwargs={"token": invite.token}),
         {
+            "email": "brandnew@example.com",
             "first_name": "Brandon",
             "last_name": "New",
             "password1": "ComplexPass123!",
