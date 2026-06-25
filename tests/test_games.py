@@ -216,6 +216,7 @@ def test_load_roster_shows_formatted_date(client, user, group):
     assert "data-player-picker" in content
     assert "Add player" in content
     assert "Highest score wins" in content
+    assert "player_picker.css" in content
 
 
 @pytest.mark.django_db
@@ -505,6 +506,7 @@ def test_reuse_roster_prefills_previous_players(client, user, group):
     players = list(group.players.order_by("pk")[:2])
     assert players[0].display_label in content
     assert players[1].display_label in content
+    assert "game-record-score-input" in content
 
 
 @pytest.mark.django_db

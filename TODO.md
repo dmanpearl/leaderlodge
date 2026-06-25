@@ -61,10 +61,10 @@
 - [x] db89c5e Dashboard: Click on a Recent Game row navigates to Game Detail view (currently date is a link, entire row instead; remove underline link format from date)
 - [x] 1b26602 Dashboard: Recent Games: Move Group column to the right of Winner
 - [x] b540e80 After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
+- [x] Record Game View > Mobile Undo Zoom after score entry: iOS automatically zooms in for typing in score values. Clicking out of the field dismisses the keyboard, but does not restore the original zoom factor
 
 ## Open Items
 
-- [ ] Record Game View > Mobile Undo Zoom after score entry: iOS automatically zooms in for typing in score values. Clicking out of the field dismisses the keyboard, but does not restore the original zoom factor
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)

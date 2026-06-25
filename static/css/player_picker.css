@@ -1,3 +1,8 @@
+.game-record-score-input {
+  /* iOS Safari zooms focused inputs when font-size is below 16px. */
+  font-size: 16px;
+}
+
 .combobox-input-wrap {
   position: relative;
 }

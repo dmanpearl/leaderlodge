@@ -151,7 +151,7 @@
             type="text"
             inputmode="numeric"
             name="participant_score"
-            class="form-control form-control-sm"
+            class="form-control form-control-sm game-record-score-input"
             data-score-input${initialScoreAttr}
             value="${defaultParticipantScore}"
             style="max-width: 6rem;"
