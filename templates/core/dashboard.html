@@ -42,9 +42,9 @@
                 <thead>
                   <tr>
                     <th scope="col">Date</th>
-                    <th scope="col">Group</th>
                     <th scope="col">Game</th>
                     <th scope="col">Winner</th>
+                    <th scope="col">Group</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -56,7 +56,6 @@
                       data-href="{% url 'games:detail' row.game.pk %}"
                     >
                       <td>{{ row.game.played_on|date:table_date_format }}</td>
-                      <td>{{ row.game.group.name }}</td>
                       <td>
                         {{ row.game.game_type.name }}
                         {% if row.game.double_weight == 2 %}
@@ -66,6 +65,7 @@
                         {% endif %}
                       </td>
                       <td class="text-truncate" style="max-width: 7rem;">{{ row.winner_label }}</td>
+                      <td>{{ row.game.group.name }}</td>
                     </tr>
                   {% endfor %}
                 </tbody>
