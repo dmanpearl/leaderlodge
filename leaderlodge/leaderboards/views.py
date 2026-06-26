@@ -17,6 +17,14 @@ from leaderlodge.leaderboards.period import (
     month_label,
     resolve_leaderboard_period,
 )
+from leaderlodge.leaderboards.hall_of_fame import (
+    GRANULARITY_MONTH,
+    GRANULARITY_YEAR,
+    build_hall_of_fame_grid,
+    build_hall_of_fame_query,
+    hall_of_fame_filter_summary,
+    resolve_hall_of_fame_granularity,
+)
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
@@ -165,7 +173,95 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "rankings": rankings,
             "period_label": period_label,
             "leaderboard_query": leaderboard_query,
+            "hall_of_fame_query": build_hall_of_fame_query(group_id=resolved_group_id),
             **period_ctx,
+        },
+    )
+
+
+def _hall_of_fame_needs_redirect(
+    request: HttpRequest,
+    *,
+    resolved_group_id: str,
+    resolved_granularity: str,
+) -> bool:
+    requested_group = request.GET.get("group") if "group" in request.GET else None
+    requested_granularity = request.GET.get("granularity", "").strip()
+    if requested_group is None and resolved_group_id:
+        return True
+    if (
+        requested_group is not None
+        and resolved_group_id
+        and requested_group.strip() != resolved_group_id
+    ):
+        return True
+    if requested_granularity and requested_granularity != resolved_granularity:
+        return True
+    if (
+        not requested_granularity
+        and resolved_granularity != GRANULARITY_YEAR
+    ):
+        return True
+    return False
+
+
+@demo_or_login_required
+def hall_of_fame(request: HttpRequest) -> HttpResponse:
+    groups = list(visible_groups(request.user).order_by("name"))
+    requested_group = request.GET.get("group") if "group" in request.GET else None
+    selected_group = resolve_view_group(
+        request,
+        requested=requested_group,
+        available_groups=groups,
+    )
+    resolved_group_id = str(selected_group.pk) if selected_group else ""
+    granularity = resolve_hall_of_fame_granularity(
+        request.GET.get("granularity", "").strip()
+    )
+
+    if _hall_of_fame_needs_redirect(
+        request,
+        resolved_group_id=resolved_group_id,
+        resolved_granularity=granularity,
+    ):
+        query = build_hall_of_fame_query(
+            group_id=resolved_group_id,
+            granularity=granularity,
+        )
+        url = reverse("leaderboards:hall_of_fame")
+        if query:
+            url = f"{url}?{query}"
+        return redirect(url)
+
+    grid = None
+    filter_summary = ""
+    if selected_group:
+        grid = build_hall_of_fame_grid(selected_group, granularity=granularity)
+        filter_summary = hall_of_fame_filter_summary(
+            group_name=selected_group.name,
+            granularity=granularity,
+        )
+
+    hall_of_fame_query = build_hall_of_fame_query(
+        group_id=resolved_group_id,
+        granularity=granularity,
+    )
+    leaderboard_query = build_leaderboard_query(group_id=resolved_group_id)
+
+    return render(
+        request,
+        "leaderboards/hall_of_fame.html",
+        {
+            "groups": groups,
+            "selected_group": selected_group,
+            "granularity": granularity,
+            "granularity_year": GRANULARITY_YEAR,
+            "granularity_month": GRANULARITY_MONTH,
+            "grid": grid,
+            "filter_summary": filter_summary,
+            "hall_of_fame_query": hall_of_fame_query,
+            "leaderboard_query": leaderboard_query,
+            "period_column_label": "Month" if granularity == GRANULARITY_MONTH else "Year",
         },
     )
 

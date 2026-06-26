@@ -1,0 +1,16 @@
+<nav class="btn-group leaderboard-view-nav mb-3" role="group" aria-label="Leaderboard views">
+  <a
+    href="{% url 'leaderboards:index' %}{% if leaderboard_query %}?{{ leaderboard_query }}{% endif %}"
+    class="btn btn-outline-primary{% if leaderboard_view == 'index' %} active{% endif %}"
+    {% if leaderboard_view == 'index' %}aria-current="page"{% endif %}
+  >
+    Leaderboards
+  </a>
+  <a
+    href="{% url 'leaderboards:hall_of_fame' %}{% if hall_of_fame_query %}?{{ hall_of_fame_query }}{% endif %}"
+    class="btn btn-outline-primary{% if leaderboard_view == 'hall_of_fame' %} active{% endif %}"
+    {% if leaderboard_view == 'hall_of_fame' %}aria-current="page"{% endif %}
+  >
+    Hall of Fame
+  </a>
+</nav>

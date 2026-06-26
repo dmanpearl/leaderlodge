@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Hall of Fame | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/leaderboards.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-2">
+    <div class="w-100">
+      <h1 class="h3 visually-hidden">Hall of Fame</h1>
+      {% include "includes/leaderboard_view_nav.html" with leaderboard_view="hall_of_fame" %}
+    </div>
+  </div>
+
+  <div class="card mb-3 game-list-filters-card">
+    <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
+      <button
+        class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start w-100"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#hall-of-fame-filters"
+        aria-expanded="false"
+        aria-controls="hall-of-fame-filters"
+      >
+        <i id="hall-of-fame-filters-icon" class="bi bi-chevron-right" aria-hidden="true"></i>
+        <span class="fw-semibold">Filters</span>
+        {% if filter_summary %}
+          <span id="hall-of-fame-filters-summary" class="text-muted game-list-filters-summary" hidden>({{ filter_summary }})</span>
+        {% endif %}
+      </button>
+    </div>
+    <div id="hall-of-fame-filters" class="collapse hall-of-fame-filters-collapse">
+      <div class="card-body game-list-filters-body">
+        <form method="get" id="hall-of-fame-filters-form" class="row g-3 align-items-end">
+          <div class="col-12 col-sm-6 col-lg-4 col-xl">
+            <label for="hof-group-select" class="form-label">Group</label>
+            <select name="group" id="hof-group-select" class="form-select" onchange="this.form.submit()">
+              <option value="">Choose a group</option>
+              {% for group in groups %}
+                <option value="{{ group.pk }}" {% if selected_group and selected_group.pk == group.pk %}selected{% endif %}>
+                  {{ group.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-4 col-xl">
+            <span class="form-label d-block">Timeframe</span>
+            <div class="btn-group w-100" role="group" aria-label="Hall of Fame timeframe">
+              <input
+                type="radio"
+                class="btn-check"
+                name="granularity"
+                id="hof-granularity-year"
+                value="{{ granularity_year }}"
+                autocomplete="off"
+                {% if granularity == granularity_year %}checked{% endif %}
+                onchange="this.form.submit()"
+              />
+              <label class="btn btn-outline-primary" for="hof-granularity-year">Years</label>
+              <input
+                type="radio"
+                class="btn-check"
+                name="granularity"
+                id="hof-granularity-month"
+                value="{{ granularity_month }}"
+                autocomplete="off"
+                {% if granularity == granularity_month %}checked{% endif %}
+                onchange="this.form.submit()"
+              />
+              <label class="btn btn-outline-primary" for="hof-granularity-month">Months</label>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% if not groups %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-3">Create a group to see the Hall of Fame, or accept an invite from a group owner.</p>
+        <a href="{% url 'groups:create' %}" class="btn btn-primary">Create a group</a>
+      </div>
+    </div>
+  {% elif not selected_group %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">Select a group above.</p>
+      </div>
+    </div>
+  {% elif grid and grid.rows %}
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0 hall-of-fame-table">
+          <thead>
+            <tr>
+              <th scope="col" class="hall-of-fame-sticky-col">{{ period_column_label }}</th>
+              {% for column in grid.columns %}
+                <th scope="col" class="text-nowrap">{{ column.name }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in grid.rows %}
+              <tr>
+                <th scope="row" class="hall-of-fame-sticky-col text-nowrap">{{ row.label }}</th>
+                {% for cell in row.cells %}
+                  <td class="text-nowrap">
+                    {% if cell.player_label %}
+                      {% if cell.detail_query %}
+                        <a href="{% url 'leaderboards:detail' %}?{{ cell.detail_query }}">{{ cell.player_label }}</a>
+                      {% else %}
+                        {{ cell.player_label }}
+                      {% endif %}
+                    {% else %}
+                      <span class="text-muted">&mdash;</span>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">No games recorded for {{ selected_group.name }} yet.</p>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/hall_of_fame.js' %}"></script>
+{% endblock %}

@@ -1,10 +1,18 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Leaderboards | LeaderLodge{% endblock %}
 
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/leaderboards.css' %}" />
+{% endblock %}
+
 {% block content %}
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
-    <h1 class="h3 mb-0">Leaderboards</h1>
+    <div class="w-100">
+      <h1 class="h3 visually-hidden">Leaderboards</h1>
+      {% include "includes/leaderboard_view_nav.html" with leaderboard_view="index" %}
+    </div>
   </div>
 
   <div class="card mb-3">

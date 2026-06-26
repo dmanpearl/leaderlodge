@@ -62,7 +62,8 @@
 - [x] 1b26602 Dashboard: Recent Games: Move Group column to the right of Winner
 - [x] b540e80 After creating a new Group and navigating to 'View all', the new Group should be selected, but the last saved persistent group is displayed instead
 - [x] Record Game View > Mobile Undo Zoom after score entry: iOS automatically zooms in for typing in score values. Clicking out of the field dismisses the keyboard, but does not restore the original zoom factor
-- [x] Mobile: Games list filt   ers — collapse Group, Player, Location, and Date behind a "Type" spin-down (same pattern as Stats); desktop keeps filters always visible
+- [x] Mobile: Games list filters — collapse Group, Player, Location, and Date behind a "Type" spin-down (same pattern as Stats); desktop keeps filters always visible
+- [x] Hall of Fame view
 
 ## Open Items
 - [ ] Games View: Create a spin-down section called 'Type' (or siimilar) that wraps Group, Player, Location, and Date in the same way that 'Stats' wraps its contents.
