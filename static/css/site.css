@@ -35,6 +35,17 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link {
   padding-right: 0.5rem;
 }
 
+nav.navbar.bg-primary .navbar-nav-main .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.22);
+  border-radius: var(--bs-border-radius);
+  color: #fff;
+  font-weight: 600;
+}
+
+nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
+  color: #fff;
+}
+
 @media (max-width: 767.98px) {
   nav.navbar.bg-primary .navbar-nav-main .nav-link {
     padding-left: 0.625rem;

@@ -16,9 +16,10 @@
       <ul class="navbar-nav navbar-nav-main flex-row align-items-center">
         <li class="nav-item">
           <a
-            class="nav-link d-inline-flex align-items-center gap-1"
+            class="nav-link d-inline-flex align-items-center gap-1{% if navbar_active_section == 'games' %} active{% endif %}"
             href="{% url 'games:list' %}{% if preferred_games_list_query %}?{{ preferred_games_list_query }}{% endif %}"
             aria-label="Games"
+            {% if navbar_active_section == 'games' %}aria-current="page"{% endif %}
           >
             <i class="bi bi-grid navbar-nav-icon" aria-hidden="true"></i>
             <span class="navbar-nav-label d-none d-md-inline">Games</span>
@@ -26,9 +27,10 @@
         </li>
         <li class="nav-item">
           <a
-            class="nav-link d-inline-flex align-items-center gap-1"
+            class="nav-link d-inline-flex align-items-center gap-1{% if navbar_active_section == 'leaders' %} active{% endif %}"
             href="{% url 'leaderboards:index' %}{% if preferred_leaderboards_query %}?{{ preferred_leaderboards_query }}{% endif %}"
             aria-label="Leaders"
+            {% if navbar_active_section == 'leaders' %}aria-current="page"{% endif %}
           >
             <i class="bi bi-trophy navbar-nav-icon" aria-hidden="true"></i>
             <span class="navbar-nav-label d-none d-md-inline">Leaders</span>
@@ -36,9 +38,10 @@
         </li>
         <li class="nav-item">
           <a
-            class="nav-link d-inline-flex align-items-center gap-1"
+            class="nav-link d-inline-flex align-items-center gap-1{% if navbar_active_section == 'groups' %} active{% endif %}"
             href="{% url 'groups:list' %}"
             aria-label="Groups"
+            {% if navbar_active_section == 'groups' %}aria-current="page"{% endif %}
           >
             <i class="bi bi-people navbar-nav-icon" aria-hidden="true"></i>
             <span class="navbar-nav-label d-none d-md-inline">Groups</span>
@@ -46,9 +49,10 @@
         </li>
         <li class="nav-item">
           <a
-            class="nav-link d-inline-flex align-items-center gap-1"
+            class="nav-link d-inline-flex align-items-center gap-1{% if navbar_active_section == 'add' %} active{% endif %}"
             href="{% url 'games:create' %}{% if preferred_group_id %}?group={{ preferred_group_id }}{% elif demo_group %}?group={{ demo_group.pk }}{% endif %}"
             aria-label="Add"
+            {% if navbar_active_section == 'add' %}aria-current="page"{% endif %}
           >
             <i class="bi bi-plus-lg navbar-nav-icon" aria-hidden="true"></i>
             <span class="navbar-nav-label d-none d-md-inline">Add</span>

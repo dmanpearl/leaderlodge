@@ -20,3 +20,24 @@ def demo_context(request):
 
 def table_formats(request):
     return {"table_date_format": TABLE_DATE_FORMAT}
+
+
+def _resolve_navbar_active_section(request) -> str:
+    match = getattr(request, "resolver_match", None)
+    if match is None:
+        return ""
+
+    namespace = match.namespace or ""
+    url_name = match.url_name or ""
+
+    if namespace == "games":
+        return "add" if url_name == "create" else "games"
+    if namespace == "leaderboards":
+        return "leaders"
+    if namespace == "groups":
+        return "groups"
+    return ""
+
+
+def navbar_context(request):
+    return {"navbar_active_section": _resolve_navbar_active_section(request)}
