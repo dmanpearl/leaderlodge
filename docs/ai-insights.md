@@ -1,6 +1,6 @@
 # LeaderLodge AI Insights: Integration Bible
 
-> **Status:** Phase 2 complete (group / Hall of Fame trends). Phase 3 planned.  
+> **Status:** Player, group, Hall of Fame, and matchup insights shipped. Ask the Lodge planned.  
 > **Last updated:** 2026-06-23  
 > **Companion:** [architecture.md](./architecture.md) (app layout and ranking design only; not a substitute for this doc)
 
@@ -22,7 +22,7 @@
 12. [Rate limits, Redis, and when to enable them](#12-rate-limits-redis-and-when-to-enable-them)
 13. [Environment variables](#13-environment-variables)
 14. [Testing strategy](#14-testing-strategy)
-15. [Phase 3 preview: Ask the Lodge](#15-phase-3-preview-ask-the-lodge)
+15. [Ask the Lodge (planned)](#15-ask-the-lodge-planned)
 16. [Portfolio showcase](#16-portfolio-showcase)
 17. [Implementation checklist](#17-implementation-checklist)
 18. [Decision log](#18-decision-log)
@@ -49,7 +49,7 @@ An **LLM** (Large Language Model) is a cloud API that takes text in and returns 
 | **System prompt** | Fixed rules: tone, format, "only use provided JSON" |
 | **User message** | Structured stats JSON + question |
 
-The model **narrates**; LeaderLodge **measures**. Never let the LLM calculate `rank_score` or query the DB directly (Phase 3 uses validated tools instead).
+The model **narrates**; LeaderLodge **measures**. Never let the LLM calculate `rank_score` or query the DB directly (Ask the Lodge will use validated tools instead).
 
 ```text
 Game DB to get_player_rank_detail() to context JSON to LLM API to markdown insight
@@ -73,22 +73,23 @@ Game DB to get_player_rank_detail() to context JSON to LLM API to markdown insig
 
 ## 4. Product roadmap
 
-| Phase | Feature | Entry points | Prominence |
-|-------|---------|--------------|------------|
-| **1 (done)** | Player Insights | Rank detail | Insights button on player rank detail |
-| **2 (done)** | Group / Hall of Fame trends | Leaderboard, Hall of Fame | Tier A: page-level Insights buttons |
-| **2b (later)** | Insights launcher | Navbar (optional) | Tier B: global stars icon + scope picker; deferred until after Phase 2 |
-| **3** | Ask the Lodge | NL queries via tool calling | Navbar evolves into Ask the Lodge |
+| Feature | Status | Entry points |
+|---------|--------|--------------|
+| **Player insights** | Shipped | Rank detail |
+| **Group / Hall of Fame insights** | Shipped | Leaderboard, Hall of Fame |
+| **Matchup insights** | Shipped | Matchup view (after recording a game) |
+| **Insights launcher** | Planned | Navbar or account menu (mobile navbar is full) |
+| **Ask the Lodge** | Planned | Natural language + validated tool calling |
 
-### Prominence plan
+### Prominence
 
-**Tier A (Phase 2):** Add contextual **Insights** buttons on leaderboard and Hall of Fame headers. Reuse the same offcanvas shell and `btn-insights` style. Row tap on leaderboard still goes to rank detail; optional per-row stars icon is a follow-up.
+**Shipped:** Contextual **Insights** buttons on rank detail, leaderboard, Hall of Fame, and matchup. All use `btn-insights` + `bi-stars`.
 
-**Tier B (post Phase 2):** Navbar `bi-stars` launcher with scope picker (Player / Leaderboard / Hall of Fame) and player dropdown. Deferred because the mobile navbar is already full.
+**Later:** Global launcher (scope picker: player / leaderboard / Hall of Fame) when navbar layout allows.
 
-**Tier C (Phase 3):** Ask the Lodge replaces or extends the launcher with free-text + validated tools.
+**Ask the Lodge:** Free-text questions with validated Python tools (no raw SQL from the model).
 
-### Phase 1 presets
+### Player insight presets
 
 | Id | Label |
 |----|-------|
@@ -125,16 +126,17 @@ leaderlodge/insights/
   limits_defaults.py   # default caps (done)
   limits.py            # merge defaults, settings, user (done)
   rate_limit.py        # cache counters (done; gated by flag)
-  context/player.py    # Phase 1: build JSON
-  context/group.py     # Phase 2: leaderboard + Hall of Fame JSON
+  context/player.py    # player rank detail JSON
+  context/group.py     # leaderboard + Hall of Fame JSON
+  context/matchup.py   # matchup table + per-player summaries
   prompts.py           # system + preset templates
   providers/           # OpenAI, Google HTTP clients
   router.py            # slug to provider.complete()
-  service.py           # generate_player_insight()
-  views.py + urls.py   # POST /insights/player/, POST /insights/group/
+  service.py           # generate_*_insight()
+  views.py + urls.py   # POST /insights/player/, /group/, /matchup/
 ```
 
-### Request flow (Phase 1)
+### Request flow
 
 ```mermaid
 sequenceDiagram
@@ -144,10 +146,10 @@ sequenceDiagram
   participant Service
   participant LLM
 
-  Browser->>View: POST /insights/player/
+  Browser->>View: POST /insights/player/ (or /group/, /matchup/)
   View->>View: permissions + rate limit (if enabled)
-  View->>Context: build_player_insight_context()
-  View->>Service: generate_player_insight()
+  View->>Context: build_*_insight_context()
+  View->>Service: generate_*_insight()
   Service->>LLM: system + JSON + question
   LLM-->>Service: markdown
   Service-->>Browser: JSON response
@@ -157,24 +159,34 @@ sequenceDiagram
 
 ## 7. Context building
 
+### Player (`context/player.py`)
+
 **Function:** `build_player_insight_context(group, player, game_type_code, period)`
 
-**Sources:**
+**Sources:** `get_player_rank_detail()`, `get_player_rankings()` (leader comparison), period label.
 
-- `get_player_rank_detail()`
-- `get_player_rankings()` (leader comparison only)
-- Period label from leaderboard period helpers
+### Group (`context/group.py`)
 
-**Omit from v1:** raw game rows, other players' full stats, PII beyond display names.
+**Function:** `build_group_insight_context(group, scope, ...)`
 
-**Schema version:** `schema_version: 1` in JSON (see prior bible draft for full field list).
+**Scopes:** `leaderboard` (rankings snapshot), `hall_of_fame` (period leaders grid).
+
+### Matchup (`context/matchup.py`)
+
+**Function:** `build_matchup_insight_context(game)`
+
+**Sources:** `build_matchup_view()` stat table, plus `get_player_rank_detail()` summary for each player in the game.
+
+**Omit from all contexts:** raw game row dumps beyond what each builder needs, PII beyond display names.
+
+**Schema version:** `schema_version` in each JSON payload; bump when fields change.
 
 ---
 
 ## 8. Prompts and guardrails
 
 - System prompt: analyst role, JSON-only facts, sparse-data handling, markdown output cap.
-- `PROMPT_VERSION = 3` in `prompts.py` (bump when instructions change).
+- `PROMPT_VERSION = 4` in `prompts.py` (bump when instructions change).
 - Custom questions: length cap, strip control chars.
 - Disclaimer in UI: *AI summary. Rankings computed by LeaderLodge.*
 
@@ -185,19 +197,28 @@ sequenceDiagram
 ```
 POST /insights/player/
 POST /insights/group/
+POST /insights/matchup/
 ```
 
 ### Player (`POST /insights/player/`)
 
 Body: `group_id`, `player_id`, `game_type_code`, `year`, `month`, `preset`, `question`, `model`.
 
+Presets: `strengths`, `weaknesses`, `superpower`, `custom`.
+
 ### Group (`POST /insights/group/`)
 
 Body: `group_id`, `scope` (`leaderboard` or `hall_of_fame`), `game_type_code` (leaderboard), `year`, `month` (leaderboard period), `granularity` (Hall of Fame), `preset`, `question`, `model`, `refresh`.
 
-Group presets: `overview`, `standouts`, `competition` (leaderboard), `dynasty` (Hall of Fame), `custom`.
+Presets: `overview`, `standouts`, `competition` (leaderboard), `dynasty` (Hall of Fame), `custom`.
 
-Response (both): `{ "markdown": "...", "meta": { "model", "cached", "prompt_version", ... } }`.
+### Matchup (`POST /insights/matchup/`)
+
+Body: `game_id`, `preset`, `question`, `model`, `refresh`.
+
+Presets: `dynamics`, `head_to_head`, `game_impact`, `custom`.
+
+Response (all): `{ "markdown": "...", "meta": { "model", "cached", "prompt_version", ... } }`.
 
 Errors: 403 permission, 429 rate limit (when enabled), 502 provider error.
 
@@ -225,19 +246,19 @@ Default accent is violet (`#7c3aed`), distinct from navbar primary blue. Change 
 
 Any page with Insights buttons must load `insights.css` (same as the offcanvas panel).
 
-### Phase 1 (shipped)
+### Offcanvas panels (shipped)
 
-Bootstrap offcanvas on rank detail.
+| Surface | Template | JS |
+|---------|----------|-----|
+| Rank detail | `player_insights_panel.html` | `player_insights.js` |
+| Leaderboard, Hall of Fame | `group_insights_panel.html` | `group_insights.js` |
+| Matchup | `matchup_insights_panel.html` | `matchup_insights.js` |
 
-Contents: title, model `<select>`, preset chips, custom input, disclaimer, markdown result, Copy / Regenerate.
+Each panel: model picker, preset chips, optional custom question, Generate / Copy / Regenerate, markdown result.
 
-### Phase 2 (shipped)
+### Planned
 
-Same offcanvas pattern on **leaderboard** and **Hall of Fame** with group-scope context. Templates: `group_insights_panel.html`, `group_insights.js`. Presets: Overview, Standouts, Race (leaderboard) or Dynasty (Hall of Fame), Ask.
-
-### Phase 3
-
-Ask the Lodge page; navbar item when mobile layout allows or launcher pattern from Tier B.
+Ask the Lodge page; optional navbar or account-menu launcher when layout allows.
 
 ---
 
@@ -259,7 +280,7 @@ Rate limit **code is done** (`limits.py`, `rate_limit.py`, 15 tests). It is **no
 INSIGHTS_RATE_LIMITS_ENABLED=false   # MVP default
 ```
 
-When `false`, `check_insight_rate_limit()` and `record_insight_usage()` are no-ops. Phase 1 views should still call them; flipping one env var enables limits later.
+When `false`, `check_insight_rate_limit()` and `record_insight_usage()` are no-ops. Insight views should still call them; flipping one env var enables limits later.
 
 ### Can you postpone until you see abuse?
 
@@ -344,7 +365,7 @@ See `.env.example` for copy-paste templates.
 
 ### Railway promotion (do before enabling Insights in production)
 
-When Phase 1 ships and you deploy to Railway, add these in the web service **Variables** panel (same names as local `.env`; do not commit secrets):
+When insights ship to production, add these in the web service **Variables** panel (same names as local `.env`; do not commit secrets):
 
 | Variable | Production value |
 |----------|------------------|
@@ -357,7 +378,7 @@ Optional later: `INSIGHTS_LIMITS_JSON`, `REDIS_URL`.
 
 Redeploy after saving variables. Local `.env` is not used on Railway.
 
-Document in `setup.md` when Phase 1 ships.
+Document in `setup.md` when promoting new insight surfaces.
 
 ---
 
@@ -370,7 +391,7 @@ Document in `setup.md` when Phase 1 ships.
 
 ---
 
-## 15. Phase 3 preview: Ask the Lodge
+## 15. Ask the Lodge (planned)
 
 The user asks in natural language. The LLM proposes a **validated tool call**. Python runs the ORM query. The LLM narrates the result. No raw SQL from the model.
 
@@ -384,7 +405,7 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 2. Multi-provider router + user model picker.
 3. Grounded context schema with tests.
 4. Rate limits ready but pragmatically deferred.
-5. Phase 3 tool calling as flagship.
+5. Ask the Lodge tool calling as flagship.
 
 ---
 
@@ -402,23 +423,17 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 - [x] Insights button design system (`btn-insights`, `btn_insights.html`, `insights.css`)
 - [x] User model preference in `ui_settings`
 - [x] Link from `architecture.md`
+- [x] `context/group.py`, `POST /insights/group/`, leaderboard + Hall of Fame UI
+- [x] `context/matchup.py`, `POST /insights/matchup/`, matchup UI
 
-### Phase 1 polish (optional)
+### Polish (optional)
 
-- [ ] `setup.md` env documentation (partial: `.env.example`, Railway note)
 - [ ] Staff-only "show context JSON" toggle
 - [ ] Streaming responses
 
-### Phase 2 (done)
+### Planned
 
-- [x] `context/group.py` + tests
-- [x] Group presets in `prompts.py`
-- [x] `POST /insights/group/`
-- [x] Leaderboard + Hall of Fame Insights buttons (`btn_insights.html`, `group_insights_panel.html`)
-
-### Phase 2b / 3
-
-- [ ] Navbar Insights launcher (Tier B; optional)
+- [ ] Navbar Insights launcher
 - [ ] Ask the Lodge tools + page
 
 ---
@@ -435,11 +450,11 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 | 2026-06-23 | Redis: **postpone until limits enabled and multi-worker** |
 | 2026-06-23 | Limit config: code defaults + settings + ui_settings (no limit-policy table yet) |
 | 2026-06-23 | Docs: no Unicode arrows or en/em dashes |
-| 2026-06-23 | Phase 1 shipped: rank detail offcanvas, OpenAI + Google providers |
+| 2026-06-23 | Player insights shipped: rank detail offcanvas, OpenAI + Google providers |
 | 2026-06-23 | Gemini 2.5: disable thinking tokens (`thinking_budget=0`) to avoid truncated output |
-| 2026-06-23 | Prominence: Tier A on leaderboard/HoF for Phase 2; navbar launcher deferred (Tier B) |
+| 2026-06-23 | Group / Hall of Fame insights: `/insights/group/`, leaderboard + HoF buttons |
 | 2026-06-23 | Insights button design system: `btn-insights` + `bi-stars` in `insights.css` |
-| 2026-06-23 | Phase 2 shipped: group context, `/insights/group/`, leaderboard + HoF buttons |
+| 2026-06-23 | Matchup insights: `/insights/matchup/`, matchup table + player summaries |
 
 ---
 
@@ -447,12 +462,14 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 
 - Rank detail: `templates/leaderboards/rank_detail.html`
 - Insights button include: `templates/includes/btn_insights.html`
-- Insights styles: `static/css/insights.css`
+- Matchup: `templates/games/matchup.html`, `context/matchup.py`
 - Ranking service: `leaderlodge/leaderboards/service.py`
 - UI settings: `leaderlodge/accounts/ui_settings.py`
 - OpenAI models: https://developers.openai.com/api/docs/models/gpt-4o-mini
 - Gemini pricing: https://ai.google.dev/gemini-api/docs/pricing
 
+- Insights styles: `static/css/insights.css`
+
 ---
 
-*Update this doc when Phase 1 ships.*
+*Update this doc when shipping new insight features.*

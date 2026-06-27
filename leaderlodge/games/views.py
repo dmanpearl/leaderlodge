@@ -31,6 +31,9 @@ from leaderlodge.games.scoring import (
     record_game_rules_summary,
 )
 from leaderlodge.games.matchup import build_matchup_view
+from leaderlodge.insights.model_selection import preferred_insight_model_id
+from leaderlodge.insights.registry import MODEL_REGISTRY
+from leaderlodge.insights.views import insights_ui_enabled
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
@@ -599,6 +602,7 @@ def game_matchup(request: HttpRequest) -> HttpResponse:
         raise Http404
 
     matchup = build_matchup_view(game)
+    insights_enabled = insights_ui_enabled()
     return render(
         request,
         "games/matchup.html",
@@ -608,6 +612,9 @@ def game_matchup(request: HttpRequest) -> HttpResponse:
             "game_type": get_game_type(game.game_type_code),
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
+            "insights_enabled": insights_enabled,
+            "insight_models": tuple(MODEL_REGISTRY.values()),
+            "selected_insight_model": preferred_insight_model_id(request),
         },
     )
 

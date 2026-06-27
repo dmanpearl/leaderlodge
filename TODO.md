@@ -65,14 +65,16 @@
 - [x] cb01060 Mobile: Games list filters — collapse Group, Player, Location, and Date behind a 'Filter' spin-down (same pattern as Stats)
 - [x] 336ebed Hall of Fame view
 - [x] 10df048 Navbar: Selected item should be visibly highlighted
-- [x] AI rate limits: defaults + settings + per-user ui_settings + cache counters
-- [x] AI Player Insights on rank detail (see [docs/ai-insights.md](docs/ai-insights.md))
-- [x] AI Phase 2: Group / Hall of Fame trend analysis
+- [x] bd71ee7 AI rate limits: defaults + settings + per-user ui_settings + cache counters
+- [x] dcff5f8 AI Player Insights on rank detail (see [docs/ai-insights.md](docs/ai-insights.md))
+- [x] d9a69ac AI Group / Hall of Fame trend analysis
+- [x] AI Matchup insights on matchup view (see [docs/ai-insights.md](docs/ai-insights.md))
 
 ## Open Items
 
-- [ ] AI Matchup insights provides information on the dynamics of the set of players. Should send player detail information for all matched-up players
-- [ ] AI Phase 3: Ask the Lodge (natural-language queries + tool calling)
+- [ ] Game Detail View: Provide the same 'Insights' button as in the Matchup View
+- [ ] Games View > Filters > Add Filter by number of players including All, 2, 3, 4, etc (show numbers actually represented in current set)
+- [ ] AI Ask the Lodge (natural-language queries + tool calling)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)

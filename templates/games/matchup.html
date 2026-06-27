@@ -5,10 +5,14 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+  {% if insights_enabled %}
+    <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
+  {% endif %}
 {% endblock %}
 
 {% block content %}
-  <div class="mb-3">
+  <div class="mb-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2">
+    <div>
     <h1 class="h3 mb-1">Matchup</h1>
     <p class="text-muted mb-0">
       {{ game.group.name }} &middot; {{ game_type.name }} &middot; {{ game.played_on|date:"M j, Y" }}
@@ -27,6 +31,10 @@
         Lower scores win for {{ game_type.name }}.
       {% endif %}
     </p>
+    </div>
+    {% if insights_enabled %}
+      {% include "includes/btn_insights.html" with btn_size="sm" offcanvas_target="#matchup-insights-panel" offcanvas_controls="matchup-insights-panel" %}
+    {% endif %}
   </div>
 
   <div class="card matchup-card">
@@ -70,4 +78,13 @@
     <a href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&game_type_code={{ game.game_type_code }}" class="btn btn-outline-primary">Leaderboard</a>
     <a href="{% url 'games:detail' game.pk %}" class="btn btn-outline-secondary">Game detail</a>
   </div>
+  {% if insights_enabled %}
+    {% include "includes/matchup_insights_panel.html" with panel_id="matchup-insights-panel" %}
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {% if insights_enabled %}
+    <script src="{% static 'js/matchup_insights.js' %}"></script>
+  {% endif %}
 {% endblock %}

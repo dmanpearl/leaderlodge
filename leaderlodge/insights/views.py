@@ -12,6 +12,7 @@ from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.insights.access import (
     InsightAccessError,
     resolve_group_insight_target,
+    resolve_matchup_insight_target,
     resolve_player_insight_target,
 )
 from leaderlodge.insights.context.group import (
@@ -20,15 +21,29 @@ from leaderlodge.insights.context.group import (
     SCOPE_LEADERBOARD,
     build_group_insight_context,
 )
+from leaderlodge.insights.context.matchup import (
+    MatchupInsightContextError,
+    build_matchup_insight_context,
+)
 from leaderlodge.insights.context.player import InsightContextError, build_player_insight_context
 from leaderlodge.insights.exceptions import InsightRateLimitExceeded
 from leaderlodge.insights.model_selection import persist_insight_model_id
 from leaderlodge.insights.providers.base import InsightProviderError
-from leaderlodge.insights.prompts import PRESET_CUSTOM, resolve_group_preset, resolve_preset
+from leaderlodge.insights.prompts import (
+    PRESET_CUSTOM,
+    resolve_group_preset,
+    resolve_matchup_preset,
+    resolve_preset,
+)
 from leaderlodge.leaderboards.hall_of_fame import resolve_hall_of_fame_granularity
 from leaderlodge.insights.rate_limit import check_insight_rate_limit, record_insight_usage
 from leaderlodge.insights.registry import MODEL_REGISTRY, resolve_model_slug
-from leaderlodge.insights.service import InsightResult, generate_group_insight, generate_player_insight
+from leaderlodge.insights.service import (
+    InsightResult,
+    generate_group_insight,
+    generate_matchup_insight,
+    generate_player_insight,
+)
 
 
 def _configured_api_key(name: str) -> str:
@@ -235,6 +250,76 @@ def group_insight(request: HttpRequest) -> HttpResponse:
 
     try:
         result = generate_group_insight(
+            context=context,
+            preset=preset,
+            question=question,
+            model_slug=model_slug,
+            skip_cache=bool(payload.get("refresh")),
+        )
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    except InsightProviderError as exc:
+        return JsonResponse({"error": str(exc)}, status=502)
+
+    if not result.cached:
+        record_insight_usage(request, user=request.user, model_slug=model_slug)
+
+    persist_insight_model_id(request, model_slug)
+
+    return _insight_json_response(result=result, context=context)
+
+
+@demo_or_login_required
+@require_POST
+def matchup_insight(request: HttpRequest) -> HttpResponse:
+    if not insights_feature_enabled():
+        return JsonResponse({"error": "Insights are not enabled."}, status=404)
+
+    payload = _parse_json_body(request)
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+
+    game_id = str(payload.get("game_id", "")).strip()
+    preset = resolve_matchup_preset(str(payload.get("preset", "")).strip())
+    question = str(payload.get("question", "")).strip()
+    model_slug = resolve_model_slug(str(payload.get("model", "")).strip())
+
+    if not game_id:
+        return JsonResponse({"error": "Missing required fields."}, status=400)
+    if preset == PRESET_CUSTOM and not question.strip():
+        return JsonResponse({"error": "A custom question is required."}, status=400)
+
+    try:
+        game = resolve_matchup_insight_target(
+            request,
+            user=request.user,
+            game_id=game_id,
+        )
+    except InsightAccessError as exc:
+        return JsonResponse({"error": str(exc)}, status=403)
+
+    try:
+        check_insight_rate_limit(request, user=request.user, model_slug=model_slug)
+    except InsightRateLimitExceeded as exc:
+        response = JsonResponse(
+            {
+                "error": "Rate limit exceeded.",
+                "scope": exc.scope,
+                "window": exc.window,
+                "limit": exc.limit,
+            },
+            status=429,
+        )
+        response["Retry-After"] = str(exc.retry_after_seconds)
+        return response
+
+    try:
+        context = build_matchup_insight_context(game)
+    except MatchupInsightContextError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+    try:
+        result = generate_matchup_insight(
             context=context,
             preset=preset,
             question=question,

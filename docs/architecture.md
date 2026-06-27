@@ -1,4 +1,4 @@
-# LeaderLodge Architecture (Phase 1)
+# LeaderLodge Architecture
 
 ## App layout
 
@@ -17,13 +17,14 @@ Game subpackages (`dominos/`, `backgammon/`, etc.) contain validation rules only
 
 LeaderLodge computes rankings in Python; the **insights** app calls cloud LLM APIs to narrate stats. Full design: **[ai-insights.md](./ai-insights.md)**.
 
-| Phase | Status | Entry points |
-|-------|--------|--------------|
-| 1. Player Insights | **Shipped** | Rank detail (`btn-insights` opens offcanvas) |
-| 2. Group / Hall of Fame trends | **Shipped** | Leaderboard, Hall of Fame (`POST /insights/group/`) |
-| 3. Ask the Lodge | Planned | Natural language + tool calling; navbar when layout allows |
+| Feature | Status | Entry points |
+|---------|--------|--------------|
+| Player insights | **Shipped** | Rank detail |
+| Group / Hall of Fame insights | **Shipped** | Leaderboard, Hall of Fame |
+| Matchup insights | **Shipped** | Matchup view |
+| Ask the Lodge | Planned | Natural language + tool calling |
 
-**App:** `leaderlodge/insights/` (player + group context builders, providers, `POST /insights/player/` and `POST /insights/group/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
+**App:** `leaderlodge/insights/` (context builders, providers, `POST /insights/player/`, `/insights/group/`, `/insights/matchup/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
 
 **UI:** Shared Insights button style in `static/css/insights.css` (`btn-insights`, violet accent, `bi-stars` icon). Template: `templates/includes/btn_insights.html`. Any new Insights entry point must use this pattern (documented in ai-insights.md section 10).
 
@@ -53,7 +54,7 @@ All ranking logic lives in `leaderlodge/leaderboards/service.py` and
 - `get_group_roster_standings(group, game_type_code, sort, ascending)` -- group detail
 - `get_player_stats(group, player)` -- per-game-type stats for a single player
 
-Phase 2 ranks by field-weighted finish points within each game type. For each
+Leaderboards rank by field-weighted finish points within each game type. For each
 game result, normalized placement distance is multiplied by player count, game
 weight (double/half), and in-game score magnitude. High-wins games use the raw
 score; Progressive Rummy winners use a fixed reference minus their score

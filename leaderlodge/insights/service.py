@@ -11,11 +11,14 @@ from django.core.cache import cache
 
 from leaderlodge.insights.prompts import (
     GROUP_INSIGHT_SYSTEM_PROMPT,
+    MATCHUP_INSIGHT_SYSTEM_PROMPT,
     PLAYER_INSIGHT_SYSTEM_PROMPT,
     PROMPT_VERSION,
     render_group_user_message,
+    render_matchup_user_message,
     render_user_message,
     resolve_group_preset,
+    resolve_matchup_preset,
     resolve_preset,
 )
 from leaderlodge.insights.registry import resolve_model_slug
@@ -181,6 +184,32 @@ def generate_group_insight(
         question=question,
         model_slug=model_slug,
         system_prompt=GROUP_INSIGHT_SYSTEM_PROMPT,
+        user_message=user_message,
+        skip_cache=skip_cache,
+    )
+
+
+def generate_matchup_insight(
+    *,
+    context: dict[str, Any],
+    preset: str,
+    question: str = "",
+    model_slug: str,
+    skip_cache: bool = False,
+) -> InsightResult:
+    resolved_preset = resolve_matchup_preset(preset)
+    user_message = render_matchup_user_message(
+        context=context,
+        preset=preset,
+        question=question,
+    )
+    return _generate_insight(
+        kind="matchup",
+        context=context,
+        preset=resolved_preset,
+        question=question,
+        model_slug=model_slug,
+        system_prompt=MATCHUP_INSIGHT_SYSTEM_PROMPT,
         user_message=user_message,
         skip_cache=skip_cache,
     )

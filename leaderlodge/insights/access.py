@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser, User
     from django.http import HttpRequest
 
+    from leaderlodge.games.models import Game
     from leaderlodge.groups.models import GroupPlayer
 
 
@@ -104,3 +105,22 @@ def resolve_group_insight_target(
         return group, resolved_scope, period, game_type_code
 
     return group, resolved_scope, None, None
+
+
+def resolve_matchup_insight_target(
+    request: HttpRequest,
+    *,
+    user: User | AnonymousUser,
+    game_id: str,
+) -> Game:
+    from leaderlodge.games.models import Game
+    from leaderlodge.groups.services import can_view_group
+
+    game = (
+        Game.objects.filter(pk=game_id)
+        .select_related("group", "location")
+        .first()
+    )
+    if game is None or not can_view_group(user, game.group):
+        raise InsightAccessError("Game not found.")
+    return game
