@@ -1,143 +1,97 @@
-# LeaderLodge AI Insights: Integration Bible
+# LeaderLodge AI Insights
 
-> **Status:** Player, group, Hall of Fame, matchup, and Ask the Lodge insights shipped.  
-> **Last updated:** 2026-06-23  
-> **Companion:** [architecture.md](./architecture.md) (app layout and ranking design only; not a substitute for this doc)
-
----
-
-## Table of contents
-
-1. [Vision](#1-vision)
-2. [What is an LLM, and where does it fit?](#2-what-is-an-llm-and-where-does-it-fit)
-3. [Design principles](#3-design-principles)
-4. [Product roadmap](#4-product-roadmap)
-5. [Supported models](#5-supported-models)
-6. [System architecture](#6-system-architecture)
-7. [Context building](#7-context-building)
-8. [Prompts and guardrails](#8-prompts-and-guardrails)
-9. [API contract](#9-api-contract)
-10. [UX specification](#10-ux-specification)
-11. [Security and privacy](#11-security-and-privacy)
-12. [Rate limits, Redis, and when to enable them](#12-rate-limits-redis-and-when-to-enable-them)
-13. [Environment variables](#13-environment-variables)
-14. [Testing strategy](#14-testing-strategy)
-15. [Ask the Lodge (planned)](#15-ask-the-lodge-planned)
-16. [Portfolio showcase](#16-portfolio-showcase)
-17. [Implementation checklist](#17-implementation-checklist)
-18. [Decision log](#18-decision-log)
-19. [References](#19-references)
-
----
-
-## 1. Vision
-
-LeaderLodge **computes** rankings in Python. AI **interprets** them in plain language.
+> **Companion:** [architecture.md](./architecture.md) (app layout and ranking design)
 
 **Tagline:** *Computed by LeaderLodge. Explained by AI.*
 
-**Non-goals for MVP:** open chat, LLM-computed stats, local model hosting (Ollama), user-supplied API keys.
+LeaderLodge **computes** rankings in Python. Cloud LLMs **narrate** them in plain language. API keys stay server-side; users pick from three curated cheap models. Every answer is grounded in data LeaderLodge already measured.
 
 ---
 
-## 2. What is an LLM, and where does it fit?
+## Two ways AI is used
 
-An **LLM** (Large Language Model) is a cloud API that takes text in and returns text out. You send:
+### 1. Contextual insights (page-bound)
 
-| Part | Content |
+On rank detail, leaderboard, Hall of Fame, matchup, and game detail pages, an **Insights** offcanvas opens beside the data the user is already viewing.
+
+| Step | What happens |
+|------|----------------|
+| Context | Python builds a fixed JSON snapshot (`context/player.py`, `context/group.py`, `context/matchup.py`) from ORM queries the page already trusts |
+| Question | User picks a **preset** (Strengths, Overview, Dynamics, etc.) or types a short **custom** question about that snapshot |
+| LLM | One completion call: system prompt + JSON + question. No tool loop |
+| Output | Markdown summary |
+
+The model never chooses what to query. Context scope is locked to the open page (this player, this leaderboard, this game).
+
+### 2. Ask the Lodge (open questions)
+
+`/insights/ask/` accepts free-form natural language scoped to a group and game type.
+
+| Step | What happens |
+|------|----------------|
+| Question | User types anything ("Who finishes 2nd most in 5-player dominos?") |
+| LLM | Proposes **validated tool calls** (`insights/tools/`) |
+| Python | `ToolExecutor` runs ORM queries; results return as JSON |
+| LLM | Narrates from tool output (up to 3 tool rounds) |
+| Output | Markdown answer |
+
+The model cannot run SQL or invent stats. It selects from a fixed tool catalog; Python enforces arguments and permissions.
+
+**Entry points:** Navbar **Ask** (violet `bi-stars`; icon on mobile, icon + label on desktop) and Account menu **Ask the Lodge**.
+
+---
+
+## Shipped surfaces
+
+| Surface | Mode | API | Entry |
+|---------|------|-----|-------|
+| Rank detail | Contextual | `POST /insights/player/` | Insights button |
+| Leaderboard | Contextual | `POST /insights/group/` | Insights button |
+| Hall of Fame | Contextual | `POST /insights/group/` | Insights button |
+| Matchup | Contextual | `POST /insights/matchup/` | Insights button |
+| Game detail | Contextual | `POST /insights/matchup/` | Insights button |
+| Ask the Lodge | Tool calling | `POST /insights/ask/query/` | Navbar Ask, Account menu |
+
+### Contextual presets
+
+**Player:** `strengths`, `weaknesses`, `superpower`, `custom`
+
+**Group / leaderboard:** `overview`, `standouts`, `competition`, `custom`
+
+**Hall of Fame:** `overview`, `standouts`, `dynasty`, `custom`
+
+**Matchup / game detail:** `dynamics`, `head_to_head`, `game_impact`, `custom`
+
+### Ask tools
+
+| Tool | Purpose |
 |------|---------|
-| **System prompt** | Fixed rules: tone, format, "only use provided JSON" |
-| **User message** | Structured stats JSON + question |
-
-The model **narrates**; LeaderLodge **measures**. Never let the LLM calculate `rank_score` or query the DB directly (Ask the Lodge will use validated tools instead).
-
-```text
-Game DB to get_player_rank_detail() to context JSON to LLM API to markdown insight
-```
-
-**Tokens:** billed in ~4-character chunks. Target ~1,500 input + 400 output per insight; under **$0.001** on cheap models.
+| `list_game_types` | Game types with recorded games in the group |
+| `query_leaderboard` | Rankings for a game type and optional period/size |
+| `query_placement_leaders` | Who finishes in a placement most often (0=1st, 1=2nd, ...) |
+| `query_month_leaders` | Leaders for a calendar month |
+| `query_rank_trends` | Rank score change between recent and prior windows |
+| `query_player_detail` | One player's placement breakdown |
 
 ---
 
-## 3. Design principles
-
-1. Rankings stay in Python.
-2. Ground every answer in a schema-controlled context JSON.
-3. Same permissions as the page (group visibility).
-4. API keys server-side only.
-5. User picks from 3 curated cheap models.
-6. Rate limits **implemented but off by default** until needed (see section 12).
-7. Version prompts (`PROMPT_VERSION`); bump when instructions change.
-
----
-
-## 4. Product roadmap
-
-| Feature | Status | Entry points |
-|---------|--------|--------------|
-| **Player insights** | Shipped | Rank detail |
-| **Group / Hall of Fame insights** | Shipped | Leaderboard, Hall of Fame |
-| **Matchup insights** | Shipped | Matchup view |
-| **Game detail insights** | Shipped | Game detail view (same API + context as matchup) |
-| **Insights launcher** | Planned | Navbar or account menu (mobile navbar is full) |
-| **Ask the Lodge** | Shipped | `/insights/ask/` natural language + validated tool calling |
-
-### Prominence
-
-**Shipped:** Contextual **Insights** buttons on rank detail, leaderboard, Hall of Fame, matchup, and game detail. All use `btn-insights` + `bi-stars`.
-
-**Later:** Global launcher (scope picker: player / leaderboard / Hall of Fame) when navbar layout allows.
-
-**Ask the Lodge:** Free-text questions with validated Python tools (no raw SQL from the model).
-
-### Player insight presets
-
-| Id | Label |
-|----|-------|
-| `strengths` | Strengths |
-| `weaknesses` | Struggles |
-| `superpower` | Best thing about this player |
-| `custom` | User question (max ~500 chars) |
-
----
-
-## 5. Supported models
-
-Owner pays. Users pick among **three** low-cost cloud models:
-
-| Slug | Label | Provider | API model |
-|------|-------|----------|-----------|
-| `flash-lite` | Gemini Flash-Lite | Google | `gemini-2.5-flash-lite` |
-| `gpt-4o-mini` | GPT-4o mini | OpenAI | `gpt-4o-mini` |
-| `gemini-flash` | Gemini Flash | Google | `gemini-2.5-flash` |
-
-Default: `flash-lite`. User preference: `UserProfile.ui_settings['insights']['model_id']`.
-
-Registry: `leaderlodge/insights/registry.py`.
-
----
-
-## 6. System architecture
-
-### App layout
+## App layout
 
 ```
 leaderlodge/insights/
-  registry.py          # model slugs (done)
-  limits_defaults.py   # default caps (done)
-  limits.py            # merge defaults, settings, user (done)
-  rate_limit.py        # cache counters (done; gated by flag)
-  context/player.py    # player rank detail JSON
-  context/group.py     # leaderboard + Hall of Fame JSON
-  context/matchup.py   # matchup table + per-player summaries
-  prompts.py           # system + preset templates
+  registry.py          # model slugs
+  limits.py            # rate limit config (merge defaults, settings, user)
+  rate_limit.py        # cache counters (gated by env flag)
+  context/             # player, group, matchup JSON builders
+  tools/               # Ask tool schemas + executor
+  prompts.py           # system prompts, preset templates (PROMPT_VERSION)
   providers/           # OpenAI, Google HTTP clients
-  router.py            # slug to provider.complete()
-  service.py           # generate_*_insight()
-  views.py + urls.py   # POST /insights/player/, /group/, /matchup/
+  router.py            # complete_insight() and complete_with_tools()
+  service.py           # generate_*_insight(), generate_ask_response()
+  views.py + urls.py
 ```
 
-### Request flow
+### Contextual request flow
 
 ```mermaid
 sequenceDiagram
@@ -148,7 +102,7 @@ sequenceDiagram
   participant LLM
 
   Browser->>View: POST /insights/player/ (or /group/, /matchup/)
-  View->>View: permissions + rate limit (if enabled)
+  View->>View: permissions, rate limit if enabled
   View->>Context: build_*_insight_context()
   View->>Service: generate_*_insight()
   Service->>LLM: system + JSON + question
@@ -156,344 +110,145 @@ sequenceDiagram
   Service-->>Browser: JSON response
 ```
 
+### Ask request flow
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant View
+  participant Service
+  participant Tools
+  participant LLM
+
+  Browser->>View: POST /insights/ask/query/
+  View->>Service: generate_ask_response()
+  loop Up to 3 rounds
+    Service->>LLM: system + messages + tool schemas
+    LLM-->>Service: tool_calls or final text
+    Service->>Tools: ToolExecutor.execute()
+    Tools-->>Service: query results JSON
+  end
+  Service-->>Browser: markdown + tools_used meta
+```
+
+### Context builders
+
+**Player** (`build_player_insight_context`): `get_player_rank_detail()`, leader comparison, period label.
+
+**Group** (`build_group_insight_context`): leaderboard snapshot or Hall of Fame grid (`scope`: `leaderboard` | `hall_of_fame`).
+
+**Matchup** (`build_matchup_insight_context`): shared by matchup and game detail. Includes `computed_rankings` (Python-sorted leaders) so the model compares using precomputed order, not raw number inference.
+
+Omit raw game dumps and PII beyond display names. Each payload carries `schema_version`; bump when fields change.
+
 ---
 
-## 7. Context building
+## Models
 
-### Player (`context/player.py`)
+Owner pays. Users pick among three low-cost cloud models:
 
-**Function:** `build_player_insight_context(group, player, game_type_code, period)`
+| Slug | Label | Provider | API model |
+|------|-------|----------|-----------|
+| `flash-lite` | Gemini Flash-Lite | Google | `gemini-2.5-flash-lite` |
+| `gpt-4o-mini` | GPT-4o mini | OpenAI | `gpt-4o-mini` |
+| `gemini-flash` | Gemini Flash | Google | `gemini-2.5-flash` |
 
-**Sources:** `get_player_rank_detail()`, `get_player_rankings()` (leader comparison), period label.
-
-### Group (`context/group.py`)
-
-**Function:** `build_group_insight_context(group, scope, ...)`
-
-**Scopes:** `leaderboard` (rankings snapshot), `hall_of_fame` (period leaders grid).
-
-### Game set (`context/matchup.py`)
-
-**Function:** `build_matchup_insight_context(game)` — shared by **matchup view** and **game detail view** (`POST /insights/matchup/`).
-
-**Sources:** `build_matchup_view()` stat table; slim per-player ranking summary (no placement breakdown).
-
-**Precomputed (Python, not LLM):** `computed_rankings` with sorted lists (`by_games_played`, `by_rank_score`, `by_wins`, `by_leaderboard_rank`) and a `leaders` map (`most_games`, `highest_rank_score`, etc.). Prompts instruct the model to use these for comparisons instead of inferring order from raw numbers.
-
-**Omit from all contexts:** raw game row dumps beyond what each builder needs, PII beyond display names.
-
-**Schema version:** `schema_version` in each JSON payload; bump when fields change.
+Default: `flash-lite`. User preference: `UserProfile.ui_settings['insights']['model_id']`. Registry: `registry.py`.
 
 ---
 
-## 8. Prompts and guardrails
+## Prompts and guardrails
 
-- System prompt: analyst role, JSON-only facts, sparse-data handling, markdown output cap.
-- `PROMPT_VERSION = 5` in `prompts.py` (bump when instructions change).
-- Numeric comparisons: use `computed_rankings` when present; no self-invented superlatives.
+- `PROMPT_VERSION = 6` in `prompts.py`; bump when instructions change.
+- Contextual prompts: analyst role, JSON-only facts, use `computed_rankings` for comparisons, sparse-data handling, markdown cap.
+- Ask prompt: call tools before answering; placement is 0-indexed in tools; no tool names in the final answer.
 - Custom questions: length cap, strip control chars.
-- Disclaimer in UI: *AI summary. Rankings computed by LeaderLodge.*
+- UI disclaimer: *AI summary. Rankings computed by LeaderLodge.*
+
+Same permissions as the page (group visibility). Never let the LLM calculate `rank_score` or query the DB except through validated Ask tools.
 
 ---
 
-## 9. API contract
+## API contract
 
-```
-POST /insights/player/
-POST /insights/group/
-POST /insights/matchup/
-```
+All insight endpoints return `{ "markdown": "...", "meta": { "model", "cached", "prompt_version", ... } }`. Errors: 403 permission, 429 rate limit (when enabled), 502 provider error.
 
-### Player (`POST /insights/player/`)
+**Player** `POST /insights/player/`: `group_id`, `player_id`, `game_type_code`, `year`, `month`, `preset`, `question`, `model`
 
-Body: `group_id`, `player_id`, `game_type_code`, `year`, `month`, `preset`, `question`, `model`.
+**Group** `POST /insights/group/`: `group_id`, `scope`, `game_type_code`, period fields, `granularity` (Hall of Fame), `preset`, `question`, `model`, `refresh`
 
-Presets: `strengths`, `weaknesses`, `superpower`, `custom`.
+**Matchup** `POST /insights/matchup/`: `game_id`, `preset`, `question`, `model`, `refresh`
 
-### Group (`POST /insights/group/`)
-
-Body: `group_id`, `scope` (`leaderboard` or `hall_of_fame`), `game_type_code` (leaderboard), `year`, `month` (leaderboard period), `granularity` (Hall of Fame), `preset`, `question`, `model`, `refresh`.
-
-Presets: `overview`, `standouts`, `competition` (leaderboard), `dynasty` (Hall of Fame), `custom`.
-
-### Matchup / game detail (`POST /insights/matchup/`)
-
-Body: `game_id`, `preset`, `question`, `model`, `refresh`. Same endpoint for matchup and game detail pages.
-
-Presets: `dynamics`, `head_to_head`, `game_impact`, `custom`.
-
-Response (all): `{ "markdown": "...", "meta": { "model", "cached", "prompt_version", ... } }`.
-
-Errors: 403 permission, 429 rate limit (when enabled), 502 provider error.
+**Ask** `POST /insights/ask/query/`: `group_id`, `game_type_code`, `question`, optional `year`/`month`, `model`, `refresh`
 
 ---
 
-## 10. UX specification
+## UX
 
 ### Insights button (design system)
 
-All AI entry points use a shared **Insights** button style so users learn one visual pattern.
-
 | Piece | Location |
 |-------|----------|
-| CSS tokens + classes | `static/css/insights.css` (`--insights-accent`, `.btn-insights`, `.btn-insights-outline`) |
-| Template include | `templates/includes/btn_insights.html` |
-| Icon | Bootstrap Icons `bi-stars` (required on every Insights CTA; do not swap) |
+| CSS | `static/css/insights.css` (`--insights-accent`, `.btn-insights`, navbar Ask styles) |
+| Include | `templates/includes/btn_insights.html` |
+| Icon | Bootstrap `bi-stars` on every Insights CTA |
 
-**Usage:**
+Filled CTA: `btn-insights`. Preset chips: `btn-insights-outline btn-sm`. Copy/Regenerate: `btn-outline-secondary`.
 
-- **Filled CTA** (open panel, Ask submit): `btn btn-insights` or `{% include "includes/btn_insights.html" %}`
-- **Secondary** (preset chips): `btn btn-insights-outline btn-sm`
-- **Non-AI actions** (Copy, Regenerate, Back): keep Bootstrap `btn-outline-secondary` / `btn-secondary`
+Load `insights.css` on any page with Insights UI (`base.html` loads it when `insights_ui_enabled`).
 
-Default accent is violet (`#7c3aed`), distinct from navbar primary blue. Change `--insights-accent` in `insights.css` to retheme all Insights buttons.
+### Offcanvas panels
 
-Any page with Insights buttons must load `insights.css` (same as the offcanvas panel).
+Shared behavior in `static/js/insights_panel.js`:
 
-### Offcanvas panels (shipped)
+- Presets (except **Ask**) auto-generate on selection.
+- **Ask** shows a question field; Enter or button submits.
+- Spinner while the request is in flight; Copy and Regenerate in the action row.
 
-| Surface | Template | JS |
-|---------|----------|-----|
-| Rank detail | `player_insights_panel.html` | `insights_panel.js` |
-| Leaderboard, Hall of Fame | `group_insights_panel.html` | `insights_panel.js` |
-| Matchup, game detail | `matchup_insights_panel.html` | `insights_panel.js` |
+| Surface | Template |
+|---------|----------|
+| Rank detail | `player_insights_panel.html` |
+| Leaderboard, Hall of Fame | `group_insights_panel.html` |
+| Matchup, game detail | `matchup_insights_panel.html` |
 
-Shared panel behavior (`insights_panel.js`):
+### Ask page
 
-- Preset chips (everything except **Ask**) auto-generate when the user selects one.
-- **Ask** shows a question field with an **Ask** button; Enter submits.
-- A spinner (`insights-progress`) appears while the API request is in flight.
-- **Copy** and **Regenerate** remain in the action row; there is no standalone **Generate** button.
-
-### Planned
-
-Ask the Lodge page; optional navbar or account-menu launcher when layout allows.
+`templates/insights/ask.html` with group/game filters and `static/js/ask_lodge.js`.
 
 ---
 
-## 11. Security and privacy
+## Security, rate limits, and env
 
 - Keys in env only: `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`.
-- `INSIGHTS_ENABLED=false` hides feature until ready.
-- Player display names and aggregates sent to third-party APIs; note in privacy FAQ later.
+- `INSIGHTS_ENABLED=false` hides the feature until ready.
+- Display names and aggregates are sent to third-party APIs.
+
+Rate limit code is complete but **off by default** (`INSIGHTS_RATE_LIMITS_ENABLED=false`). Views call `check_insight_rate_limit()` either way; flip the env var to enforce. Redis is only needed when limits are on and multiple workers share counters; LocMem is fine for single-process dev.
+
+| Variable | Purpose |
+|----------|---------|
+| `INSIGHTS_ENABLED` | Feature kill switch |
+| `INSIGHTS_RATE_LIMITS_ENABLED` | Enforce caps |
+| `OPENAI_API_KEY` / `GOOGLE_AI_API_KEY` | Providers |
+| `INSIGHTS_LIMITS_JSON` | Site-wide cap overrides |
+| `REDIS_URL` | Shared cache when limits on + multi-worker |
+
+See `.env.example` and `setup.md` for local and Railway promotion.
 
 ---
 
-## 12. Rate limits, Redis, and when to enable them
+## Testing
 
-### What we built
-
-Rate limit **code is done** (`limits.py`, `rate_limit.py`, 15 tests). It is **not enforced by default**.
-
-```bash
-INSIGHTS_RATE_LIMITS_ENABLED=false   # MVP default
-```
-
-When `false`, `check_insight_rate_limit()` and `record_insight_usage()` are no-ops. Insight views should still call them; flipping one env var enables limits later.
-
-### Can you postpone until you see abuse?
-
-**Yes. Recommended for MVP.**
-
-| Concern | MVP approach |
-|---------|----------------|
-| Rate limiting | **Off** (`INSIGHTS_RATE_LIMITS_ENABLED=false`) |
-| Redis | **Not needed** while limits are off |
-| Cost control | Cheap models + `INSIGHTS_ENABLED` kill switch; monitor provider dashboards |
-| Abuse | Small private groups, low risk; enable limits when you open to strangers or see spikes |
-
-**When to turn limits on:** unexpected API bills, demo mode spam, or public launch.
-
-```bash
-INSIGHTS_RATE_LIMITS_ENABLED=true
-```
-
-### Redis: do you need it for MVP?
-
-**No**, if rate limits stay disabled.
-
-**When limits are enabled:**
-
-| Deployment | Cache backend | Limit behavior |
-|------------|---------------|----------------|
-| Local dev / `runserver` | Django LocMem (default) | Works; single process |
-| Railway **one worker** | LocMem | Works; single process |
-| Railway **multiple workers** | LocMem per worker | Limits are **weaker** (each worker has its own counter) |
-| Railway **multiple workers** | **Redis** (shared) | Limits are **accurate** globally |
-
-### Redis plan (when you need it, not MVP)
-
-1. Add Redis service on Railway (or Upstash).
-2. Set `REDIS_URL` in env.
-3. Configure Django:
-
-```python
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.environ["REDIS_URL"],
-    }
-}
-```
-
-4. Set `INSIGHTS_RATE_LIMITS_ENABLED=true`.
-
-No app code changes; counters already use `django.core.cache`.
-
-### Limit configuration (when enabled)
-
-Three layers (see `limits.py`):
-
-1. **Defaults:** `limits_defaults.py`
-2. **Site:** `INSIGHTS_LIMITS` or `INSIGHTS_LIMITS_JSON`
-3. **Per user:** `ui_settings['insights_limits']` in Django admin
-
-Default authenticated cap: 30/hour, 100/day. Per-model daily caps on each slug.
-
----
-
-## 13. Environment variables
-
-| Variable | MVP | Purpose |
-|----------|-----|---------|
-| `INSIGHTS_ENABLED` | `false`, then `true` when keys ready | Feature kill switch |
-| `INSIGHTS_RATE_LIMITS_ENABLED` | `false` | Enforce caps |
-| `OPENAI_API_KEY` | required for GPT | OpenAI |
-| `GOOGLE_AI_API_KEY` | required for Gemini | Google AI Studio |
-| `INSIGHTS_LIMITS_JSON` | optional | Site-wide cap overrides |
-| `REDIS_URL` | **later** | Shared cache when limits on and multi-worker |
-
-See `.env.example` for copy-paste templates.
-
-### Local dev checklist
-
-1. Copy AI vars from `.env.example` into `.env`.
-2. Set `OPENAI_API_KEY` and `GOOGLE_AI_API_KEY`.
-3. Set `INSIGHTS_ENABLED=true`.
-4. Leave `INSIGHTS_RATE_LIMITS_ENABLED=false` for MVP.
-
-### Railway promotion (do before enabling Insights in production)
-
-When insights ship to production, add these in the web service **Variables** panel (same names as local `.env`; do not commit secrets):
-
-| Variable | Production value |
-|----------|------------------|
-| `INSIGHTS_ENABLED` | `true` when ready to expose Insights on leaderlodge.com |
-| `INSIGHTS_RATE_LIMITS_ENABLED` | `false` until you need caps (see section 12) |
-| `OPENAI_API_KEY` | Production key (can match local or use a separate key) |
-| `GOOGLE_AI_API_KEY` | Production key (Pixelmonks AI Studio key) |
-
-Optional later: `INSIGHTS_LIMITS_JSON`, `REDIS_URL`.
-
-Redeploy after saving variables. Local `.env` is not used on Railway.
-
-Document in `setup.md` when promoting new insight surfaces.
-
----
-
-## 14. Testing strategy
-
-- Context builder: golden JSON fixtures.
-- Provider: mock `router.complete_insight()` in CI; no live API calls.
+- Context builders: golden JSON fixtures.
+- Providers: mock `router.complete_insight()` / `complete_with_tools()` in CI; no live API calls.
 - Rate limits: `@override_settings(INSIGHTS_RATE_LIMITS_ENABLED=True)` in enforcement tests.
-- Integration: POST `/insights/player/` with mocked provider.
+- Ask tools: executor and placement query tests in `tests/test_insights_tools.py`, `tests/test_insights_ask.py`.
 
 ---
 
-## 15. Ask the Lodge
+## Key files
 
-The user asks in natural language on `/insights/ask/`. The LLM proposes **validated tool calls**. Python runs ORM queries. The LLM narrates the result. No raw SQL from the model.
-
-Entry: Account menu **Ask the Lodge** (when insights UI is enabled).
-
-### Tools (MVP)
-
-| Tool | Purpose |
-|------|---------|
-| `list_game_types` | Game types with recorded games in the group |
-| `query_leaderboard` | Rankings for a game type and optional period/size |
-| `query_placement_leaders` | Who finishes in a placement most often (0=1st, 1=2nd, ...) |
-| `query_month_leaders` | Leaders for a calendar month (e.g. December) |
-| `query_rank_trends` | Rank score improvement between recent and prior windows |
-| `query_player_detail` | One player's placement breakdown |
-
-Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement_leaders(placement=1, game_size=5)`.
-
-API: `POST /insights/ask/query/` with `group_id`, `game_type_code`, `question`, optional `year`/`month`, `model`, `refresh`.
-
----
-
-## 16. Portfolio showcase
-
-1. Domain-first: Django computes, AI interprets.
-2. Multi-provider router + user model picker.
-3. Grounded context schema with tests.
-4. Rate limits ready but pragmatically deferred.
-5. Ask the Lodge tool calling as flagship.
-
----
-
-## 17. Implementation checklist
-
-### Done
-
-- [x] This document
-- [x] `leaderlodge.insights` app
-- [x] Model registry and provider router (OpenAI + Google)
-- [x] Rate limit config + enforcement (gated off)
-- [x] `context/player.py` + tests
-- [x] `prompts.py`, `service.py`, `POST /insights/player/`
-- [x] Rank detail Insights offcanvas UI
-- [x] Insights button design system (`btn-insights`, `btn_insights.html`, `insights.css`)
-- [x] User model preference in `ui_settings`
-- [x] Link from `architecture.md`
-- [x] `context/group.py`, `POST /insights/group/`, leaderboard + Hall of Fame UI
-- [x] `context/matchup.py`, `POST /insights/matchup/`, matchup UI
-
-### Polish (optional)
-
-- [ ] Staff-only "show context JSON" toggle
-- [ ] Streaming responses
-
-### Planned
-
-- [ ] Navbar Insights launcher
-- [x] Ask the Lodge tools + page
-
----
-
-## 18. Decision log
-
-| Date | Decision |
-|------|----------|
-| 2026-06-23 | Separate `insights` app |
-| 2026-06-23 | Owner-paid keys; 3 cheap cloud models |
-| 2026-06-23 | No local/Ollama hosting |
-| 2026-06-23 | MVP = Player Insights on rank detail |
-| 2026-06-23 | Rate limits: code ready, **disabled by default** |
-| 2026-06-23 | Redis: **postpone until limits enabled and multi-worker** |
-| 2026-06-23 | Limit config: code defaults + settings + ui_settings (no limit-policy table yet) |
-| 2026-06-23 | Docs: no Unicode arrows or en/em dashes |
-| 2026-06-23 | Player insights shipped: rank detail offcanvas, OpenAI + Google providers |
-| 2026-06-23 | Gemini 2.5: disable thinking tokens (`thinking_budget=0`) to avoid truncated output |
-| 2026-06-23 | Group / Hall of Fame insights: `/insights/group/`, leaderboard + HoF buttons |
-| 2026-06-23 | Insights button design system: `btn-insights` + `bi-stars` in `insights.css` |
-| 2026-06-23 | Matchup insights: `/insights/matchup/`, matchup table + player summaries |
-
----
-
-## 19. References
-
-- Rank detail: `templates/leaderboards/rank_detail.html`
-- Insights button include: `templates/includes/btn_insights.html`
-- Matchup: `templates/games/matchup.html`, `context/matchup.py`
-- Ranking service: `leaderlodge/leaderboards/service.py`
+- Contextual UI: `templates/leaderboards/rank_detail.html`, `leaderboard.html`, `hall_of_fame.html`, `templates/games/matchup.html`, `game_detail.html`
+- Ask UI: `templates/insights/ask.html`
+- Ranking source: `leaderlodge/leaderboards/service.py`
 - UI settings: `leaderlodge/accounts/ui_settings.py`
-- OpenAI models: https://developers.openai.com/api/docs/models/gpt-4o-mini
-- Gemini pricing: https://ai.google.dev/gemini-api/docs/pricing
-
-- Insights styles: `static/css/insights.css`
-
----
-
-*Update this doc when shipping new insight features.*

@@ -9,25 +9,27 @@
 | `leaderlodge.groups` | Groups, memberships, group players |
 | `leaderlodge.games` | Game records, registry, per-game validation |
 | `leaderlodge.leaderboards` | Ranking display; logic in `service.py` |
-| `leaderlodge.insights` | AI insights; rate limits in `limits.py` / `rate_limit.py`. See [ai-insights.md](./ai-insights.md). |
+| `leaderlodge.insights` | AI narration over computed stats. See [ai-insights.md](./ai-insights.md). |
 
 Game subpackages (`dominos/`, `backgammon/`, etc.) contain validation rules only.
 
 ## AI insights
 
-LeaderLodge computes rankings in Python; the **insights** app calls cloud LLM APIs to narrate stats. Full design: **[ai-insights.md](./ai-insights.md)**.
+LeaderLodge computes rankings in Python; the **insights** app calls cloud LLM APIs to explain them. Full design: **[ai-insights.md](./ai-insights.md)**.
 
-| Feature | Status | Entry points |
-|---------|--------|--------------|
-| Player insights | **Shipped** | Rank detail |
-| Group / Hall of Fame insights | **Shipped** | Leaderboard, Hall of Fame |
-| Matchup insights | **Shipped** | Matchup view |
-| Game detail insights | **Shipped** | Game detail (same `/insights/matchup/` context) |
-| Ask the Lodge | **Shipped** | `/insights/ask/` (Account menu) |
+Two modes:
 
-**App:** `leaderlodge/insights/` (context builders, providers, `POST /insights/player/`, `/insights/group/`, `/insights/matchup/`, `POST /insights/ask/query/`, validated tools in `insights/tools/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
+1. **Contextual insights** on rank detail, leaderboard, Hall of Fame, matchup, and game detail. Python pre-builds JSON for the open page; the LLM narrates from that snapshot (presets or a short custom question).
+2. **Ask the Lodge** at `/insights/ask/`. Free-form questions; the LLM calls validated Python tools that run ORM queries, then narrates the results.
 
-**UI:** Shared Insights button style in `static/css/insights.css` (`btn-insights`, violet accent, `bi-stars` icon). Template: `templates/includes/btn_insights.html`. Any new Insights entry point must use this pattern (documented in ai-insights.md section 10).
+| Surface | Entry |
+|---------|-------|
+| Player, group, matchup insights | Insights button (`btn-insights`, `bi-stars`) on each page |
+| Ask the Lodge | Navbar **Ask**, Account menu **Ask the Lodge** |
+
+**Backend:** `leaderlodge/insights/` (context builders, `POST /insights/player/`, `/group/`, `/matchup/`, `POST /insights/ask/query/`, tools in `insights/tools/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
+
+**UI:** `static/css/insights.css`, `templates/includes/btn_insights.html`, offcanvas panels + `insights_panel.js`, Ask page + `ask_lodge.js`.
 
 ## Leaderboard design
 

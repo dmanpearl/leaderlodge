@@ -35,7 +35,7 @@ def _resolve_navbar_active_section(request) -> str:
     if namespace == "leaderboards":
         return "leaders"
     if namespace == "insights" and url_name == "ask":
-        return "ask"
+        return "insights"
     if namespace == "groups":
         return "groups"
     return ""

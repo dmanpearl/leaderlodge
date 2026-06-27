@@ -477,7 +477,7 @@ def ask_page(request: HttpRequest) -> HttpResponse:
             "game_type_options": game_type_options,
             "selected_game_type_code": selected_game_type_code,
             "selected_game_type": selected_game_type,
-            "navbar_active_section": "ask",
+            "navbar_active_section": "insights",
             **_ask_template_context(request),
             **period_ctx,
         },

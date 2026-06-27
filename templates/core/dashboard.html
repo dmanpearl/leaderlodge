@@ -1,14 +1,52 @@
 {% extends "base.html" %}
-{% load display_names %}
+{% load display_names static %}
 
 {% block title %}LeaderLodge{% endblock %}
 
 {% block content %}
   <div class="row g-3">
     <div class="col-12">
-      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2">
+      <div class="dashboard-header dashboard-header--mobile d-md-none d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2 min-w-0">
+          <h1 class="h3 mb-0 flex-shrink-0">
+            <img
+              src="{% static 'img/brand/navbar-logo.png' %}"
+              alt="LeaderLodge"
+              class="page-header-logo"
+              width="128"
+              height="64"
+            />
+          </h1>
+          {% if is_demo_landing %}
+            <p class="text-muted mb-0 text-truncate">Demo</p>
+          {% else %}
+            <p class="text-muted mb-0 dashboard-mobile-welcome text-truncate">Welcome, {{ user|user_display_name }}.</p>
+          {% endif %}
+        </div>
+        {% if can_record_games %}
+          {% if record_game_url_group %}
+            <a
+              href="{% url 'games:create' %}?group={{ record_game_url_group }}"
+              class="btn btn-primary btn-sm flex-shrink-0"
+            >
+              <i class="bi bi-plus-lg"></i> Record Game
+            </a>
+          {% else %}
+            <a href="{% url 'games:create' %}" class="btn btn-primary btn-sm flex-shrink-0">
+              <i class="bi bi-plus-lg"></i> Record Game
+            </a>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if is_demo_landing %}
+        <p class="text-muted mb-0 mt-2 d-md-none">Sample games and leaderboards for all supported game types.</p>
+      {% endif %}
+
+      <div class="dashboard-header dashboard-header--desktop d-none d-md-flex flex-row justify-content-between align-items-start gap-2">
         <div>
-          <h1 class="h3 mb-1">{% if is_demo_landing %}Demo{% else %}Dashboard{% endif %}</h1>
+          <h1 class="h3 mb-1">
+            <span>{% if is_demo_landing %}Demo{% else %}Dashboard{% endif %}</span>
+          </h1>
           {% if is_demo_landing %}
             <p class="text-muted mb-0">Sample games and leaderboards for all supported game types.</p>
           {% else %}

@@ -5,7 +5,7 @@
       <img
         src="{% static 'img/brand/navbar-logo.png' %}"
         alt=""
-        class="navbar-brand-logo"
+        class="navbar-brand-logo d-none d-md-block"
         width="128"
         height="64"
         aria-hidden="true"
@@ -47,6 +47,19 @@
             <span class="navbar-nav-label d-none d-md-inline">Groups</span>
           </a>
         </li>
+        {% if insights_ui_enabled %}
+          <li class="nav-item">
+            <a
+              class="nav-link navbar-nav-link--insights d-inline-flex align-items-center gap-1{% if navbar_active_section == 'insights' %} active{% endif %}"
+              href="{% url 'insights:ask' %}"
+              aria-label="Ask"
+              {% if navbar_active_section == 'insights' %}aria-current="page"{% endif %}
+            >
+              <i class="bi bi-stars navbar-nav-icon" aria-hidden="true"></i>
+              <span class="navbar-nav-label d-none d-md-inline">Ask</span>
+            </a>
+          </li>
+        {% endif %}
         <li class="nav-item">
           <a
             class="nav-link d-inline-flex align-items-center gap-1{% if navbar_active_section == 'add' %} active{% endif %}"
@@ -107,7 +120,7 @@
             {% if insights_ui_enabled %}
               <li>
                 <a
-                  class="dropdown-item d-flex align-items-center gap-2{% if navbar_active_section == 'ask' %} active{% endif %}"
+                  class="dropdown-item dropdown-item--insights d-flex align-items-center gap-2{% if navbar_active_section == 'insights' %} active{% endif %}"
                   href="{% url 'insights:ask' %}"
                 >
                   <i class="bi bi-stars navbar-menu-icon" aria-hidden="true"></i>

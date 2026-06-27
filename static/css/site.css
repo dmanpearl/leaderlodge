@@ -82,6 +82,21 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
   line-height: 1;
 }
 
+.page-header-logo {
+  display: block;
+  height: 2.25rem;
+  width: auto;
+}
+
+.dashboard-header--mobile .page-header-logo {
+  height: 2rem;
+}
+
+.dashboard-mobile-welcome {
+  font-size: 0.9375rem;
+  line-height: 1.2;
+}
+
 .account-name-with-badge {
   position: relative;
   display: inline-block;

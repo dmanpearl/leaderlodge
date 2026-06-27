@@ -26,6 +26,10 @@ def test_dashboard_welcome_uses_display_name(client, user, group):
     content = client.get(reverse("core:dashboard")).content.decode()
     assert "Welcome, David." in content
     assert "Welcome, david." not in content
+    assert 'class="page-header-logo"' in content
+    assert "dashboard-header--mobile" in content
+    assert "dashboard-mobile-welcome" in content
+    assert ">Dashboard</span>" in content
 
 
 @pytest.mark.django_db

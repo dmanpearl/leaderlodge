@@ -11,6 +11,11 @@
   --insights-accent-active: #5b21b6;
   --insights-accent-rgb: 124, 58, 237;
   --insights-accent-subtle: rgba(var(--insights-accent-rgb), 0.12);
+  --insights-navbar-fg: #c4b5fd;
+  --insights-navbar-fg-hover: #ede9fe;
+  --insights-navbar-hover-bg: rgba(167, 139, 250, 0.35);
+  --insights-navbar-active-bg: var(--insights-accent);
+  --insights-navbar-active-fg: #fff;
 }
 
 .btn-insights {
@@ -84,4 +89,51 @@
 
 .insights-progress-label {
   color: var(--bs-secondary-color);
+}
+
+nav.navbar.bg-primary .navbar-nav-link--insights {
+  font-weight: 600;
+}
+
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active) .navbar-nav-icon,
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active) .navbar-nav-label {
+  color: var(--insights-navbar-fg);
+}
+
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):hover,
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):focus {
+  background-color: var(--insights-navbar-hover-bg);
+  border-radius: var(--bs-border-radius);
+  color: var(--insights-navbar-fg-hover);
+}
+
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):hover .navbar-nav-icon,
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):hover .navbar-nav-label,
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):focus .navbar-nav-icon,
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):focus .navbar-nav-label {
+  color: var(--insights-navbar-fg-hover);
+}
+
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights.active {
+  background-color: var(--insights-navbar-active-bg);
+  border-radius: var(--bs-border-radius);
+  color: var(--insights-navbar-active-fg);
+  font-weight: 600;
+}
+
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights.active .navbar-nav-icon,
+nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights.active .navbar-nav-label {
+  color: var(--insights-navbar-active-fg);
+}
+
+.dropdown-item.dropdown-item--insights,
+.dropdown-item.dropdown-item--insights .navbar-menu-icon {
+  color: var(--insights-accent);
+}
+
+.dropdown-item.dropdown-item--insights:hover,
+.dropdown-item.dropdown-item--insights:focus,
+.dropdown-item.dropdown-item--insights.active {
+  color: var(--insights-accent-hover);
+  background-color: var(--insights-accent-subtle);
 }
