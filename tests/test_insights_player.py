@@ -148,6 +148,7 @@ def test_rank_detail_shows_insights_button(client, user, group):
     content = response.content.decode()
     assert response.status_code == 200
     assert 'id="player-insights-panel"' in content
+    assert "btn-insights" in content
     assert "Insights" in content
     assert "player_insights.js" in content
 

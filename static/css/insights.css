@@ -1,3 +1,52 @@
+/*
+ * Insights UI (offcanvas, results, and the shared Insights button style).
+ *
+ * Button tokens: change --insights-* below to retheme every Insights CTA app-wide.
+ * Markup: {% include "includes/btn_insights.html" %} or class btn-insights / btn-insights-outline
+ * with <i class="bi bi-stars">. See docs/ai-insights.md section 10.
+ */
+:root {
+  --insights-accent: #7c3aed;
+  --insights-accent-hover: #6d28d9;
+  --insights-accent-active: #5b21b6;
+  --insights-accent-rgb: 124, 58, 237;
+  --insights-accent-subtle: rgba(var(--insights-accent-rgb), 0.12);
+}
+
+.btn-insights {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--insights-accent);
+  --bs-btn-border-color: var(--insights-accent);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--insights-accent-hover);
+  --bs-btn-hover-border-color: var(--insights-accent-hover);
+  --bs-btn-focus-shadow-rgb: var(--insights-accent-rgb);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--insights-accent-active);
+  --bs-btn-active-border-color: var(--insights-accent-active);
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--insights-accent);
+  --bs-btn-disabled-border-color: var(--insights-accent);
+}
+
+.btn-insights-outline {
+  --bs-btn-color: var(--insights-accent);
+  --bs-btn-bg: transparent;
+  --bs-btn-border-color: var(--insights-accent);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--insights-accent);
+  --bs-btn-hover-border-color: var(--insights-accent);
+  --bs-btn-focus-shadow-rgb: var(--insights-accent-rgb);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--insights-accent-active);
+  --bs-btn-active-border-color: var(--insights-accent-active);
+}
+
+.btn-insights .bi-stars,
+.btn-insights-outline .bi-stars {
+  margin-right: 0.125rem;
+}
+
 .player-insights-offcanvas {
   --bs-offcanvas-width: min(100vw, 28rem);
 }

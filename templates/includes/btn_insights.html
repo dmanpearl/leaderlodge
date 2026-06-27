@@ -1,0 +1,14 @@
+{# Insights CTA. Requires insights.css. Always uses bi-stars (do not swap the icon). #}
+<button
+  type="button"
+  class="btn {% if outline %}btn-insights-outline{% else %}btn-insights{% endif %}{% if btn_size %} btn-{{ btn_size }}{% endif %}{% if extra_class %} {{ extra_class }}{% endif %}"
+  {% if element_id %}id="{{ element_id }}"{% endif %}
+  {% if disabled %}disabled{% endif %}
+  {% if offcanvas_target %}
+    data-bs-toggle="offcanvas"
+    data-bs-target="{{ offcanvas_target }}"
+    aria-controls="{{ offcanvas_controls }}"
+  {% endif %}
+>
+  <i class="bi bi-stars" aria-hidden="true"></i> {{ label|default:"Insights" }}
+</button>

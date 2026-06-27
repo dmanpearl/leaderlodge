@@ -25,15 +25,7 @@
     </div>
     <div class="d-flex flex-wrap gap-2 align-self-sm-start">
       {% if insights_enabled %}
-        <button
-          type="button"
-          class="btn btn-outline-primary btn-sm"
-          data-bs-toggle="offcanvas"
-          data-bs-target="#player-insights-panel"
-          aria-controls="player-insights-panel"
-        >
-          <i class="bi bi-stars" aria-hidden="true"></i> Insights
-        </button>
+        {% include "includes/btn_insights.html" with btn_size="sm" offcanvas_target="#player-insights-panel" offcanvas_controls="player-insights-panel" %}
       {% endif %}
       <a href="{{ leaderboard_url }}" class="btn btn-outline-secondary btn-sm">
         Back to leaderboard

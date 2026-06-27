@@ -1,6 +1,6 @@
 # LeaderLodge AI Insights: Integration Bible
 
-> **Status:** Phase 0 complete; Phase 1 in progress.  
+> **Status:** Phase 1 complete; Phase 2 in progress (group / Hall of Fame trends).  
 > **Last updated:** 2026-06-23  
 > **Companion:** [architecture.md](./architecture.md) (app layout and ranking design only; not a substitute for this doc)
 
@@ -73,11 +73,20 @@ Game DB to get_player_rank_detail() to context JSON to LLM API to markdown insig
 
 ## 4. Product roadmap
 
-| Phase | Feature | Entry point |
-|-------|---------|-------------|
-| **1 (MVP)** | Player Insights | Rank detail, Insights button |
-| **2** | Group / Hall of Fame trends | Leaderboard, Hall of Fame |
-| **3** | Ask the Lodge | NL queries via tool calling |
+| Phase | Feature | Entry points | Prominence |
+|-------|---------|--------------|------------|
+| **1 (done)** | Player Insights | Rank detail | Insights button on player rank detail |
+| **2 (current)** | Group / Hall of Fame trends | Leaderboard, Hall of Fame | Tier A: page-level Insights buttons (no navbar; mobile has no room) |
+| **2b (later)** | Insights launcher | Navbar (optional) | Tier B: global stars icon + scope picker; deferred until after Phase 2 |
+| **3** | Ask the Lodge | NL queries via tool calling | Navbar evolves into Ask the Lodge |
+
+### Prominence plan
+
+**Tier A (Phase 2):** Add contextual **Insights** buttons on leaderboard and Hall of Fame headers. Reuse the same offcanvas shell and `btn-insights` style. Row tap on leaderboard still goes to rank detail; optional per-row stars icon is a follow-up.
+
+**Tier B (post Phase 2):** Navbar `bi-stars` launcher with scope picker (Player / Leaderboard / Hall of Fame) and player dropdown. Deferred because the mobile navbar is already full.
+
+**Tier C (Phase 3):** Ask the Lodge replaces or extends the launcher with free-text + validated tools.
 
 ### Phase 1 presets
 
@@ -164,7 +173,7 @@ sequenceDiagram
 ## 8. Prompts and guardrails
 
 - System prompt: analyst role, JSON-only facts, sparse-data handling, markdown output cap.
-- `PROMPT_VERSION = 1` in `prompts.py`.
+- `PROMPT_VERSION = 2` in `prompts.py` (bump when instructions change).
 - Custom questions: length cap, strip control chars.
 - Disclaimer in UI: *AI summary. Rankings computed by LeaderLodge.*
 
@@ -186,11 +195,39 @@ Errors: 403 permission, 429 rate limit (when enabled), 502 provider error.
 
 ## 10. UX specification
 
-**Phase 1:** Bootstrap offcanvas on rank detail.
+### Insights button (design system)
+
+All AI entry points use a shared **Insights** button style so users learn one visual pattern.
+
+| Piece | Location |
+|-------|----------|
+| CSS tokens + classes | `static/css/insights.css` (`--insights-accent`, `.btn-insights`, `.btn-insights-outline`) |
+| Template include | `templates/includes/btn_insights.html` |
+| Icon | Bootstrap Icons `bi-stars` (required on every Insights CTA; do not swap) |
+
+**Usage:**
+
+- **Filled CTA** (open panel, Generate): `btn btn-insights` or `{% include "includes/btn_insights.html" %}`
+- **Secondary** (preset chips): `btn btn-insights-outline btn-sm`
+- **Non-AI actions** (Copy, Regenerate, Back): keep Bootstrap `btn-outline-secondary` / `btn-secondary`
+
+Default accent is violet (`#7c3aed`), distinct from navbar primary blue. Change `--insights-accent` in `insights.css` to retheme all Insights buttons.
+
+Any page with Insights buttons must load `insights.css` (same as the offcanvas panel).
+
+### Phase 1 (shipped)
+
+Bootstrap offcanvas on rank detail.
 
 Contents: title, model `<select>`, preset chips, custom input, disclaimer, markdown result, Copy / Regenerate.
 
-No navbar item until Phase 3.
+### Phase 2 (in progress)
+
+Same offcanvas pattern on **leaderboard** and **Hall of Fame** with group-scope context and presets (e.g. period story, standout performers).
+
+### Phase 3
+
+Ask the Lodge page; navbar item when mobile layout allows or launcher pattern from Tier B.
 
 ---
 
@@ -352,6 +389,7 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 - [x] `context/player.py` + tests
 - [x] `prompts.py`, `service.py`, `POST /insights/player/`
 - [x] Rank detail Insights offcanvas UI
+- [x] Insights button design system (`btn-insights`, `btn_insights.html`, `insights.css`)
 - [x] User model preference in `ui_settings`
 - [x] Link from `architecture.md`
 
@@ -361,9 +399,17 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 - [ ] Staff-only "show context JSON" toggle
 - [ ] Streaming responses
 
-### Phase 2 / 3
+### Phase 2 (current)
 
-- [ ] Group trend context + UI
+- [ ] `context/group.py` + tests
+- [ ] Group presets in `prompts.py`
+- [ ] `POST /insights/group/`
+- [ ] Leaderboard + Hall of Fame Insights buttons (`btn_insights.html`)
+- [ ] Group trend golden JSON fixtures
+
+### Phase 2b / 3
+
+- [ ] Navbar Insights launcher (Tier B; optional)
 - [ ] Ask the Lodge tools + page
 
 ---
@@ -380,12 +426,18 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 | 2026-06-23 | Redis: **postpone until limits enabled and multi-worker** |
 | 2026-06-23 | Limit config: code defaults + settings + ui_settings (no limit-policy table yet) |
 | 2026-06-23 | Docs: no Unicode arrows or en/em dashes |
+| 2026-06-23 | Phase 1 shipped: rank detail offcanvas, OpenAI + Google providers |
+| 2026-06-23 | Gemini 2.5: disable thinking tokens (`thinking_budget=0`) to avoid truncated output |
+| 2026-06-23 | Prominence: Tier A on leaderboard/HoF for Phase 2; navbar launcher deferred (Tier B) |
+| 2026-06-23 | Insights button design system: `btn-insights` + `bi-stars` in `insights.css` |
 
 ---
 
 ## 19. References
 
 - Rank detail: `templates/leaderboards/rank_detail.html`
+- Insights button include: `templates/includes/btn_insights.html`
+- Insights styles: `static/css/insights.css`
 - Ranking service: `leaderlodge/leaderboards/service.py`
 - UI settings: `leaderlodge/accounts/ui_settings.py`
 - OpenAI models: https://developers.openai.com/api/docs/models/gpt-4o-mini

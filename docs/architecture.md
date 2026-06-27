@@ -13,15 +13,19 @@
 
 Game subpackages (`dominos/`, `backgammon/`, etc.) contain validation rules only.
 
-## AI insights (planned)
+## AI insights
 
-LeaderLodge computes rankings in Python; an optional **insights** layer will call cloud LLM APIs to narrate stats. Full design: **[ai-insights.md](./ai-insights.md)**.
+LeaderLodge computes rankings in Python; the **insights** app calls cloud LLM APIs to narrate stats. Full design: **[ai-insights.md](./ai-insights.md)**.
 
-Phases:
+| Phase | Status | Entry points |
+|-------|--------|--------------|
+| 1. Player Insights | **Shipped** | Rank detail (`btn-insights` opens offcanvas) |
+| 2. Group / Hall of Fame trends | **In progress** | Leaderboard, Hall of Fame (Tier A page buttons) |
+| 3. Ask the Lodge | Planned | Natural language + tool calling; navbar when layout allows |
 
-1. Player Insights on rank detail (MVP)
-2. Group / Hall of Fame trends
-3. Natural-language “Ask the Lodge” with tool calling
+**App:** `leaderlodge/insights/` (context builders, providers, `POST /insights/player/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
+
+**UI:** Shared Insights button style in `static/css/insights.css` (`btn-insights`, violet accent, `bi-stars` icon). Template: `templates/includes/btn_insights.html`. Any new Insights entry point must use this pattern (documented in ai-insights.md section 10).
 
 ## Leaderboard design
 

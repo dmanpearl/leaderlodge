@@ -39,13 +39,13 @@
       <span class="form-label d-block">Preset</span>
       <div class="btn-group flex-wrap player-insights-presets" role="group" aria-label="Insight presets">
         <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-strengths" value="strengths" autocomplete="off" checked />
-        <label class="btn btn-outline-primary btn-sm" for="player-insights-preset-strengths">Strengths</label>
+        <label class="btn btn-insights-outline btn-sm" for="player-insights-preset-strengths">Strengths</label>
         <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-weaknesses" value="weaknesses" autocomplete="off" />
-        <label class="btn btn-outline-primary btn-sm" for="player-insights-preset-weaknesses">Struggles</label>
+        <label class="btn btn-insights-outline btn-sm" for="player-insights-preset-weaknesses">Struggles</label>
         <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-superpower" value="superpower" autocomplete="off" />
-        <label class="btn btn-outline-primary btn-sm" for="player-insights-preset-superpower">Superpower</label>
+        <label class="btn btn-insights-outline btn-sm" for="player-insights-preset-superpower">Superpower</label>
         <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-custom" value="custom" autocomplete="off" />
-        <label class="btn btn-outline-primary btn-sm" for="player-insights-preset-custom">Ask</label>
+        <label class="btn btn-insights-outline btn-sm" for="player-insights-preset-custom">Ask</label>
       </div>
     </div>
 
@@ -55,9 +55,7 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2">
-      <button type="button" id="player-insights-generate" class="btn btn-primary">
-        <i class="bi bi-stars" aria-hidden="true"></i> Generate
-      </button>
+      {% include "includes/btn_insights.html" with label="Generate" element_id="player-insights-generate" %}
       <button type="button" id="player-insights-copy" class="btn btn-outline-secondary" disabled>Copy</button>
       <button type="button" id="player-insights-regenerate" class="btn btn-outline-secondary" disabled>Regenerate</button>
     </div>
