@@ -163,6 +163,7 @@ def get_player_rank_detail(
     game_type_code: str,
     location_id: int | None = None,
     period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
 ) -> PlayerRankDetail | None:
     from django.conf import settings
 
@@ -184,6 +185,8 @@ def get_player_rank_detail(
     )
     if location_id is not None:
         results_qs = results_qs.filter(game__location_id=location_id)
+    if game_size is not None:
+        results_qs = results_qs.filter(game__player_count=game_size)
     results_qs = filter_results_by_period(results_qs, period)
 
     if not results_qs.exists():
@@ -304,6 +307,7 @@ def get_player_rank_detail(
         game_type_code,
         location_id=location_id,
         period=period,
+        game_size=game_size,
     )
     ranking_row = next((row for row in standings if row.player.pk == player.pk), None)
     if ranking_row is None:
@@ -408,6 +412,7 @@ def get_player_rankings(
     game_type_code: str | None = None,
     location_id: int | None = None,
     period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
 ) -> list[PlayerRanking]:
     """
     Return ranked players for a group, ordered by vested rank score.
@@ -434,6 +439,7 @@ def get_player_rankings(
             code,
             location_id=location_id,
             period=period,
+            game_size=game_size,
         )
         active = [row for row in standings if row.games_played > 0]
         low_wins = get_game_type(code).score_direction == ScoreDirection.LOW_WINS
@@ -449,6 +455,7 @@ def get_group_roster_standings(
     sort: str = "rank",
     ascending: bool = True,
     period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
 ) -> list[PlayerRanking]:
     """
     Standings for every active roster player in a group for one game type.
@@ -462,7 +469,12 @@ def get_group_roster_standings(
 
     stats_by_player = {
         row.player.pk: row
-        for row in _standings_for_game_type(group, game_type_code, period=period)
+        for row in _standings_for_game_type(
+            group,
+            game_type_code,
+            period=period,
+            game_size=game_size,
+        )
     }
     game_type = get_game_type(game_type_code)
 
@@ -685,6 +697,7 @@ def _standings_for_game_type(
     *,
     location_id: int | None = None,
     period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
     results_qs=None,
 ) -> list[PlayerRanking]:
     from leaderlodge.games.models import GameParticipantResult
@@ -703,6 +716,8 @@ def _standings_for_game_type(
         )
         if location_id is not None:
             results_qs = results_qs.filter(game__location_id=location_id)
+        if game_size is not None:
+            results_qs = results_qs.filter(game__player_count=game_size)
         results_qs = filter_results_by_period(results_qs, period)
 
     finish_points_by_player = _finish_points_by_player(results_qs, low_wins=low_wins)

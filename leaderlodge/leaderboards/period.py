@@ -111,6 +111,7 @@ def build_leaderboard_query(
     group_id: str = "",
     game_type_code: str | None = None,
     period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
     extra: dict[str, str] | None = None,
 ) -> str:
     params: dict[str, str] = {}
@@ -120,6 +121,8 @@ def build_leaderboard_query(
         params["game_type_code"] = game_type_code
     if period is not None:
         params.update(period.query_params())
+    if game_size is not None:
+        params["game_size"] = str(game_size)
     if extra:
         params.update(extra)
     return urlencode(params)

@@ -55,6 +55,32 @@ def _record_dominos_game(group, user, *, played_on, winner_idx=0, loser_idx=1):
     )
 
 
+def _record_three_player_dominos_game(group, user, *, played_on):
+    players = list(group.players.order_by("pk")[:3])
+    rows = [
+        {"player": players[0], "score": 35},
+        {"player": players[1], "score": 25},
+        {"player": players[2], "score": 15},
+    ]
+    assign_results_from_scores(rows, "dominos")
+    participants = [
+        ParticipantInput(
+            player=row["player"],
+            score=row["score"],
+            result=row["result"],
+            placement=row["placement"],
+        )
+        for row in rows
+    ]
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=played_on,
+        participants=participants,
+    )
+
+
 @pytest.mark.django_db
 def test_resolve_leaderboard_period_ignores_month_without_year():
     period = resolve_leaderboard_period(
@@ -121,6 +147,23 @@ def test_period_filter_disables_vesting(user, group):
 
 
 @pytest.mark.django_db
+def test_get_player_rankings_filters_by_game_size(user, group):
+    add_guest_player(group=group, display_name="Alex")
+    _record_dominos_game(group, user, played_on=date(2026, 1, 15))
+    _record_three_player_dominos_game(group, user, played_on=date(2026, 1, 16))
+
+    all_sizes = get_player_rankings(group, game_type_code="dominos")
+    two_player = get_player_rankings(group, game_type_code="dominos", game_size=2)
+    three_player = get_player_rankings(group, game_type_code="dominos", game_size=3)
+
+    assert len(all_sizes) == 3
+    assert all(row.games_played == 1 for row in two_player)
+    assert len(two_player) == 2
+    assert all(row.games_played == 1 for row in three_player)
+    assert len(three_player) == 3
+
+
+@pytest.mark.django_db
 def test_leaderboard_index_shows_year_filter(client, user, group):
     client.force_login(user)
     _record_dominos_game(group, user, played_on=date(2026, 3, 1))
@@ -135,6 +178,24 @@ def test_leaderboard_index_shows_year_filter(client, user, group):
     assert "All years" in content
     assert "2026" in content
     assert "Dominos" in content and "2026" in content.split("card-header", 1)[1]
+
+
+@pytest.mark.django_db
+def test_leaderboard_index_shows_game_size_filter(client, user, group):
+    add_guest_player(group=group, display_name="Alex")
+    client.force_login(user)
+    _record_dominos_game(group, user, played_on=date(2026, 3, 1))
+    _record_three_player_dominos_game(group, user, played_on=date(2026, 3, 2))
+
+    response = client.get(
+        reverse("leaderboards:index"),
+        {"group": str(group.pk), "game_type_code": "dominos", "game_size": "3"},
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert 'id="leaderboard-game-size"' in content
+    assert "All sizes" in content
+    assert "3-player" in content
 
 
 @pytest.mark.django_db

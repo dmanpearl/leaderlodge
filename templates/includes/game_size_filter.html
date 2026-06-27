@@ -1,0 +1,18 @@
+{% if game_size_options %}
+  <div class="col-12 col-sm-6 col-lg-4 col-xl">
+    <label for="{{ select_id|default:'game-size' }}" class="form-label">Game size</label>
+    <select
+      id="{{ select_id|default:'game-size' }}"
+      name="game_size"
+      class="form-select{% if select_class %} {{ select_class }}{% endif %}"
+      onchange="this.form.submit()"
+    >
+      <option value="">All sizes</option>
+      {% for size in game_size_options %}
+        <option value="{{ size }}" {% if selected_game_size == size %}selected{% endif %}>
+          {{ size }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+{% endif %}

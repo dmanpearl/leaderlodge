@@ -7,6 +7,8 @@ from django.urls import reverse
 from leaderlodge.accounts.game_selection import resolve_game_type_code
 from leaderlodge.accounts.group_selection import resolve_view_group
 from leaderlodge.core.decorators import demo_or_login_required
+from leaderlodge.games.game_size import available_game_sizes, resolve_game_size
+from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.services import visible_groups
@@ -33,14 +35,36 @@ from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_
 
 
 def _game_type_codes_for_group(group: Group) -> list[str]:
-    from leaderlodge.games.models import Game
-
     return list(
         Game.objects.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
     )
+
+
+def _game_size_context(
+    group: Group | None,
+    game_type_code: str | None,
+    request: HttpRequest,
+) -> dict:
+    if group is None or not game_type_code:
+        return {
+            "game_size_options": (),
+            "selected_game_size": None,
+        }
+
+    options = available_game_sizes(
+        Game.objects.filter(group=group, game_type_code=game_type_code)
+    )
+    selected = resolve_game_size(
+        request.GET.get("game_size", "").strip(),
+        options,
+    )
+    return {
+        "game_size_options": options,
+        "selected_game_size": selected,
+    }
 
 
 def _leaderboard_needs_redirect(
@@ -140,6 +164,12 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
     resolved_group_id = str(selected_group.pk) if selected_group else ""
     period_ctx = _period_context(selected_group, selected_game_type_code, request)
     selected_period = period_ctx["selected_period"]
+    game_size_ctx = _game_size_context(
+        selected_group,
+        selected_game_type_code,
+        request,
+    )
+    selected_game_size = game_size_ctx["selected_game_size"]
 
     if _leaderboard_needs_redirect(
         request,
@@ -150,6 +180,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             group_id=resolved_group_id,
             game_type_code=selected_game_type_code,
             period=selected_period,
+            game_size=selected_game_size,
         )
         url = reverse("leaderboards:index")
         if query:
@@ -164,6 +195,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             selected_group,
             game_type_code=selected_game_type_code,
             period=selected_period,
+            game_size=selected_game_size,
         )
 
     game_type_options = [(code, get_game_type(code).name) for code in game_type_codes]
@@ -172,11 +204,23 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         group_id=resolved_group_id,
         game_type_code=selected_game_type_code or "",
         period=selected_period,
+        game_size=selected_game_size,
     )
+    game_size_label = ""
+    if selected_game_size is not None:
+        game_size_label = f"{selected_game_size}-player"
     insight_subtitle = (
-        f"{selected_game_type.name} · {period_label}"
-        if selected_game_type and period_label
-        else (selected_game_type.name if selected_game_type else "")
+        f"{selected_game_type.name} · {period_label} · {game_size_label}"
+        if selected_game_type and period_label and game_size_label
+        else (
+            f"{selected_game_type.name} · {game_size_label}"
+            if selected_game_type and game_size_label
+            else (
+                f"{selected_game_type.name} · {period_label}"
+                if selected_game_type and period_label
+                else (selected_game_type.name if selected_game_type else "")
+            )
+        )
     )
 
     return render(
@@ -193,7 +237,9 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "leaderboard_query": leaderboard_query,
             "hall_of_fame_query": build_hall_of_fame_query(group_id=resolved_group_id),
             "insight_subtitle": insight_subtitle,
+            "game_size_label": game_size_label,
             **period_ctx,
+            **game_size_ctx,
             **_insights_template_context(request),
         },
     )
@@ -217,10 +263,7 @@ def _hall_of_fame_needs_redirect(
         return True
     if requested_granularity and requested_granularity != resolved_granularity:
         return True
-    if (
-        not requested_granularity
-        and resolved_granularity != GRANULARITY_YEAR
-    ):
+    if not requested_granularity and resolved_granularity != GRANULARITY_YEAR:
         return True
     return False
 
@@ -281,7 +324,9 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
             "filter_summary": filter_summary,
             "hall_of_fame_query": hall_of_fame_query,
             "leaderboard_query": leaderboard_query,
-            "period_column_label": "Month" if granularity == GRANULARITY_MONTH else "Year",
+            "period_column_label": (
+                "Month" if granularity == GRANULARITY_MONTH else "Year"
+            ),
             "selected_period": LeaderboardPeriod.all_time(),
             "insight_scope": SCOPE_HALL_OF_FAME,
             **_insights_template_context(request),
@@ -315,12 +360,15 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
 
     period_ctx = _period_context(selected_group, game_type_code, request)
     selected_period = period_ctx["selected_period"]
+    game_size_ctx = _game_size_context(selected_group, game_type_code, request)
+    selected_game_size = game_size_ctx["selected_game_size"]
 
     detail = get_player_rank_detail(
         selected_group,
         player,
         game_type_code=game_type_code,
         period=selected_period,
+        game_size=selected_game_size,
     )
     if detail is None:
         return HttpResponseNotFound()
@@ -328,9 +376,12 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     game_type = get_game_type(game_type_code)
     leaderboard_url = (
         f"{reverse('leaderboards:index')}"
-        f"?{build_leaderboard_query(group_id=str(selected_group.pk), game_type_code=game_type_code, period=selected_period)}"
+        f"?{build_leaderboard_query(group_id=str(selected_group.pk), game_type_code=game_type_code, period=selected_period, game_size=selected_game_size)}"
     )
     period_label = selected_period.display_label()
+    game_size_label = ""
+    if selected_game_size is not None:
+        game_size_label = f"{selected_game_size}-player"
 
     insights_enabled = insights_ui_enabled()
     insights_ready = insights_feature_enabled()
@@ -348,10 +399,12 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
             "leaderboard_url": leaderboard_url,
             "selected_period": selected_period,
             "period_label": period_label,
+            "game_size_label": game_size_label,
             "insights_enabled": insights_enabled,
             "insights_ready": insights_ready,
             "insight_models": insight_models,
             "selected_insight_model": selected_insight_model,
             **period_ctx,
+            **game_size_ctx,
         },
     )

@@ -90,6 +90,7 @@
             {% endfor %}
           </select>
         </div>
+        {% include "includes/game_size_filter.html" with select_id="filter-game-size" select_class="game-list-filter-select" %}
         <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-sort" class="form-label">Date</label>
           <select id="filter-sort" name="sort" class="form-select game-list-filter-select" onchange="this.form.submit()">

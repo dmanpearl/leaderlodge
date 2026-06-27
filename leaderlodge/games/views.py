@@ -18,6 +18,11 @@ from leaderlodge.games.list_density import (
     game_list_date_format,
     resolve_game_list_density,
 )
+from leaderlodge.games.game_size import (
+    available_game_sizes,
+    game_size_filter_label,
+    resolve_game_size,
+)
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
 from leaderlodge.games.models import Game, GameParticipantResult
@@ -71,6 +76,7 @@ def _game_list_params(request: HttpRequest) -> dict:
         "game_type": request.GET.get("game_type", "").strip(),
         "player": request.GET.get("player", "").strip(),
         "location": request.GET.get("location", "").strip(),
+        "game_size": request.GET.get("game_size", "").strip(),
         "sort": sort,
     }
 
@@ -102,6 +108,7 @@ def _resolve_game_list_params(
         ),
         "player": params["player"],
         "location": params["location"],
+        "game_size": params["game_size"],
         "sort": params["sort"],
     }
     return resolved
@@ -138,6 +145,8 @@ def _filtered_games_queryset(user, params: dict[str, str]):
         games_qs = games_qs.filter(
             participant_results__player_id=int(params["player"]),
         ).distinct()
+    if params.get("game_size", "").isdigit():
+        games_qs = games_qs.filter(player_count=int(params["game_size"]))
 
     if params["sort"] == "asc":
         return games_qs.order_by("played_on", "created_at")
@@ -169,10 +178,16 @@ def _player_choices_for_game_list(user, params: dict[str, str]):
     return players_qs.order_by("group__name", "display_name", "pk")
 
 
+def _game_size_choices_for_game_list(user, params: dict[str, str]):
+    games_qs = _games_queryset_for_filter_choices(user, params)
+    return available_game_sizes(games_qs)
+
+
 def _sanitize_game_list_params(
     params: dict[str, str],
     locations,
     players,
+    game_size_options,
 ) -> dict[str, str]:
     sanitized = dict(params)
     if sanitized["location"].isdigit():
@@ -183,6 +198,9 @@ def _sanitize_game_list_params(
         valid_ids = {player.pk for player in players}
         if int(sanitized["player"]) not in valid_ids:
             sanitized["player"] = ""
+    if sanitized["game_size"].isdigit():
+        if int(sanitized["game_size"]) not in game_size_options:
+            sanitized["game_size"] = ""
     return sanitized
 
 
@@ -193,7 +211,7 @@ def _game_list_filter_query(params: dict[str, str]) -> str:
 
 
 def _game_list_has_filters(params: dict[str, str]) -> bool:
-    return any(params[key] for key in ("group", "player", "location"))
+    return any(params[key] for key in ("group", "player", "location", "game_size"))
 
 
 def _game_list_filter_summary(
@@ -225,6 +243,9 @@ def _game_list_filter_summary(
             if location.pk == location_id:
                 labels.append(location.name)
                 break
+
+    if params["game_size"].isdigit():
+        labels.append(game_size_filter_label(int(params["game_size"])))
 
     return ", ".join(labels)
 
@@ -335,7 +356,8 @@ def game_list(request: HttpRequest) -> HttpResponse:
     params = resolved_params
     locations = _location_choices_for_game_list(request.user, params)
     players = _player_choices_for_game_list(request.user, params)
-    params = _sanitize_game_list_params(params, locations, players)
+    game_size_options = _game_size_choices_for_game_list(request.user, params)
+    params = _sanitize_game_list_params(params, locations, players, game_size_options)
     games_qs = _filtered_games_queryset(request.user, params)
     selected_game_type = get_game_type(params["game_type"])
     list_stats = build_game_list_stats(
@@ -382,6 +404,10 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "game_types": game_type_choices(),
             "locations": locations,
             "players": players,
+            "game_size_options": game_size_options,
+            "selected_game_size": (
+                int(params["game_size"]) if params["game_size"].isdigit() else None
+            ),
             "selected_game_type": selected_game_type,
             "show_group_column": not params["group"],
             "show_weight_column": show_weight_column(

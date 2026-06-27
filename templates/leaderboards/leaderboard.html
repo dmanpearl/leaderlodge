@@ -44,6 +44,7 @@
             </select>
           </div>
           {% include "includes/leaderboard_period_filters.html" with year_select_id="leaderboard-year" month_select_id="leaderboard-month" %}
+          {% include "includes/game_size_filter.html" with select_id="leaderboard-game-size" %}
         {% endif %}
       </form>
     </div>
@@ -72,7 +73,7 @@
   {% elif rankings %}
     <div class="card">
       <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <span>{{ selected_group.name }} &middot; {{ selected_game_type.name }}{% if period_label %} &middot; {{ period_label }}{% endif %}</span>
+        <span>{{ selected_group.name }} &middot; {{ selected_game_type.name }}{% if period_label %} &middot; {{ period_label }}{% endif %}{% if game_size_label %} &middot; {{ game_size_label }}{% endif %}</span>
         {% if insights_enabled %}
           {% include "includes/btn_insights.html" with btn_size="sm" offcanvas_target="#leaderboard-insights-panel" offcanvas_controls="leaderboard-insights-panel" %}
         {% endif %}

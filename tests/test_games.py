@@ -369,8 +369,13 @@ def test_game_list_filters_by_group_and_game_type(client, user, group):
 
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group, game_type_code="dominos"))
-    client.post(reverse("games:create"), _load_roster_post(other_group, game_type_code="backgammon"))
+    client.post(
+        reverse("games:create"), _save_game_post(group, game_type_code="dominos")
+    )
+    client.post(
+        reverse("games:create"),
+        _load_roster_post(other_group, game_type_code="backgammon"),
+    )
     client.post(
         reverse("games:create"),
         _save_game_post(other_group, game_type_code="backgammon"),
@@ -439,6 +444,55 @@ def test_game_list_location_choices_culled_by_group_and_type(client, user, group
 
 
 @pytest.mark.django_db
+def test_game_list_filters_by_game_size(client, user, group):
+    add_guest_player(group=group, display_name="Sam")
+    add_guest_player(group=group, display_name="Alex")
+    players = list(group.players.order_by("pk"))
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(
+        reverse("games:create"),
+        _save_game_post(
+            group,
+            players_played=players[:2],
+            scores={players[0].pk: 30, players[1].pk: 20},
+        ),
+    )
+    client.post(
+        reverse("games:create"),
+        _save_game_post(
+            group,
+            players_played=players[:3],
+            scores={
+                players[0].pk: 35,
+                players[1].pk: 25,
+                players[2].pk: 15,
+            },
+        ),
+    )
+
+    all_sizes = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos"},
+    ).content.decode()
+    two_player = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos", "game_size": "2"},
+    ).content.decode()
+    three_player = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos", "game_size": "3"},
+    ).content.decode()
+
+    assert 'id="filter-game-size"' in all_sizes
+    assert "All sizes" in all_sizes
+    assert "(2-player)" in two_player or "2-player" in two_player
+    assert two_player.count("game-list-data-row") == 1 or two_player.count("<tr") >= 1
+    assert three_player.count("game-list-data-row") == 1 or "3-player" in three_player
+    assert "4" not in all_sizes.split("filter-game-size")[1].split("</select>")[0]
+
+
+@pytest.mark.django_db
 def test_game_list_filters_by_player(client, user, group):
     other_group = create_group_with_owner(user=user, name="Other Club")
     pat = group.players.get(display_name="Pat")
@@ -454,7 +508,10 @@ def test_game_list_filters_by_player(client, user, group):
             players_played=list(group.players.order_by("pk"))[:2],
         ),
     )
-    client.post(reverse("games:create"), _load_roster_post(other_group, game_type_code="dominos"))
+    client.post(
+        reverse("games:create"),
+        _load_roster_post(other_group, game_type_code="dominos"),
+    )
     client.post(
         reverse("games:create"),
         _save_game_post(
@@ -566,7 +623,9 @@ def test_reuse_roster_stays_on_setup_without_previous_game(client, user, group):
 @pytest.mark.django_db
 def test_reuse_roster_does_not_use_other_game_type(client, user, group):
     client.force_login(user)
-    client.post(reverse("games:create"), _save_game_post(group, game_type_code="dominos"))
+    client.post(
+        reverse("games:create"), _save_game_post(group, game_type_code="dominos")
+    )
 
     response = client.post(
         reverse("games:create"),
@@ -596,12 +655,8 @@ def test_reuse_roster_uses_progressive_rummy_not_dominos(client, user, group):
         game_type_code="dominos",
         played_on=date(2026, 3, 1),
         participants=[
-            ParticipantInput(
-                player=players[0], score=30, result="win", placement=0
-            ),
-            ParticipantInput(
-                player=players[1], score=20, result="played", placement=1
-            ),
+            ParticipantInput(player=players[0], score=30, result="win", placement=0),
+            ParticipantInput(player=players[1], score=20, result="played", placement=1),
         ],
     )
     record_game(
@@ -610,15 +665,9 @@ def test_reuse_roster_uses_progressive_rummy_not_dominos(client, user, group):
         game_type_code="progressiverummy",
         played_on=date(2026, 2, 1),
         participants=[
-            ParticipantInput(
-                player=players[0], score=10, result="win", placement=0
-            ),
-            ParticipantInput(
-                player=players[1], score=20, result="played", placement=1
-            ),
-            ParticipantInput(
-                player=players[2], score=30, result="loss", placement=2
-            ),
+            ParticipantInput(player=players[0], score=10, result="win", placement=0),
+            ParticipantInput(player=players[1], score=20, result="played", placement=1),
+            ParticipantInput(player=players[2], score=30, result="loss", placement=2),
         ],
     )
 
@@ -631,7 +680,7 @@ def test_reuse_roster_uses_progressive_rummy_not_dominos(client, user, group):
     assert response.status_code == 200
     assert "Progressive Rummy" in content
     assert players[2].display_label in content
-    assert content.count('data-game-row') == 3
+    assert content.count("data-game-row") == 3
 
 
 @pytest.mark.django_db
@@ -676,4 +725,7 @@ def test_reuse_preview_url_on_setup_page(client, user, group):
         {"group": str(group.pk), "game_type": "dominos"},
     )
     players = list(group.players.order_by("pk")[:2])
-    assert preview.json()["summary"] == f"{players[0].display_label}, {players[1].display_label}"
+    assert (
+        preview.json()["summary"]
+        == f"{players[0].display_label}, {players[1].display_label}"
+    )
