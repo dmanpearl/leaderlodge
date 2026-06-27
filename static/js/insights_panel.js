@@ -200,9 +200,13 @@
     presetInputs.forEach((input) => {
       input.addEventListener("change", function () {
         updateCustomVisibility();
-        if (selectedPreset() !== "custom") {
-          triggerPresetGenerate();
-        }
+      });
+      input.addEventListener("click", function () {
+        queueMicrotask(() => {
+          if (input.checked && input.value !== "custom") {
+            triggerPresetGenerate();
+          }
+        });
       });
     });
 
@@ -237,12 +241,6 @@
         statusEl.textContent = "Copied to clipboard.";
       } catch (_error) {
         statusEl.textContent = "Could not copy to clipboard.";
-      }
-    });
-
-    panel.addEventListener("shown.bs.offcanvas", function () {
-      if (selectedPreset() !== "custom" && !lastMarkdown && !loading) {
-        triggerPresetGenerate();
       }
     });
 

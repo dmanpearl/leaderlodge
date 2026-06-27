@@ -72,7 +72,7 @@
 - [x] 43c2453 AI Game detail insights (shared game-set context with precomputed rankings)
 - [x] 9415913 Insights: Show progress indicator after Generate triggered so user does not think the system is hung
 - [x] 9415913 Insights: Remove 'Generate' button. When user selects a non-'Ask' option, auto-force Generate immediately (ie Dynamics, Head to Head, This Game, Strengths, Struggles, Superpower). Also invoke Generate progress indicataor. For 'Ask', add Generate on Enter and add Action button to the right of the question text field
-- [x] Games View > Filters and Leaderboards > Filters: Add Filter by number of players (Game Size). Filter menu options include: All, 2, 3, 4, etc (show numbers actually represented in current set)
+- [x] e4f2e88 Games View > Filters and Leaderboards > Filters: Add Filter by number of players (Game Size). Filter menu options include: All, 2, 3, 4, etc (show numbers actually represented in current set)
 
 ## Open Items
 

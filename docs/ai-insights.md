@@ -260,7 +260,7 @@ Any page with Insights buttons must load `insights.css` (same as the offcanvas p
 
 Shared panel behavior (`insights_panel.js`):
 
-- Preset chips (everything except **Ask**) auto-generate on selection and when the panel opens with a preset already selected.
+- Preset chips (everything except **Ask**) auto-generate when the user selects one.
 - **Ask** shows a question field with an **Ask** button; Enter submits.
 - A spinner (`insights-progress`) appears while the API request is in flight.
 - **Copy** and **Regenerate** remain in the action row; there is no standalone **Generate** button.
