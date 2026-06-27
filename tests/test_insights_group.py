@@ -134,7 +134,7 @@ def test_leaderboard_shows_insights_button(client, user, group):
 
     assert "btn-insights" in content
     assert 'id="leaderboard-insights-panel"' in content
-    assert "group_insights.js" in content
+    assert "insights_panel.js" in content
 
 
 @pytest.mark.django_db

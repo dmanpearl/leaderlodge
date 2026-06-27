@@ -242,7 +242,7 @@ All AI entry points use a shared **Insights** button style so users learn one vi
 
 **Usage:**
 
-- **Filled CTA** (open panel, Generate): `btn btn-insights` or `{% include "includes/btn_insights.html" %}`
+- **Filled CTA** (open panel, Ask submit): `btn btn-insights` or `{% include "includes/btn_insights.html" %}`
 - **Secondary** (preset chips): `btn btn-insights-outline btn-sm`
 - **Non-AI actions** (Copy, Regenerate, Back): keep Bootstrap `btn-outline-secondary` / `btn-secondary`
 
@@ -254,11 +254,16 @@ Any page with Insights buttons must load `insights.css` (same as the offcanvas p
 
 | Surface | Template | JS |
 |---------|----------|-----|
-| Rank detail | `player_insights_panel.html` | `player_insights.js` |
-| Leaderboard, Hall of Fame | `group_insights_panel.html` | `group_insights.js` |
-| Matchup, game detail | `matchup_insights_panel.html` | `matchup_insights.js` |
+| Rank detail | `player_insights_panel.html` | `insights_panel.js` |
+| Leaderboard, Hall of Fame | `group_insights_panel.html` | `insights_panel.js` |
+| Matchup, game detail | `matchup_insights_panel.html` | `insights_panel.js` |
 
-Each panel: model picker, preset chips, optional custom question, Generate / Copy / Regenerate, markdown result.
+Shared panel behavior (`insights_panel.js`):
+
+- Preset chips (everything except **Ask**) auto-generate on selection and when the panel opens with a preset already selected.
+- **Ask** shows a question field with an **Ask** button; Enter submits.
+- A spinner (`insights-progress`) appears while the API request is in flight.
+- **Copy** and **Regenerate** remain in the action row; there is no standalone **Generate** button.
 
 ### Planned
 

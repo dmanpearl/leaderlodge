@@ -145,7 +145,7 @@ def test_matchup_view_shows_insights_button(client, user, group):
 
     assert "btn-insights" in content
     assert 'id="matchup-insights-panel"' in content
-    assert "matchup_insights.js" in content
+    assert "insights_panel.js" in content
 
 
 @pytest.mark.django_db
@@ -168,4 +168,4 @@ def test_game_detail_shows_insights_button(client, user, group):
 
     assert "btn-insights" in content
     assert 'id="game-detail-insights-panel"' in content
-    assert "matchup_insights.js" in content
+    assert "insights_panel.js" in content

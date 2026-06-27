@@ -54,31 +54,8 @@
       </div>
     </div>
 
-    <div id="{{ panel_id }}-custom-wrap" class="insights-custom-wrap d-none">
-      <label for="{{ panel_id }}-question" class="form-label">Your question</label>
-      <input
-        type="text"
-        id="{{ panel_id }}-question"
-        class="form-control insights-question-input"
-        maxlength="500"
-        placeholder="What stands out in this group?"
-      />
-    </div>
+    {% include "includes/insights_ask_field.html" with panel_id=panel_id ask_placeholder="What stands out in this group?" %}
 
-    <div class="d-flex flex-wrap gap-2">
-      <button type="button" id="{{ panel_id }}-generate" class="btn btn-insights insights-generate-btn">
-        <i class="bi bi-stars" aria-hidden="true"></i> Generate
-      </button>
-      <button type="button" class="btn btn-outline-secondary insights-copy-btn" disabled>Copy</button>
-      <button type="button" class="btn btn-outline-secondary insights-regenerate-btn" disabled>Regenerate</button>
-    </div>
-
-    <p class="text-muted small mb-0">
-      AI summary. Rankings are computed by LeaderLodge.
-    </p>
-
-    <div class="insights-status small text-muted" aria-live="polite"></div>
-    <div class="insights-error alert alert-danger d-none mb-0" role="alert"></div>
-    <div class="insights-result player-insights-result flex-grow-1"></div>
+    {% include "includes/insights_panel_controls.html" %}
   </div>
 </div>

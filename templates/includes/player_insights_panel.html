@@ -26,7 +26,7 @@
   <div class="offcanvas-body d-flex flex-column gap-3">
     <div>
       <label for="player-insights-model" class="form-label">Model</label>
-      <select id="player-insights-model" class="form-select">
+      <select id="player-insights-model" class="form-select insights-model-select">
         {% for model in insight_models %}
           <option value="{{ model.slug }}" {% if model.slug == selected_insight_model %}selected{% endif %}>
             {{ model.label }}
@@ -38,34 +38,19 @@
     <div>
       <span class="form-label d-block">Preset</span>
       <div class="btn-group flex-wrap player-insights-presets" role="group" aria-label="Insight presets">
-        <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-strengths" value="strengths" autocomplete="off" checked />
+        <input type="radio" class="btn-check insights-preset-input" name="player-insights-preset" id="player-insights-preset-strengths" value="strengths" autocomplete="off" checked />
         <label class="btn btn-insights-outline btn-sm" for="player-insights-preset-strengths">Strengths</label>
-        <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-weaknesses" value="weaknesses" autocomplete="off" />
+        <input type="radio" class="btn-check insights-preset-input" name="player-insights-preset" id="player-insights-preset-weaknesses" value="weaknesses" autocomplete="off" />
         <label class="btn btn-insights-outline btn-sm" for="player-insights-preset-weaknesses">Struggles</label>
-        <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-superpower" value="superpower" autocomplete="off" />
+        <input type="radio" class="btn-check insights-preset-input" name="player-insights-preset" id="player-insights-preset-superpower" value="superpower" autocomplete="off" />
         <label class="btn btn-insights-outline btn-sm" for="player-insights-preset-superpower">Superpower</label>
-        <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-custom" value="custom" autocomplete="off" />
+        <input type="radio" class="btn-check insights-preset-input" name="player-insights-preset" id="player-insights-preset-custom" value="custom" autocomplete="off" />
         <label class="btn btn-insights-outline btn-sm" for="player-insights-preset-custom">Ask</label>
       </div>
     </div>
 
-    <div id="player-insights-custom-wrap" class="d-none">
-      <label for="player-insights-question" class="form-label">Your question</label>
-      <input type="text" id="player-insights-question" class="form-control" maxlength="500" placeholder="What stands out about this player?" />
-    </div>
+    {% include "includes/insights_ask_field.html" with panel_id="player-insights" ask_placeholder="What stands out about this player?" %}
 
-    <div class="d-flex flex-wrap gap-2">
-      {% include "includes/btn_insights.html" with label="Generate" element_id="player-insights-generate" %}
-      <button type="button" id="player-insights-copy" class="btn btn-outline-secondary" disabled>Copy</button>
-      <button type="button" id="player-insights-regenerate" class="btn btn-outline-secondary" disabled>Regenerate</button>
-    </div>
-
-    <p class="text-muted small mb-0">
-      AI summary. Rankings are computed by LeaderLodge.
-    </p>
-
-    <div id="player-insights-status" class="small text-muted" aria-live="polite"></div>
-    <div id="player-insights-error" class="alert alert-danger d-none mb-0" role="alert"></div>
-    <div id="player-insights-result" class="player-insights-result flex-grow-1"></div>
+    {% include "includes/insights_panel_controls.html" %}
   </div>
 </div>

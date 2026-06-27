@@ -69,12 +69,12 @@
 - [x] dcff5f8 AI Player Insights on rank detail (see [docs/ai-insights.md](docs/ai-insights.md))
 - [x] d9a69ac AI Group / Hall of Fame trend analysis
 - [x] fa3d96f AI Matchup insights on matchup view (see [docs/ai-insights.md](docs/ai-insights.md))
-- [x] AI Game detail insights (shared game-set context with precomputed rankings)
+- [x] 43c2453 AI Game detail insights (shared game-set context with precomputed rankings)
+- [x] Insights: Show progress indicator after Generate triggered so user does not think the system is hung
+- [x] Insights: Remove 'Generate' button. When user selects a non-'Ask' option, auto-force Generate immediately (ie Dynamics, Head to Head, This Game, Strengths, Struggles, Superpower). Also invoke Generate progress indicataor. For 'Ask', add Generate on Enter and add Action button to the right of the question text field
 
 ## Open Items
 
-- [ ] Insights: Show progress indicator after Generate triggered so user does not think the system is hung
-- [ ] Insights: Remove 'Generate' button. When user selects a non-'Ask' option, auto-force Generate immediately (ie Dynamics, Head to Head, This Game, Strengths, Struggles, Superpower). Also invoke Generate progress indicataor. For 'Ask', add Generate on Enter and add Action button to the right of the question text field
 - [ ] Games View > Filters > Add Filter by number of players including All, 2, 3, 4, etc (show numbers actually represented in current set)
 - [ ] AI Ask the Lodge (natural-language queries + tool calling)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

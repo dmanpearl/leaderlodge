@@ -1,0 +1,16 @@
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-outline-secondary insights-copy-btn" disabled>Copy</button>
+      <button type="button" class="btn btn-outline-secondary insights-regenerate-btn" disabled>Regenerate</button>
+    </div>
+
+    <p class="text-muted small mb-0">
+      AI summary. Rankings are computed by LeaderLodge.
+    </p>
+
+    <div class="insights-progress d-none align-items-center gap-2" role="status" aria-live="polite">
+      <div class="spinner-border spinner-border-sm insights-progress-spinner" aria-hidden="true"></div>
+      <span class="insights-progress-label small text-muted">Analyzing...</span>
+    </div>
+    <div class="insights-status small text-muted" aria-live="polite"></div>
+    <div class="insights-error alert alert-danger d-none mb-0" role="alert"></div>
+    <div class="insights-result player-insights-result flex-grow-1"></div>

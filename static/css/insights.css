@@ -77,3 +77,11 @@
 .player-insights-result .player-insights-markdown p {
   margin-bottom: 0.75rem;
 }
+
+.insights-progress-spinner {
+  color: var(--insights-accent);
+}
+
+.insights-progress-label {
+  color: var(--bs-secondary-color);
+}
