@@ -9,8 +9,19 @@
 | `leaderlodge.groups` | Groups, memberships, group players |
 | `leaderlodge.games` | Game records, registry, per-game validation |
 | `leaderlodge.leaderboards` | Ranking display; logic in `service.py` |
+| `leaderlodge.insights` | AI insights; rate limits in `limits.py` / `rate_limit.py`. See [ai-insights.md](./ai-insights.md). |
 
 Game subpackages (`dominos/`, `backgammon/`, etc.) contain validation rules only.
+
+## AI insights (planned)
+
+LeaderLodge computes rankings in Python; an optional **insights** layer will call cloud LLM APIs to narrate stats. Full design: **[ai-insights.md](./ai-insights.md)**.
+
+Phases:
+
+1. Player Insights on rank detail (MVP)
+2. Group / Hall of Fame trends
+3. Natural-language “Ask the Lodge” with tool calling
 
 ## Leaderboard design
 

@@ -528,6 +528,11 @@ def test_game_detail_for_member(client, user, group):
     assert response.status_code == 200
     assert "Dom Club" in content
     assert f'href="/games/matchup/?game={game.pk}"' in content
+    player = group.players.order_by("pk").first()
+    assert (
+        f'href="/leaderboards/detail/?group={group.pk}&amp;game_type_code=dominos&amp;player={player.pk}"'
+        in content
+    )
 
 
 @pytest.mark.django_db

@@ -7,5 +7,6 @@ urlpatterns = [
     path("groups/", include("leaderlodge.groups.urls")),
     path("games/", include("leaderlodge.games.urls")),
     path("leaderboards/", include("leaderlodge.leaderboards.urls")),
+    path("insights/", include("leaderlodge.insights.urls")),
     path("", include("leaderlodge.core.urls")),
 ]

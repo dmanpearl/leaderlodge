@@ -39,7 +39,11 @@
         <tbody>
           {% for result in results %}
             <tr>
-              <td>{{ result.player.display_label }}</td>
+              <td>
+                <a href="{% url 'leaderboards:detail' %}?group={{ game.group.pk }}&amp;game_type_code={{ game.game_type_code }}&amp;player={{ result.player.pk }}">
+                  {{ result.player.display_label }}
+                </a>
+              </td>
               <td>{{ result.score }}</td>
               <td>
                 {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}

@@ -9,7 +9,12 @@ class UserProfile(models.Model):
     ui_settings = models.JSONField(
         default=dict,
         blank=True,
-        help_text="Per-user UI preferences, keyed by view/feature namespace slug.",
+        help_text=(
+            "Per-user UI preferences, keyed by namespace slug. "
+            "Insights rate limits: namespace 'insights_limits' with keys "
+            "hourly, daily, unlimited (bool), global_daily, and models "
+            "(e.g. {\"models\": {\"gpt-4o-mini\": {\"daily\": 10}}})."
+        ),
     )
     email_verified_at = models.DateTimeField(
         null=True,

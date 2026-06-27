@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "leaderlodge.groups",
     "leaderlodge.games",
     "leaderlodge.leaderboards",
+    "leaderlodge.insights",
 ]
 
 MIDDLEWARE = [
@@ -189,6 +190,24 @@ DEMO_MODE_ENABLED = os.environ.get("DEMO_MODE_ENABLED", "true").lower() in (
 MIN_GAMES_FOR_LEADERBOARD = 1
 LEADERBOARD_VESTING_COUNT = 14
 LEADERBOARD_VESTING_FACTOR = 0.5
+
+# AI Insights — see docs/ai-insights.md
+INSIGHTS_ENABLED = os.environ.get("INSIGHTS_ENABLED", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+# Off for MVP; flip on when usage grows. Requires shared cache (Redis) on multi-worker prod.
+INSIGHTS_RATE_LIMITS_ENABLED = os.environ.get(
+    "INSIGHTS_RATE_LIMITS_ENABLED",
+    "false",
+).lower() in ("true", "1", "yes")
+# Optional deploy-time limit overrides (merged onto limits_defaults.DEFAULT_INSIGHT_LIMITS).
+# Example: {"authenticated": {"daily": 150}, "models": {"gpt-4o-mini": {"daily": 20}}}
+INSIGHTS_LIMITS: dict = {}
+INSIGHTS_LIMITS_JSON = os.environ.get("INSIGHTS_LIMITS_JSON", "")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+GOOGLE_AI_API_KEY = os.environ.get("GOOGLE_AI_API_KEY", "")
 
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL",

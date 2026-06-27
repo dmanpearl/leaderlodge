@@ -1,0 +1,21 @@
+---
+description: Do not use Unicode arrow or dash characters in prose or comments
+alwaysApply: true
+---
+
+# No arrows or elongated dashes
+
+In all files (docs, comments, templates, user-facing strings, commit messages):
+
+- Do **not** use the Unicode right arrow character (U+2192).
+- Do **not** use en dash (U+2013) or em dash (U+2014).
+
+Use instead:
+
+- Flow or sequence: plain words ("then", "to"), a colon, or restructure the sentence.
+- Ranges: ASCII hyphen with spaces (`2024 - 2026`) or words ("from X to Y").
+- Parenthetical breaks: commas, parentheses, or a separate sentence.
+
+ASCII `->` in code or diagrams is fine when required by syntax (e.g. Mermaid, type hints).
+
+Before finishing edits, scan changed files for U+2192, U+2013, and U+2014.

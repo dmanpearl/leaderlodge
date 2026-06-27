@@ -1,0 +1,73 @@
+{% load static %}
+<div
+  class="offcanvas offcanvas-end player-insights-offcanvas"
+  tabindex="-1"
+  id="player-insights-panel"
+  aria-labelledby="player-insights-title"
+  data-insights-url="{% url 'insights:player' %}"
+  data-group-id="{{ selected_group.pk }}"
+  data-player-id="{{ detail.ranking.player.pk }}"
+  data-game-type-code="{{ game_type_code }}"
+  {% if selected_period.year %}data-year="{{ selected_period.year }}"{% endif %}
+  {% if selected_period.month %}data-month="{{ selected_period.month }}"{% endif %}
+>
+  <div class="offcanvas-header">
+    <div>
+      <h2 class="offcanvas-title h5 mb-0" id="player-insights-title">
+        Insights
+      </h2>
+      <p class="text-muted small mb-0">
+        {{ detail.ranking.player.display_label }}
+        &middot; {{ game_type.name }}{% if period_label %} &middot; {{ period_label }}{% endif %}
+      </p>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column gap-3">
+    <div>
+      <label for="player-insights-model" class="form-label">Model</label>
+      <select id="player-insights-model" class="form-select">
+        {% for model in insight_models %}
+          <option value="{{ model.slug }}" {% if model.slug == selected_insight_model %}selected{% endif %}>
+            {{ model.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <span class="form-label d-block">Preset</span>
+      <div class="btn-group flex-wrap player-insights-presets" role="group" aria-label="Insight presets">
+        <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-strengths" value="strengths" autocomplete="off" checked />
+        <label class="btn btn-outline-primary btn-sm" for="player-insights-preset-strengths">Strengths</label>
+        <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-weaknesses" value="weaknesses" autocomplete="off" />
+        <label class="btn btn-outline-primary btn-sm" for="player-insights-preset-weaknesses">Struggles</label>
+        <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-superpower" value="superpower" autocomplete="off" />
+        <label class="btn btn-outline-primary btn-sm" for="player-insights-preset-superpower">Superpower</label>
+        <input type="radio" class="btn-check" name="player-insights-preset" id="player-insights-preset-custom" value="custom" autocomplete="off" />
+        <label class="btn btn-outline-primary btn-sm" for="player-insights-preset-custom">Ask</label>
+      </div>
+    </div>
+
+    <div id="player-insights-custom-wrap" class="d-none">
+      <label for="player-insights-question" class="form-label">Your question</label>
+      <input type="text" id="player-insights-question" class="form-control" maxlength="500" placeholder="What stands out about this player?" />
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" id="player-insights-generate" class="btn btn-primary">
+        <i class="bi bi-stars" aria-hidden="true"></i> Generate
+      </button>
+      <button type="button" id="player-insights-copy" class="btn btn-outline-secondary" disabled>Copy</button>
+      <button type="button" id="player-insights-regenerate" class="btn btn-outline-secondary" disabled>Regenerate</button>
+    </div>
+
+    <p class="text-muted small mb-0">
+      AI summary. Rankings are computed by LeaderLodge.
+    </p>
+
+    <div id="player-insights-status" class="small text-muted" aria-live="polite"></div>
+    <div id="player-insights-error" class="alert alert-danger d-none mb-0" role="alert"></div>
+    <div id="player-insights-result" class="player-insights-result flex-grow-1"></div>
+  </div>
+</div>

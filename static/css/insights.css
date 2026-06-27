@@ -1,0 +1,30 @@
+.player-insights-offcanvas {
+  --bs-offcanvas-width: min(100vw, 28rem);
+}
+
+.player-insights-presets .btn {
+  margin-bottom: 0.25rem;
+}
+
+.player-insights-result {
+  min-height: 6rem;
+}
+
+.player-insights-result .player-insights-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.player-insights-result .player-insights-markdown h1,
+.player-insights-result .player-insights-markdown h2,
+.player-insights-result .player-insights-markdown h3 {
+  font-size: 1rem;
+  margin-top: 0.75rem;
+}
+
+.player-insights-result .player-insights-markdown ul {
+  padding-left: 1.25rem;
+}
+
+.player-insights-result .player-insights-markdown p {
+  margin-bottom: 0.75rem;
+}

@@ -14,6 +14,16 @@ cp .env.example .env
 
 Set `DJANGO_SECRET_KEY` in `.env` before running any Django command. See README.md for key generation.
 
+### AI Insights (optional)
+
+After `pip install -r requirements-dev.txt`, set in `.env`:
+
+- `INSIGHTS_ENABLED=true`
+- `OPENAI_API_KEY` and `GOOGLE_AI_API_KEY` (from OpenAI and Google AI Studio)
+- Leave `INSIGHTS_RATE_LIMITS_ENABLED=false` for MVP
+
+Open a rank detail page and use the **Insights** button. See [ai-insights.md](ai-insights.md).
+
 ## Daily workflow
 
 ```bash
@@ -114,6 +124,8 @@ railway run python manage.py setup_demo
 ```
 
 Use `--owner USERNAME` if you have multiple superusers and want a specific group owner. No Django admin step is required to set **Is demo**.
+
+When AI Insights (Phase 1) ships, add `INSIGHTS_ENABLED`, `OPENAI_API_KEY`, and `GOOGLE_AI_API_KEY` to Railway Variables before turning the feature on in production. See [ai-insights.md](ai-insights.md#railway-promotion-do-before-enabling-insights-in-production).
 
 ## User accounts
 

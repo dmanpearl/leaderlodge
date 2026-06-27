@@ -25,6 +25,9 @@ from leaderlodge.leaderboards.hall_of_fame import (
     hall_of_fame_filter_summary,
     resolve_hall_of_fame_granularity,
 )
+from leaderlodge.insights.model_selection import preferred_insight_model_id
+from leaderlodge.insights.registry import MODEL_REGISTRY
+from leaderlodge.insights.views import insights_feature_enabled, insights_ui_enabled
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
@@ -309,6 +312,11 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     )
     period_label = selected_period.display_label()
 
+    insights_enabled = insights_ui_enabled()
+    insights_ready = insights_feature_enabled()
+    insight_models = tuple(MODEL_REGISTRY.values())
+    selected_insight_model = preferred_insight_model_id(request)
+
     return render(
         request,
         "leaderboards/rank_detail.html",
@@ -320,6 +328,10 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
             "leaderboard_url": leaderboard_url,
             "selected_period": selected_period,
             "period_label": period_label,
+            "insights_enabled": insights_enabled,
+            "insights_ready": insights_ready,
+            "insight_models": insight_models,
+            "selected_insight_model": selected_insight_model,
             **period_ctx,
         },
     )

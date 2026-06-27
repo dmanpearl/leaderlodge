@@ -1,6 +1,13 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}{{ detail.ranking.player.display_label }} rank detail | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  {% if insights_enabled %}
+    <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
+  {% endif %}
+{% endblock %}
 
 {% block content %}
   <nav aria-label="breadcrumb">
@@ -16,13 +23,41 @@
       <h1 class="h3 mb-1">{{ detail.ranking.player.display_label }}</h1>
       <p class="text-muted mb-0">{{ selected_group.name }} &middot; {{ game_type.name }}{% if period_label %} &middot; {{ period_label }}{% endif %}</p>
     </div>
-    <a href="{{ leaderboard_url }}" class="btn btn-outline-secondary btn-sm align-self-sm-start">
-      Back to leaderboard
-    </a>
+    <div class="d-flex flex-wrap gap-2 align-self-sm-start">
+      {% if insights_enabled %}
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#player-insights-panel"
+          aria-controls="player-insights-panel"
+        >
+          <i class="bi bi-stars" aria-hidden="true"></i> Insights
+        </button>
+      {% endif %}
+      <a href="{{ leaderboard_url }}" class="btn btn-outline-secondary btn-sm">
+        Back to leaderboard
+      </a>
+    </div>
   </div>
 
   <div class="card mb-3">
-    <div class="card-header">Rank score</div>
+    <div class="card-header d-flex align-items-center gap-2">
+      <span>Rank score</span>
+      <button
+        type="button"
+        class="btn btn-link btn-sm p-0 text-muted rank-detail-rules-btn"
+        data-bs-toggle="popover"
+        data-bs-trigger="focus hover"
+        data-bs-placement="bottom"
+        data-bs-html="true"
+        title="Scoring rules"
+        data-bs-content="Each finish earns field-weighted placement credit (distance from last place times player count) multiplied by in-game score magnitude (raw score for high-wins games; reference minus score for Progressive Rummy winners, field max minus score for other low-wins finishers). Score is the average finish points per weighted game{% if detail.score_low_wins %}, multiplied by vesting progress squared when game count is below {{ detail.vesting_count }} (stronger dampening for unvested players){% else %}, scaled by vesting when game count is below {{ detail.vesting_count }}{% endif %}. Wins, losses, and games above use weighted counts (half games count as 0.5) to match the leaderboard."
+        aria-label="Scoring rules"
+      >
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+      </button>
+    </div>
     <div class="card-body">
       <dl class="row mb-0 rank-detail-dl">
         <dt class="col-7 col-sm-5">Rank</dt>
@@ -87,14 +122,6 @@
           <dd class="col-5 col-sm-7">{{ detail.tie_count }}</dd>
         {% endif %}
       </dl>
-      <p class="text-muted small mb-0 mt-3">
-        Each finish earns field-weighted placement credit (distance from last place
-        times player count) multiplied by in-game score magnitude (raw score for
-        high-wins games; reference minus score for Progressive Rummy winners, field
-        max minus score for other low-wins finishers). Score is the average finish
-        points per weighted game{% if detail.score_low_wins %}, multiplied by vesting progress squared when game count is below {{ detail.vesting_count }} (stronger dampening for unvested players){% else %}, scaled by vesting when game count is below {{ detail.vesting_count }}{% endif %}. Wins, losses, and games above use weighted counts
-        (half games count as 0.5) to match the leaderboard.
-      </p>
     </div>
   </div>
 
@@ -244,5 +271,19 @@
         </p>
       </div>
     </div>
+  {% endif %}
+  {% if insights_enabled %}
+    {% include "includes/player_insights_panel.html" %}
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    document.querySelectorAll(".rank-detail-rules-btn").forEach((button) => {
+      bootstrap.Popover.getOrCreateInstance(button);
+    });
+  </script>
+  {% if insights_enabled %}
+    <script src="{% static 'js/player_insights.js' %}"></script>
   {% endif %}
 {% endblock %}

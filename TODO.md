@@ -64,10 +64,14 @@
 - [x] b4f1812 Record Game View > Mobile Undo Zoom after score entry: iOS automatically zooms in for typing in score values. Clicking out of the field dismisses the keyboard, but does not restore the original zoom factor
 - [x] cb01060 Mobile: Games list filters — collapse Group, Player, Location, and Date behind a 'Filter' spin-down (same pattern as Stats)
 - [x] 336ebed Hall of Fame view
-- [x] Navbar: Selected item should be visibly highlighted
+- [x] 10df048 Navbar: Selected item should be visibly highlighted
+- [x] AI rate limits: defaults + settings + per-user ui_settings + cache counters
+- [x] AI Phase 1: Player Insights on rank detail (see [docs/ai-insights.md](docs/ai-insights.md))
 
 ## Open Items
 
+- [ ] AI Phase 2: Group / Hall of Fame trend analysis
+- [ ] AI Phase 3: Ask the Lodge (natural-language queries + tool calling)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
