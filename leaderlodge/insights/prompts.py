@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 5
+PROMPT_VERSION = 6
 
 _NUMERIC_RULES = """- For comparisons (more/less, most, highest, best rank): use `computed_rankings` when present. Do not infer order by comparing raw numbers yourself.
 - Only call a player "most" or "highest" if they are rank 1 in the matching `computed_rankings` list.
@@ -56,6 +56,22 @@ Rules:
 - Output markdown only: at most one short heading, then 2-4 short paragraphs OR up to 5 bullet points.
 - Never claim to predict future performance.
 - Refer to players by display_label from the JSON.
+"""
+
+ASK_SYSTEM_PROMPT = """You are Ask the Lodge for LeaderLodge, a friendly game-night stats app.
+
+The user asks a natural-language question about their group stats. You have tools that run validated Python queries. Use them to fetch facts before answering.
+
+Rules:
+- Call one or more tools when you need computed stats. Do not guess ranks, counts, or trends.
+- Use ONLY facts returned by tools. Do not invent games, players, or numbers.
+- Placement in tools is 0-indexed: 0=1st place, 1=2nd place, 2=3rd place.
+- Refer to players by display_label from tool results.
+- If tools return empty leaders or no data, say data is limited for that question.
+- Do not mention other products, APIs, or tool names in the final answer.
+- Write in clear, encouraging prose suitable for friends at game night.
+- Output markdown only: at most one short heading, then 2-4 short paragraphs OR up to 5 bullet points.
+- Never claim to predict future performance.
 """
 
 PRESET_STRENGTHS = "strengths"
@@ -215,3 +231,26 @@ def render_matchup_user_message(
 
     payload = json.dumps(context, indent=2, sort_keys=True)
     return f"{payload}\n\nQuestion: {prompt_text}"
+
+
+def render_ask_user_message(
+    *,
+    question: str,
+    group_name: str,
+    game_type_code: str | None,
+    period_label: str,
+) -> str:
+    custom = sanitize_custom_question(question)
+    if not custom:
+        raise ValueError("A question is required.")
+
+    scope_lines = [f"Group: {group_name}"]
+    if game_type_code:
+        scope_lines.append(f"Default game type: {game_type_code}")
+    if period_label:
+        scope_lines.append(f"Default period: {period_label}")
+    else:
+        scope_lines.append("Default period: all time")
+
+    scope_text = "\n".join(scope_lines)
+    return f"{scope_text}\n\nQuestion: {custom}"

@@ -92,7 +92,9 @@ def _ranked_entries(
     return entries
 
 
-def _ranked_by_leaderboard_rank(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _ranked_by_leaderboard_rank(
+    summaries: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     sortable: list[tuple[float, str, int | None]] = []
     for summary in summaries:
         rank = summary["ranking"].get("rank")
@@ -112,12 +114,8 @@ def _ranked_by_leaderboard_rank(summaries: list[dict[str, Any]]) -> list[dict[st
 
 
 def _computed_rankings(summaries: list[dict[str, Any]]) -> dict[str, Any]:
-    by_games = _ranked_entries(
-        summaries, field="games_played", higher_is_better=True
-    )
-    by_score = _ranked_entries(
-        summaries, field="rank_score", higher_is_better=True
-    )
+    by_games = _ranked_entries(summaries, field="games_played", higher_is_better=True)
+    by_score = _ranked_entries(summaries, field="rank_score", higher_is_better=True)
     by_wins = _ranked_entries(summaries, field="wins", higher_is_better=True)
     by_board_rank = _ranked_by_leaderboard_rank(summaries)
 

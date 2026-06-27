@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
+from leaderlodge.accounts.game_selection import resolve_game_type_code
+from leaderlodge.accounts.group_selection import resolve_view_group
 from leaderlodge.core.decorators import demo_or_login_required
+from leaderlodge.games.registry import get_game_type
+from leaderlodge.groups.services import visible_groups
 from leaderlodge.insights.access import (
     InsightAccessError,
+    game_type_codes_for_group,
+    resolve_ask_target,
     resolve_group_insight_target,
     resolve_matchup_insight_target,
     resolve_player_insight_target,
@@ -25,9 +33,15 @@ from leaderlodge.insights.context.matchup import (
     MatchupInsightContextError,
     build_matchup_insight_context,
 )
-from leaderlodge.insights.context.player import InsightContextError, build_player_insight_context
+from leaderlodge.insights.context.player import (
+    InsightContextError,
+    build_player_insight_context,
+)
 from leaderlodge.insights.exceptions import InsightRateLimitExceeded
-from leaderlodge.insights.model_selection import persist_insight_model_id
+from leaderlodge.insights.model_selection import (
+    persist_insight_model_id,
+    preferred_insight_model_id,
+)
 from leaderlodge.insights.providers.base import InsightProviderError
 from leaderlodge.insights.prompts import (
     PRESET_CUSTOM,
@@ -36,13 +50,25 @@ from leaderlodge.insights.prompts import (
     resolve_preset,
 )
 from leaderlodge.leaderboards.hall_of_fame import resolve_hall_of_fame_granularity
-from leaderlodge.insights.rate_limit import check_insight_rate_limit, record_insight_usage
+from leaderlodge.insights.rate_limit import (
+    check_insight_rate_limit,
+    record_insight_usage,
+)
 from leaderlodge.insights.registry import MODEL_REGISTRY, resolve_model_slug
 from leaderlodge.insights.service import (
+    AskResult,
     InsightResult,
+    generate_ask_response,
     generate_group_insight,
     generate_matchup_insight,
     generate_player_insight,
+)
+from leaderlodge.insights.tools.scope import AskScope
+from leaderlodge.leaderboards.period import (
+    LeaderboardPeriod,
+    available_leaderboard_periods,
+    month_label,
+    resolve_leaderboard_period,
 )
 
 
@@ -54,13 +80,19 @@ def insights_ui_enabled() -> bool:
     """Show Insights UI when enabled or when API keys are present."""
     if getattr(settings, "INSIGHTS_ENABLED", False):
         return True
-    return bool(_configured_api_key("OPENAI_API_KEY") or _configured_api_key("GOOGLE_AI_API_KEY"))
+    return bool(
+        _configured_api_key("OPENAI_API_KEY")
+        or _configured_api_key("GOOGLE_AI_API_KEY")
+    )
 
 
 def insights_feature_enabled() -> bool:
     if not getattr(settings, "INSIGHTS_ENABLED", False):
         return False
-    return bool(_configured_api_key("OPENAI_API_KEY") or _configured_api_key("GOOGLE_AI_API_KEY"))
+    return bool(
+        _configured_api_key("OPENAI_API_KEY")
+        or _configured_api_key("GOOGLE_AI_API_KEY")
+    )
 
 
 def _parse_json_body(request: HttpRequest) -> dict | None:
@@ -92,7 +124,9 @@ def _insight_meta(result: InsightResult, context: dict[str, Any]) -> dict[str, A
     }
 
 
-def _insight_json_response(*, result: InsightResult, context: dict[str, Any]) -> JsonResponse:
+def _insight_json_response(
+    *, result: InsightResult, context: dict[str, Any]
+) -> JsonResponse:
     return JsonResponse(
         {
             "markdown": result.markdown,
@@ -209,15 +243,17 @@ def group_insight(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"error": "A custom question is required."}, status=400)
 
     try:
-        group, resolved_scope, period, resolved_game_type_code = resolve_group_insight_target(
-            request,
-            user=request.user,
-            group_id=group_id,
-            scope=scope,
-            game_type_code=game_type_code,
-            raw_year=str(payload.get("year", "")),
-            raw_month=str(payload.get("month", "")),
-            granularity=granularity,
+        group, resolved_scope, period, resolved_game_type_code = (
+            resolve_group_insight_target(
+                request,
+                user=request.user,
+                group_id=group_id,
+                scope=scope,
+                game_type_code=game_type_code,
+                raw_year=str(payload.get("year", "")),
+                raw_month=str(payload.get("month", "")),
+                granularity=granularity,
+            )
         )
     except InsightAccessError as exc:
         return JsonResponse({"error": str(exc)}, status=403)
@@ -337,3 +373,190 @@ def matchup_insight(request: HttpRequest) -> HttpResponse:
     persist_insight_model_id(request, model_slug)
 
     return _insight_json_response(result=result, context=context)
+
+
+def _ask_template_context(request: HttpRequest) -> dict[str, Any]:
+    return {
+        "insights_enabled": insights_ui_enabled(),
+        "insights_ready": insights_feature_enabled(),
+        "insight_models": tuple(MODEL_REGISTRY.values()),
+        "selected_insight_model": preferred_insight_model_id(request),
+    }
+
+
+def _period_context_for_group(
+    group,
+    game_type_code: str | None,
+    request: HttpRequest,
+) -> dict[str, Any]:
+    if group is None or not game_type_code:
+        return {
+            "selected_period": LeaderboardPeriod.all_time(),
+            "period_year_options": [],
+            "period_month_options": [],
+            "period_label": "",
+        }
+
+    years, months_by_year = available_leaderboard_periods(group, game_type_code)
+    selected_period = resolve_leaderboard_period(
+        raw_year=request.GET.get("year", "").strip(),
+        raw_month=request.GET.get("month", "").strip(),
+        available_years=years,
+        months_by_year=months_by_year,
+    )
+    month_options = [
+        {"value": month, "label": month_label(month)}
+        for month in (
+            months_by_year.get(selected_period.year, ())
+            if selected_period.year is not None
+            else ()
+        )
+    ]
+    return {
+        "selected_period": selected_period,
+        "period_year_options": years,
+        "period_month_options": month_options,
+        "period_label": selected_period.display_label(),
+    }
+
+
+def _ask_meta(result: AskResult) -> dict[str, Any]:
+    return {
+        "model": result.model_slug,
+        "model_label": MODEL_REGISTRY[result.model_slug].label,
+        "provider": result.provider,
+        "prompt_version": result.prompt_version,
+        "context_schema_version": result.context_schema_version,
+        "cached": result.cached,
+        "input_tokens": result.input_tokens,
+        "output_tokens": result.output_tokens,
+        "tools_used": list(result.tools_used),
+    }
+
+
+@demo_or_login_required
+def ask_page(request: HttpRequest) -> HttpResponse:
+    if not insights_ui_enabled():
+        raise Http404()
+
+    groups = list(visible_groups(request.user).order_by("name"))
+    requested_group = request.GET.get("group") if "group" in request.GET else None
+    selected_group = resolve_view_group(
+        request,
+        requested=requested_group,
+        available_groups=groups,
+    )
+
+    game_type_codes = (
+        game_type_codes_for_group(selected_group) if selected_group else []
+    )
+    selected_game_type_code = None
+    if game_type_codes:
+        selected_game_type_code = resolve_game_type_code(
+            request,
+            requested=request.GET.get("game_type_code", "").strip(),
+            available_codes=game_type_codes,
+        )
+
+    period_ctx = _period_context_for_group(
+        selected_group,
+        selected_game_type_code,
+        request,
+    )
+    selected_game_type = (
+        get_game_type(selected_game_type_code) if selected_game_type_code else None
+    )
+    game_type_options = [(code, get_game_type(code).name) for code in game_type_codes]
+
+    return render(
+        request,
+        "insights/ask.html",
+        {
+            "groups": groups,
+            "selected_group": selected_group,
+            "game_type_options": game_type_options,
+            "selected_game_type_code": selected_game_type_code,
+            "selected_game_type": selected_game_type,
+            "navbar_active_section": "ask",
+            **_ask_template_context(request),
+            **period_ctx,
+        },
+    )
+
+
+@demo_or_login_required
+@require_POST
+def ask_query(request: HttpRequest) -> HttpResponse:
+    if not insights_feature_enabled():
+        return JsonResponse({"error": "Insights are not enabled."}, status=404)
+
+    payload = _parse_json_body(request)
+    if payload is None:
+        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+
+    group_id = str(payload.get("group_id", "")).strip()
+    question = str(payload.get("question", "")).strip()
+    model_slug = resolve_model_slug(str(payload.get("model", "")).strip())
+
+    if not group_id or not question:
+        return JsonResponse({"error": "Missing required fields."}, status=400)
+
+    try:
+        group, game_type_code, period = resolve_ask_target(
+            request,
+            user=request.user,
+            group_id=group_id,
+            game_type_code=str(payload.get("game_type_code", "")).strip(),
+            raw_year=str(payload.get("year", "")),
+            raw_month=str(payload.get("month", "")),
+        )
+    except InsightAccessError as exc:
+        return JsonResponse({"error": str(exc)}, status=403)
+
+    try:
+        check_insight_rate_limit(request, user=request.user, model_slug=model_slug)
+    except InsightRateLimitExceeded as exc:
+        response = JsonResponse(
+            {
+                "error": "Rate limit exceeded.",
+                "scope": exc.scope,
+                "window": exc.window,
+                "limit": exc.limit,
+            },
+            status=429,
+        )
+        response["Retry-After"] = str(exc.retry_after_seconds)
+        return response
+
+    scope = AskScope(
+        group=group,
+        period=period,
+        default_game_type_code=game_type_code,
+        available_game_type_codes=tuple(game_type_codes_for_group(group)),
+    )
+
+    try:
+        result = generate_ask_response(
+            scope=scope,
+            question=question,
+            model_slug=model_slug,
+            period_label=period.display_label(),
+            skip_cache=bool(payload.get("refresh")),
+        )
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    except InsightProviderError as exc:
+        return JsonResponse({"error": str(exc)}, status=502)
+
+    if not result.cached:
+        record_insight_usage(request, user=request.user, model_slug=model_slug)
+
+    persist_insight_model_id(request, model_slug)
+
+    return JsonResponse(
+        {
+            "markdown": result.markdown,
+            "html": result.html,
+            "meta": _ask_meta(result),
+        }
+    )

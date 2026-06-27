@@ -34,10 +34,18 @@ def _resolve_navbar_active_section(request) -> str:
         return "add" if url_name == "create" else "games"
     if namespace == "leaderboards":
         return "leaders"
+    if namespace == "insights" and url_name == "ask":
+        return "ask"
     if namespace == "groups":
         return "groups"
     return ""
 
 
 def navbar_context(request):
-    return {"navbar_active_section": _resolve_navbar_active_section(request)}
+    from leaderlodge.insights.views import insights_ui_enabled
+
+    active = _resolve_navbar_active_section(request)
+    return {
+        "navbar_active_section": active,
+        "insights_ui_enabled": insights_ui_enabled(),
+    }

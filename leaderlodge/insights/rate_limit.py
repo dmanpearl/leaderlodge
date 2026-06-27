@@ -86,7 +86,9 @@ def _window_token(window: Window) -> str:
     return now.strftime("%Y%m%d")
 
 
-def _cache_key(*, subject: str, scope: Scope, window: Window, token: str, model_slug: str = "") -> str:
+def _cache_key(
+    *, subject: str, scope: Scope, window: Window, token: str, model_slug: str = ""
+) -> str:
     parts = [_CACHE_PREFIX, subject, scope, window, token]
     if model_slug:
         parts.append(model_slug)

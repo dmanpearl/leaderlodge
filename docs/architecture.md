@@ -23,9 +23,9 @@ LeaderLodge computes rankings in Python; the **insights** app calls cloud LLM AP
 | Group / Hall of Fame insights | **Shipped** | Leaderboard, Hall of Fame |
 | Matchup insights | **Shipped** | Matchup view |
 | Game detail insights | **Shipped** | Game detail (same `/insights/matchup/` context) |
-| Ask the Lodge | Planned | Natural language + tool calling |
+| Ask the Lodge | **Shipped** | `/insights/ask/` (Account menu) |
 
-**App:** `leaderlodge/insights/` (context builders, providers, `POST /insights/player/`, `/insights/group/`, `/insights/matchup/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
+**App:** `leaderlodge/insights/` (context builders, providers, `POST /insights/player/`, `/insights/group/`, `/insights/matchup/`, `POST /insights/ask/query/`, validated tools in `insights/tools/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
 
 **UI:** Shared Insights button style in `static/css/insights.css` (`btn-insights`, violet accent, `bi-stars` icon). Template: `templates/includes/btn_insights.html`. Any new Insights entry point must use this pattern (documented in ai-insights.md section 10).
 

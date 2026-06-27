@@ -8,4 +8,6 @@ urlpatterns = [
     path("player/", views.player_insight, name="player"),
     path("group/", views.group_insight, name="group"),
     path("matchup/", views.matchup_insight, name="matchup"),
+    path("ask/", views.ask_page, name="ask"),
+    path("ask/query/", views.ask_query, name="ask_query"),
 ]

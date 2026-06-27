@@ -84,7 +84,11 @@ def _hall_of_fame_rows(group: Group, *, granularity: str) -> list[dict[str, Any]
                     "game_type_code": column.code,
                     "game_type_name": column.name,
                     "leader": cell.player_label or None,
-                    "rank_score": _round(cell.rank_score, 1) if cell.rank_score is not None else None,
+                    "rank_score": (
+                        _round(cell.rank_score, 1)
+                        if cell.rank_score is not None
+                        else None
+                    ),
                 }
             )
         rows.append(
@@ -108,7 +112,9 @@ def build_group_insight_context(
 ) -> dict[str, Any]:
     if scope == SCOPE_LEADERBOARD:
         if not game_type_code:
-            raise GroupInsightContextError("Game type is required for leaderboard insights.")
+            raise GroupInsightContextError(
+                "Game type is required for leaderboard insights."
+            )
         if period is None:
             period = LeaderboardPeriod.all_time()
 
@@ -158,7 +164,9 @@ def build_group_insight_context(
         resolved_granularity = resolve_hall_of_fame_granularity(granularity or "")
         rows = _hall_of_fame_rows(group, granularity=resolved_granularity)
         if not rows:
-            raise GroupInsightContextError("No Hall of Fame periods recorded for this group.")
+            raise GroupInsightContextError(
+                "No Hall of Fame periods recorded for this group."
+            )
 
         game_types = sorted(
             {
@@ -178,9 +186,9 @@ def build_group_insight_context(
             "period_leaders": rows,
             "data_quality": {
                 "period_count": len(rows),
-                "min_recommended_for_trends": 3
-                if resolved_granularity == GRANULARITY_MONTH
-                else 2,
+                "min_recommended_for_trends": (
+                    3 if resolved_granularity == GRANULARITY_MONTH else 2
+                ),
                 "sparse": len(rows) < 2,
             },
         }

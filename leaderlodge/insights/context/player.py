@@ -110,7 +110,9 @@ def build_player_insight_context(
         period=period,
     )
     if detail is None:
-        raise InsightContextError("No recorded games for this player in the selected period.")
+        raise InsightContextError(
+            "No recorded games for this player in the selected period."
+        )
 
     game_type = get_game_type(game_type_code)
     games_in_period = int(detail.ranking.games_played or 0)

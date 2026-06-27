@@ -104,6 +104,17 @@
                 Profile
               </a>
             </li>
+            {% if insights_ui_enabled %}
+              <li>
+                <a
+                  class="dropdown-item d-flex align-items-center gap-2{% if navbar_active_section == 'ask' %} active{% endif %}"
+                  href="{% url 'insights:ask' %}"
+                >
+                  <i class="bi bi-stars navbar-menu-icon" aria-hidden="true"></i>
+                  Ask the Lodge
+                </a>
+              </li>
+            {% endif %}
             {% if user.is_staff or user.is_superuser %}
               <li>
                 <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'admin:index' %}">

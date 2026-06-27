@@ -57,7 +57,9 @@ def _normalize_limit(value: Any) -> LimitValue:
     return parsed
 
 
-def _merge_actor_limits(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+def _merge_actor_limits(
+    base: dict[str, Any], override: dict[str, Any]
+) -> dict[str, Any]:
     merged = dict(base)
     for key in ("hourly", "daily", "unlimited"):
         if key in override:

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Ask the Lodge | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Ask the Lodge</h1>
+      <p class="text-muted mb-0">Natural-language questions answered from computed group stats.</p>
+    </div>
+  </div>
+
+  {% if not insights_ready %}
+    <div class="alert alert-warning">
+      Insights are not fully configured yet. Set <code>INSIGHTS_ENABLED=true</code> and provider API keys to ask questions.
+    </div>
+  {% endif %}
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" id="ask-lodge-filters" class="row g-3 align-items-end">
+        <div class="col-12 col-sm-6 col-lg-4 col-xl">
+          <label for="ask-group" class="form-label">Group</label>
+          <select id="ask-group" name="group" class="form-select" onchange="this.form.submit()">
+            <option value="">Choose a group</option>
+            {% for group in groups %}
+              <option value="{{ group.pk }}" {% if selected_group and selected_group.pk == group.pk %}selected{% endif %}>
+                {{ group.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% if selected_group and game_type_options %}
+          <div class="col-12 col-sm-6 col-lg-4 col-xl">
+            <label for="ask-game-type" class="form-label">Game</label>
+            <select id="ask-game-type" name="game_type_code" class="form-select" onchange="this.form.submit()">
+              {% for code, name in game_type_options %}
+                <option value="{{ code }}" {% if selected_game_type_code == code %}selected{% endif %}>
+                  {{ name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% include "includes/leaderboard_period_filters.html" with year_select_id="ask-year" month_select_id="ask-month" %}
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  {% if not groups %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">Create or join a group to ask questions.</p>
+      </div>
+    </div>
+  {% elif not selected_group %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">Select a group above.</p>
+      </div>
+    </div>
+  {% elif not game_type_options %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">No games recorded for {{ selected_group.name }} yet.</p>
+      </div>
+    </div>
+  {% else %}
+    <div
+      class="card ask-lodge-panel"
+      data-ask-url="{% url 'insights:ask_query' %}"
+      data-group-id="{{ selected_group.pk }}"
+      data-game-type-code="{{ selected_game_type_code }}"
+      {% if selected_period.year %}data-year="{{ selected_period.year }}"{% endif %}
+      {% if selected_period.month %}data-month="{{ selected_period.month }}"{% endif %}
+    >
+      <div class="card-body d-flex flex-column gap-3">
+        <div>
+          <label for="ask-model" class="form-label">Model</label>
+          <select id="ask-model" class="form-select insights-model-select">
+            {% for model in insight_models %}
+              <option value="{{ model.slug }}" {% if model.slug == selected_insight_model %}selected{% endif %}>
+                {{ model.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label for="ask-question" class="form-label">Your question</label>
+          <div class="input-group">
+            <input
+              type="text"
+              id="ask-question"
+              class="form-control insights-question-input"
+              maxlength="500"
+              placeholder="Who gets 2nd place most often in Mah Jongg?"
+            />
+            <button type="button" class="btn btn-insights ask-lodge-submit-btn">
+              <i class="bi bi-stars" aria-hidden="true"></i> Ask
+            </button>
+          </div>
+          <p class="text-muted small mb-0 mt-2">
+            Examples: improving players this quarter, December leaders, placement counts by game size.
+          </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-secondary insights-copy-btn" disabled>Copy</button>
+          <button type="button" class="btn btn-outline-secondary ask-lodge-regenerate-btn" disabled>Regenerate</button>
+        </div>
+
+        <p class="text-muted small mb-0">AI summary. Rankings are computed by LeaderLodge.</p>
+
+        <div class="insights-progress d-none align-items-center gap-2" role="status" aria-live="polite">
+          <div class="spinner-border spinner-border-sm insights-progress-spinner" aria-hidden="true"></div>
+          <span class="insights-progress-label small text-muted">Analyzing...</span>
+        </div>
+        <div class="insights-status small text-muted" aria-live="polite"></div>
+        <div class="insights-error alert alert-danger d-none mb-0" role="alert"></div>
+        <div class="insights-result player-insights-result flex-grow-1"></div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {% if selected_group and game_type_options %}
+    <script src="{% static 'js/ask_lodge.js' %}"></script>
+  {% endif %}
+{% endblock %}

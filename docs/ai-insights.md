@@ -1,6 +1,6 @@
 # LeaderLodge AI Insights: Integration Bible
 
-> **Status:** Player, group, Hall of Fame, and matchup insights shipped. Ask the Lodge planned.  
+> **Status:** Player, group, Hall of Fame, matchup, and Ask the Lodge insights shipped.  
 > **Last updated:** 2026-06-23  
 > **Companion:** [architecture.md](./architecture.md) (app layout and ranking design only; not a substitute for this doc)
 
@@ -80,7 +80,7 @@ Game DB to get_player_rank_detail() to context JSON to LLM API to markdown insig
 | **Matchup insights** | Shipped | Matchup view |
 | **Game detail insights** | Shipped | Game detail view (same API + context as matchup) |
 | **Insights launcher** | Planned | Navbar or account menu (mobile navbar is full) |
-| **Ask the Lodge** | Planned | Natural language + validated tool calling |
+| **Ask the Lodge** | Shipped | `/insights/ask/` natural language + validated tool calling |
 
 ### Prominence
 
@@ -400,11 +400,26 @@ Document in `setup.md` when promoting new insight surfaces.
 
 ---
 
-## 15. Ask the Lodge (planned)
+## 15. Ask the Lodge
 
-The user asks in natural language. The LLM proposes a **validated tool call**. Python runs the ORM query. The LLM narrates the result. No raw SQL from the model.
+The user asks in natural language on `/insights/ask/`. The LLM proposes **validated tool calls**. Python runs ORM queries. The LLM narrates the result. No raw SQL from the model.
 
-Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement_leaders(placement=1, player_count=5)`.
+Entry: Account menu **Ask the Lodge** (when insights UI is enabled).
+
+### Tools (MVP)
+
+| Tool | Purpose |
+|------|---------|
+| `list_game_types` | Game types with recorded games in the group |
+| `query_leaderboard` | Rankings for a game type and optional period/size |
+| `query_placement_leaders` | Who finishes in a placement most often (0=1st, 1=2nd, ...) |
+| `query_month_leaders` | Leaders for a calendar month (e.g. December) |
+| `query_rank_trends` | Rank score improvement between recent and prior windows |
+| `query_player_detail` | One player's placement breakdown |
+
+Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement_leaders(placement=1, game_size=5)`.
+
+API: `POST /insights/ask/query/` with `group_id`, `game_type_code`, `question`, optional `year`/`month`, `model`, `refresh`.
 
 ---
 
@@ -443,7 +458,7 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 ### Planned
 
 - [ ] Navbar Insights launcher
-- [ ] Ask the Lodge tools + page
+- [x] Ask the Lodge tools + page
 
 ---
 

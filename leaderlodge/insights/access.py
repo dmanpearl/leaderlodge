@@ -24,7 +24,7 @@ class InsightAccessError(PermissionError):
     pass
 
 
-def _game_type_codes_for_group(group: Group) -> list[str]:
+def game_type_codes_for_group(group: Group) -> list[str]:
     from leaderlodge.games.models import Game
 
     return list(
@@ -33,6 +33,10 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
         .distinct()
         .order_by("game_type_code")
     )
+
+
+def _game_type_codes_for_group(group: Group) -> list[str]:
+    return game_type_codes_for_group(group)
 
 
 def resolve_player_insight_target(
@@ -92,7 +96,9 @@ def resolve_group_insight_target(
         raise InsightAccessError("Invalid insight scope.")
 
     if resolved_scope == SCOPE_LEADERBOARD:
-        if not game_type_code or game_type_code not in _game_type_codes_for_group(group):
+        if not game_type_code or game_type_code not in _game_type_codes_for_group(
+            group
+        ):
             raise InsightAccessError("Game type not found for this group.")
 
         years, months_by_year = available_leaderboard_periods(group, game_type_code)
@@ -116,11 +122,47 @@ def resolve_matchup_insight_target(
     from leaderlodge.games.models import Game
     from leaderlodge.groups.services import can_view_group
 
-    game = (
-        Game.objects.filter(pk=game_id)
-        .select_related("group", "location")
-        .first()
-    )
+    game = Game.objects.filter(pk=game_id).select_related("group", "location").first()
     if game is None or not can_view_group(user, game.group):
         raise InsightAccessError("Game not found.")
     return game
+
+
+def resolve_ask_target(
+    request: HttpRequest,
+    *,
+    user: User | AnonymousUser,
+    group_id: str,
+    game_type_code: str = "",
+    raw_year: str = "",
+    raw_month: str = "",
+) -> tuple[Group, str | None, LeaderboardPeriod]:
+    groups = list(visible_groups(user).order_by("name"))
+    group_ids = {str(group.pk) for group in groups}
+    if group_id not in group_ids:
+        raise InsightAccessError("Group not found.")
+
+    group = next(item for item in groups if str(item.pk) == group_id)
+    available_codes = _game_type_codes_for_group(group)
+    if not available_codes:
+        raise InsightAccessError("No games recorded for this group.")
+
+    resolved_game_type_code: str | None = None
+    if game_type_code:
+        if game_type_code not in available_codes:
+            raise InsightAccessError("Game type not found for this group.")
+        resolved_game_type_code = game_type_code
+    else:
+        resolved_game_type_code = available_codes[0]
+
+    years, months_by_year = available_leaderboard_periods(
+        group,
+        resolved_game_type_code,
+    )
+    period = resolve_leaderboard_period(
+        raw_year=raw_year.strip(),
+        raw_month=raw_month.strip(),
+        available_years=years,
+        months_by_year=months_by_year,
+    )
+    return group, resolved_game_type_code, period
