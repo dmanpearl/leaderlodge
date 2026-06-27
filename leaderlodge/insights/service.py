@@ -34,6 +34,7 @@ from leaderlodge.insights.tools.executor import (
     ToolExecutionError,
     ToolExecutor,
 )
+from leaderlodge.insights.tools.players import build_ask_player_roster
 from leaderlodge.insights.tools.schemas import ASK_TOOL_SCHEMAS
 
 _CACHE_PREFIX = "leaderlodge.insights.response"
@@ -204,6 +205,7 @@ def generate_ask_response(
         group_name=scope.group.name,
         game_type_code=scope.default_game_type_code,
         period_label=period_label,
+        player_roster=build_ask_player_roster(scope.group),
     )
     executor = ToolExecutor(scope)
     messages: list[dict] = [{"role": "user", "content": user_message}]

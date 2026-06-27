@@ -14,6 +14,18 @@ ASK_TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "list_group_players",
+            "description": (
+                "List active players in the group with player_id, display_label, "
+                "display_name, and username when linked. Use before query_player_detail "
+                "when the question names players by first name or username."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "query_leaderboard",
             "description": "Current leaderboard rankings for one game type.",
             "parameters": {
@@ -127,17 +139,28 @@ ASK_TOOL_SCHEMAS: list[dict] = [
         "type": "function",
         "function": {
             "name": "query_player_detail",
-            "description": "Detailed stats for one player in one game type.",
+            "description": (
+                "Detailed stats for one player in one game type. "
+                "Use player_query for names (first name, display label, username) "
+                "or player_id from list_group_players / the roster."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "player_id": {"type": "integer"},
+                    "player_query": {
+                        "type": "string",
+                        "description": (
+                            "Player name or username from the question, e.g. Nancy, "
+                            "David, or nmanpearl."
+                        ),
+                    },
                     "game_type_code": {"type": "string"},
                     "year": {"type": "integer"},
                     "month": {"type": "integer"},
                     "game_size": {"type": "integer"},
                 },
-                "required": ["player_id", "game_type_code"],
+                "required": ["game_type_code"],
             },
         },
     },

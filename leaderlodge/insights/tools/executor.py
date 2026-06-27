@@ -6,6 +6,10 @@ from leaderlodge.games.game_size import available_game_sizes, resolve_game_size
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES
 from leaderlodge.insights.tools.placements import query_placement_leaders
+from leaderlodge.insights.tools.players import (
+    build_ask_player_roster,
+    resolve_player_query,
+)
 from leaderlodge.insights.tools.scope import AskScope
 from leaderlodge.insights.tools.standings import (
     list_game_types,
@@ -33,6 +37,7 @@ class ToolExecutor:
     def execute(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         handlers = {
             "list_game_types": self._list_game_types,
+            "list_group_players": self._list_group_players,
             "query_leaderboard": self._query_leaderboard,
             "query_placement_leaders": self._query_placement_leaders,
             "query_month_leaders": self._query_month_leaders,
@@ -96,6 +101,39 @@ class ToolExecutor:
 
     def _list_game_types(self, arguments: dict[str, Any]) -> dict[str, Any]:
         return list_game_types(self.scope.group)
+
+    def _list_group_players(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "group_id": self.scope.group.pk,
+            "group_name": self.scope.group.name,
+            "players": build_ask_player_roster(self.scope.group),
+        }
+
+    def _resolve_player_id(self, arguments: dict[str, Any]) -> int:
+        raw_id = arguments.get("player_id")
+        raw_query = str(arguments.get("player_query") or "").strip()
+
+        if raw_id is not None and raw_query:
+            raise ToolExecutionError("Provide player_id or player_query, not both.")
+
+        if raw_query:
+            try:
+                return resolve_player_query(self.scope.group, raw_query).pk
+            except ValueError as exc:
+                raise ToolExecutionError(str(exc)) from exc
+
+        try:
+            player_id = int(raw_id)
+        except (TypeError, ValueError) as exc:
+            raise ToolExecutionError(
+                "player_id must be an integer or provide player_query."
+            ) from exc
+
+        if not self.scope.group.players.filter(pk=player_id).exists():
+            raise ToolExecutionError(
+                f"player_id {player_id} not found in this group."
+            )
+        return player_id
 
     def _query_leaderboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
         game_type_code = self._resolve_game_type_code(arguments)
@@ -173,10 +211,7 @@ class ToolExecutor:
 
     def _query_player_detail(self, arguments: dict[str, Any]) -> dict[str, Any]:
         game_type_code = self._resolve_game_type_code(arguments)
-        try:
-            player_id = int(arguments.get("player_id"))
-        except (TypeError, ValueError) as exc:
-            raise ToolExecutionError("player_id must be an integer.") from exc
+        player_id = self._resolve_player_id(arguments)
 
         return query_player_detail(
             self.scope.group,

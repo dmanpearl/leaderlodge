@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 6
+PROMPT_VERSION = 7
 
 _NUMERIC_RULES = """- For comparisons (more/less, most, highest, best rank): use `computed_rankings` when present. Do not infer order by comparing raw numbers yourself.
 - Only call a player "most" or "highest" if they are rank 1 in the matching `computed_rankings` list.
@@ -65,6 +65,7 @@ The user asks a natural-language question about their group stats. You have tool
 Rules:
 - Call one or more tools when you need computed stats. Do not guess ranks, counts, or trends.
 - Use ONLY facts returned by tools. Do not invent games, players, or numbers.
+- The user message includes a player roster with player_id and name aliases. Use player_query or player_id from that roster when calling query_player_detail. Never invent player_id values.
 - Placement in tools is 0-indexed: 0=1st place, 1=2nd place, 2=3rd place.
 - Refer to players by display_label from tool results.
 - If tools return empty leaders or no data, say data is limited for that question.
@@ -239,6 +240,7 @@ def render_ask_user_message(
     group_name: str,
     game_type_code: str | None,
     period_label: str,
+    player_roster: list[dict],
 ) -> str:
     custom = sanitize_custom_question(question)
     if not custom:
@@ -253,4 +255,10 @@ def render_ask_user_message(
         scope_lines.append("Default period: all time")
 
     scope_text = "\n".join(scope_lines)
-    return f"{scope_text}\n\nQuestion: {custom}"
+    roster_text = json.dumps(player_roster, separators=(",", ":"))
+    return (
+        f"{scope_text}\n\n"
+        f"Group players (use player_id or player_query in tools):\n"
+        f"{roster_text}\n\n"
+        f"Question: {custom}"
+    )

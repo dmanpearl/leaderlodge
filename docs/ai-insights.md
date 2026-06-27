@@ -35,7 +35,7 @@ The model never chooses what to query. Context scope is locked to the open page 
 | LLM | Narrates from tool output (up to 3 tool rounds) |
 | Output | Markdown answer |
 
-The model cannot run SQL or invent stats. It selects from a fixed tool catalog; Python enforces arguments and permissions.
+The model cannot run SQL or invent stats. It selects from a fixed tool catalog; Python enforces arguments and permissions. Each Ask request includes a **player roster** (id, display label, username, first name) so questions can use friendly names; `query_player_detail` also accepts `player_query` for server-side name matching.
 
 **Entry points:** Navbar **Ask** (violet `bi-stars`; icon on mobile, icon + label on desktop) and Account menu **Ask the Lodge**.
 
@@ -71,7 +71,8 @@ The model cannot run SQL or invent stats. It selects from a fixed tool catalog; 
 | `query_placement_leaders` | Who finishes in a placement most often (0=1st, 1=2nd, ...) |
 | `query_month_leaders` | Leaders for a calendar month |
 | `query_rank_trends` | Rank score change between recent and prior windows |
-| `query_player_detail` | One player's placement breakdown |
+| `query_player_detail` | One player's placement breakdown (by `player_id` or `player_query`) |
+| `list_group_players` | Active roster with ids and name aliases |
 
 ---
 
