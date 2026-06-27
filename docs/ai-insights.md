@@ -1,6 +1,6 @@
 # LeaderLodge AI Insights: Integration Bible
 
-> **Status:** Phase 1 complete; Phase 2 in progress (group / Hall of Fame trends).  
+> **Status:** Phase 2 complete (group / Hall of Fame trends). Phase 3 planned.  
 > **Last updated:** 2026-06-23  
 > **Companion:** [architecture.md](./architecture.md) (app layout and ranking design only; not a substitute for this doc)
 
@@ -76,7 +76,7 @@ Game DB to get_player_rank_detail() to context JSON to LLM API to markdown insig
 | Phase | Feature | Entry points | Prominence |
 |-------|---------|--------------|------------|
 | **1 (done)** | Player Insights | Rank detail | Insights button on player rank detail |
-| **2 (current)** | Group / Hall of Fame trends | Leaderboard, Hall of Fame | Tier A: page-level Insights buttons (no navbar; mobile has no room) |
+| **2 (done)** | Group / Hall of Fame trends | Leaderboard, Hall of Fame | Tier A: page-level Insights buttons |
 | **2b (later)** | Insights launcher | Navbar (optional) | Tier B: global stars icon + scope picker; deferred until after Phase 2 |
 | **3** | Ask the Lodge | NL queries via tool calling | Navbar evolves into Ask the Lodge |
 
@@ -126,11 +126,12 @@ leaderlodge/insights/
   limits.py            # merge defaults, settings, user (done)
   rate_limit.py        # cache counters (done; gated by flag)
   context/player.py    # Phase 1: build JSON
+  context/group.py     # Phase 2: leaderboard + Hall of Fame JSON
   prompts.py           # system + preset templates
   providers/           # OpenAI, Google HTTP clients
   router.py            # slug to provider.complete()
   service.py           # generate_player_insight()
-  views.py + urls.py   # POST /insights/player/
+  views.py + urls.py   # POST /insights/player/, POST /insights/group/
 ```
 
 ### Request flow (Phase 1)
@@ -173,7 +174,7 @@ sequenceDiagram
 ## 8. Prompts and guardrails
 
 - System prompt: analyst role, JSON-only facts, sparse-data handling, markdown output cap.
-- `PROMPT_VERSION = 2` in `prompts.py` (bump when instructions change).
+- `PROMPT_VERSION = 3` in `prompts.py` (bump when instructions change).
 - Custom questions: length cap, strip control chars.
 - Disclaimer in UI: *AI summary. Rankings computed by LeaderLodge.*
 
@@ -183,11 +184,20 @@ sequenceDiagram
 
 ```
 POST /insights/player/
+POST /insights/group/
 ```
+
+### Player (`POST /insights/player/`)
 
 Body: `group_id`, `player_id`, `game_type_code`, `year`, `month`, `preset`, `question`, `model`.
 
-Response: `{ "markdown": "...", "meta": { "model", "cached", "prompt_version", ... } }`.
+### Group (`POST /insights/group/`)
+
+Body: `group_id`, `scope` (`leaderboard` or `hall_of_fame`), `game_type_code` (leaderboard), `year`, `month` (leaderboard period), `granularity` (Hall of Fame), `preset`, `question`, `model`, `refresh`.
+
+Group presets: `overview`, `standouts`, `competition` (leaderboard), `dynasty` (Hall of Fame), `custom`.
+
+Response (both): `{ "markdown": "...", "meta": { "model", "cached", "prompt_version", ... } }`.
 
 Errors: 403 permission, 429 rate limit (when enabled), 502 provider error.
 
@@ -221,9 +231,9 @@ Bootstrap offcanvas on rank detail.
 
 Contents: title, model `<select>`, preset chips, custom input, disclaimer, markdown result, Copy / Regenerate.
 
-### Phase 2 (in progress)
+### Phase 2 (shipped)
 
-Same offcanvas pattern on **leaderboard** and **Hall of Fame** with group-scope context and presets (e.g. period story, standout performers).
+Same offcanvas pattern on **leaderboard** and **Hall of Fame** with group-scope context. Templates: `group_insights_panel.html`, `group_insights.js`. Presets: Overview, Standouts, Race (leaderboard) or Dynasty (Hall of Fame), Ask.
 
 ### Phase 3
 
@@ -399,13 +409,12 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 - [ ] Staff-only "show context JSON" toggle
 - [ ] Streaming responses
 
-### Phase 2 (current)
+### Phase 2 (done)
 
-- [ ] `context/group.py` + tests
-- [ ] Group presets in `prompts.py`
-- [ ] `POST /insights/group/`
-- [ ] Leaderboard + Hall of Fame Insights buttons (`btn_insights.html`)
-- [ ] Group trend golden JSON fixtures
+- [x] `context/group.py` + tests
+- [x] Group presets in `prompts.py`
+- [x] `POST /insights/group/`
+- [x] Leaderboard + Hall of Fame Insights buttons (`btn_insights.html`, `group_insights_panel.html`)
 
 ### Phase 2b / 3
 
@@ -430,6 +439,7 @@ Example: *"Who finishes 2nd most in 5-player dominos?"* maps to `query_placement
 | 2026-06-23 | Gemini 2.5: disable thinking tokens (`thinking_budget=0`) to avoid truncated output |
 | 2026-06-23 | Prominence: Tier A on leaderboard/HoF for Phase 2; navbar launcher deferred (Tier B) |
 | 2026-06-23 | Insights button design system: `btn-insights` + `bi-stars` in `insights.css` |
+| 2026-06-23 | Phase 2 shipped: group context, `/insights/group/`, leaderboard + HoF buttons |
 
 ---
 

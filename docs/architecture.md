@@ -20,10 +20,10 @@ LeaderLodge computes rankings in Python; the **insights** app calls cloud LLM AP
 | Phase | Status | Entry points |
 |-------|--------|--------------|
 | 1. Player Insights | **Shipped** | Rank detail (`btn-insights` opens offcanvas) |
-| 2. Group / Hall of Fame trends | **In progress** | Leaderboard, Hall of Fame (Tier A page buttons) |
+| 2. Group / Hall of Fame trends | **Shipped** | Leaderboard, Hall of Fame (`POST /insights/group/`) |
 | 3. Ask the Lodge | Planned | Natural language + tool calling; navbar when layout allows |
 
-**App:** `leaderlodge/insights/` (context builders, providers, `POST /insights/player/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
+**App:** `leaderlodge/insights/` (player + group context builders, providers, `POST /insights/player/` and `POST /insights/group/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
 
 **UI:** Shared Insights button style in `static/css/insights.css` (`btn-insights`, violet accent, `bi-stars` icon). Template: `templates/includes/btn_insights.html`. Any new Insights entry point must use this pattern (documented in ai-insights.md section 10).
 

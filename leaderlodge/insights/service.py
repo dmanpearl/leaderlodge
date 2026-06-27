@@ -1,4 +1,4 @@
-"""Generate player insights via LLM with optional response caching."""
+"""Generate insights via LLM with optional response caching."""
 
 from __future__ import annotations
 
@@ -10,9 +10,12 @@ from typing import Any
 from django.core.cache import cache
 
 from leaderlodge.insights.prompts import (
+    GROUP_INSIGHT_SYSTEM_PROMPT,
     PLAYER_INSIGHT_SYSTEM_PROMPT,
     PROMPT_VERSION,
+    render_group_user_message,
     render_user_message,
+    resolve_group_preset,
     resolve_preset,
 )
 from leaderlodge.insights.registry import resolve_model_slug
@@ -37,15 +40,17 @@ class InsightResult:
 
 def _cache_key(
     *,
+    kind: str,
     context: dict[str, Any],
     preset: str,
     question: str,
     model_slug: str,
 ) -> str:
     payload = {
+        "kind": kind,
         "prompt_version": PROMPT_VERSION,
         "model_slug": model_slug,
-        "preset": resolve_preset(preset),
+        "preset": preset,
         "question": question.strip(),
         "context": context,
     }
@@ -65,21 +70,20 @@ def _markdown_to_html(text: str) -> str:
     )
 
 
-def generate_player_insight(
+def _generate_insight(
     *,
+    kind: str,
     context: dict[str, Any],
     preset: str,
-    question: str = "",
+    question: str,
     model_slug: str,
-    skip_cache: bool = False,
+    system_prompt: str,
+    user_message: str,
+    skip_cache: bool,
 ) -> InsightResult:
     model = resolve_model_slug(model_slug)
-    user_message = render_user_message(
-        context=context,
-        preset=preset,
-        question=question,
-    )
     cache_key = _cache_key(
+        kind=kind,
         context=context,
         preset=preset,
         question=question,
@@ -101,7 +105,7 @@ def generate_player_insight(
 
     completion = complete_insight(
         model_slug=model,
-        system=PLAYER_INSIGHT_SYSTEM_PROMPT,
+        system=system_prompt,
         user=user_message,
     )
     html = _markdown_to_html(completion.text)
@@ -126,4 +130,57 @@ def generate_player_insight(
         cached=False,
         input_tokens=completion.input_tokens,
         output_tokens=completion.output_tokens,
+    )
+
+
+def generate_player_insight(
+    *,
+    context: dict[str, Any],
+    preset: str,
+    question: str = "",
+    model_slug: str,
+    skip_cache: bool = False,
+) -> InsightResult:
+    resolved_preset = resolve_preset(preset)
+    user_message = render_user_message(
+        context=context,
+        preset=preset,
+        question=question,
+    )
+    return _generate_insight(
+        kind="player",
+        context=context,
+        preset=resolved_preset,
+        question=question,
+        model_slug=model_slug,
+        system_prompt=PLAYER_INSIGHT_SYSTEM_PROMPT,
+        user_message=user_message,
+        skip_cache=skip_cache,
+    )
+
+
+def generate_group_insight(
+    *,
+    context: dict[str, Any],
+    preset: str,
+    question: str = "",
+    model_slug: str,
+    skip_cache: bool = False,
+) -> InsightResult:
+    scope = str(context.get("scope", ""))
+    resolved_preset = resolve_group_preset(preset, scope=scope)
+    user_message = render_group_user_message(
+        context=context,
+        preset=preset,
+        question=question,
+    )
+    return _generate_insight(
+        kind=f"group:{scope}",
+        context=context,
+        preset=resolved_preset,
+        question=question,
+        model_slug=model_slug,
+        system_prompt=GROUP_INSIGHT_SYSTEM_PROMPT,
+        user_message=user_message,
+        skip_cache=skip_cache,
     )

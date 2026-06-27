@@ -66,11 +66,12 @@
 - [x] 336ebed Hall of Fame view
 - [x] 10df048 Navbar: Selected item should be visibly highlighted
 - [x] AI rate limits: defaults + settings + per-user ui_settings + cache counters
-- [x] AI Phase 1: Player Insights on rank detail (see [docs/ai-insights.md](docs/ai-insights.md))
+- [x] AI Player Insights on rank detail (see [docs/ai-insights.md](docs/ai-insights.md))
+- [x] AI Phase 2: Group / Hall of Fame trend analysis
 
 ## Open Items
 
-- [ ] AI Phase 2: Group / Hall of Fame trend analysis
+- [ ] AI Matchup insights provides information on the dynamics of the set of players. Should send player detail information for all matched-up players
 - [ ] AI Phase 3: Ask the Lodge (natural-language queries + tool calling)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)

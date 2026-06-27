@@ -25,6 +25,7 @@ from leaderlodge.leaderboards.hall_of_fame import (
     hall_of_fame_filter_summary,
     resolve_hall_of_fame_granularity,
 )
+from leaderlodge.insights.context.group import SCOPE_HALL_OF_FAME
 from leaderlodge.insights.model_selection import preferred_insight_model_id
 from leaderlodge.insights.registry import MODEL_REGISTRY
 from leaderlodge.insights.views import insights_feature_enabled, insights_ui_enabled
@@ -105,6 +106,15 @@ def _period_context(
     }
 
 
+def _insights_template_context(request: HttpRequest) -> dict:
+    return {
+        "insights_enabled": insights_ui_enabled(),
+        "insights_ready": insights_feature_enabled(),
+        "insight_models": tuple(MODEL_REGISTRY.values()),
+        "selected_insight_model": preferred_insight_model_id(request),
+    }
+
+
 @demo_or_login_required
 def leaderboard_index(request: HttpRequest) -> HttpResponse:
     groups = list(visible_groups(request.user).order_by("name"))
@@ -163,6 +173,11 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         game_type_code=selected_game_type_code or "",
         period=selected_period,
     )
+    insight_subtitle = (
+        f"{selected_game_type.name} · {period_label}"
+        if selected_game_type and period_label
+        else (selected_game_type.name if selected_game_type else "")
+    )
 
     return render(
         request,
@@ -177,7 +192,9 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "period_label": period_label,
             "leaderboard_query": leaderboard_query,
             "hall_of_fame_query": build_hall_of_fame_query(group_id=resolved_group_id),
+            "insight_subtitle": insight_subtitle,
             **period_ctx,
+            **_insights_template_context(request),
         },
     )
 
@@ -265,6 +282,9 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
             "hall_of_fame_query": hall_of_fame_query,
             "leaderboard_query": leaderboard_query,
             "period_column_label": "Month" if granularity == GRANULARITY_MONTH else "Year",
+            "selected_period": LeaderboardPeriod.all_time(),
+            "insight_scope": SCOPE_HALL_OF_FAME,
+            **_insights_template_context(request),
         },
     )
 

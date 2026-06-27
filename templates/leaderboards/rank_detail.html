@@ -236,7 +236,22 @@
 
   {% if detail.supports_loser %}
     <div class="card mb-3">
-      <div class="card-header">Losses by field size</div>
+      <div class="card-header d-flex align-items-center gap-2">
+        <span>Losses by field size</span>
+        <button
+          type="button"
+          class="btn btn-link btn-sm p-0 text-muted rank-detail-rules-btn"
+          data-bs-toggle="popover"
+          data-bs-trigger="focus hover"
+          data-bs-placement="bottom"
+          data-bs-html="true"
+          title="About losses"
+          data-bs-content="Losses are shown for reference; rank score uses finish placement points only."
+          aria-label="About losses"
+        >
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+        </button>
+      </div>
       <div class="card-body">
         <p class="mb-2">
           <strong>
@@ -258,9 +273,6 @@
         {% else %}
           <p class="text-muted mb-0">No explicit losses recorded.</p>
         {% endif %}
-        <p class="text-muted small mb-0 mt-3">
-          Losses are shown for reference; rank score uses finish placement points only.
-        </p>
       </div>
     </div>
   {% endif %}

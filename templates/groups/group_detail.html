@@ -320,7 +320,13 @@
                 <tr>
                   <td>{% if standing.rank %}{{ standing.rank }}{% else %}&mdash;{% endif %}</td>
                   <td>
-                    {{ standing.player.display_label }}
+                    {% if standing.games_played and player_detail_query %}
+                      <a href="{% url 'leaderboards:detail' %}?{{ player_detail_query }}&amp;player={{ standing.player.pk }}">
+                        {{ standing.player.display_label }}
+                      </a>
+                    {% else %}
+                      {{ standing.player.display_label }}
+                    {% endif %}
                     {% if standing.player.linked_user %}
                       <span class="text-muted small">({{ standing.player.linked_user.username }})</span>
                     {% else %}

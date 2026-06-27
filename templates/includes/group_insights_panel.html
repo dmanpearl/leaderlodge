@@ -1,0 +1,84 @@
+{% load static %}
+<div
+  class="offcanvas offcanvas-end player-insights-offcanvas"
+  tabindex="-1"
+  id="{{ panel_id }}"
+  aria-labelledby="{{ panel_id }}-title"
+  data-insights-url="{% url 'insights:group' %}"
+  data-insights-scope="{{ insight_scope }}"
+  data-group-id="{{ selected_group.pk }}"
+  {% if selected_game_type_code %}data-game-type-code="{{ selected_game_type_code }}"{% endif %}
+  {% if selected_period.year %}data-year="{{ selected_period.year }}"{% endif %}
+  {% if selected_period.month %}data-month="{{ selected_period.month }}"{% endif %}
+  {% if granularity %}data-granularity="{{ granularity }}"{% endif %}
+>
+  <div class="offcanvas-header">
+    <div>
+      <h2 class="offcanvas-title h5 mb-0" id="{{ panel_id }}-title">
+        Insights
+      </h2>
+      <p class="text-muted small mb-0">
+        {{ selected_group.name }}{% if insight_subtitle %} &middot; {{ insight_subtitle }}{% endif %}
+      </p>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column gap-3">
+    <div>
+      <label for="{{ panel_id }}-model" class="form-label">Model</label>
+      <select id="{{ panel_id }}-model" class="form-select insights-model-select">
+        {% for model in insight_models %}
+          <option value="{{ model.slug }}" {% if model.slug == selected_insight_model %}selected{% endif %}>
+            {{ model.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <span class="form-label d-block">Preset</span>
+      <div class="btn-group flex-wrap player-insights-presets" role="group" aria-label="Insight presets">
+        <input type="radio" class="btn-check insights-preset-input" name="{{ panel_id }}-preset" id="{{ panel_id }}-preset-overview" value="overview" autocomplete="off" checked />
+        <label class="btn btn-insights-outline btn-sm" for="{{ panel_id }}-preset-overview">Overview</label>
+        <input type="radio" class="btn-check insights-preset-input" name="{{ panel_id }}-preset" id="{{ panel_id }}-preset-standouts" value="standouts" autocomplete="off" />
+        <label class="btn btn-insights-outline btn-sm" for="{{ panel_id }}-preset-standouts">Standouts</label>
+        {% if insight_scope == "hall_of_fame" %}
+          <input type="radio" class="btn-check insights-preset-input" name="{{ panel_id }}-preset" id="{{ panel_id }}-preset-dynasty" value="dynasty" autocomplete="off" />
+          <label class="btn btn-insights-outline btn-sm" for="{{ panel_id }}-preset-dynasty">Dynasty</label>
+        {% else %}
+          <input type="radio" class="btn-check insights-preset-input" name="{{ panel_id }}-preset" id="{{ panel_id }}-preset-competition" value="competition" autocomplete="off" />
+          <label class="btn btn-insights-outline btn-sm" for="{{ panel_id }}-preset-competition">Race</label>
+        {% endif %}
+        <input type="radio" class="btn-check insights-preset-input" name="{{ panel_id }}-preset" id="{{ panel_id }}-preset-custom" value="custom" autocomplete="off" />
+        <label class="btn btn-insights-outline btn-sm" for="{{ panel_id }}-preset-custom">Ask</label>
+      </div>
+    </div>
+
+    <div id="{{ panel_id }}-custom-wrap" class="insights-custom-wrap d-none">
+      <label for="{{ panel_id }}-question" class="form-label">Your question</label>
+      <input
+        type="text"
+        id="{{ panel_id }}-question"
+        class="form-control insights-question-input"
+        maxlength="500"
+        placeholder="What stands out in this group?"
+      />
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" id="{{ panel_id }}-generate" class="btn btn-insights insights-generate-btn">
+        <i class="bi bi-stars" aria-hidden="true"></i> Generate
+      </button>
+      <button type="button" class="btn btn-outline-secondary insights-copy-btn" disabled>Copy</button>
+      <button type="button" class="btn btn-outline-secondary insights-regenerate-btn" disabled>Regenerate</button>
+    </div>
+
+    <p class="text-muted small mb-0">
+      AI summary. Rankings are computed by LeaderLodge.
+    </p>
+
+    <div class="insights-status small text-muted" aria-live="polite"></div>
+    <div class="insights-error alert alert-danger d-none mb-0" role="alert"></div>
+    <div class="insights-result player-insights-result flex-grow-1"></div>
+  </div>
+</div>

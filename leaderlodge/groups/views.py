@@ -186,6 +186,15 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         game_type_code=selected_game_type_code or "",
         period=selected_period,
     )
+    player_detail_query = (
+        build_leaderboard_query(
+            group_id=str(group.pk),
+            game_type_code=selected_game_type_code,
+            period=selected_period,
+        )
+        if selected_game_type_code
+        else ""
+    )
 
     return {
         "group": group,
@@ -205,6 +214,7 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         "standings_sort": sort,
         "standings_dir": "desc" if not ascending else "asc",
         "filter_query": filter_query,
+        "player_detail_query": player_detail_query,
         "selected_period": selected_period,
         "period_year_options": years,
         "period_month_options": period_month_options,
