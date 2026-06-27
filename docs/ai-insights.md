@@ -77,13 +77,14 @@ Game DB to get_player_rank_detail() to context JSON to LLM API to markdown insig
 |---------|--------|--------------|
 | **Player insights** | Shipped | Rank detail |
 | **Group / Hall of Fame insights** | Shipped | Leaderboard, Hall of Fame |
-| **Matchup insights** | Shipped | Matchup view (after recording a game) |
+| **Matchup insights** | Shipped | Matchup view |
+| **Game detail insights** | Shipped | Game detail view (same API + context as matchup) |
 | **Insights launcher** | Planned | Navbar or account menu (mobile navbar is full) |
 | **Ask the Lodge** | Planned | Natural language + validated tool calling |
 
 ### Prominence
 
-**Shipped:** Contextual **Insights** buttons on rank detail, leaderboard, Hall of Fame, and matchup. All use `btn-insights` + `bi-stars`.
+**Shipped:** Contextual **Insights** buttons on rank detail, leaderboard, Hall of Fame, matchup, and game detail. All use `btn-insights` + `bi-stars`.
 
 **Later:** Global launcher (scope picker: player / leaderboard / Hall of Fame) when navbar layout allows.
 
@@ -171,11 +172,13 @@ sequenceDiagram
 
 **Scopes:** `leaderboard` (rankings snapshot), `hall_of_fame` (period leaders grid).
 
-### Matchup (`context/matchup.py`)
+### Game set (`context/matchup.py`)
 
-**Function:** `build_matchup_insight_context(game)`
+**Function:** `build_matchup_insight_context(game)` — shared by **matchup view** and **game detail view** (`POST /insights/matchup/`).
 
-**Sources:** `build_matchup_view()` stat table, plus `get_player_rank_detail()` summary for each player in the game.
+**Sources:** `build_matchup_view()` stat table; slim per-player ranking summary (no placement breakdown).
+
+**Precomputed (Python, not LLM):** `computed_rankings` with sorted lists (`by_games_played`, `by_rank_score`, `by_wins`, `by_leaderboard_rank`) and a `leaders` map (`most_games`, `highest_rank_score`, etc.). Prompts instruct the model to use these for comparisons instead of inferring order from raw numbers.
 
 **Omit from all contexts:** raw game row dumps beyond what each builder needs, PII beyond display names.
 
@@ -186,7 +189,8 @@ sequenceDiagram
 ## 8. Prompts and guardrails
 
 - System prompt: analyst role, JSON-only facts, sparse-data handling, markdown output cap.
-- `PROMPT_VERSION = 4` in `prompts.py` (bump when instructions change).
+- `PROMPT_VERSION = 5` in `prompts.py` (bump when instructions change).
+- Numeric comparisons: use `computed_rankings` when present; no self-invented superlatives.
 - Custom questions: length cap, strip control chars.
 - Disclaimer in UI: *AI summary. Rankings computed by LeaderLodge.*
 
@@ -212,9 +216,9 @@ Body: `group_id`, `scope` (`leaderboard` or `hall_of_fame`), `game_type_code` (l
 
 Presets: `overview`, `standouts`, `competition` (leaderboard), `dynasty` (Hall of Fame), `custom`.
 
-### Matchup (`POST /insights/matchup/`)
+### Matchup / game detail (`POST /insights/matchup/`)
 
-Body: `game_id`, `preset`, `question`, `model`, `refresh`.
+Body: `game_id`, `preset`, `question`, `model`, `refresh`. Same endpoint for matchup and game detail pages.
 
 Presets: `dynamics`, `head_to_head`, `game_impact`, `custom`.
 
@@ -252,7 +256,7 @@ Any page with Insights buttons must load `insights.css` (same as the offcanvas p
 |---------|----------|-----|
 | Rank detail | `player_insights_panel.html` | `player_insights.js` |
 | Leaderboard, Hall of Fame | `group_insights_panel.html` | `group_insights.js` |
-| Matchup | `matchup_insights_panel.html` | `matchup_insights.js` |
+| Matchup, game detail | `matchup_insights_panel.html` | `matchup_insights.js` |
 
 Each panel: model picker, preset chips, optional custom question, Generate / Copy / Regenerate, markdown result.
 

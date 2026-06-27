@@ -32,7 +32,7 @@ def _mock_matchup_insight_result(**overrides):
         "html": "<h2>Dynamics</h2><p>Pat has the edge head to head.</p>",
         "model_slug": "flash-lite",
         "provider": "google",
-        "prompt_version": 4,
+        "prompt_version": 5,
         "context_schema_version": SCHEMA_VERSION,
         "cached": False,
         "input_tokens": 200,
@@ -40,6 +40,32 @@ def _mock_matchup_insight_result(**overrides):
     }
     defaults.update(overrides)
     return InsightResult(**defaults)
+
+
+@pytest.mark.django_db
+def test_computed_rankings_orders_by_games_played(client, user, group):
+    client.force_login(user)
+    players = list(group.players.order_by("pk")[:2])
+    for _ in range(3):
+        client.post(reverse("games:create"), _load_roster_post(group))
+        client.post(
+            reverse("games:create"),
+            _save_game_post(group, players_played=players, scores={players[0].pk: 30, players[1].pk: 20}),
+        )
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(
+        reverse("games:create"),
+        _save_game_post(group, players_played=players, scores={players[0].pk: 25, players[1].pk: 35}),
+    )
+
+    game = Game.objects.filter(group=group).order_by("pk").last()
+    context = build_matchup_insight_context(game)
+    by_games = context["computed_rankings"]["by_games_played"]
+
+    assert len(by_games) == 2
+    assert by_games[0]["rank"] == 1
+    assert by_games[0]["games_played"] >= by_games[1]["games_played"]
+    assert context["computed_rankings"]["leaders"]["most_games"] == by_games[0]["display_label"]
 
 
 @pytest.mark.django_db
@@ -56,9 +82,11 @@ def test_build_matchup_insight_context(client, user, group):
     context = build_matchup_insight_context(game)
 
     assert context["schema_version"] == SCHEMA_VERSION
-    assert context["scope"] == "matchup"
+    assert context["scope"] == "game_set"
     assert len(context["player_summaries"]) == 2
     assert context["matchup_table"]
+    assert context["computed_rankings"]["by_games_played"]
+    assert context["computed_rankings"]["leaders"]["most_games"]
     assert context["game"]["id"] == game.pk
 
 
@@ -117,4 +145,27 @@ def test_matchup_view_shows_insights_button(client, user, group):
 
     assert "btn-insights" in content
     assert 'id="matchup-insights-panel"' in content
+    assert "matchup_insights.js" in content
+
+
+@pytest.mark.django_db
+@override_settings(
+    INSIGHTS_ENABLED=True,
+    OPENAI_API_KEY="test-openai",
+    GOOGLE_AI_API_KEY="test-google",
+)
+def test_game_detail_shows_insights_button(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    players = list(group.players.order_by("pk")[:2])
+    client.post(
+        reverse("games:create"),
+        _save_game_post(group, players_played=players, scores={players[0].pk: 30, players[1].pk: 20}),
+    )
+    game = Game.objects.get(group=group)
+
+    content = client.get(reverse("games:detail", kwargs={"pk": game.pk})).content.decode()
+
+    assert "btn-insights" in content
+    assert 'id="game-detail-insights-panel"' in content
     assert "matchup_insights.js" in content

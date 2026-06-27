@@ -641,5 +641,8 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "results": results,
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
+            "insights_enabled": insights_ui_enabled(),
+            "insight_models": tuple(MODEL_REGISTRY.values()),
+            "selected_insight_model": preferred_insight_model_id(request),
         },
     )

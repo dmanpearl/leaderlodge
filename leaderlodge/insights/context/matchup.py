@@ -1,4 +1,4 @@
-"""Structured JSON context for matchup insight requests."""
+"""Structured JSON context for game-set insight requests (matchup + game detail)."""
 
 from __future__ import annotations
 
@@ -6,18 +6,14 @@ from typing import TYPE_CHECKING, Any
 
 from leaderlodge.games.matchup import build_matchup_view
 from leaderlodge.games.registry import ScoreDirection, get_game_type
-from leaderlodge.insights.context.player import (
-    InsightContextError,
-    _placement_rows,
-    _round,
-)
+from leaderlodge.insights.context.player import InsightContextError, _round
 from leaderlodge.leaderboards.period import LeaderboardPeriod
 from leaderlodge.leaderboards.service import get_player_rank_detail
 
 if TYPE_CHECKING:
     from leaderlodge.games.models import Game
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 MIN_RECOMMENDED_GAMES = 3
 
 
@@ -59,27 +55,92 @@ def _player_summary(
         raise InsightContextError("No recorded games for this player.")
 
     return {
-        "player": {"id": player.pk, "display_label": player.display_label},
+        "display_label": player.display_label,
         "ranking": {
             "rank": detail.ranking.rank,
             "rank_score": _round(detail.ranking.rank_score, 1),
             "games_played": _round(detail.ranking.games_played, 1),
             "wins": _round(detail.ranking.wins, 1),
-            "losses": _round(detail.ranking.losses, 1),
             "win_pct": _round(detail.ranking.win_pct, 1),
-            "loss_pct": _round(detail.ranking.loss_pct, 1),
         },
-        "detail": {
-            "podium_count": detail.podium_count,
-            "podium_pct": _round(detail.podium_pct, 1),
-            "average_field_size": _round(detail.average_field_size, 1),
-            "game_count": detail.game_count,
-        },
-        "placements": _placement_rows(detail),
+    }
+
+
+def _ranked_entries(
+    summaries: list[dict[str, Any]],
+    *,
+    field: str,
+    higher_is_better: bool,
+) -> list[dict[str, Any]]:
+    sortable: list[tuple[float, str, dict[str, Any]]] = []
+    for summary in summaries:
+        value = summary["ranking"].get(field)
+        if value is None:
+            continue
+        sortable.append((float(value), summary["display_label"], summary))
+
+    sortable.sort(key=lambda item: item[0], reverse=higher_is_better)
+    entries: list[dict[str, Any]] = []
+    for index, (value, label, _summary) in enumerate(sortable, start=1):
+        entries.append(
+            {
+                "rank": index,
+                "display_label": label,
+                field: _round(value, 1),
+            }
+        )
+    return entries
+
+
+def _ranked_by_leaderboard_rank(summaries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    sortable: list[tuple[float, str, int | None]] = []
+    for summary in summaries:
+        rank = summary["ranking"].get("rank")
+        if rank is None:
+            continue
+        sortable.append((float(rank), summary["display_label"], rank))
+
+    sortable.sort(key=lambda item: item[0])
+    return [
+        {
+            "rank": index,
+            "display_label": label,
+            "leaderboard_rank": board_rank,
+        }
+        for index, (_sort_key, label, board_rank) in enumerate(sortable, start=1)
+    ]
+
+
+def _computed_rankings(summaries: list[dict[str, Any]]) -> dict[str, Any]:
+    by_games = _ranked_entries(
+        summaries, field="games_played", higher_is_better=True
+    )
+    by_score = _ranked_entries(
+        summaries, field="rank_score", higher_is_better=True
+    )
+    by_wins = _ranked_entries(summaries, field="wins", higher_is_better=True)
+    by_board_rank = _ranked_by_leaderboard_rank(summaries)
+
+    leaders: dict[str, str | None] = {
+        "most_games": by_games[0]["display_label"] if by_games else None,
+        "highest_rank_score": by_score[0]["display_label"] if by_score else None,
+        "most_wins": by_wins[0]["display_label"] if by_wins else None,
+        "best_leaderboard_rank": (
+            by_board_rank[0]["display_label"] if by_board_rank else None
+        ),
+    }
+
+    return {
+        "by_games_played": by_games,
+        "by_rank_score": by_score,
+        "by_wins": by_wins,
+        "by_leaderboard_rank": by_board_rank,
+        "leaders": leaders,
     }
 
 
 def build_matchup_insight_context(game: Game) -> dict[str, Any]:
+    """Build insight JSON for all players in one game (matchup + game detail)."""
     matchup = build_matchup_view(game)
     if not matchup.players:
         raise MatchupInsightContextError("This game has no participants.")
@@ -103,7 +164,7 @@ def build_matchup_insight_context(game: Game) -> dict[str, Any]:
 
     return {
         "schema_version": SCHEMA_VERSION,
-        "scope": "matchup",
+        "scope": "game_set",
         "group": {"id": game.group.pk, "name": game.group.name},
         "game": {
             "id": game.pk,
@@ -130,6 +191,7 @@ def build_matchup_insight_context(game: Game) -> dict[str, Any]:
         ],
         "matchup_table": _matchup_table_rows(matchup),
         "player_summaries": player_summaries,
+        "computed_rankings": _computed_rankings(player_summaries),
         "data_quality": {
             "player_count": len(players),
             "min_games_among_players": min_games,

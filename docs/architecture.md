@@ -22,6 +22,7 @@ LeaderLodge computes rankings in Python; the **insights** app calls cloud LLM AP
 | Player insights | **Shipped** | Rank detail |
 | Group / Hall of Fame insights | **Shipped** | Leaderboard, Hall of Fame |
 | Matchup insights | **Shipped** | Matchup view |
+| Game detail insights | **Shipped** | Game detail (same `/insights/matchup/` context) |
 | Ask the Lodge | Planned | Natural language + tool calling |
 
 **App:** `leaderlodge/insights/` (context builders, providers, `POST /insights/player/`, `/insights/group/`, `/insights/matchup/`, rate limits in `limits.py` / `rate_limit.py`, disabled by default).
