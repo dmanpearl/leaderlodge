@@ -74,9 +74,16 @@
 - [x] 9415913 Insights: Remove 'Generate' button. When user selects a non-'Ask' option, auto-force Generate immediately (ie Dynamics, Head to Head, This Game, Strengths, Struggles, Superpower). Also invoke Generate progress indicataor. For 'Ask', add Generate on Enter and add Action button to the right of the question text field
 - [x] e4f2e88 Games View > Filters and Leaderboards > Filters: Add Filter by number of players (Game Size). Filter menu options include: All, 2, 3, 4, etc (show numbers actually represented in current set)
 - [x] b96626d AI Ask the Lodge (natural-language queries + tool calling)
+- [x] About page at `/about/` and AI how-it-works page at `/about/insights/`
 
 ## Open Items
 
+- [ ] Solidify tag line (stats vs insights)
+    - Computed by LeaderLodge. Explained by AI.
+    - Stats by LeaderLodge. Insights by AI.
+- [ ] Add tagline to welcome email and reset password emails
+- [ ] Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
+- [ ] Update Github description with tagline
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
@@ -101,7 +108,20 @@
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
 - [ ] Merge similar locations tool
-- [ ] Add About Box and contact us form.
+- [ ] Add Contact form.
 - [ ] iOS: Build native mobile app for iPhone and iPad
 - [ ] Android: Build native mobile app for Android
 - [ ] Delete Group: Make a UI for deleting group, warn user about deleting x number of games, access from Groups View, Group Detail View, and/or Group Edit
+
+## AI showcase follow-ups (one at a time)
+
+- [ ] AI: Why does 'Ask the Lodge' care about filters group, game, and year?
+- [ ] AI: Rewrite /about text
+- [ ] AI: Rewrite /about/insight text
+- [ ] AI: Generic rebranding as AI centric
+- [ ] AI: Demo mode: pre-generated insights for anonymous visitors (no live API call)
+- [ ] AI: Staff-only "Show data sent to AI" toggle (dev/demo JSON viewer)
+- [ ] AI: UI highlight: raw stats table + AI narrative side-by-side ("computed vs interpreted")
+- [ ] AI: Landing-page live Ask query demo (example question + answer for portfolio)
+- [ ] AI: Public write-up: why the LLM never computes rankings (blog, Linkedin, or README section)
+- [ ] AI: Privacy FAQ: what stats and names are sent to AI providers

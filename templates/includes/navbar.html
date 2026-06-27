@@ -147,6 +147,8 @@
                 Reset Preferences
               </button>
             </li>
+            <li><hr class="dropdown-divider"></li>
+            {% include "includes/account_menu_about.html" %}
             <li>
               <form method="post" action="{% url 'accounts:logout' %}">
                 {% csrf_token %}
@@ -185,6 +187,8 @@
                 Login
               </a>
             </li>
+            <li><hr class="dropdown-divider"></li>
+            {% include "includes/account_menu_about.html" %}
           </ul>
         </li>
       {% endif %}

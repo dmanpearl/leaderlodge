@@ -38,6 +38,8 @@ def _resolve_navbar_active_section(request) -> str:
         return "insights"
     if namespace == "groups":
         return "groups"
+    if namespace == "core" and url_name in {"about", "about_insights"}:
+        return "about"
     return ""
 
 

@@ -97,6 +97,14 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
   line-height: 1.2;
 }
 
+.site-footer-nav a {
+  text-decoration: none;
+}
+
+.site-footer-nav a:hover {
+  text-decoration: underline;
+}
+
 .account-name-with-badge {
   position: relative;
   display: inline-block;

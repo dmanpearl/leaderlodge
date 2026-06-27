@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}How AI Works | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  {% if insights_ui_enabled %}
+    <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+      <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0">
+          <li class="breadcrumb-item"><a href="{% url 'core:about' %}">About</a></li>
+          <li class="breadcrumb-item active" aria-current="page">AI insights</li>
+        </ol>
+      </nav>
+
+      <h1 class="h3 mb-1">How AI works in LeaderLodge</h1>
+      <p class="text-muted mb-4">
+        <em>Computed by LeaderLodge. Explained by AI.</em>
+      </p>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <h2 class="h5 mb-3">The idea</h2>
+          <p class="mb-0">
+            LeaderLodge measures performance from your game history. Cloud language models turn those
+            measurements into readable summaries. The model does not calculate ranks or invent
+            scores. It interprets data LeaderLodge already computed.
+          </p>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <h2 class="h5 mb-3">Two ways to ask</h2>
+          <dl class="mb-0">
+            <dt class="mb-1">Contextual insights</dt>
+            <dd class="mb-3 text-muted">
+              On rank detail, leaderboards, Hall of Fame, matchup, and game detail pages, open the
+              Insights panel beside the data you are viewing. Choose a preset (Strengths, Overview,
+              Dynamics, and others) or ask a short custom question about that snapshot.
+            </dd>
+            <dt class="mb-1">Ask the Lodge</dt>
+            <dd class="mb-0 text-muted">
+              A dedicated page for natural-language questions scoped to your group and game type.
+              The model requests validated queries; Python runs them and returns facts before the
+              answer is written.
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <h2 class="h5 mb-3">What we send to AI providers</h2>
+          <ul class="mb-3">
+            <li>Computed stats: rankings, placements, trends, and group summaries</li>
+            <li>Player display names from your group roster</li>
+            <li>Your question or preset choice</li>
+          </ul>
+          <p class="mb-0">
+            We do not send your password or full account details. We do not let the model run
+            arbitrary database queries or raw SQL.
+          </p>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <h2 class="h5 mb-3">Models and control</h2>
+          <p class="mb-3">
+            Insights use server-side API keys only. Signed-in users can pick among a small set of
+            low-cost models. Answers are cached when appropriate, and rate limits can be enabled
+            site-wide.
+          </p>
+          <p class="mb-0 text-muted small">
+            Every insight panel includes a disclaimer: AI summary. Rankings are computed by
+            LeaderLodge.
+          </p>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        {% if insights_ui_enabled %}
+          <a href="{% url 'insights:ask' %}" class="btn btn-insights btn-sm">
+            <i class="bi bi-stars" aria-hidden="true"></i> Ask the Lodge
+          </a>
+        {% endif %}
+        <a href="{% url 'core:about' %}" class="btn btn-outline-secondary btn-sm">About LeaderLodge</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -192,3 +192,11 @@ def dashboard(request):
         is_demo_landing=True,
         can_record_games=False,
     )
+
+
+def about(request):
+    return render(request, "core/about.html")
+
+
+def about_insights(request):
+    return render(request, "core/about_insights.html")
