@@ -75,13 +75,13 @@
 - [x] e4f2e88 Games View > Filters and Leaderboards > Filters: Add Filter by number of players (Game Size). Filter menu options include: All, 2, 3, 4, etc (show numbers actually represented in current set)
 - [x] b96626d AI Ask the Lodge (natural-language queries + tool calling)
 - [x] About page at `/about/` and AI how-it-works page at `/about/insights/`
+- [x] Solidify tag line (stats vs insights)
+    - Primary: Computed by LeaderLodge. Explained by AI.
+    - Optional subtitle: Stats by LeaderLodge. Insights by AI.
+- [x] Add tagline to welcome email and reset password emails
 
 ## Open Items
 
-- [ ] Solidify tag line (stats vs insights)
-    - Computed by LeaderLodge. Explained by AI.
-    - Stats by LeaderLodge. Insights by AI.
-- [ ] Add tagline to welcome email and reset password emails
 - [ ] Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
 - [ ] Update Github description with tagline
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

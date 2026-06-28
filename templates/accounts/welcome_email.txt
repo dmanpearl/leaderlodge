@@ -1,3 +1,5 @@
+LeaderLodge
+{% include "accounts/includes/email_tagline.txt" %}
 Welcome to LeaderLodge{% if user.first_name %}, {{ user.first_name }}{% endif %}!
 
 Thanks for creating an account. Please confirm your email address by opening this link:
@@ -7,3 +9,5 @@ Thanks for creating an account. Please confirm your email address by opening thi
 If you didn't create this account, you can ignore this email.
 
 Your username: {{ user.get_username }}
+
+{% include "accounts/includes/email_signoff.txt" %}

@@ -11,6 +11,7 @@ from leaderlodge.accounts.registration import (
     unique_username_for_email,
     username_base_from_email,
 )
+from leaderlodge.core.brand import TAGLINE
 
 
 @pytest.fixture
@@ -72,6 +73,7 @@ def test_signup_sends_welcome_email_with_verification_link(client):
     message = mail.outbox[0]
     assert message.to == ["newplayer@example.com"]
     assert "Welcome to LeaderLodge" in message.subject
+    assert TAGLINE in message.body
     match = re.search(r"http://testserver(/accounts/verify/[^\s]+)", message.body)
     assert match is not None
 
@@ -286,7 +288,9 @@ def test_navbar_shows_verified_badge_for_verified_user(client, user):
 
     assert content.count("account-verified-badge") == 2
     assert "Verify Email" not in content
-    assert 'dropdown-item-text d-flex align-items-center gap-2 text-success' not in content
+    assert (
+        "dropdown-item-text d-flex align-items-center gap-2 text-success" not in content
+    )
 
 
 @pytest.mark.django_db
@@ -358,6 +362,8 @@ def test_password_reset_sends_email(client, user):
     assert len(mail.outbox) == 1
     assert "david@example.com" in mail.outbox[0].to
     assert "Reset your LeaderLodge password" in mail.outbox[0].subject
+    assert TAGLINE not in mail.outbox[0].body
+    assert "— LeaderLodge" in mail.outbox[0].body
 
 
 @pytest.mark.django_db
@@ -456,7 +462,7 @@ def test_anonymous_navbar_uses_account_dropdown(client):
     assert 'id="guestAccountMenu"' in content
     assert reverse("accounts:signup") in content
     assert reverse("accounts:login") in content
-    assert 'btn btn-outline-light btn-sm' not in content
+    assert "btn btn-outline-light btn-sm" not in content
 
 
 @pytest.mark.django_db

@@ -2,6 +2,8 @@ import pytest
 from django.test import override_settings
 from django.urls import reverse
 
+from leaderlodge.core.brand import TAGLINE
+
 
 @pytest.mark.django_db
 def test_about_page_is_public(client):
@@ -20,7 +22,7 @@ def test_about_insights_page_is_public(client):
 
     assert response.status_code == 200
     assert "How AI works in LeaderLodge" in content
-    assert "Computed by LeaderLodge" in content
+    assert TAGLINE in content
     assert reverse("core:about") in content
 
 

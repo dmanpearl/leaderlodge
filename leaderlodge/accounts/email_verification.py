@@ -11,6 +11,8 @@ from django.utils.http import urlsafe_base64_encode
 
 from leaderlodge.accounts.models import UserProfile
 
+from leaderlodge.core.brand import TAGLINE
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,13 +78,16 @@ def build_verification_url(request, user) -> str:
 
 def send_welcome_email(*, request, user) -> None:
     if not user.email:
-        logger.warning("Skipped welcome email for user pk %s: no email on file", user.pk)
+        logger.warning(
+            "Skipped welcome email for user pk %s: no email on file", user.pk
+        )
         raise ValueError("User has no email address on file.")
 
     verify_url = build_verification_url(request, user)
     context = {
         "user": user,
         "verify_url": verify_url,
+        "tagline": TAGLINE,
     }
     subject = loader.render_to_string("accounts/welcome_subject.txt", context)
     subject = "".join(subject.splitlines())

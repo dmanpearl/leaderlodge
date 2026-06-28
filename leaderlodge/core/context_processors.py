@@ -1,3 +1,4 @@
+from leaderlodge.core.brand import TAGLINE
 from leaderlodge.core.decorators import demo_mode_enabled
 from leaderlodge.core.formats import TABLE_DATE_FORMAT
 from leaderlodge.groups.demo import GUEST_DEMO_PAGE_NOTICE, GUEST_LOGIN_PROMPT
@@ -51,3 +52,7 @@ def navbar_context(request):
         "navbar_active_section": active,
         "insights_ui_enabled": insights_ui_enabled(),
     }
+
+
+def brand_context(request):
+    return {"tagline": TAGLINE}
