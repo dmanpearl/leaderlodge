@@ -79,10 +79,10 @@
     - Primary: Computed by LeaderLodge. Explained by AI.
     - Optional subtitle: Stats by LeaderLodge. Insights by AI.
 - [x] Add tagline to welcome email and reset password emails
+- [x] Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
 
 ## Open Items
 
-- [ ] Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
 - [ ] Update Github description with tagline
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)

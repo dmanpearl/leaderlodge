@@ -363,7 +363,7 @@ def test_password_reset_sends_email(client, user):
     assert "david@example.com" in mail.outbox[0].to
     assert "Reset your LeaderLodge password" in mail.outbox[0].subject
     assert TAGLINE not in mail.outbox[0].body
-    assert "— LeaderLodge" in mail.outbox[0].body
+    assert "- LeaderLodge" in mail.outbox[0].body
 
 
 @pytest.mark.django_db

@@ -76,13 +76,7 @@ def build_verification_url(request, user) -> str:
     return request.build_absolute_uri(path)
 
 
-def send_welcome_email(*, request, user) -> None:
-    if not user.email:
-        logger.warning(
-            "Skipped welcome email for user pk %s: no email on file", user.pk
-        )
-        raise ValueError("User has no email address on file.")
-
+def render_welcome_email(*, user, request) -> tuple[str, str]:
     verify_url = build_verification_url(request, user)
     context = {
         "user": user,
@@ -92,6 +86,17 @@ def send_welcome_email(*, request, user) -> None:
     subject = loader.render_to_string("accounts/welcome_subject.txt", context)
     subject = "".join(subject.splitlines())
     body = loader.render_to_string("accounts/welcome_email.txt", context)
+    return subject, body
+
+
+def send_welcome_email(*, request, user) -> None:
+    if not user.email:
+        logger.warning(
+            "Skipped welcome email for user pk %s: no email on file", user.pk
+        )
+        raise ValueError("User has no email address on file.")
+
+    subject, body = render_welcome_email(user=user, request=request)
     email_message = EmailMultiAlternatives(
         subject,
         body,

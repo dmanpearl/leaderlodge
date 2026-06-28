@@ -133,6 +133,40 @@ Self-service signup, login (email or username), and password reset are at `/acco
 
 Locally, outbound email uses the **console backend** (messages print in the runserver terminal). Production uses **Brevo's HTTPS API** via django-anymail; see [Production email (Brevo)](#production-email-brevo) below.
 
+### Preview transactional emails
+
+Use `send_sample_email` to render welcome and password-reset templates without going through signup or the reset form.
+
+**Print to the terminal (no mail sent):**
+
+```bash
+python manage.py send_sample_email --type welcome --user YOUR_USERNAME --print-only
+python manage.py send_sample_email --type password-reset --user YOUR_USERNAME --print-only
+```
+
+The account named by `--user` supplies context (username, verification/reset links). Output goes to stdout; nothing is queued.
+
+**Send using your configured mail backend:**
+
+```bash
+python manage.py send_sample_email --type welcome --user YOUR_USERNAME
+python manage.py send_sample_email --type password-reset --user YOUR_USERNAME
+```
+
+Locally this uses the **console backend** unless you set `BREVO_API_KEY` or SMTP vars in `.env`. To deliver to your inbox, either:
+
+- Set `BREVO_API_KEY` and `DEFAULT_FROM_EMAIL` in `.env` for a local send through Brevo, or
+- Run against production settings and DB: `railway run python manage.py send_sample_email ...`
+
+Useful options:
+
+| Flag | Purpose |
+|------|---------|
+| `--to you@example.com` | Send to a different address (default: the user's email on file) |
+| `--site-url https://leaderlodge.com` | Hostname/protocol for links in the message body |
+
+The user must exist and should have an email on file unless you pass `--to`.
+
 ## Production email (Brevo)
 
 LeaderLodge uses a **separate Brevo account** (free tier) for outbound mail from `@leaderlodge.com`. Your **pixelmonks.com** contact form can stay on **Resend** unchanged. You do not need a second Resend domain or the paid Resend plan.

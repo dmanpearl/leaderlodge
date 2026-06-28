@@ -123,6 +123,6 @@ See [Demo group setup](docs/setup.md#demo-group-public-read-only) and [Importing
 
 ## Documentation
 
-- [Local development setup](docs/setup.md) — settings, tests, day-to-day commands
+- [Local development setup](docs/setup.md) — settings, tests, day-to-day commands, **previewing transactional email**
 - [Architecture](docs/architecture.md) — app layout, models, leaderboard design
 - [Importing game history](docs/importing.md) — seed spreadsheets, `import_games`, and `setup_demo`
