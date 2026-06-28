@@ -74,13 +74,14 @@
 - [x] 9415913 Insights: Remove 'Generate' button. When user selects a non-'Ask' option, auto-force Generate immediately (ie Dynamics, Head to Head, This Game, Strengths, Struggles, Superpower). Also invoke Generate progress indicataor. For 'Ask', add Generate on Enter and add Action button to the right of the question text field
 - [x] e4f2e88 Games View > Filters and Leaderboards > Filters: Add Filter by number of players (Game Size). Filter menu options include: All, 2, 3, 4, etc (show numbers actually represented in current set)
 - [x] b96626d AI Ask the Lodge (natural-language queries + tool calling)
-- [x] About page at `/about/` and AI how-it-works page at `/about/insights/`
+- [x] 6b36caf About page at `/about/` and AI how-it-works page at `/about/insights/`
 - [x] Solidify tag line (stats vs insights)
     - Primary: Computed by LeaderLodge. Explained by AI.
     - Optional subtitle: Stats by LeaderLodge. Insights by AI.
-- [x] Add tagline to welcome email and reset password emails
-- [x] Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
+- [x] 12af466 Add tagline to welcome email and reset password emails
+- [x] 12af466 Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
 - [x] Update Github description with tagline
+- [x] 0e74a75 AI: Rewrite /about text and /about/insight text
 
 ## Open Items
 
@@ -115,9 +116,6 @@
 
 ## AI showcase follow-ups (one at a time)
 
-- [ ] AI: Why does 'Ask the Lodge' care about filters group, game, and year?
-- [ ] AI: Rewrite /about text
-- [ ] AI: Rewrite /about/insight text
 - [ ] AI: Generic rebranding as AI centric
 - [ ] AI: Demo mode: pre-generated insights for anonymous visitors (no live API call)
 - [ ] AI: Staff-only "Show data sent to AI" toggle (dev/demo JSON viewer)

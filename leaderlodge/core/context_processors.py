@@ -1,4 +1,9 @@
-from leaderlodge.core.brand import TAGLINE
+from leaderlodge.core.brand import (
+    DEFAULT_META_DESCRIPTION,
+    HOME_PAGE_TITLE,
+    SITE_NAME,
+    TAGLINE,
+)
 from leaderlodge.core.decorators import demo_mode_enabled
 from leaderlodge.core.formats import TABLE_DATE_FORMAT
 from leaderlodge.groups.demo import GUEST_DEMO_PAGE_NOTICE, GUEST_LOGIN_PROMPT
@@ -55,4 +60,9 @@ def navbar_context(request):
 
 
 def brand_context(request):
-    return {"tagline": TAGLINE}
+    return {
+        "tagline": TAGLINE,
+        "site_name": SITE_NAME,
+        "home_page_title": HOME_PAGE_TITLE,
+        "default_meta_description": DEFAULT_META_DESCRIPTION,
+    }

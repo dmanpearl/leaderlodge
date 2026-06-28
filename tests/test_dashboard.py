@@ -19,6 +19,15 @@ def group(user):
 
 
 @pytest.mark.django_db
+def test_dashboard_home_page_title(client, user, group):
+    client.force_login(user)
+    content = client.get(reverse("core:dashboard")).content.decode()
+
+    assert "<title>AI Game Insights</title>" in content
+    assert "Computed by LeaderLodge. Explained by AI." in content
+
+
+@pytest.mark.django_db
 def test_dashboard_welcome_uses_display_name(client, user, group):
     user.first_name = "David"
     user.save(update_fields=["first_name"])
@@ -61,7 +70,9 @@ def test_dashboard_recent_games_column_order(client, user, group):
 
     content = client.get(reverse("core:dashboard")).content.decode()
     recent_games_start = content.index("<span>Recent Games</span>")
-    recent_games_table = content[recent_games_start : content.index("</table>", recent_games_start)]
+    recent_games_table = content[
+        recent_games_start : content.index("</table>", recent_games_start)
+    ]
 
     assert recent_games_table.index("Winner") < recent_games_table.index("Group")
 
