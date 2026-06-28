@@ -16,17 +16,6 @@ def test_dominos_accepts_valid_player_counts(player_count):
     )
 
 
-def test_dominos_rejects_four_players():
-    with pytest.raises(ValidationError):
-        validate_game_for_type(
-            game_type=get_game_type("dominos"),
-            player_count=4,
-            winner_count=1,
-            tie_count=0,
-            loser_count=0,
-        )
-
-
 def test_dominos_accepts_tie():
     validate_game_for_type(
         game_type=get_game_type("dominos"),

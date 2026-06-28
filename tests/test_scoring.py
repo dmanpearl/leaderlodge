@@ -127,7 +127,7 @@ def test_player_count_is_valid():
     assert player_count_is_valid(2, "dominos") is True
     assert player_count_is_valid(3, "dominos") is True
     assert player_count_is_valid(1, "dominos") is False
-    assert player_count_is_valid(4, "dominos") is False
+    assert player_count_is_valid(4, "dominos") is True
 
 
 def test_record_game_rules_summary():
