@@ -86,12 +86,15 @@
       if (panel.dataset.gameId) {
         return `Matchup insight${modelLabel ? ` · ${modelLabel}` : ""}${cachedSuffix}.`;
       }
+      if (meta.scope === "hall_of_fame" && meta.period_count !== undefined) {
+        const unit = (meta.granularity_label || "Years").toLowerCase();
+        return `Based on ${meta.period_count} ${unit} of leaders${modelLabel ? ` · ${modelLabel}` : ""}${cachedSuffix}.`;
+      }
       if (panel.dataset.insightsScope && panel.dataset.insightsScope !== "matchup") {
-        const basis =
-          meta.games_in_period !== undefined
-            ? `${meta.games_in_period} weighted game(s)`
-            : "group stats";
-        return `Based on ${basis}${modelLabel ? ` · ${modelLabel}` : ""}${cachedSuffix}.`;
+        if (meta.games_in_period !== undefined) {
+          return `Based on ${meta.games_in_period} weighted game(s)${modelLabel ? ` · ${modelLabel}` : ""}${cachedSuffix}.`;
+        }
+        return `Based on group stats${modelLabel ? ` · ${modelLabel}` : ""}${cachedSuffix}.`;
       }
       if (meta.games_in_period !== undefined) {
         return `Based on ${meta.games_in_period} weighted game(s)${modelLabel ? ` · ${modelLabel}` : ""}${cachedSuffix}.`;

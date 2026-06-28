@@ -122,6 +122,43 @@ def test_group_insight_leaderboard_returns_markdown(mock_generate, client, user,
     OPENAI_API_KEY="test-openai",
     GOOGLE_AI_API_KEY="test-google",
 )
+@patch("leaderlodge.insights.views.generate_group_insight")
+def test_group_insight_hall_of_fame_meta_uses_period_count(
+    mock_generate, client, user, group
+):
+    mock_generate.return_value = _mock_group_insight_result()
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.post(
+        reverse("insights:group"),
+        data=json.dumps(
+            {
+                "group_id": str(group.pk),
+                "scope": SCOPE_HALL_OF_FAME,
+                "granularity": "year",
+                "preset": "overview",
+                "model": "flash-lite",
+            }
+        ),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    meta = response.json()["meta"]
+    assert meta["scope"] == SCOPE_HALL_OF_FAME
+    assert meta["period_count"] >= 1
+    assert meta["granularity_label"] == "Years"
+    assert "games_in_period" not in meta
+
+
+@pytest.mark.django_db
+@override_settings(
+    INSIGHTS_ENABLED=True,
+    OPENAI_API_KEY="test-openai",
+    GOOGLE_AI_API_KEY="test-google",
+)
 def test_leaderboard_shows_insights_button(client, user, group):
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))

@@ -85,6 +85,7 @@
 
 ## Open Items
 
+- [ ] Leaderboard: Filter controls should be collapsable via spin-down
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)

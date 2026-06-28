@@ -108,20 +108,32 @@ def _parse_json_body(request: HttpRequest) -> dict | None:
 
 
 def _insight_meta(result: InsightResult, context: dict[str, Any]) -> dict[str, Any]:
-    games_in_period = context.get("data_quality", {}).get("games_in_period")
-    if games_in_period is None:
-        games_in_period = context.get("data_quality", {}).get("total_weighted_games", 0)
-    return {
+    data_quality = context.get("data_quality", {})
+    scope = context.get("scope")
+    meta: dict[str, Any] = {
         "model": result.model_slug,
         "model_label": MODEL_REGISTRY[result.model_slug].label,
         "provider": result.provider,
         "prompt_version": result.prompt_version,
         "context_schema_version": result.context_schema_version,
-        "games_in_period": games_in_period,
         "cached": result.cached,
         "input_tokens": result.input_tokens,
         "output_tokens": result.output_tokens,
     }
+    if scope:
+        meta["scope"] = scope
+
+    if scope == SCOPE_HALL_OF_FAME:
+        meta["period_count"] = data_quality.get("period_count", 0)
+        meta["granularity_label"] = context.get("granularity_label", "Years")
+        return meta
+
+    games_in_period = data_quality.get("games_in_period")
+    if games_in_period is None:
+        games_in_period = data_quality.get("total_weighted_games")
+    if games_in_period is not None:
+        meta["games_in_period"] = games_in_period
+    return meta
 
 
 def _insight_json_response(
