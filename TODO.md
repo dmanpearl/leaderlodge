@@ -80,10 +80,10 @@
     - Optional subtitle: Stats by LeaderLodge. Insights by AI.
 - [x] Add tagline to welcome email and reset password emails
 - [x] Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
+- [x] Update Github description with tagline
 
 ## Open Items
 
-- [ ] Update Github description with tagline
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
