@@ -118,9 +118,9 @@
 ## AI showcase follow-ups (one at a time)
 
 - [ ] AI: Generic rebranding as AI centric
-- [ ] AI: Demo mode: pre-generated insights for anonymous visitors (no live API call)
 - [ ] AI: Staff-only "Show data sent to AI" toggle (dev/demo JSON viewer)
 - [ ] AI: UI highlight: raw stats table + AI narrative side-by-side ("computed vs interpreted")
 - [ ] AI: Landing-page live Ask query demo (example question + answer for portfolio)
 - [ ] AI: Public write-up: why the LLM never computes rankings (blog, Linkedin, or README section)
 - [ ] AI: Privacy FAQ: what stats and names are sent to AI providers
+- [ ] AI: Demo mode: pre-generated/canned insights for anonymous visitors (no live API call)

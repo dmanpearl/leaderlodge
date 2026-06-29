@@ -53,6 +53,49 @@ def test_complete_google_disables_thinking_budget(mock_client_cls):
 @pytest.mark.django_db
 @override_settings(GOOGLE_AI_API_KEY="test-google")
 @patch("leaderlodge.insights.providers.google.genai.Client")
+def test_complete_google_flash_lite_503_uses_friendly_message(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client_cls.return_value = mock_client
+    mock_client.models.generate_content.side_effect = Exception(
+        "503 UNAVAILABLE. This model is currently experiencing high demand."
+    )
+
+    with pytest.raises(
+        InsightProviderError,
+        match="Gemini Flash-Lite is busy. Try another model or try again later.",
+    ):
+        complete_google(
+            model_api_name="gemini-2.5-flash-lite",
+            system="system",
+            user="user",
+            max_output_tokens=800,
+            temperature=0.4,
+        )
+
+
+@pytest.mark.django_db
+@override_settings(GOOGLE_AI_API_KEY="test-google")
+@patch("leaderlodge.insights.providers.google.genai.Client")
+def test_complete_google_flash_503_keeps_provider_message(mock_client_cls):
+    mock_client = MagicMock()
+    mock_client_cls.return_value = mock_client
+    mock_client.models.generate_content.side_effect = Exception(
+        "503 UNAVAILABLE. This model is currently experiencing high demand."
+    )
+
+    with pytest.raises(InsightProviderError, match="503 UNAVAILABLE"):
+        complete_google(
+            model_api_name="gemini-2.5-flash",
+            system="system",
+            user="user",
+            max_output_tokens=800,
+            temperature=0.4,
+        )
+
+
+@pytest.mark.django_db
+@override_settings(GOOGLE_AI_API_KEY="test-google")
+@patch("leaderlodge.insights.providers.google.genai.Client")
 def test_complete_google_raises_when_thinking_eats_budget(mock_client_cls):
     mock_client = MagicMock()
     mock_client_cls.return_value = mock_client

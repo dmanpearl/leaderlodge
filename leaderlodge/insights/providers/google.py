@@ -11,6 +11,7 @@ from leaderlodge.insights.providers.base import (
     InsightProviderError,
     ToolCall,
 )
+from leaderlodge.insights.registry import FLASH_LITE_API_MODEL
 
 
 def complete_google(
@@ -43,6 +44,24 @@ def _google_function_declarations(tools: list[dict]) -> list[types.FunctionDecla
             )
         )
     return declarations
+
+
+def _google_provider_error(
+    *, model_api_name: str, exc: Exception
+) -> InsightProviderError:
+    message = str(exc)
+    if model_api_name == FLASH_LITE_API_MODEL and _google_error_is_unavailable(message):
+        return InsightProviderError(
+            "Gemini Flash-Lite is busy. Try another model or try again later."
+        )
+    return InsightProviderError(message)
+
+
+def _google_error_is_unavailable(message: str) -> bool:
+    normalized = message.upper()
+    if "503" in normalized or "UNAVAILABLE" in normalized:
+        return True
+    return "high demand" in message.lower()
 
 
 def complete_google_messages(
@@ -78,7 +97,7 @@ def complete_google_messages(
             config=types.GenerateContentConfig(**config_kwargs),
         )
     except Exception as exc:  # noqa: BLE001
-        raise InsightProviderError(str(exc)) from exc
+        raise _google_provider_error(model_api_name=model_api_name, exc=exc) from exc
 
     text_parts: list[str] = []
     tool_calls: list[ToolCall] = []

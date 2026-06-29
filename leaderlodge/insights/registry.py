@@ -8,7 +8,8 @@ FLASH_LITE = "flash-lite"
 GPT_4O_MINI = "gpt-4o-mini"
 GEMINI_FLASH = "gemini-flash"
 
-DEFAULT_MODEL_SLUG = FLASH_LITE
+DEFAULT_MODEL_SLUG = GPT_4O_MINI
+FLASH_LITE_API_MODEL = "gemini-2.5-flash-lite"
 
 
 @dataclass(frozen=True)
@@ -20,12 +21,6 @@ class InsightModel:
 
 
 MODEL_REGISTRY: dict[str, InsightModel] = {
-    FLASH_LITE: InsightModel(
-        slug=FLASH_LITE,
-        label="Gemini Flash-Lite",
-        provider="google",
-        api_model="gemini-2.5-flash-lite",
-    ),
     GPT_4O_MINI: InsightModel(
         slug=GPT_4O_MINI,
         label="GPT-4o mini",
@@ -37,6 +32,12 @@ MODEL_REGISTRY: dict[str, InsightModel] = {
         label="Gemini Flash",
         provider="google",
         api_model="gemini-2.5-flash",
+    ),
+    FLASH_LITE: InsightModel(
+        slug=FLASH_LITE,
+        label="Gemini Flash-Lite",
+        provider="google",
+        api_model=FLASH_LITE_API_MODEL,
     ),
 }
 
