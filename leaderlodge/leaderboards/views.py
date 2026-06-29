@@ -16,6 +16,7 @@ from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
     available_leaderboard_periods,
     build_leaderboard_query,
+    leaderboard_filter_summary,
     month_label,
     resolve_leaderboard_period,
 )
@@ -222,6 +223,14 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             )
         )
     )
+    filter_summary = ""
+    if selected_group:
+        filter_summary = leaderboard_filter_summary(
+            group_name=selected_group.name,
+            game_type_name=selected_game_type.name if selected_game_type else None,
+            period_label=period_label,
+            game_size_label=game_size_label,
+        )
 
     return render(
         request,
@@ -237,6 +246,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "leaderboard_query": leaderboard_query,
             "hall_of_fame_query": build_hall_of_fame_query(group_id=resolved_group_id),
             "insight_subtitle": insight_subtitle,
+            "filter_summary": filter_summary,
             "game_size_label": game_size_label,
             **period_ctx,
             **game_size_ctx,

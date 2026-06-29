@@ -126,3 +126,20 @@ def build_leaderboard_query(
     if extra:
         params.update(extra)
     return urlencode(params)
+
+
+def leaderboard_filter_summary(
+    *,
+    group_name: str,
+    game_type_name: str | None = None,
+    period_label: str = "",
+    game_size_label: str = "",
+) -> str:
+    parts = [group_name]
+    if game_type_name:
+        parts.append(game_type_name)
+    if period_label:
+        parts.append(period_label)
+    if game_size_label:
+        parts.append(game_size_label)
+    return ", ".join(parts)

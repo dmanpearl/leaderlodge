@@ -29,6 +29,23 @@ def test_leaderboard_index_requires_login(client):
 
 
 @pytest.mark.django_db
+def test_leaderboard_filters_panel_is_collapsible(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    content = client.get(
+        reverse("leaderboards:index"),
+        {"group": str(group.pk), "game_type_code": "dominos"},
+    ).content.decode()
+
+    assert 'id="leaderboard-filters-panel"' in content
+    assert ">Filters</span>" in content
+    assert 'id="leaderboard-filters-summary"' in content
+    assert "Dom Club, Dominos" in content
+
+
+@pytest.mark.django_db
 def test_leaderboard_shows_rankings(client, user, group):
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))

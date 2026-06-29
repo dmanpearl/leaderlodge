@@ -82,10 +82,10 @@
 - [x] 12af466 Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
 - [x] Update Github description with tagline
 - [x] 0e74a75 AI: Rewrite /about text and /about/insight text
+- [x] Add Spin-down section headers: Leaderboard Filter Controls, Dashboard Recent Games
 
 ## Open Items
 
-- [ ] Leaderboard: Filter controls should be collapsable via spin-down
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)

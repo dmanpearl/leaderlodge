@@ -4,6 +4,7 @@
 {% block title %}Leaderboards | LeaderLodge{% endblock %}
 
 {% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}" />
   <link rel="stylesheet" href="{% static 'css/leaderboards.css' %}" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
@@ -18,35 +19,53 @@
     </div>
   </div>
 
-  <div class="card mb-3">
-    <div class="card-body">
-      <form method="get" id="leaderboard-filters" class="row g-3 align-items-end">
-        <div class="col-12 col-sm-6 col-lg-4 col-xl">
-          <label for="group-select" class="form-label">Group</label>
-          <select name="group" id="group-select" class="form-select" onchange="this.form.submit()">
-            <option value="">Choose a group</option>
-            {% for group in groups %}
-              <option value="{{ group.pk }}" {% if selected_group and selected_group.pk == group.pk %}selected{% endif %}>
-                {{ group.name }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-        {% if selected_group and game_type_options %}
+  <div class="card mb-3 game-list-filters-card">
+    <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
+      <button
+        class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start w-100"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#leaderboard-filters-panel"
+        aria-expanded="false"
+        aria-controls="leaderboard-filters-panel"
+      >
+        <i id="leaderboard-filters-icon" class="bi bi-chevron-right" aria-hidden="true"></i>
+        <span class="fw-semibold">Filters</span>
+        {% if filter_summary %}
+          <span id="leaderboard-filters-summary" class="text-muted game-list-filters-summary" hidden>({{ filter_summary }})</span>
+        {% endif %}
+      </button>
+    </div>
+    <div id="leaderboard-filters-panel" class="collapse leaderboard-filters-collapse">
+      <div class="card-body game-list-filters-body">
+        <form method="get" id="leaderboard-filters" class="row g-3 align-items-end">
           <div class="col-12 col-sm-6 col-lg-4 col-xl">
-            <label for="game-type-select" class="form-label">Game</label>
-            <select name="game_type_code" id="game-type-select" class="form-select" onchange="this.form.submit()">
-              {% for code, name in game_type_options %}
-                <option value="{{ code }}" {% if selected_game_type_code == code %}selected{% endif %}>
-                  {{ name }}
+            <label for="group-select" class="form-label">Group</label>
+            <select name="group" id="group-select" class="form-select" onchange="this.form.submit()">
+              <option value="">Choose a group</option>
+              {% for group in groups %}
+                <option value="{{ group.pk }}" {% if selected_group and selected_group.pk == group.pk %}selected{% endif %}>
+                  {{ group.name }}
                 </option>
               {% endfor %}
             </select>
           </div>
-          {% include "includes/leaderboard_period_filters.html" with year_select_id="leaderboard-year" month_select_id="leaderboard-month" %}
-          {% include "includes/game_size_filter.html" with select_id="leaderboard-game-size" %}
-        {% endif %}
-      </form>
+          {% if selected_group and game_type_options %}
+            <div class="col-12 col-sm-6 col-lg-4 col-xl">
+              <label for="game-type-select" class="form-label">Game</label>
+              <select name="game_type_code" id="game-type-select" class="form-select" onchange="this.form.submit()">
+                {% for code, name in game_type_options %}
+                  <option value="{{ code }}" {% if selected_game_type_code == code %}selected{% endif %}>
+                    {{ name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            {% include "includes/leaderboard_period_filters.html" with year_select_id="leaderboard-year" month_select_id="leaderboard-month" %}
+            {% include "includes/game_size_filter.html" with select_id="leaderboard-game-size" %}
+          {% endif %}
+        </form>
+      </div>
     </div>
   </div>
 
@@ -135,6 +154,7 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'js/leaderboard.js' %}"></script>
   <script>
     document.querySelectorAll(".leaderboard-row[data-href]").forEach((row) => {
       const navigate = () => {

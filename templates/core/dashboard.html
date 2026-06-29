@@ -3,6 +3,10 @@
 
 {% block title %}{{ home_page_title }}{% endblock %}
 
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+{% endblock %}
+
 {% block content %}
   <div class="row g-3">
     <div class="col-12">
@@ -68,50 +72,65 @@
     </div>
 
     <div class="col-12 {% if leaderboard_cards %}col-xl-5{% endif %}">
-      <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span>Recent Games</span>
-          <a href="{% url 'games:list' %}{% if preferred_games_list_query %}?{{ preferred_games_list_query }}{% endif %}" class="small">View all</a>
+      <div class="card h-100 game-list-filters-card">
+        <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
+          <button
+            class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#dashboard-recent-games"
+            aria-expanded="false"
+            aria-controls="dashboard-recent-games"
+          >
+            <i id="dashboard-recent-games-icon" class="bi bi-chevron-right" aria-hidden="true"></i>
+            <span class="fw-semibold">Recent Games</span>
+            {% if recent_games %}
+              <span id="dashboard-recent-games-summary" class="text-muted game-list-filters-summary" hidden>({{ recent_games|length }} game{{ recent_games|length|pluralize }})</span>
+            {% endif %}
+          </button>
+          <a href="{% url 'games:list' %}{% if preferred_games_list_query %}?{{ preferred_games_list_query }}{% endif %}" class="small flex-shrink-0 ms-2">View all</a>
         </div>
-        <div class="card-body p-0">
-          {% if recent_games %}
-            <div class="table-responsive">
-              <table class="table table-striped mb-0">
-                <thead>
-                  <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col">Game</th>
-                    <th scope="col">Winner</th>
-                    <th scope="col">Group</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in recent_games %}
-                    <tr
-                      class="dashboard-recent-game-row"
-                      role="link"
-                      tabindex="0"
-                      data-href="{% url 'games:detail' row.game.pk %}"
-                    >
-                      <td>{{ row.game.played_on|date:table_date_format }}</td>
-                      <td>
-                        {{ row.game.game_type.name }}
-                        {% if row.game.double_weight == 2 %}
-                          <span class="badge text-bg-secondary">2×</span>
-                        {% elif row.game.half_weight == 2 %}
-                          <span class="badge text-bg-secondary">½</span>
-                        {% endif %}
-                      </td>
-                      <td class="text-truncate" style="max-width: 7rem;">{{ row.winner_label }}</td>
-                      <td>{{ row.game.group.name }}</td>
+        <div id="dashboard-recent-games" class="collapse">
+          <div class="card-body p-0">
+            {% if recent_games %}
+              <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                  <thead>
+                    <tr>
+                      <th scope="col">Date</th>
+                      <th scope="col">Game</th>
+                      <th scope="col">Winner</th>
+                      <th scope="col">Group</th>
                     </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          {% else %}
-            <p class="text-muted mb-0 p-3">No games recorded yet.</p>
-          {% endif %}
+                  </thead>
+                  <tbody>
+                    {% for row in recent_games %}
+                      <tr
+                        class="dashboard-recent-game-row"
+                        role="link"
+                        tabindex="0"
+                        data-href="{% url 'games:detail' row.game.pk %}"
+                      >
+                        <td>{{ row.game.played_on|date:table_date_format }}</td>
+                        <td>
+                          {{ row.game.game_type.name }}
+                          {% if row.game.double_weight == 2 %}
+                            <span class="badge text-bg-secondary">2×</span>
+                          {% elif row.game.half_weight == 2 %}
+                            <span class="badge text-bg-secondary">½</span>
+                          {% endif %}
+                        </td>
+                        <td class="text-truncate" style="max-width: 7rem;">{{ row.winner_label }}</td>
+                        <td>{{ row.game.group.name }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% else %}
+              <p class="text-muted mb-0 p-3">No games recorded yet.</p>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
@@ -186,6 +205,7 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'js/dashboard.js' %}"></script>
   <script>
     document.querySelectorAll(".dashboard-recent-game-row[data-href]").forEach((row) => {
       const navigate = () => {

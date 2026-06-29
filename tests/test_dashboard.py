@@ -63,13 +63,26 @@ def test_dashboard_shows_recent_games(client, user, group):
 
 
 @pytest.mark.django_db
+def test_dashboard_recent_games_panel_is_collapsible(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    content = client.get(reverse("core:dashboard")).content.decode()
+
+    assert 'id="dashboard-recent-games"' in content
+    assert ">Recent Games</span>" in content
+    assert 'id="dashboard-recent-games-summary"' in content
+
+
+@pytest.mark.django_db
 def test_dashboard_recent_games_column_order(client, user, group):
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))
     client.post(reverse("games:create"), _save_game_post(group))
 
     content = client.get(reverse("core:dashboard")).content.decode()
-    recent_games_start = content.index("<span>Recent Games</span>")
+    recent_games_start = content.index(">Recent Games</span>")
     recent_games_table = content[
         recent_games_start : content.index("</table>", recent_games_start)
     ]
