@@ -98,6 +98,63 @@ def test_generate_ask_response_handles_two_player_queries(mock_complete, rivalry
 
 
 @pytest.mark.django_db
+@patch("leaderlodge.insights.service.complete_with_tools")
+def test_generate_ask_response_collect_debug_includes_tool_rounds(
+    mock_complete, rivalry_group
+):
+    group, _user = rivalry_group
+    call_count = {"n": 0}
+
+    def fake_complete(**kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return InsightCompletion(
+                text="",
+                tool_calls=(
+                    ToolCall(
+                        id="1",
+                        name="query_player_detail",
+                        arguments={
+                            "player_query": "Nancy",
+                            "game_type_code": "dominos",
+                        },
+                    ),
+                ),
+                input_tokens=10,
+                output_tokens=5,
+                model_api_name="gpt-4o-mini",
+                provider="openai",
+            )
+        return InsightCompletion(
+            text="## Answer\n\nNancy leads.",
+            tool_calls=(),
+            input_tokens=10,
+            output_tokens=20,
+            model_api_name="gpt-4o-mini",
+            provider="openai",
+        )
+
+    mock_complete.side_effect = fake_complete
+
+    result = generate_ask_response(
+        scope=_scope(group),
+        question="How is Nancy doing in dominos?",
+        model_slug="gpt-4o-mini",
+        collect_debug=True,
+        skip_cache=True,
+    )
+
+    assert result.debug is not None
+    assert len(result.debug["tool_rounds"]) == 1
+    call = result.debug["tool_rounds"][0]["calls"][0]
+    assert call["tool"] == "query_player_detail"
+    assert call["arguments"]["player_query"] == "Nancy"
+    assert "result" in call
+    assert result.debug["final_answer"] == "## Answer\n\nNancy leads."
+    assert result.debug["llm_messages"]
+
+
+@pytest.mark.django_db
 @override_settings(
     INSIGHTS_ENABLED=True,
     OPENAI_API_KEY="test-openai",

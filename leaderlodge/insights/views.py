@@ -647,26 +647,28 @@ def ask_query(request: HttpRequest) -> HttpResponse:
     if result.debug is not None:
         body["debug"] = result.debug
     elif include_debug:
-        body["debug"] = {
-            "mode": "ask",
-            "system_prompt": ASK_SYSTEM_PROMPT,
-            "scope": {
-                "group_id": scope.group.pk,
-                "group_name": scope.group.name,
-                "game_type_code": scope.default_game_type_code,
-                "period": scope.period.query_params() or {"all_time": True},
-                "available_game_types": list(scope.available_game_type_codes),
-            },
-            "player_roster": build_ask_player_roster(scope.group),
-            "initial_user_message": render_ask_user_message(
+        body["debug"] = build_ask_insight_debug(
+            question=question,
+            user_message=render_ask_user_message(
                 question=question,
                 group_name=scope.group.name,
                 game_type_code=scope.default_game_type_code,
                 period_label=period.display_label(),
                 player_roster=build_ask_player_roster(scope.group),
             ),
-            "note": "Response served from cache; tool conversation not stored.",
-            "tools_used": list(result.tools_used),
-        }
+            system_prompt=ASK_SYSTEM_PROMPT,
+            scope={
+                "group_id": scope.group.pk,
+                "group_name": scope.group.name,
+                "game_type_code": scope.default_game_type_code,
+                "period": scope.period.query_params() or {"all_time": True},
+                "available_game_types": list(scope.available_game_type_codes),
+            },
+            player_roster=build_ask_player_roster(scope.group),
+            tool_rounds=[],
+            tools_used=list(result.tools_used),
+            final_answer=result.markdown,
+            note="Response served from cache; tool rounds not stored.",
+        )
 
     return JsonResponse(body)

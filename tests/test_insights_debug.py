@@ -71,7 +71,19 @@ def _mock_ask_result(**overrides):
         "tools_used": ("query_leaderboard",),
         "debug": {
             "mode": "ask",
-            "messages": [{"role": "user", "content": "Who leads?"}],
+            "tool_rounds": [
+                {
+                    "round": 1,
+                    "calls": [
+                        {
+                            "tool": "query_leaderboard",
+                            "arguments": {"game_type_code": "dominos"},
+                            "result": {"rankings": []},
+                        }
+                    ],
+                }
+            ],
+            "llm_messages": [{"role": "user", "content": "Who leads?"}],
         },
     }
     defaults.update(overrides)
@@ -186,7 +198,8 @@ def test_staff_ask_query_returns_tool_debug(
     assert response.status_code == 200
     payload = response.json()
     assert payload["debug"]["mode"] == "ask"
-    assert payload["debug"]["messages"]
+    assert payload["debug"]["tool_rounds"]
+    assert payload["debug"]["tool_rounds"][0]["calls"][0]["tool"] == "query_leaderboard"
     mock_generate.assert_called_once()
     assert mock_generate.call_args.kwargs["collect_debug"] is True
     assert mock_generate.call_args.kwargs["skip_cache"] is True

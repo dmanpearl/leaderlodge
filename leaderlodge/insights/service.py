@@ -9,6 +9,7 @@ from typing import Any
 
 from django.core.cache import cache
 
+from leaderlodge.insights.debug import build_ask_insight_debug, summarize_ask_tools
 from leaderlodge.insights.prompts import (
     ASK_SYSTEM_PROMPT,
     GROUP_INSIGHT_SYSTEM_PROMPT,
@@ -212,6 +213,7 @@ def generate_ask_response(
     player_roster = build_ask_player_roster(scope.group)
     executor = ToolExecutor(scope)
     messages: list[dict] = [{"role": "user", "content": user_message}]
+    tool_rounds: list[dict] = []
     tools_used: list[str] = []
     total_input = 0
     total_output = 0
@@ -250,12 +252,20 @@ def generate_ask_response(
         }
         messages.append(assistant_message)
 
+        round_calls: list[dict] = []
         for call in completion.tool_calls:
             try:
                 result = executor.execute(call.name, call.arguments)
             except ToolExecutionError as exc:
                 result = {"error": str(exc)}
             tools_used.append(call.name)
+            round_calls.append(
+                {
+                    "tool": call.name,
+                    "arguments": call.arguments,
+                    "result": result,
+                }
+            )
             messages.append(
                 {
                     "role": "tool",
@@ -264,6 +274,7 @@ def generate_ask_response(
                     "content": json.dumps(result),
                 }
             )
+        tool_rounds.append({"round": len(tool_rounds) + 1, "calls": round_calls})
     else:
         raise ValueError("Ask the Lodge exceeded the tool call limit.")
 
@@ -281,20 +292,24 @@ def generate_ask_response(
 
     debug_payload = None
     if collect_debug:
-        debug_payload = {
-            "mode": "ask",
-            "system_prompt": ASK_SYSTEM_PROMPT,
-            "scope": {
+        debug_payload = build_ask_insight_debug(
+            question=question,
+            user_message=user_message,
+            system_prompt=ASK_SYSTEM_PROMPT,
+            scope={
                 "group_id": scope.group.pk,
                 "group_name": scope.group.name,
                 "game_type_code": scope.default_game_type_code,
                 "period": scope.period.query_params() or {"all_time": True},
                 "available_game_types": list(scope.available_game_type_codes),
             },
-            "player_roster": player_roster,
-            "messages": messages,
-            "tools_used": list(tools_tuple),
-        }
+            player_roster=player_roster,
+            tool_rounds=tool_rounds,
+            tools_used=list(tools_tuple),
+            final_answer=completion.text,
+            available_tools=summarize_ask_tools(),
+            llm_messages=messages,
+        )
 
     cache.set(
         cache_key,

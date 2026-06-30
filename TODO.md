@@ -82,7 +82,7 @@
 - [x] 12af466 Email: Add management commands and docs to generate and send welcome and reset password emails for dev/validation purposes
 - [x] 0e74a75 AI: Rewrite /about text and /about/insight text
 - [x] 8986d06 Add Spin-down section headers: Leaderboard Filter Controls, Dashboard Recent Games
-- [x] AI: 'Show data sent to AI' toggle (dev/demo JSON viewer)
+- [x] 5a20fd2 AI: 'Show data sent to AI' toggle (dev/demo JSON viewer open to all users)
 
 ## Open Items
 
