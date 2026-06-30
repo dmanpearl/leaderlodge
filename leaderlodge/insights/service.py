@@ -152,6 +152,7 @@ def _generate_insight(
 @dataclass(frozen=True)
 class AskResult(InsightResult):
     tools_used: tuple[str, ...] = ()
+    debug: dict[str, Any] | None = None
 
 
 def _ask_cache_key(
@@ -182,6 +183,7 @@ def generate_ask_response(
     model_slug: str,
     period_label: str = "",
     skip_cache: bool = False,
+    collect_debug: bool = False,
 ) -> AskResult:
     model = resolve_model_slug(model_slug)
     cache_key = _ask_cache_key(scope=scope, question=question, model_slug=model)
@@ -207,6 +209,7 @@ def generate_ask_response(
         period_label=period_label,
         player_roster=build_ask_player_roster(scope.group),
     )
+    player_roster = build_ask_player_roster(scope.group)
     executor = ToolExecutor(scope)
     messages: list[dict] = [{"role": "user", "content": user_message}]
     tools_used: list[str] = []
@@ -273,6 +276,26 @@ def generate_ask_response(
 
     html = _markdown_to_html(markdown)
     tools_tuple = tuple(tools_used)
+    if completion.text:
+        messages.append({"role": "assistant", "content": completion.text})
+
+    debug_payload = None
+    if collect_debug:
+        debug_payload = {
+            "mode": "ask",
+            "system_prompt": ASK_SYSTEM_PROMPT,
+            "scope": {
+                "group_id": scope.group.pk,
+                "group_name": scope.group.name,
+                "game_type_code": scope.default_game_type_code,
+                "period": scope.period.query_params() or {"all_time": True},
+                "available_game_types": list(scope.available_game_type_codes),
+            },
+            "player_roster": player_roster,
+            "messages": messages,
+            "tools_used": list(tools_tuple),
+        }
+
     cache.set(
         cache_key,
         {
@@ -296,6 +319,7 @@ def generate_ask_response(
         input_tokens=total_input,
         output_tokens=total_output,
         tools_used=tools_tuple,
+        debug=debug_payload,
     )
 
 

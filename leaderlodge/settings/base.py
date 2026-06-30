@@ -108,6 +108,7 @@ TEMPLATES = [
                 "leaderlodge.core.context_processors.table_formats",
                 "leaderlodge.core.context_processors.navbar_context",
                 "leaderlodge.core.context_processors.brand_context",
+                "leaderlodge.core.context_processors.insights_debug_context",
                 "leaderlodge.accounts.context_processors.ui_preferences_context",
             ],
         },

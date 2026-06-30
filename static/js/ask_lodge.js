@@ -4,6 +4,10 @@
     return;
   }
 
+  if (window.leaderlodgeInsightsDebug) {
+    window.leaderlodgeInsightsDebug.init(panel);
+  }
+
   const submitBtn = panel.querySelector(".ask-lodge-submit-btn");
   const regenerateBtn = panel.querySelector(".ask-lodge-regenerate-btn");
   const copyBtn = panel.querySelector(".insights-copy-btn");
@@ -86,6 +90,12 @@
     if (panel.dataset.month) {
       payload.month = panel.dataset.month;
     }
+    if (
+      window.leaderlodgeInsightsDebug &&
+      window.leaderlodgeInsightsDebug.isEnabled(panel)
+    ) {
+      payload.include_debug = true;
+    }
     return payload;
   }
 
@@ -122,6 +132,9 @@
       lastMarkdown = data.markdown || "";
       resultEl.innerHTML = `<div class="player-insights-markdown">${data.html || ""}</div>`;
       statusEl.textContent = formatStatusMeta(data.meta || {});
+      if (window.leaderlodgeInsightsDebug) {
+        window.leaderlodgeInsightsDebug.render(panel, data.debug);
+      }
       copyBtn.disabled = !lastMarkdown;
       regenerateBtn.disabled = !lastMarkdown;
     } catch (_error) {

@@ -151,6 +151,7 @@
 {% block extra_js %}
   <script src="{% static 'js/hall_of_fame.js' %}"></script>
   {% if insights_enabled and grid and grid.rows %}
+    {% include "includes/insights_debug_script.html" %}
     <script src="{% static 'js/insights_panel.js' %}"></script>
   {% endif %}
 {% endblock %}

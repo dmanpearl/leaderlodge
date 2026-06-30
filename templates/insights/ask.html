@@ -115,6 +115,8 @@
           <button type="button" class="btn btn-outline-secondary ask-lodge-regenerate-btn" disabled>Regenerate</button>
         </div>
 
+        {% include "includes/insights_debug_controls.html" with debug_toggle_id="ask-lodge" %}
+
         <p class="text-muted small mb-0">AI summary. Rankings are computed by LeaderLodge.</p>
 
         <div class="insights-progress d-none align-items-center gap-2" role="status" aria-live="polite">
@@ -131,6 +133,7 @@
 
 {% block extra_js %}
   {% if selected_group and game_type_options %}
+    {% include "includes/insights_debug_script.html" %}
     <script src="{% static 'js/ask_lodge.js' %}"></script>
   {% endif %}
 {% endblock %}

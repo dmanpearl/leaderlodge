@@ -170,6 +170,7 @@
     });
   </script>
   {% if insights_enabled and rankings %}
+    {% include "includes/insights_debug_script.html" %}
     <script src="{% static 'js/insights_panel.js' %}"></script>
   {% endif %}
 {% endblock %}

@@ -16,6 +16,10 @@
       return;
     }
 
+    if (window.leaderlodgeInsightsDebug) {
+      window.leaderlodgeInsightsDebug.init(panel);
+    }
+
     let lastMarkdown = "";
     let isRegenerate = false;
     let loading = false;
@@ -148,6 +152,12 @@
       if (preset === "custom" && questionInput) {
         payload.question = questionInput.value.trim();
       }
+      if (
+        window.leaderlodgeInsightsDebug &&
+        window.leaderlodgeInsightsDebug.isEnabled(panel)
+      ) {
+        payload.include_debug = true;
+      }
       return payload;
     }
 
@@ -185,6 +195,9 @@
         }
         lastMarkdown = data.markdown || "";
         renderResult(data.html || "", data.meta || {});
+        if (window.leaderlodgeInsightsDebug) {
+          window.leaderlodgeInsightsDebug.render(panel, data.debug);
+        }
         copyBtn.disabled = !lastMarkdown;
         regenerateBtn.disabled = !lastMarkdown;
       } catch (_error) {

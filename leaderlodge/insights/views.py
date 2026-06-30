@@ -37,6 +37,10 @@ from leaderlodge.insights.context.player import (
     InsightContextError,
     build_player_insight_context,
 )
+from leaderlodge.insights.debug import (
+    build_contextual_insight_debug,
+    request_include_debug,
+)
 from leaderlodge.insights.exceptions import InsightRateLimitExceeded
 from leaderlodge.insights.model_selection import (
     persist_insight_model_id,
@@ -44,7 +48,15 @@ from leaderlodge.insights.model_selection import (
 )
 from leaderlodge.insights.providers.base import InsightProviderError
 from leaderlodge.insights.prompts import (
+    ASK_SYSTEM_PROMPT,
+    GROUP_INSIGHT_SYSTEM_PROMPT,
+    MATCHUP_INSIGHT_SYSTEM_PROMPT,
+    PLAYER_INSIGHT_SYSTEM_PROMPT,
     PRESET_CUSTOM,
+    render_ask_user_message,
+    render_group_user_message,
+    render_matchup_user_message,
+    render_user_message,
     resolve_group_preset,
     resolve_matchup_preset,
     resolve_preset,
@@ -63,6 +75,7 @@ from leaderlodge.insights.service import (
     generate_matchup_insight,
     generate_player_insight,
 )
+from leaderlodge.insights.tools.players import build_ask_player_roster
 from leaderlodge.insights.tools.scope import AskScope
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
@@ -137,15 +150,19 @@ def _insight_meta(result: InsightResult, context: dict[str, Any]) -> dict[str, A
 
 
 def _insight_json_response(
-    *, result: InsightResult, context: dict[str, Any]
+    *,
+    result: InsightResult,
+    context: dict[str, Any],
+    debug: dict[str, Any] | None = None,
 ) -> JsonResponse:
-    return JsonResponse(
-        {
-            "markdown": result.markdown,
-            "html": result.html,
-            "meta": _insight_meta(result, context),
-        }
-    )
+    body: dict[str, Any] = {
+        "markdown": result.markdown,
+        "html": result.html,
+        "meta": _insight_meta(result, context),
+    }
+    if debug is not None:
+        body["debug"] = debug
+    return JsonResponse(body)
 
 
 @demo_or_login_required
@@ -208,13 +225,15 @@ def player_insight(request: HttpRequest) -> HttpResponse:
     except InsightContextError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
 
+    include_debug = request_include_debug(request.user, payload)
+
     try:
         result = generate_player_insight(
             context=context,
             preset=preset,
             question=question,
             model_slug=model_slug,
-            skip_cache=bool(payload.get("refresh")),
+            skip_cache=bool(payload.get("refresh")) or include_debug,
         )
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
@@ -226,7 +245,23 @@ def player_insight(request: HttpRequest) -> HttpResponse:
 
     persist_insight_model_id(request, model_slug)
 
-    return _insight_json_response(result=result, context=context)
+    debug = None
+    if include_debug:
+        resolved_preset = resolve_preset(preset)
+        debug = build_contextual_insight_debug(
+            mode="player",
+            system_prompt=PLAYER_INSIGHT_SYSTEM_PROMPT,
+            context=context,
+            preset=resolved_preset,
+            question=question,
+            user_message=render_user_message(
+                context=context,
+                preset=preset,
+                question=question,
+            ),
+        )
+
+    return _insight_json_response(result=result, context=context, debug=debug)
 
 
 @demo_or_login_required
@@ -296,13 +331,15 @@ def group_insight(request: HttpRequest) -> HttpResponse:
     except GroupInsightContextError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
 
+    include_debug = request_include_debug(request.user, payload)
+
     try:
         result = generate_group_insight(
             context=context,
             preset=preset,
             question=question,
             model_slug=model_slug,
-            skip_cache=bool(payload.get("refresh")),
+            skip_cache=bool(payload.get("refresh")) or include_debug,
         )
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
@@ -314,7 +351,23 @@ def group_insight(request: HttpRequest) -> HttpResponse:
 
     persist_insight_model_id(request, model_slug)
 
-    return _insight_json_response(result=result, context=context)
+    debug = None
+    if include_debug:
+        resolved_preset = resolve_group_preset(preset, scope=resolved_scope)
+        debug = build_contextual_insight_debug(
+            mode=f"group:{resolved_scope}",
+            system_prompt=GROUP_INSIGHT_SYSTEM_PROMPT,
+            context=context,
+            preset=resolved_preset,
+            question=question,
+            user_message=render_group_user_message(
+                context=context,
+                preset=preset,
+                question=question,
+            ),
+        )
+
+    return _insight_json_response(result=result, context=context, debug=debug)
 
 
 @demo_or_login_required
@@ -366,13 +419,15 @@ def matchup_insight(request: HttpRequest) -> HttpResponse:
     except MatchupInsightContextError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
 
+    include_debug = request_include_debug(request.user, payload)
+
     try:
         result = generate_matchup_insight(
             context=context,
             preset=preset,
             question=question,
             model_slug=model_slug,
-            skip_cache=bool(payload.get("refresh")),
+            skip_cache=bool(payload.get("refresh")) or include_debug,
         )
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
@@ -384,7 +439,23 @@ def matchup_insight(request: HttpRequest) -> HttpResponse:
 
     persist_insight_model_id(request, model_slug)
 
-    return _insight_json_response(result=result, context=context)
+    debug = None
+    if include_debug:
+        resolved_preset = resolve_matchup_preset(preset)
+        debug = build_contextual_insight_debug(
+            mode="matchup",
+            system_prompt=MATCHUP_INSIGHT_SYSTEM_PROMPT,
+            context=context,
+            preset=resolved_preset,
+            question=question,
+            user_message=render_matchup_user_message(
+                context=context,
+                preset=preset,
+                question=question,
+            ),
+        )
+
+    return _insight_json_response(result=result, context=context, debug=debug)
 
 
 def _ask_template_context(request: HttpRequest) -> dict[str, Any]:
@@ -547,13 +618,16 @@ def ask_query(request: HttpRequest) -> HttpResponse:
         available_game_type_codes=tuple(game_type_codes_for_group(group)),
     )
 
+    include_debug = request_include_debug(request.user, payload)
+
     try:
         result = generate_ask_response(
             scope=scope,
             question=question,
             model_slug=model_slug,
             period_label=period.display_label(),
-            skip_cache=bool(payload.get("refresh")),
+            skip_cache=bool(payload.get("refresh")) or include_debug,
+            collect_debug=include_debug,
         )
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=400)
@@ -565,10 +639,34 @@ def ask_query(request: HttpRequest) -> HttpResponse:
 
     persist_insight_model_id(request, model_slug)
 
-    return JsonResponse(
-        {
-            "markdown": result.markdown,
-            "html": result.html,
-            "meta": _ask_meta(result),
+    body: dict[str, Any] = {
+        "markdown": result.markdown,
+        "html": result.html,
+        "meta": _ask_meta(result),
+    }
+    if result.debug is not None:
+        body["debug"] = result.debug
+    elif include_debug:
+        body["debug"] = {
+            "mode": "ask",
+            "system_prompt": ASK_SYSTEM_PROMPT,
+            "scope": {
+                "group_id": scope.group.pk,
+                "group_name": scope.group.name,
+                "game_type_code": scope.default_game_type_code,
+                "period": scope.period.query_params() or {"all_time": True},
+                "available_game_types": list(scope.available_game_type_codes),
+            },
+            "player_roster": build_ask_player_roster(scope.group),
+            "initial_user_message": render_ask_user_message(
+                question=question,
+                group_name=scope.group.name,
+                game_type_code=scope.default_game_type_code,
+                period_label=period.display_label(),
+                player_roster=build_ask_player_roster(scope.group),
+            ),
+            "note": "Response served from cache; tool conversation not stored.",
+            "tools_used": list(result.tools_used),
         }
-    )
+
+    return JsonResponse(body)

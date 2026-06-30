@@ -1,0 +1,18 @@
+{% if insights_debug_enabled %}
+  <div class="insights-debug-wrap">
+    <div class="form-check form-switch mb-0">
+      <input
+        class="form-check-input insights-debug-toggle"
+        type="checkbox"
+        role="switch"
+        id="{{ debug_toggle_id|default:'insights' }}-debug-toggle"
+      />
+      <label class="form-check-label small" for="{{ debug_toggle_id|default:'insights' }}-debug-toggle">
+        Debug: Show data sent to AI
+      </label>
+    </div>
+    <div class="insights-debug-panel d-none mt-2">
+      <pre class="insights-debug-json small mb-0" aria-label="AI request payload"></pre>
+    </div>
+  </div>
+{% endif %}

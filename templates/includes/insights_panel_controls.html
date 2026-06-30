@@ -3,6 +3,8 @@
       <button type="button" class="btn btn-outline-secondary insights-regenerate-btn" disabled>Regenerate</button>
     </div>
 
+    {% include "includes/insights_debug_controls.html" with debug_toggle_id=debug_toggle_id|default:"insights-debug-toggle" %}
+
     <p class="text-muted small mb-0">
       AI summary. Rankings are computed by LeaderLodge.
     </p>

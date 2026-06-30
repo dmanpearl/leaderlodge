@@ -95,22 +95,44 @@ nav.navbar.bg-primary .navbar-nav-link--insights {
   font-weight: 600;
 }
 
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active) .navbar-nav-icon,
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active) .navbar-nav-label {
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights:not(.active)
+  .navbar-nav-icon,
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights:not(.active)
+  .navbar-nav-label {
   color: var(--insights-navbar-fg);
 }
 
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):hover,
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):focus {
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights:not(.active):hover,
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights:not(.active):focus {
   background-color: var(--insights-navbar-hover-bg);
   border-radius: var(--bs-border-radius);
   color: var(--insights-navbar-fg-hover);
 }
 
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):hover .navbar-nav-icon,
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):hover .navbar-nav-label,
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):focus .navbar-nav-icon,
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights:not(.active):focus .navbar-nav-label {
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights:not(.active):hover
+  .navbar-nav-icon,
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights:not(.active):hover
+  .navbar-nav-label,
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights:not(.active):focus
+  .navbar-nav-icon,
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights:not(.active):focus
+  .navbar-nav-label {
   color: var(--insights-navbar-fg-hover);
 }
 
@@ -121,8 +143,14 @@ nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights.active {
   font-weight: 600;
 }
 
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights.active .navbar-nav-icon,
-nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights.active .navbar-nav-label {
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights.active
+  .navbar-nav-icon,
+nav.navbar.bg-primary
+  .navbar-nav-main
+  .navbar-nav-link--insights.active
+  .navbar-nav-label {
   color: var(--insights-navbar-active-fg);
 }
 
@@ -136,4 +164,19 @@ nav.navbar.bg-primary .navbar-nav-main .navbar-nav-link--insights.active .navbar
 .dropdown-item.dropdown-item--insights.active {
   color: var(--insights-accent-hover);
   background-color: var(--insights-accent-subtle);
+}
+
+.insights-debug-wrap {
+  padding-top: 0.25rem;
+}
+
+.insights-debug-json {
+  max-height: 18rem;
+  overflow: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background-color: var(--bs-tertiary-bg);
+  white-space: pre-wrap;
+  word-break: break-word;
 }

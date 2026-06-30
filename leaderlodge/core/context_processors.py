@@ -66,3 +66,13 @@ def brand_context(request):
         "home_page_title": HOME_PAGE_TITLE,
         "default_meta_description": DEFAULT_META_DESCRIPTION,
     }
+
+
+def insights_debug_context(request):
+    from leaderlodge.insights.views import insights_ui_enabled
+
+    enabled = insights_ui_enabled()
+    # Staff-only UI:
+    # user = request.user
+    # enabled = user.is_authenticated and (user.is_staff or user.is_superuser)
+    return {"insights_debug_enabled": enabled}
