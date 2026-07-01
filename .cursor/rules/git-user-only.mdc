@@ -1,0 +1,35 @@
+---
+description: User owns all git add, commit, and push; agent suggests commit messages only
+alwaysApply: true
+---
+
+# Git: user owns add, commit, and push
+
+The user adds, commits, and pushes all code. The agent does **not** run git write commands unless the user explicitly asks the agent to perform that specific git operation (e.g. "commit these changes for me").
+
+## Never run without explicit permission
+
+- `git add`
+- `git commit`
+- `git push`
+- `git reset`, `git rebase`, or other history-changing commands
+
+Reading git state (`git status`, `git diff`, `git log`) is fine when needed to draft a message or answer a question.
+
+## "Commit message please" means suggest only
+
+When the user asks for a commit message (with or without "please"):
+
+1. Run read-only git commands if helpful (`status`, `diff`, `log`).
+2. **Output the suggested message** (HEREDOC format is fine for copy-paste).
+3. **Do not** stage or commit.
+
+Same for pull requests: suggest title/body or use `gh` only when the user explicitly asks to create the PR.
+
+## Wording that is NOT permission to commit
+
+- "Commit message please"
+- "What should the commit message be?"
+- "I'm ready to commit"
+
+Treat these as request for suggested message text only.
