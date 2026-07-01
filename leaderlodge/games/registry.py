@@ -75,5 +75,13 @@ def get_game_type(code: str) -> GameTypeDefinition:
         raise ValueError(f"Unknown game type: {code}") from exc
 
 
+def score_direction_label(code: str) -> str:
+    """Return low_wins or high_wins for prompts and API payloads."""
+    game_type = get_game_type(code)
+    if game_type.score_direction == ScoreDirection.LOW_WINS:
+        return "low_wins"
+    return "high_wins"
+
+
 def game_type_choices() -> list[tuple[str, str]]:
     return [(gt.code, gt.name) for gt in GAME_TYPES.values()]

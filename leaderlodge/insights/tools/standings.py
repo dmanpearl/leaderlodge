@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.registry import get_game_type, score_direction_label
 from leaderlodge.groups.models import Group, GroupPlayer
 from leaderlodge.leaderboards.period import LeaderboardPeriod
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
@@ -39,6 +39,7 @@ def query_leaderboard(
     return {
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
+        "score_direction": score_direction_label(game_type_code),
         "game_size": game_size,
         "period": period.query_params() or {"all_time": True},
         "rankings": [_ranking_row(row) for row in rankings[:limit]],
@@ -87,6 +88,7 @@ def query_player_detail(
         "display_label": player.display_label,
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
+        "score_direction": score_direction_label(game_type_code),
         "game_size": game_size,
         "period": period.query_params() or {"all_time": True},
         "rank": detail.ranking.rank,
@@ -137,6 +139,7 @@ def list_game_types(group: Group) -> dict:
             {
                 "code": code,
                 "name": get_game_type(code).name,
+                "score_direction": score_direction_label(code),
             }
             for code in codes
         ],

@@ -18,6 +18,7 @@
 | All-time override | `all_time: true` on period-aware tools | Ignores the Ask page default period |
 | Player roster | Active players only, embedded in the user message | Inactive or historical players may not resolve |
 | Placement index | 0 = 1st, 1 = 2nd, 2 = 3rd in tool args | The model must translate "2nd place" to `placement=1` |
+| Score direction | `score_direction` on game-type tool results (`low_wins` or `high_wins`) | Progressive Rummy is low-score-wins; do not treat higher raw points as better |
 | Debug | `include_debug: true` on any insight POST | Returns `tool_rounds`, `available_tools`, full LLM message chain |
 
 ---

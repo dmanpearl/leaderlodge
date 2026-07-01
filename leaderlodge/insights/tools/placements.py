@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.db.models import Sum
 
 from leaderlodge.games.models import GameParticipantResult
-from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.registry import get_game_type, score_direction_label
 from leaderlodge.games.standings import standings_weight_expression
 from leaderlodge.groups.models import Group, GroupPlayer
 from leaderlodge.leaderboards.period import LeaderboardPeriod, filter_results_by_period
@@ -62,6 +62,7 @@ def query_placement_leaders(
     return {
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
+        "score_direction": score_direction_label(game_type_code),
         "placement": placement,
         "placement_label": ordinal_place_label(placement),
         "game_size": game_size,

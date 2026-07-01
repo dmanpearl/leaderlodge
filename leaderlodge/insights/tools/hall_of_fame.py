@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from leaderlodge.games.registry import score_direction_label
 from leaderlodge.groups.models import Group
 from leaderlodge.leaderboards.hall_of_fame import (
     GRANULARITY_MONTH,
@@ -33,6 +34,7 @@ def query_hall_of_fame(
                 {
                     "game_type_code": column.code,
                     "game_type_name": column.name,
+                    "score_direction": score_direction_label(column.code),
                     "leader": cell.player_label or None,
                     "player_id": cell.player_id,
                     "rank_score": (

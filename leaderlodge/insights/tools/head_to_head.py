@@ -4,7 +4,7 @@ from django.db.models import Count, Q
 
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.models import Game
-from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.registry import get_game_type, score_direction_label
 from leaderlodge.groups.models import Group, GroupPlayer
 from leaderlodge.leaderboards.period import LeaderboardPeriod, filter_results_by_period
 
@@ -84,6 +84,7 @@ def query_head_to_head(
         return {
             "game_type_code": game_type_code,
             "game_type_name": game_type.name,
+            "score_direction": score_direction_label(game_type_code),
             "game_size": game_size,
             "period": period.query_params() or {"all_time": True},
             "games_together": 0,
@@ -123,6 +124,7 @@ def query_head_to_head(
     return {
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
+        "score_direction": score_direction_label(game_type_code),
         "game_size": game_size,
         "period": period.query_params() or {"all_time": True},
         "games_together": stats.total_games,

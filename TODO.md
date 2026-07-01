@@ -83,6 +83,7 @@
 - [x] 0e74a75 AI: Rewrite /about text and /about/insight text
 - [x] 8986d06 Add Spin-down section headers: Leaderboard Filter Controls, Dashboard Recent Games
 - [x] 5a20fd2 AI: 'Show data sent to AI' toggle (dev/demo JSON viewer open to all users)
+- [x] AI: Ask the Lodge: Progressive Rummy answers wrongly favored higher point totals (fixed via score_direction in tool payloads, user message, and prompt)
 
 ## Open Items
 
@@ -115,7 +116,7 @@
 - [ ] Android: Build native mobile app for Android
 - [ ] Delete Group: Make a UI for deleting group, warn user about deleting x number of games, access from Groups View, Group Detail View, and/or Group Edit
 
-## AI showcase follow-ups (one at a time)
+## AI showcase
 
 - [ ] AI: Generic rebranding as AI centric
 - [ ] AI: UI highlight: raw stats table + AI narrative side-by-side ("computed vs interpreted")

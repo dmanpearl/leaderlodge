@@ -6,7 +6,12 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 8
+PROMPT_VERSION = 9
+
+_ASK_SCORE_DIRECTION_RULES = """- Game-type tool results include score_direction: low_wins or high_wins.
+- For low_wins game types (Progressive Rummy), lower raw point totals and scores are better. Never say a player with more points is ahead, leading, or has the scoring edge.
+- For who leads or is winning, use rank, rank_score, or wins from tool results. Do not infer leadership by comparing total_points or raw scores unless score_direction is high_wins.
+- best_score and worst_score in query_player_detail already follow LeaderLodge rules for that game type."""
 
 _NUMERIC_RULES = """- For comparisons (more/less, most, highest, best rank): use `computed_rankings` when present. Do not infer order by comparing raw numbers yourself.
 - Only call a player "most" or "highest" if they are rank 1 in the matching `computed_rankings` list.
@@ -58,13 +63,14 @@ Rules:
 - Refer to players by display_label from the JSON.
 """
 
-ASK_SYSTEM_PROMPT = """You are Ask the Lodge for LeaderLodge, a friendly game-night stats app.
+ASK_SYSTEM_PROMPT = f"""You are Ask the Lodge for LeaderLodge, a friendly game-night stats app.
 
 The user asks a natural-language question about their group stats. You have tools that run validated Python queries. Use them to fetch facts before answering.
 
 Rules:
 - Call one or more tools when you need computed stats. Do not guess ranks, counts, or trends.
 - Use ONLY facts returned by tools. Do not invent games, players, or numbers.
+{_ASK_SCORE_DIRECTION_RULES}
 - The user message includes a player roster with player_id and name aliases. Use player_query or player_id from that roster when calling query_player_detail or query_head_to_head. Never invent player_id values.
 - When the question says all time or overall, pass all_time=true on period-aware tools even if the user message default period is filtered.
 - Placement in tools is 0-indexed: 0=1st place, 1=2nd place, 2=3rd place.
@@ -245,13 +251,24 @@ def render_ask_user_message(
     period_label: str,
     player_roster: list[dict],
 ) -> str:
+    from leaderlodge.games.registry import get_game_type, score_direction_label
+
     custom = sanitize_custom_question(question)
     if not custom:
         raise ValueError("A question is required.")
 
     scope_lines = [f"Group: {group_name}"]
     if game_type_code:
-        scope_lines.append(f"Default game type: {game_type_code}")
+        game_type = get_game_type(game_type_code)
+        direction = score_direction_label(game_type_code)
+        if direction == "low_wins":
+            direction_hint = "lower scores are better"
+        else:
+            direction_hint = "higher scores are better"
+        scope_lines.append(
+            f"Default game type: {game_type.name} ({game_type_code}, "
+            f"score_direction={direction}, {direction_hint})"
+        )
     if period_label:
         scope_lines.append(f"Default period: {period_label}")
     else:

@@ -5,7 +5,11 @@ from datetime import date, timedelta
 from django.db.models import Q, Sum
 
 from leaderlodge.games.models import GameParticipantResult
-from leaderlodge.games.registry import ScoreDirection, get_game_type
+from leaderlodge.games.registry import (
+    ScoreDirection,
+    get_game_type,
+    score_direction_label,
+)
 from leaderlodge.games.standings import standings_weight_expression
 from leaderlodge.groups.models import Group, GroupPlayer
 from leaderlodge.leaderboards.period import LeaderboardPeriod
@@ -88,6 +92,7 @@ def query_rank_trends(
     return {
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
+        "score_direction": score_direction_label(game_type_code),
         "game_size": game_size,
         "days": days,
         "recent_window_start": recent_start.isoformat(),
@@ -121,6 +126,7 @@ def query_month_leaders(
         return {
             "game_type_code": game_type_code,
             "game_type_name": game_type.name,
+            "score_direction": score_direction_label(game_type_code),
             "month": month,
             "year": year,
             "game_size": game_size,
@@ -186,6 +192,7 @@ def query_month_leaders(
     return {
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
+        "score_direction": score_direction_label(game_type_code),
         "month": month,
         "year": None,
         "game_size": game_size,

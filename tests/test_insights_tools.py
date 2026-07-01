@@ -69,7 +69,39 @@ def test_query_placement_leaders_returns_second_place_counts(user, group):
 
 
 @pytest.mark.django_db
-def test_query_head_to_head_counts_shared_games(user, group):
+def test_list_game_types_includes_score_direction(user, group):
+    _record_game(group, user, third_idx=None)
+    from leaderlodge.insights.tools.standings import list_game_types
+
+    result = list_game_types(group)
+    dominos = next(row for row in result["game_types"] if row["code"] == "dominos")
+    assert dominos["score_direction"] == "high_wins"
+
+
+def test_score_direction_label():
+    from leaderlodge.games.registry import score_direction_label
+
+    assert score_direction_label("progressiverummy") == "low_wins"
+    assert score_direction_label("dominos") == "high_wins"
+
+
+def test_render_ask_user_message_includes_low_wins_hint():
+    from leaderlodge.insights.prompts import render_ask_user_message
+
+    message = render_ask_user_message(
+        question="Who is leading?",
+        group_name="Dom Club",
+        game_type_code="progressiverummy",
+        period_label="",
+        player_roster=[],
+    )
+
+    assert "score_direction=low_wins" in message
+    assert "lower scores are better" in message
+
+
+@pytest.mark.django_db
+def test_query_head_to_head_includes_score_direction(user, group):
     _record_game(group, user, winner_idx=0, loser_idx=1, third_idx=2)
     _record_game(group, user, winner_idx=1, loser_idx=0, third_idx=2)
     players = list(group.players.order_by("pk"))
@@ -84,6 +116,7 @@ def test_query_head_to_head_counts_shared_games(user, group):
     )
 
     assert result["games_together"] == 2
+    assert result["score_direction"] == "high_wins"
     assert result["player_a"]["games_played"] == 2
     assert result["player_b"]["games_played"] == 2
     assert result["player_a"]["wins"] + result["player_b"]["wins"] == 2
