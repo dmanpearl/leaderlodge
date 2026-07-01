@@ -76,6 +76,12 @@ def query_player_detail(
         }
 
     game_type = get_game_type(game_type_code)
+
+    def _score_highlight(item) -> dict | None:
+        if item is None:
+            return None
+        return {"score": item.score, "played_on": item.played_on.isoformat()}
+
     return {
         "player_id": player.pk,
         "display_label": player.display_label,
@@ -89,6 +95,18 @@ def query_player_detail(
         "wins": round(detail.ranking.wins, 2),
         "win_pct": round(detail.ranking.win_pct, 1),
         "average_field_size": round(detail.average_field_size, 1),
+        "first_game_date": (
+            detail.first_game_date.isoformat() if detail.first_game_date else None
+        ),
+        "last_game_date": (
+            detail.last_game_date.isoformat() if detail.last_game_date else None
+        ),
+        "date_range_label": detail.date_range_label,
+        "podium_count": detail.podium_count,
+        "podium_pct": round(detail.podium_pct, 1),
+        "tie_count": detail.tie_count,
+        "best_score": _score_highlight(detail.best_score),
+        "worst_score": _score_highlight(detail.worst_score),
         "placements": [
             {
                 "placement": item.placement,

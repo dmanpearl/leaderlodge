@@ -37,7 +37,7 @@ The model never chooses what to query. Context scope is locked to the open page 
 
 The model cannot run SQL or invent stats. It selects from a fixed tool catalog; Python enforces arguments and permissions. Each Ask request includes a **player roster** (id, display label, username, first name) so questions can use friendly names; `query_player_detail` also accepts `player_query` for server-side name matching.
 
-**Capability audit and expansion plan:** [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) (supported vs unsupported question types, tool limits, phased roadmap).
+**Capability audit and expansion plan:** [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) (supported vs unsupported question types, tool limits, planned expansion).
 
 **Entry points:** Navbar **Ask** (violet `bi-stars`; icon on mobile, icon + label on desktop) and Account menu **Ask the Lodge**.
 
@@ -69,12 +69,16 @@ The model cannot run SQL or invent stats. It selects from a fixed tool catalog; 
 | Tool | Purpose |
 |------|---------|
 | `list_game_types` | Game types with recorded games in the group |
+| `list_group_players` | Active roster with ids and name aliases |
 | `query_leaderboard` | Rankings for a game type and optional period/size |
 | `query_placement_leaders` | Who finishes in a placement most often (0=1st, 1=2nd, ...) |
 | `query_month_leaders` | Leaders for a calendar month |
 | `query_rank_trends` | Rank score change between recent and prior windows |
-| `query_player_detail` | One player's placement breakdown (by `player_id` or `player_query`) |
-| `list_group_players` | Active roster with ids and name aliases |
+| `query_player_detail` | One player: rank, placements, scores, dates, podium, ties |
+| `query_head_to_head` | Two players in games they both attended |
+| `query_hall_of_fame` | Period leaders across years or months |
+
+Period-aware tools accept optional `year`, `month`, and `all_time` (ignore Ask page default period). See [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) for the full capability matrix.
 
 ---
 

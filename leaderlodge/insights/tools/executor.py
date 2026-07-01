@@ -4,7 +4,8 @@ from typing import Any
 
 from leaderlodge.games.game_size import available_game_sizes, resolve_game_size
 from leaderlodge.games.models import Game
-from leaderlodge.games.registry import GAME_TYPES
+from leaderlodge.insights.tools.head_to_head import query_head_to_head
+from leaderlodge.insights.tools.hall_of_fame import query_hall_of_fame
 from leaderlodge.insights.tools.placements import query_placement_leaders
 from leaderlodge.insights.tools.players import (
     build_ask_player_roster,
@@ -43,6 +44,8 @@ class ToolExecutor:
             "query_month_leaders": self._query_month_leaders,
             "query_rank_trends": self._query_rank_trends,
             "query_player_detail": self._query_player_detail,
+            "query_head_to_head": self._query_head_to_head,
+            "query_hall_of_fame": self._query_hall_of_fame,
         }
         handler = handlers.get(name)
         if handler is None:
@@ -58,6 +61,9 @@ class ToolExecutor:
         return raw
 
     def _resolve_period(self, arguments: dict[str, Any], game_type_code: str):
+        if arguments.get("all_time"):
+            return LeaderboardPeriod.all_time()
+
         raw_year = arguments.get("year")
         raw_month = arguments.get("month")
         if raw_year is None and raw_month is None:
@@ -110,11 +116,18 @@ class ToolExecutor:
         }
 
     def _resolve_player_id(self, arguments: dict[str, Any]) -> int:
-        raw_id = arguments.get("player_id")
-        raw_query = str(arguments.get("player_query") or "").strip()
+        return self._resolve_player_id_from_args(arguments, prefix="")
+
+    def _resolve_player_id_from_args(
+        self, arguments: dict[str, Any], *, prefix: str
+    ) -> int:
+        id_key = f"{prefix}id" if prefix else "player_id"
+        query_key = f"{prefix}query" if prefix else "player_query"
+        raw_id = arguments.get(id_key)
+        raw_query = str(arguments.get(query_key) or "").strip()
 
         if raw_id is not None and raw_query:
-            raise ToolExecutionError("Provide player_id or player_query, not both.")
+            raise ToolExecutionError(f"Provide {id_key} or {query_key}, not both.")
 
         if raw_query:
             try:
@@ -126,14 +139,21 @@ class ToolExecutor:
             player_id = int(raw_id)
         except (TypeError, ValueError) as exc:
             raise ToolExecutionError(
-                "player_id must be an integer or provide player_query."
+                f"{id_key} must be an integer or provide {query_key}."
             ) from exc
 
         if not self.scope.group.players.filter(pk=player_id).exists():
-            raise ToolExecutionError(
-                f"player_id {player_id} not found in this group."
-            )
+            raise ToolExecutionError(f"{id_key} {player_id} not found in this group.")
         return player_id
+
+    def _resolve_head_to_head_players(
+        self, arguments: dict[str, Any]
+    ) -> tuple[int, int]:
+        player_a_id = self._resolve_player_id_from_args(arguments, prefix="player_a_")
+        player_b_id = self._resolve_player_id_from_args(arguments, prefix="player_b_")
+        if player_a_id == player_b_id:
+            raise ToolExecutionError("Head-to-head requires two different players.")
+        return player_a_id, player_b_id
 
     def _query_leaderboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
         game_type_code = self._resolve_game_type_code(arguments)
@@ -219,4 +239,34 @@ class ToolExecutor:
             game_type_code=game_type_code,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+        )
+
+    def _query_head_to_head(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        player_a_id, player_b_id = self._resolve_head_to_head_players(arguments)
+        return query_head_to_head(
+            self.scope.group,
+            game_type_code=game_type_code,
+            player_a_id=player_a_id,
+            player_b_id=player_b_id,
+            period=self._resolve_period(arguments, game_type_code),
+            game_size=self._resolve_game_size(arguments, game_type_code),
+        )
+
+    def _query_hall_of_fame(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        granularity = str(arguments.get("granularity") or "year").strip()
+        if granularity not in {"year", "month"}:
+            raise ToolExecutionError("granularity must be year or month.")
+
+        game_type_code = arguments.get("game_type_code")
+        if game_type_code is not None:
+            game_type_code = str(game_type_code).strip()
+            if game_type_code not in self.scope.available_game_type_codes:
+                raise ToolExecutionError("Game type not found for this group.")
+
+        return query_hall_of_fame(
+            self.scope.group,
+            granularity=granularity,
+            game_type_code=game_type_code,
+            limit=self._resolve_limit(arguments),
         )

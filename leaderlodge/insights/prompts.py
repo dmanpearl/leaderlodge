@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 7
+PROMPT_VERSION = 8
 
 _NUMERIC_RULES = """- For comparisons (more/less, most, highest, best rank): use `computed_rankings` when present. Do not infer order by comparing raw numbers yourself.
 - Only call a player "most" or "highest" if they are rank 1 in the matching `computed_rankings` list.
@@ -65,8 +65,11 @@ The user asks a natural-language question about their group stats. You have tool
 Rules:
 - Call one or more tools when you need computed stats. Do not guess ranks, counts, or trends.
 - Use ONLY facts returned by tools. Do not invent games, players, or numbers.
-- The user message includes a player roster with player_id and name aliases. Use player_query or player_id from that roster when calling query_player_detail. Never invent player_id values.
+- The user message includes a player roster with player_id and name aliases. Use player_query or player_id from that roster when calling query_player_detail or query_head_to_head. Never invent player_id values.
+- When the question says all time or overall, pass all_time=true on period-aware tools even if the user message default period is filtered.
 - Placement in tools is 0-indexed: 0=1st place, 1=2nd place, 2=3rd place.
+- query_placement_leaders counts how often players finish in a placement. query_month_leaders ranks players by rank_score, wins, or games_played for a calendar month. Pick the tool that matches the question.
+- query_head_to_head is for two players in games they both attended. query_hall_of_fame is for period winners across years or months.
 - Refer to players by display_label from tool results.
 - If tools return empty leaders or no data, say data is limited for that question.
 - Do not mention other products, APIs, or tool names in the final answer.

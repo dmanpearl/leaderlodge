@@ -2,6 +2,23 @@
 
 from __future__ import annotations
 
+_PERIOD_PROPERTIES = {
+    "year": {
+        "type": "integer",
+        "description": "Optional calendar year filter.",
+    },
+    "month": {
+        "type": "integer",
+        "description": "Optional calendar month (1-12). Requires year.",
+    },
+    "all_time": {
+        "type": "boolean",
+        "description": (
+            "When true, ignore the Ask page default period and use all-time stats."
+        ),
+    },
+}
+
 ASK_TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
@@ -35,14 +52,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                         "type": "string",
                         "description": "Game type code, e.g. dominos or mahjongg.",
                     },
-                    "year": {
-                        "type": "integer",
-                        "description": "Optional calendar year filter.",
-                    },
-                    "month": {
-                        "type": "integer",
-                        "description": "Optional calendar month (1-12). Requires year.",
-                    },
+                    **_PERIOD_PROPERTIES,
                     "game_size": {
                         "type": "integer",
                         "description": "Optional player count filter (2, 3, 4, etc.).",
@@ -72,8 +82,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                         "type": "integer",
                         "description": "0 for 1st place, 1 for 2nd place, etc.",
                     },
-                    "year": {"type": "integer"},
-                    "month": {"type": "integer"},
+                    **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
                     "limit": {"type": "integer"},
                 },
@@ -140,7 +149,8 @@ ASK_TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "query_player_detail",
             "description": (
-                "Detailed stats for one player in one game type. "
+                "Detailed stats for one player in one game type, including placement "
+                "mix, best/worst score, date range, podium count, and tie count. "
                 "Use player_query for names (first name, display label, username) "
                 "or player_id from list_group_players / the roster."
             ),
@@ -156,11 +166,68 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                         ),
                     },
                     "game_type_code": {"type": "string"},
-                    "year": {"type": "integer"},
-                    "month": {"type": "integer"},
+                    **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
                 },
                 "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_head_to_head",
+            "description": (
+                "Head-to-head stats for two players in games they both attended: "
+                "games together, wins, ties, and losses when the game type supports them."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    "player_a_id": {"type": "integer"},
+                    "player_a_query": {
+                        "type": "string",
+                        "description": "First player name or username from the roster.",
+                    },
+                    "player_b_id": {"type": "integer"},
+                    "player_b_query": {
+                        "type": "string",
+                        "description": "Second player name or username from the roster.",
+                    },
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_hall_of_fame",
+            "description": (
+                "Period leaders across years or months, like the Hall of Fame grid. "
+                "Use for dynasty questions and repeat winners."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "granularity": {
+                        "type": "string",
+                        "enum": ["year", "month"],
+                        "description": "year for annual leaders, month for monthly leaders.",
+                    },
+                    "game_type_code": {
+                        "type": "string",
+                        "description": "Optional filter to one game type.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max period rows to return (default 10).",
+                    },
+                },
+                "required": [],
             },
         },
     },
