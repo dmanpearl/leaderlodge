@@ -9,6 +9,10 @@ from typing import Any
 
 from django.core.cache import cache
 
+from leaderlodge.insights.ask_coverage import (
+    analyze_ask_tool_coverage,
+    append_incomplete_data_note,
+)
 from leaderlodge.insights.debug import build_ask_insight_debug, summarize_ask_tools
 from leaderlodge.insights.prompts import (
     ASK_SYSTEM_PROMPT,
@@ -160,6 +164,7 @@ def _generate_insight(
 @dataclass(frozen=True)
 class AskResult(InsightResult):
     tools_used: tuple[str, ...] = ()
+    coverage: dict[str, Any] | None = None
     debug: dict[str, Any] | None = None
 
 
@@ -208,6 +213,7 @@ def generate_ask_response(
             input_tokens=int(cached_payload.get("input_tokens", 0)),
             output_tokens=int(cached_payload.get("output_tokens", 0)),
             tools_used=tuple(cached_payload.get("tools_used", ())),
+            coverage=cached_payload.get("coverage"),
         )
 
     player_bindings = resolve_question_player_bindings(scope.group, question)
@@ -298,6 +304,12 @@ def generate_ask_response(
     if not markdown:
         raise ValueError("Ask the Lodge returned an empty answer.")
 
+    coverage = analyze_ask_tool_coverage(
+        tool_rounds=tool_rounds,
+        roster_player_count=len(player_roster),
+        question=question,
+    )
+    markdown = append_incomplete_data_note(markdown, coverage)
     html = _markdown_to_html(markdown)
     tools_tuple = tuple(tools_used)
     if completion.text:
@@ -319,10 +331,11 @@ def generate_ask_response(
             player_roster=player_roster,
             tool_rounds=tool_rounds,
             tools_used=list(tools_tuple),
-            final_answer=completion.text,
+            final_answer=markdown,
             available_tools=summarize_ask_tools(),
             llm_messages=messages,
         )
+        debug_payload["coverage"] = coverage
 
     cache.set(
         cache_key,
@@ -333,6 +346,7 @@ def generate_ask_response(
             "input_tokens": total_input,
             "output_tokens": total_output,
             "tools_used": tools_tuple,
+            "coverage": coverage,
         },
         _CACHE_TTL,
     )
@@ -347,6 +361,7 @@ def generate_ask_response(
         input_tokens=total_input,
         output_tokens=total_output,
         tools_used=tools_tuple,
+        coverage=coverage,
         debug=debug_payload,
     )
 

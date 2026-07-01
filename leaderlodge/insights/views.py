@@ -508,7 +508,7 @@ def _period_context_for_group(
 
 
 def _ask_meta(result: AskResult) -> dict[str, Any]:
-    return {
+    meta: dict[str, Any] = {
         "model": result.model_slug,
         "model_label": MODEL_REGISTRY[result.model_slug].label,
         "provider": result.provider,
@@ -519,6 +519,9 @@ def _ask_meta(result: AskResult) -> dict[str, Any]:
         "output_tokens": result.output_tokens,
         "tools_used": list(result.tools_used),
     }
+    if result.coverage is not None:
+        meta["coverage"] = result.coverage
+    return meta
 
 
 @demo_or_login_required

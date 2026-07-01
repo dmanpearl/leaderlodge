@@ -192,7 +192,7 @@ Returns period leaders like the Hall of Fame grid: `period_label`, leader `displ
 | UI period vs question intent | Ask filter set to "2025" but question says "all time" | Model may omit `all_time: true` despite prompt guidance |
 | Placement without field size | "Who finishes last?" in groups that mix 3- and 5-player games | Last placement index depends on `game_size` |
 | Multi-tool chains | "Compare dominos and mahjongg leaders, then who improves faster" | May exceed 5 rounds if the model chains one tool per round |
-| Name-based group compares | "Boys vs girls average rank" for large rosters | Many `query_player_detail` calls; may hit round or row limits |
+| Name-based group compares | "Boys vs girls average rank" for large rosters | Many `query_player_detail` calls; may hit round limits. Response `meta.coverage` flags when stats were fetched for fewer than 60% of roster players |
 | Inactive players | "How did former member Alex do?" | Active roster only |
 | Sparse trends | "Who improved most this month?" | Trend tool needs games in both windows |
 | Ambiguous names | "How is Pat doing?" with two Pats | Ambiguity error or wrong match |
