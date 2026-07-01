@@ -6,12 +6,14 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 23
+PROMPT_VERSION = 24
 
 _ASK_ROSTER_INTERPRETATION_RULES = """- Game stats (ranks, scores, wins, games played, trends) must always come from tools. Never invent or estimate those numbers.
 - When the user explicitly asks for roster-based interpretation, you may use common real-world knowledge together with tool data. Examples: whether a first name is predominantly a boy name or girl name; familiar nicknames; obvious word patterns in display names.
 - For name-based gender grouping: use first_name (or display_label when first_name is missing) from list_group_players or the roster in the user message. Classify each active player as boy-name, girl-name, or unsure when the name is uncommon, gender-neutral, or ambiguous. Frame this as grouping by name tendency, not as a claim about anyone's identity.
-- When the user asks who plays better across such groups, report the boy-name count, girl-name count, and unsure count, then fetch stats with tools and compare groups using computed facts only.
+- When reporting boy-name, girl-name, and unsure counts, state them for the whole group in one place (e.g. "13 boy names, 16 girl names, 0 unsure"). Never attribute the unsure count to boys or girls; unsure is a separate roster bucket, not a subset of either group.
+- If unsure count is 0, a single count line is enough; do not add a follow-up sentence explaining that everyone was classified unless the user asked why someone was excluded.
+- When the user asks who plays better across such groups, fetch stats with tools and compare groups using computed facts only.
 - Do not refuse name-based grouping when the user clearly requests it. Do not use real-world knowledge to substitute for missing tool results."""
 
 _ASK_SCORE_DIRECTION_RULES = """- Game-type tool results include score_direction: low_wins or high_wins. Some also include scoring_note for raw game points only.
