@@ -181,6 +181,7 @@ Returns period leaders like the Hall of Fame grid: `period_label`, leader `displ
 | Hall of Fame / dynasty | "Who dominated across years?" / "Repeat monthly winners?" | `query_hall_of_fame` |
 | Period winners by game | "Who won 2024 in each game?" | `query_hall_of_fame`, `granularity=year` |
 | Roster discovery | "Who is in our group?" | `list_group_players` |
+| Name-based grouping | "Do boys or girls play better?" / classify by first name | `list_group_players` + model name knowledge + per-player or leaderboard tools for stats |
 | Game types | "What games do we track?" | `list_game_types` |
 | Two-player career compare | "How do Nancy and David stack up in dominos?" | Two `query_player_detail` calls, or `query_head_to_head` for shared-table stats |
 
@@ -191,6 +192,7 @@ Returns period leaders like the Hall of Fame grid: `period_label`, leader `displ
 | UI period vs question intent | Ask filter set to "2025" but question says "all time" | Model may omit `all_time: true` despite prompt guidance |
 | Placement without field size | "Who finishes last?" in groups that mix 3- and 5-player games | Last placement index depends on `game_size` |
 | Multi-tool chains | "Compare dominos and mahjongg leaders, then who improves faster" | May exceed 5 rounds if the model chains one tool per round |
+| Name-based group compares | "Boys vs girls average rank" for large rosters | Many `query_player_detail` calls; may hit round or row limits |
 | Inactive players | "How did former member Alex do?" | Active roster only |
 | Sparse trends | "Who improved most this month?" | Trend tool needs games in both windows |
 | Ambiguous names | "How is Pat doing?" with two Pats | Ambiguity error or wrong match |

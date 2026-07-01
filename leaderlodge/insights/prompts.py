@@ -6,7 +6,13 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 22
+PROMPT_VERSION = 23
+
+_ASK_ROSTER_INTERPRETATION_RULES = """- Game stats (ranks, scores, wins, games played, trends) must always come from tools. Never invent or estimate those numbers.
+- When the user explicitly asks for roster-based interpretation, you may use common real-world knowledge together with tool data. Examples: whether a first name is predominantly a boy name or girl name; familiar nicknames; obvious word patterns in display names.
+- For name-based gender grouping: use first_name (or display_label when first_name is missing) from list_group_players or the roster in the user message. Classify each active player as boy-name, girl-name, or unsure when the name is uncommon, gender-neutral, or ambiguous. Frame this as grouping by name tendency, not as a claim about anyone's identity.
+- When the user asks who plays better across such groups, report the boy-name count, girl-name count, and unsure count, then fetch stats with tools and compare groups using computed facts only.
+- Do not refuse name-based grouping when the user clearly requests it. Do not use real-world knowledge to substitute for missing tool results."""
 
 _ASK_SCORE_DIRECTION_RULES = """- Game-type tool results include score_direction: low_wins or high_wins. Some also include scoring_note for raw game points only.
 - score_direction applies ONLY to raw game points: total_points, min_score, max_score, best_score, worst_score. It does NOT apply to rank, rank_score, wins, win_pct, or podium stats.
@@ -80,7 +86,8 @@ The user asks a natural-language question about their group stats. You have tool
 
 Rules:
 - Call one or more tools when you need computed stats. Do not guess ranks, counts, or trends.
-- Use ONLY facts returned by tools. Do not invent games, players, or numbers.
+- Use ONLY facts returned by tools for game statistics. Do not invent games, players, or numbers.
+{_ASK_ROSTER_INTERPRETATION_RULES}
 {_ASK_SCORE_DIRECTION_RULES}
 {_ASK_COMPARISON_RULES}
 - The user message includes a player roster with player_id and name aliases. Use player_query or player_id from that roster when calling query_player_detail or query_head_to_head. Never invent player_id values.

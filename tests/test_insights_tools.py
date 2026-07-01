@@ -122,6 +122,13 @@ def test_ask_prompt_player_compare_requires_overall_rank():
     assert "state it first" in ASK_SYSTEM_PROMPT
 
 
+def test_ask_prompt_allows_name_based_roster_interpretation():
+    from leaderlodge.insights.prompts import ASK_SYSTEM_PROMPT
+
+    assert "name-based gender grouping" in ASK_SYSTEM_PROMPT
+    assert "Do not refuse name-based grouping" in ASK_SYSTEM_PROMPT
+
+
 @pytest.mark.django_db
 def test_query_head_to_head_includes_score_direction(user, group):
     _record_game(group, user, winner_idx=0, loser_idx=1, third_idx=2)
