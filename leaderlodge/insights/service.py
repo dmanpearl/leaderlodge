@@ -90,6 +90,7 @@ def _markdown_to_html(text: str) -> str:
         text,
         extensions=["extra", "nl2br", "sane_lists"],
         output_format="html5",
+        tab_length=2,
     )
 
 

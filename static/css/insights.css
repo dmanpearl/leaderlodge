@@ -117,8 +117,30 @@
   margin-top: 0.75rem;
 }
 
-.player-insights-result .player-insights-markdown ul {
+.player-insights-result .player-insights-markdown ul,
+.player-insights-result .player-insights-markdown ol {
   padding-left: 1.25rem;
+}
+
+.player-insights-result .player-insights-markdown ul ul,
+.player-insights-result .player-insights-markdown ol ol,
+.player-insights-result .player-insights-markdown ul ol,
+.player-insights-result .player-insights-markdown ol ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.player-insights-result .player-insights-markdown li > p {
+  margin-bottom: 0.25rem;
+}
+
+.player-insights-result .player-insights-markdown li > p:last-child {
+  margin-bottom: 0;
+}
+
+.player-insights-result .player-insights-markdown li > ul,
+.player-insights-result .player-insights-markdown li > ol {
+  margin-top: 0.25rem;
 }
 
 .player-insights-result .player-insights-markdown p {
