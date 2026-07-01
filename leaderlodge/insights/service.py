@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from django.core.cache import cache
@@ -27,6 +27,7 @@ from leaderlodge.insights.prompts import (
 from leaderlodge.insights.registry import resolve_model_slug
 from leaderlodge.insights.router import (
     ASK_MAX_OUTPUT_TOKENS,
+    ASK_MAX_TOOL_ROUNDS,
     complete_insight,
     complete_with_tools,
 )
@@ -35,7 +36,12 @@ from leaderlodge.insights.tools.executor import (
     ToolExecutionError,
     ToolExecutor,
 )
-from leaderlodge.insights.tools.players import build_ask_player_roster
+from leaderlodge.insights.tools.players import (
+    build_ask_player_roster,
+    build_question_player_hints,
+    question_player_binding_map,
+    resolve_question_player_bindings,
+)
 from leaderlodge.insights.tools.schemas import ASK_TOOL_SCHEMAS
 
 _CACHE_PREFIX = "leaderlodge.insights.response"
@@ -203,14 +209,20 @@ def generate_ask_response(
             tools_used=tuple(cached_payload.get("tools_used", ())),
         )
 
+    player_bindings = resolve_question_player_bindings(scope.group, question)
+    scope = replace(
+        scope,
+        question_player_bindings=question_player_binding_map(player_bindings),
+    )
+    player_roster = build_ask_player_roster(scope.group)
     user_message = render_ask_user_message(
         question=question,
         group_name=scope.group.name,
         game_type_code=scope.default_game_type_code,
         period_label=period_label,
-        player_roster=build_ask_player_roster(scope.group),
+        player_roster=player_roster,
+        player_hints=build_question_player_hints(scope.group, question),
     )
-    player_roster = build_ask_player_roster(scope.group)
     executor = ToolExecutor(scope)
     messages: list[dict] = [{"role": "user", "content": user_message}]
     tool_rounds: list[dict] = []
@@ -220,7 +232,7 @@ def generate_ask_response(
     provider = ""
     completion = None
 
-    for _round in range(3):
+    for _round in range(ASK_MAX_TOOL_ROUNDS):
         completion = complete_with_tools(
             model_slug=model,
             system=ASK_SYSTEM_PROMPT,

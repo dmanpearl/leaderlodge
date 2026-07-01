@@ -10,16 +10,58 @@
 
 | Constraint | Value | Effect |
 | ---------- | ----- | ------ |
-| Tool rounds | Up to 3 | Complex questions that need many sequential lookups may fail with "exceeded the tool call limit" |
+| Tool rounds | Up to 5 (`ASK_MAX_TOOL_ROUNDS` in `router.py`) | Each round is one LLM call; the model may request **multiple tools in parallel** within a round. Sequential one-tool-per-round chains (e.g. compare two players plus head-to-head) can exhaust the cap. |
 | Row limit | 1 to 20 per tool (`ToolExecutor.MAX_LIMIT`) | "Everyone in the group" questions truncate |
 | Rankings | Python ORM only | The model never computes `rank_score`, placement counts, or trends |
 | Scope | One group per request | No cross-group comparisons |
 | Default period | Ask page filters (`year` / `month` on `POST /insights/ask/query/`) | When a tool omits `year` and `month`, the UI-selected period applies |
 | All-time override | `all_time: true` on period-aware tools | Ignores the Ask page default period |
 | Player roster | Active players only, embedded in the user message | Inactive or historical players may not resolve |
+| Question player hints | Server resolves usernames and `vs` segments before the LLM runs | Lists `player_id` for each mention; executor binds queries even with quotes |
 | Placement index | 0 = 1st, 1 = 2nd, 2 = 3rd in tool args | The model must translate "2nd place" to `placement=1` |
-| Score direction | `score_direction` on game-type tool results (`low_wins` or `high_wins`) | Progressive Rummy is low-score-wins; do not treat higher raw points as better |
+| Score direction | `score_direction` on game-type tool results (`low_wins` or `high_wins`) | Applies to **raw game points only** (Progressive Rummy: lower points are better). Does **not** apply to `rank_score` |
+| Rank score | Always higher-is-better, every game type | `rank_score` and `rank` follow LeaderLodge standings; never invert for `low_wins` |
+| Scoring note | `scoring_note` on low-wins game types | Reminder that raw points invert usual meaning; explicitly excludes `rank_score` |
+| Outcome display | `wins_display`, `losses_display`, `ties_display` (and `*_display_alt`) | Python-formatted strings such as `81 (25.1%)` or `25.1% (81 of 323)`; Ask cites these for comparisons |
+| Points display | `total_points_display`, `avg_points_display` (and `total_points_display_alt`) | Per-game average required for comparisons: e.g. `136,100 (404.4/game)` or `404.4/game` |
 | Debug | `include_debug: true` on any insight POST | Returns `tool_rounds`, `available_tools`, full LLM message chain |
+
+---
+
+## Shared tool response fields
+
+Many game-type tools include:
+
+| Field | When present | Meaning |
+| ----- | ------------ | ------- |
+| `score_direction` | Game-type scoped tools | `low_wins` (Progressive Rummy) or `high_wins` (dominos, mahjongg, etc.) |
+| `scoring_note` | `low_wins` only | Raw game points only; lower points are better. `rank_score` remains higher-is-better |
+| `all_time` | Request param on period-aware tools | Omits Ask page default period filter |
+
+Player outcome fields (`query_player_detail`, `query_head_to_head` player rows):
+
+| Field | Example | Meaning |
+| ----- | ------- | ------- |
+| `wins_display` | `81 (25.1%)` | Preferred citation format for comparisons |
+| `wins_display_alt` | `25.1% (81 of 323)` | Alternate pct-first format |
+| `losses_display`, `ties_display` | Same pattern | Loss and tie rates with counts |
+| `win_pct`, `loss_pct`, `tie_pct` | Raw numbers | Used to build display fields; prefer `*_display` in answers |
+
+Built by `leaderlodge/insights/tools/rate_display.py` and `scoring_interpretation_note()` in `games/registry.py`.
+
+### Ask answer formatting (prompt-driven)
+
+| Situation | Expected style |
+| --------- | -------------- |
+| Two-player compare | Prose paragraphs only; no per-player bullet stat blocks |
+| Overall rank | **Required first** for any player comparison: rank number and rank_score for each player |
+| Win/loss/tie rates | Quote `wins_display`, `losses_display`, `ties_display` verbatim |
+| Scoring volume | Quote `total_points_display` or `avg_points_display`; compare average points per game, not raw totals |
+| Same `games_played` | Raw win/loss counts without percentages are acceptable |
+| Progressive Rummy / `low_wins` | Lower raw game points are better; `rank_score` is still higher-is-better |
+| General answers | 2 to 4 short paragraphs or up to 5 bullet points |
+
+Models differ in how they batch tool calls: some issue one tool per round (uses the round cap faster) while others parallelize (e.g. head-to-head plus two player details in one round). If Ask fails with "exceeded the tool call limit," retry with `refresh: true` or inspect `debug.tool_rounds`.
 
 ---
 
@@ -27,7 +69,7 @@
 
 ### `list_game_types`
 
-No parameters. Returns game type codes that have at least one recorded game in the group.
+No parameters. Returns game type codes that have at least one recorded game in the group. Each entry includes `code`, `name`, and `score_direction`.
 
 ### `list_group_players`
 
@@ -43,7 +85,7 @@ No parameters. Returns active roster: `player_id`, `display_label`, `display_nam
 | `game_size` | No | Filter by player count (2, 3, 4, 5, ...) |
 | `limit` | No | Default 10, max 20 |
 
-Returns ranked rows: `rank`, `rank_score`, `games_played`, `wins`, `win_pct`.
+Returns ranked rows: `rank`, `rank_score`, `games_played`, `wins`, `win_pct`, plus `score_direction`.
 
 ### `query_placement_leaders`
 
@@ -89,7 +131,7 @@ Skips players with zero weighted games in either window.
 | `player_id` or `player_query` | One of | Server-side name matching |
 | `year`, `month`, `all_time`, `game_size` | No | Period and field-size filters |
 
-Returns rank stats, placement breakdown, `best_score`, `worst_score`, `first_game_date`, `last_game_date`, `date_range_label`, `podium_count`, `podium_pct`, and `tie_count`.
+Returns rank stats, placement breakdown, score highlights, dates, podium stats, and outcome display fields (`wins_display`, `losses_display`, `ties_display`, plus `*_display_alt`). Includes `losses`, `loss_pct`, `ties`, `tie_pct`. Adds `scoring_note` when `score_direction` is `low_wins`.
 
 ### `query_head_to_head`
 
@@ -101,7 +143,7 @@ Returns rank stats, placement breakdown, `best_score`, `worst_score`, `first_gam
 | `year`, `month`, `all_time` | No | Period filter on shared games |
 | `game_size` | No | Optional player-count filter |
 
-Returns `games_together`, and per-player `games_played`, `wins`, `ties`, `losses` (when the game type supports losses) for games **both players attended** (including games with other players at the table).
+Returns `games_together`, `score_direction`, optional `scoring_note`, and per-player stats for games **both players attended** (including games with other players at the table): overall `rank` and `rank_score`, `games_played`, `wins`, `win_pct`, `wins_display`, `ties`, `losses`, `total_points`, `total_points_display`, `avg_points_per_game`, `max_score`, `min_score`, and matching `*_display` / `*_pct` fields.
 
 ### `query_hall_of_fame`
 
@@ -148,7 +190,7 @@ Returns period leaders like the Hall of Fame grid: `period_label`, leader `displ
 | -------- | ----------------- | -------------- |
 | UI period vs question intent | Ask filter set to "2025" but question says "all time" | Model may omit `all_time: true` despite prompt guidance |
 | Placement without field size | "Who finishes last?" in groups that mix 3- and 5-player games | Last placement index depends on `game_size` |
-| Multi-tool chains | "Compare dominos and mahjongg leaders, then who improves faster" | May exceed 3 rounds |
+| Multi-tool chains | "Compare dominos and mahjongg leaders, then who improves faster" | May exceed 5 rounds if the model chains one tool per round |
 | Inactive players | "How did former member Alex do?" | Active roster only |
 | Sparse trends | "Who improved most this month?" | Trend tool needs games in both windows |
 | Ambiguous names | "How is Pat doing?" with two Pats | Ambiguity error or wrong match |
@@ -185,7 +227,6 @@ Remaining high-value gaps and proposed tools. Ordered roughly by effort and impa
 | Later | `query_streaks` | Win/loss/podium streaks |
 | Later | `query_multi_game_type` | Cross-game-type player summary |
 | Later | Inactive player support | Alumni questions |
-| Later | Configurable tool round limit | Deep multi-step questions without hitting 3-round cap |
 
 Optional HTTP endpoints (for matchup picker UI or marketing embeds, not required for Ask):
 
@@ -202,7 +243,7 @@ Optional HTTP endpoints (for matchup picker UI or marketing embeds, not required
 2. **Debug visibility:** `insights_debug_allowed` is open to all users. Keep for demos or restrict to staff?
 3. **Head-to-head scope:** Same game type only (current behavior). Ever cross game type?
 4. **Inactive players:** Include in roster for Ask name resolution?
-5. **Tool round limit:** Stay at 3 or increase as the catalog grows?
+5. **Tool round limit:** Raised to 5 rounds (`ASK_MAX_TOOL_ROUNDS`). Enough for typical compare flows; watch debug if complex chains still fail.
 6. **Landing demo:** Which questions should be guaranteed supported for portfolio?
 
 ---
@@ -228,6 +269,7 @@ Optional HTTP endpoints (for matchup picker UI or marketing embeds, not required
 | Placements | `leaderlodge/insights/tools/placements.py` |
 | Trends / month leaders | `leaderlodge/insights/tools/trends.py` |
 | Standings / player detail | `leaderlodge/insights/tools/standings.py` |
+| Rate display / outcome strings | `leaderlodge/insights/tools/rate_display.py` |
 | Player resolution | `leaderlodge/insights/tools/players.py` |
 | Ask orchestration | `leaderlodge/insights/service.py` |
 | System prompt | `leaderlodge/insights/prompts.py` (`ASK_SYSTEM_PROMPT`, `PROMPT_VERSION`) |

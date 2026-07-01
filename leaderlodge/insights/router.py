@@ -16,6 +16,7 @@ from leaderlodge.insights.registry import MODEL_REGISTRY, resolve_model_slug
 DEFAULT_MAX_OUTPUT_TOKENS = 800
 DEFAULT_TEMPERATURE = 0.4
 ASK_MAX_OUTPUT_TOKENS = 900
+ASK_MAX_TOOL_ROUNDS = 5
 ASK_TEMPERATURE = 0.3
 
 

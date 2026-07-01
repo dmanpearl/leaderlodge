@@ -4,9 +4,42 @@ from django.db.models import Count, Q
 
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.models import Game
-from leaderlodge.games.registry import get_game_type, score_direction_label
+from leaderlodge.games.registry import (
+    get_game_type,
+    score_direction_label,
+    scoring_interpretation_note,
+)
 from leaderlodge.groups.models import Group, GroupPlayer
+from leaderlodge.insights.tools.rate_display import (
+    add_outcome_display_fields,
+    add_points_display_fields,
+)
 from leaderlodge.leaderboards.period import LeaderboardPeriod, filter_results_by_period
+from leaderlodge.leaderboards.ranking import compute_percentage
+from leaderlodge.leaderboards.service import get_player_rank_detail
+
+
+def _overall_rank_fields(
+    group: Group,
+    player: GroupPlayer,
+    *,
+    game_type_code: str,
+    period: LeaderboardPeriod,
+    game_size: int | None,
+) -> dict:
+    detail = get_player_rank_detail(
+        group,
+        player,
+        game_type_code=game_type_code,
+        period=period,
+        game_size=game_size,
+    )
+    if detail is None:
+        return {"rank": None, "rank_score": None}
+    return {
+        "rank": detail.ranking.rank,
+        "rank_score": round(detail.ranking.rank_score, 2),
+    }
 
 
 def _shared_table_games_qs(
@@ -31,17 +64,41 @@ def _shared_table_games_qs(
 
 
 def _player_stats_row(row) -> dict:
-    return {
+    games_played = row.games_played
+    win_pct = round(compute_percentage(row.wins, games_played), 1)
+    tie_pct = round(compute_percentage(row.ties, games_played), 1)
+    loss_pct = round(compute_percentage(row.losses, games_played), 1)
+    payload = {
         "player_id": row.player.pk,
         "display_label": row.player.display_label,
-        "games_played": row.games_played,
+        "games_played": games_played,
         "wins": row.wins,
+        "win_pct": win_pct,
         "ties": row.ties,
+        "tie_pct": tie_pct,
         "losses": row.losses,
+        "loss_pct": loss_pct,
         "total_points": row.total_points,
         "max_score": row.max_score,
         "min_score": row.min_score,
     }
+    payload = add_outcome_display_fields(payload, total=games_played)
+    return add_points_display_fields(payload)
+
+
+def _empty_player_row(player: GroupPlayer) -> dict:
+    payload = {
+        "player_id": player.pk,
+        "display_label": player.display_label,
+        "games_played": 0,
+        "wins": 0,
+        "win_pct": 0.0,
+        "ties": 0,
+        "tie_pct": 0.0,
+        "losses": 0,
+        "loss_pct": 0.0,
+    }
+    return add_outcome_display_fields(payload, total=0)
 
 
 def query_head_to_head(
@@ -81,54 +138,91 @@ def query_head_to_head(
     )
     stats = build_game_list_stats(games_qs=games_qs, game_type_code=game_type_code)
     if stats is None:
-        return {
-            "game_type_code": game_type_code,
-            "game_type_name": game_type.name,
-            "score_direction": score_direction_label(game_type_code),
-            "game_size": game_size,
-            "period": period.query_params() or {"all_time": True},
-            "games_together": 0,
-            "player_a": {
-                "player_id": player_a.pk,
-                "display_label": player_a.display_label,
-                "games_played": 0,
-                "wins": 0,
-                "ties": 0,
-                "losses": 0,
-            },
-            "player_b": {
-                "player_id": player_b.pk,
-                "display_label": player_b.display_label,
-                "games_played": 0,
-                "wins": 0,
-                "ties": 0,
-                "losses": 0,
-            },
-            "supports_loser": game_type.supports_loser,
-        }
+        player_a_row = _empty_player_row(player_a)
+        player_b_row = _empty_player_row(player_b)
+        player_a_row.update(
+            _overall_rank_fields(
+                group,
+                player_a,
+                game_type_code=game_type_code,
+                period=period,
+                game_size=game_size,
+            )
+        )
+        player_b_row.update(
+            _overall_rank_fields(
+                group,
+                player_b,
+                game_type_code=game_type_code,
+                period=period,
+                game_size=game_size,
+            )
+        )
+        return _head_to_head_payload(
+            game_type_code=game_type_code,
+            game_type_name=game_type.name,
+            game_size=game_size,
+            period=period,
+            games_together=0,
+            player_a=player_a_row,
+            player_b=player_b_row,
+            supports_loser=game_type.supports_loser,
+        )
 
     stats_by_id = {row.player.pk: row for row in stats.players}
     row_a = stats_by_id.get(player_a_id)
     row_b = stats_by_id.get(player_b_id)
 
-    def empty_row(player: GroupPlayer) -> dict:
-        return {
-            "player_id": player.pk,
-            "display_label": player.display_label,
-            "games_played": 0,
-            "wins": 0,
-            "ties": 0,
-            "losses": 0,
-        }
+    player_a_row = _player_stats_row(row_a) if row_a else _empty_player_row(player_a)
+    player_b_row = _player_stats_row(row_b) if row_b else _empty_player_row(player_b)
+    player_a_row.update(
+        _overall_rank_fields(
+            group,
+            player_a,
+            game_type_code=game_type_code,
+            period=period,
+            game_size=game_size,
+        )
+    )
+    player_b_row.update(
+        _overall_rank_fields(
+            group,
+            player_b,
+            game_type_code=game_type_code,
+            period=period,
+            game_size=game_size,
+        )
+    )
 
-    return {
+    return _head_to_head_payload(
+        game_type_code=game_type_code,
+        game_type_name=game_type.name,
+        game_size=game_size,
+        period=period,
+        games_together=stats.total_games,
+        player_a=player_a_row,
+        player_b=player_b_row,
+        supports_loser=game_type.supports_loser,
+    )
+
+
+def _head_to_head_payload(
+    *,
+    game_type_code: str,
+    game_type_name: str,
+    game_size: int | None,
+    period: LeaderboardPeriod,
+    **extra: object,
+) -> dict:
+    payload = {
         "game_type_code": game_type_code,
-        "game_type_name": game_type.name,
+        "game_type_name": game_type_name,
         "score_direction": score_direction_label(game_type_code),
         "game_size": game_size,
         "period": period.query_params() or {"all_time": True},
-        "games_together": stats.total_games,
-        "player_a": _player_stats_row(row_a) if row_a else empty_row(player_a),
-        "player_b": _player_stats_row(row_b) if row_b else empty_row(player_b),
-        "supports_loser": game_type.supports_loser,
+        **extra,
     }
+    note = scoring_interpretation_note(game_type_code)
+    if note is not None:
+        payload["scoring_note"] = note
+    return payload

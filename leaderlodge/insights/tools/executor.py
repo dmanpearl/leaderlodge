@@ -9,6 +9,7 @@ from leaderlodge.insights.tools.hall_of_fame import query_hall_of_fame
 from leaderlodge.insights.tools.placements import query_placement_leaders
 from leaderlodge.insights.tools.players import (
     build_ask_player_roster,
+    normalize_player_query,
     resolve_player_query,
 )
 from leaderlodge.insights.tools.scope import AskScope
@@ -124,12 +125,15 @@ class ToolExecutor:
         id_key = f"{prefix}id" if prefix else "player_id"
         query_key = f"{prefix}query" if prefix else "player_query"
         raw_id = arguments.get(id_key)
-        raw_query = str(arguments.get(query_key) or "").strip()
+        raw_query = normalize_player_query(str(arguments.get(query_key) or ""))
 
         if raw_id is not None and raw_query:
             raise ToolExecutionError(f"Provide {id_key} or {query_key}, not both.")
 
         if raw_query:
+            bound_id = self.scope.question_player_bindings.get(raw_query.lower())
+            if bound_id is not None:
+                return bound_id
             try:
                 return resolve_player_query(self.scope.group, raw_query).pk
             except ValueError as exc:

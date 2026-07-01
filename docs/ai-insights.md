@@ -32,7 +32,7 @@ The model never chooses what to query. Context scope is locked to the open page 
 | Question | User types anything ("Who finishes 2nd most in 5-player dominos?") |
 | LLM | Proposes **validated tool calls** (`insights/tools/`) |
 | Python | `ToolExecutor` runs ORM queries; results return as JSON |
-| LLM | Narrates from tool output (up to 3 tool rounds) |
+| LLM | Narrates from tool output (up to 5 tool rounds; multiple tools may run in one round) |
 | Output | Markdown answer |
 
 The model cannot run SQL or invent stats. It selects from a fixed tool catalog; Python enforces arguments and permissions. Each Ask request includes a **player roster** (id, display label, username, first name) so questions can use friendly names; `query_player_detail` also accepts `player_query` for server-side name matching.
@@ -74,11 +74,11 @@ The model cannot run SQL or invent stats. It selects from a fixed tool catalog; 
 | `query_placement_leaders` | Who finishes in a placement most often (0=1st, 1=2nd, ...) |
 | `query_month_leaders` | Leaders for a calendar month |
 | `query_rank_trends` | Rank score change between recent and prior windows |
-| `query_player_detail` | One player: rank, placements, scores, dates, podium, ties |
-| `query_head_to_head` | Two players in games they both attended |
+| `query_player_detail` | One player: rank, placements, scores, dates, podium, ties, outcome display fields |
+| `query_head_to_head` | Two players in games they both attended (with `wins_display`, scores, `scoring_note` when low-wins) |
 | `query_hall_of_fame` | Period leaders across years or months |
 
-Period-aware tools accept optional `year`, `month`, and `all_time` (ignore Ask page default period). See [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) for the full capability matrix.
+Period-aware tools accept optional `year`, `month`, and `all_time` (ignore Ask page default period). Game-type tools return `score_direction`; low-wins types also return `scoring_note`. Player outcome stats include `wins_display`, `losses_display`, and `ties_display`; point totals include `total_points_display` and `avg_points_display` (per-game average). See [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) for the full capability matrix and shared response fields.
 
 ---
 
@@ -129,7 +129,7 @@ sequenceDiagram
 
   Browser->>View: POST /insights/ask/query/
   View->>Service: generate_ask_response()
-  loop Up to 3 rounds
+  loop Up to 5 rounds
     Service->>LLM: system + messages + tool schemas
     LLM-->>Service: tool_calls or final text
     Service->>Tools: ToolExecutor.execute()
@@ -166,9 +166,10 @@ Default: `gpt-4o-mini`. User preference: `UserProfile.ui_settings['insights']['m
 
 ## Prompts and guardrails
 
-- `PROMPT_VERSION = 6` in `prompts.py`; bump when instructions change.
+- `PROMPT_VERSION = 22` in `prompts.py`; bump when instructions change (invalidates Ask cache keys).
 - Contextual prompts: analyst role, JSON-only facts, use `computed_rankings` for comparisons, sparse-data handling, markdown cap.
-- Ask prompt: call tools before answering; placement is 0-indexed in tools; no tool names in the final answer.
+- Ask prompt: call tools before answering; placement is 0-indexed in tools; no tool names in the final answer. Two-player comparisons use prose only (no stat bullet blocks) and **must lead with overall rank and rank_score**. Cite `wins_display` / `losses_display` / `ties_display` exactly. For `low_wins` game types (Progressive Rummy), lower **raw game points** are better; `rank_score` is always higher-is-better. Follow `scoring_note`.
+- Ask tool loop: `ASK_MAX_TOOL_ROUNDS = 5` in `router.py` (one LLM call per round; parallel tool calls within a round count as one round).
 - Custom questions: length cap, strip control chars.
 - UI disclaimer: *AI summary. Rankings computed by LeaderLodge.*
 

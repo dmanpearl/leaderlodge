@@ -1,8 +1,17 @@
 from __future__ import annotations
 
-from leaderlodge.games.registry import get_game_type, score_direction_label
+from leaderlodge.games.registry import (
+    get_game_type,
+    score_direction_label,
+    scoring_interpretation_note,
+)
 from leaderlodge.groups.models import Group, GroupPlayer
+from leaderlodge.insights.tools.rate_display import (
+    add_avg_score_display_fields,
+    add_outcome_display_fields,
+)
 from leaderlodge.leaderboards.period import LeaderboardPeriod
+from leaderlodge.leaderboards.ranking import compute_percentage
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
@@ -83,20 +92,42 @@ def query_player_detail(
             return None
         return {"score": item.score, "played_on": item.played_on.isoformat()}
 
-    return {
+    games_played = round(detail.ranking.games_played, 2)
+    wins = round(detail.ranking.wins, 2)
+    win_pct = round(detail.ranking.win_pct, 1)
+    losses = round(detail.ranking.losses, 2)
+    loss_pct = round(detail.ranking.loss_pct, 1)
+    ties = detail.tie_count
+    tie_pct = round(
+        compute_percentage(detail.tie_count, detail.ranking.games_played), 1
+    )
+
+    payload = {
         "player_id": player.pk,
         "display_label": player.display_label,
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
         "score_direction": score_direction_label(game_type_code),
+        **(
+            {"scoring_note": note}
+            if (note := scoring_interpretation_note(game_type_code)) is not None
+            else {}
+        ),
         "game_size": game_size,
         "period": period.query_params() or {"all_time": True},
         "rank": detail.ranking.rank,
         "rank_score": round(detail.ranking.rank_score, 2),
-        "games_played": round(detail.ranking.games_played, 2),
-        "wins": round(detail.ranking.wins, 2),
-        "win_pct": round(detail.ranking.win_pct, 1),
+        "games_played": games_played,
+        "wins": wins,
+        "win_pct": win_pct,
+        "losses": losses,
+        "loss_pct": loss_pct,
+        "ties": ties,
+        "tie_pct": tie_pct,
         "average_field_size": round(detail.average_field_size, 1),
+        "average_score": (
+            round(detail.average_score, 1) if detail.average_score is not None else None
+        ),
         "first_game_date": (
             detail.first_game_date.isoformat() if detail.first_game_date else None
         ),
@@ -106,7 +137,6 @@ def query_player_detail(
         "date_range_label": detail.date_range_label,
         "podium_count": detail.podium_count,
         "podium_pct": round(detail.podium_pct, 1),
-        "tie_count": detail.tie_count,
         "best_score": _score_highlight(detail.best_score),
         "worst_score": _score_highlight(detail.worst_score),
         "placements": [
@@ -120,6 +150,8 @@ def query_player_detail(
         ],
         "supports_loser": game_type.supports_loser,
     }
+    payload = add_outcome_display_fields(payload, total=games_played)
+    return add_avg_score_display_fields(payload)
 
 
 def list_game_types(group: Group) -> dict:

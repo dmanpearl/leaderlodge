@@ -6,12 +6,23 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 9
+PROMPT_VERSION = 22
 
-_ASK_SCORE_DIRECTION_RULES = """- Game-type tool results include score_direction: low_wins or high_wins.
-- For low_wins game types (Progressive Rummy), lower raw point totals and scores are better. Never say a player with more points is ahead, leading, or has the scoring edge.
-- For who leads or is winning, use rank, rank_score, or wins from tool results. Do not infer leadership by comparing total_points or raw scores unless score_direction is high_wins.
-- best_score and worst_score in query_player_detail already follow LeaderLodge rules for that game type."""
+_ASK_SCORE_DIRECTION_RULES = """- Game-type tool results include score_direction: low_wins or high_wins. Some also include scoring_note for raw game points only.
+- score_direction applies ONLY to raw game points: total_points, min_score, max_score, best_score, worst_score. It does NOT apply to rank, rank_score, wins, win_pct, or podium stats.
+- rank_score is ALWAYS higher-is-better and rank 1 is best, for every game type including Progressive Rummy (low_wins). A higher rank_score means better standing. Never say a lower rank_score is better or that rank_score follows score_direction.
+- For low_wins game types (Progressive Rummy), lower avg_points_per_game and raw per-game scores are better. More points per game means worse scoring, not better. Never say a player with more total_points or higher avg_points_per_game performed better at scoring unless score_direction is high_wins.
+- When comparing total_points or scoring volume, cite total_points_display or avg_points_display from tool results exactly (e.g. 404.4/game or 136,100 (404.4/game)). Never compare raw total_points alone without the per-game average.
+- For who leads or is winning, use rank and rank_score from tool results (higher rank_score is better). Use wins when the question is about win counts. Do not infer leadership by comparing total_points or raw scores unless score_direction is high_wins.
+- best_score and worst_score in query_player_detail already follow LeaderLodge rules for that game type (best = favorable raw score for that game type)."""
+
+_ASK_COMPARISON_RULES = """- When comparing two players, you MUST include each player's overall rank and rank_score for the game type and period in scope. Overall standing is the most important comparison: state it first (who ranks higher, each player's rank number, and rank_score). Higher rank_score is always better; lower rank number (1 is best) is better.
+- Call query_player_detail for each player when rank is not already in tool results. query_head_to_head covers shared-table stats only; it does not replace overall rank unless player rows already include rank and rank_score.
+- When comparing two players, write 2-4 short prose paragraphs only. Do not use bullet lists, per-player stat blocks, or subheadings like "Nancy's Stats".
+- For wins, losses, and ties, cite wins_display, losses_display, and ties_display from tool results exactly as written (e.g. 81 (25.1%)). Do not rephrase as "X wins with a win percentage of Y".
+- For total_points or scoring comparisons, cite total_points_display or avg_points_display exactly (e.g. 404.4/game). Compare average points per game, not raw totals alone.
+- wins_display_alt, losses_display_alt, and ties_display_alt use pct% (count of total) if you prefer that form instead.
+- If both players have the same games_played, raw win, loss, or tie counts are comparable without percentages."""
 
 _NUMERIC_RULES = """- For comparisons (more/less, most, highest, best rank): use `computed_rankings` when present. Do not infer order by comparing raw numbers yourself.
 - Only call a player "most" or "highest" if they are rank 1 in the matching `computed_rankings` list.
@@ -71,11 +82,15 @@ Rules:
 - Call one or more tools when you need computed stats. Do not guess ranks, counts, or trends.
 - Use ONLY facts returned by tools. Do not invent games, players, or numbers.
 {_ASK_SCORE_DIRECTION_RULES}
+{_ASK_COMPARISON_RULES}
 - The user message includes a player roster with player_id and name aliases. Use player_query or player_id from that roster when calling query_player_detail or query_head_to_head. Never invent player_id values.
+- When the user message includes "Players mentioned in the question", pass the listed player_id (or player_a_id / player_b_id) values in tool calls. Prefer player_id over player_query when player_id is given.
+- Do not say a player was not found if they are listed in "Players mentioned in the question". Call tools with the listed player_id before answering.
+- When the question uses a username, pass that exact spelling to player_query if you omit player_id. Do not correct or swap similar-looking usernames.
 - When the question says all time or overall, pass all_time=true on period-aware tools even if the user message default period is filtered.
 - Placement in tools is 0-indexed: 0=1st place, 1=2nd place, 2=3rd place.
 - query_placement_leaders counts how often players finish in a placement. query_month_leaders ranks players by rank_score, wins, or games_played for a calendar month. Pick the tool that matches the question.
-- query_head_to_head is for two players in games they both attended. query_hall_of_fame is for period winners across years or months.
+- query_head_to_head is for two players in games they both attended (includes overall rank on each player row). query_hall_of_fame is for period winners across years or months. Any player comparison must cite overall rank and rank_score.
 - Refer to players by display_label from tool results.
 - If tools return empty leaders or no data, say data is limited for that question.
 - Do not mention other products, APIs, or tool names in the final answer.
@@ -250,6 +265,7 @@ def render_ask_user_message(
     game_type_code: str | None,
     period_label: str,
     player_roster: list[dict],
+    player_hints: str | None = None,
 ) -> str:
     from leaderlodge.games.registry import get_game_type, score_direction_label
 
@@ -262,9 +278,15 @@ def render_ask_user_message(
         game_type = get_game_type(game_type_code)
         direction = score_direction_label(game_type_code)
         if direction == "low_wins":
-            direction_hint = "lower scores are better"
+            direction_hint = (
+                "lower raw game points are better; "
+                "rank_score is always higher-is-better"
+            )
         else:
-            direction_hint = "higher scores are better"
+            direction_hint = (
+                "higher raw game points are better; "
+                "rank_score is always higher-is-better"
+            )
         scope_lines.append(
             f"Default game type: {game_type.name} ({game_type_code}, "
             f"score_direction={direction}, {direction_hint})"
@@ -276,8 +298,12 @@ def render_ask_user_message(
 
     scope_text = "\n".join(scope_lines)
     roster_text = json.dumps(player_roster, separators=(",", ":"))
+    hints_block = ""
+    if player_hints:
+        hints_block = f"{player_hints}\n\n"
     return (
         f"{scope_text}\n\n"
+        f"{hints_block}"
         f"Group players (use player_id or player_query in tools):\n"
         f"{roster_text}\n\n"
         f"Question: {custom}"

@@ -84,6 +84,7 @@
 - [x] 8986d06 Add Spin-down section headers: Leaderboard Filter Controls, Dashboard Recent Games
 - [x] 5a20fd2 AI: 'Show data sent to AI' toggle (dev/demo JSON viewer open to all users)
 - [x] AI: Ask the Lodge: Progressive Rummy answers wrongly favored higher point totals (fixed via score_direction in tool payloads, user message, and prompt)
+- [x] AI: Ask the Lodge: player comparisons should lead with win/loss/tie percentages, not raw counts alone
 
 ## Open Items
 

@@ -83,5 +83,18 @@ def score_direction_label(code: str) -> str:
     return "high_wins"
 
 
+def scoring_interpretation_note(code: str) -> str | None:
+    """Short note for Ask tool JSON when raw point totals invert usual meaning."""
+    if score_direction_label(code) == "low_wins":
+        return (
+            "Applies to raw game points only (total_points, min_score, max_score), "
+            "not rank_score. Compare average points per game (avg_points_display), "
+            "not raw totals alone. Lower total_points and per-game scores are better. "
+            "More points means worse scoring, not better. "
+            "rank_score is always higher-is-better regardless of game type."
+        )
+    return None
+
+
 def game_type_choices() -> list[tuple[str, str]]:
     return [(gt.code, gt.name) for gt in GAME_TYPES.values()]

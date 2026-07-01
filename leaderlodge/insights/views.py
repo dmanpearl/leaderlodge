@@ -75,7 +75,10 @@ from leaderlodge.insights.service import (
     generate_matchup_insight,
     generate_player_insight,
 )
-from leaderlodge.insights.tools.players import build_ask_player_roster
+from leaderlodge.insights.tools.players import (
+    build_ask_player_roster,
+    build_question_player_hints,
+)
 from leaderlodge.insights.tools.scope import AskScope
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
@@ -665,6 +668,7 @@ def ask_query(request: HttpRequest) -> HttpResponse:
                 game_type_code=scope.default_game_type_code,
                 period_label=period.display_label(),
                 player_roster=build_ask_player_roster(scope.group),
+                player_hints=build_question_player_hints(scope.group, question),
             ),
             system_prompt=ASK_SYSTEM_PROMPT,
             scope={

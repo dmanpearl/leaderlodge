@@ -79,10 +79,17 @@ def test_list_game_types_includes_score_direction(user, group):
 
 
 def test_score_direction_label():
-    from leaderlodge.games.registry import score_direction_label
+    from leaderlodge.games.registry import (
+        score_direction_label,
+        scoring_interpretation_note,
+    )
 
     assert score_direction_label("progressiverummy") == "low_wins"
     assert score_direction_label("dominos") == "high_wins"
+    note = scoring_interpretation_note("progressiverummy")
+    assert note is not None
+    assert "rank_score is always higher-is-better" in note
+    assert scoring_interpretation_note("dominos") is None
 
 
 def test_render_ask_user_message_includes_low_wins_hint():
@@ -97,7 +104,22 @@ def test_render_ask_user_message_includes_low_wins_hint():
     )
 
     assert "score_direction=low_wins" in message
-    assert "lower scores are better" in message
+    assert "lower raw game points are better" in message
+    assert "rank_score is always higher-is-better" in message
+
+
+def test_ask_prompt_rank_score_always_higher_is_better():
+    from leaderlodge.insights.prompts import ASK_SYSTEM_PROMPT
+
+    assert "rank_score is ALWAYS higher-is-better" in ASK_SYSTEM_PROMPT
+    assert "does NOT apply to rank, rank_score" in ASK_SYSTEM_PROMPT
+
+
+def test_ask_prompt_player_compare_requires_overall_rank():
+    from leaderlodge.insights.prompts import ASK_SYSTEM_PROMPT
+
+    assert "MUST include each player's overall rank and rank_score" in ASK_SYSTEM_PROMPT
+    assert "state it first" in ASK_SYSTEM_PROMPT
 
 
 @pytest.mark.django_db
@@ -117,9 +139,17 @@ def test_query_head_to_head_includes_score_direction(user, group):
 
     assert result["games_together"] == 2
     assert result["score_direction"] == "high_wins"
+    assert result["player_a"]["rank"] >= 1
+    assert result["player_a"]["rank_score"] is not None
+    assert result["player_b"]["rank"] >= 1
+    assert result["player_b"]["rank_score"] is not None
+    assert result["player_a"]["win_pct"] > 0
+    assert "wins_display" in result["player_a"]
     assert result["player_a"]["games_played"] == 2
     assert result["player_b"]["games_played"] == 2
     assert result["player_a"]["wins"] + result["player_b"]["wins"] == 2
+    assert "total_points_display" in result["player_a"]
+    assert "/game" in result["player_a"]["total_points_display"]
 
 
 @pytest.mark.django_db
@@ -192,8 +222,13 @@ def test_query_player_detail_includes_score_highlights(user, group):
     )
 
     assert result["best_score"] is not None
+    assert result["win_pct"] >= 0
+    assert result["wins_display"] == f"{int(result['wins'])} ({result['win_pct']}%)"
+    assert "tie_pct" in result
+    assert "loss_pct" in result
     assert result["podium_count"] >= 0
     assert result["date_range_label"]
+    assert "avg_points_display" in result
 
 
 @pytest.mark.django_db
