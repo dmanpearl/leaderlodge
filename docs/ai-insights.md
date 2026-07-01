@@ -37,6 +37,8 @@ The model never chooses what to query. Context scope is locked to the open page 
 
 The model cannot run SQL or invent stats. It selects from a fixed tool catalog; Python enforces arguments and permissions. Each Ask request includes a **player roster** (id, display label, username, first name) so questions can use friendly names; `query_player_detail` also accepts `player_query` for server-side name matching.
 
+**Capability audit and expansion plan:** [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) (supported vs unsupported question types, tool limits, phased roadmap).
+
 **Entry points:** Navbar **Ask** (violet `bi-stars`; icon on mobile, icon + label on desktop) and Account menu **Ask the Lodge**.
 
 ---
@@ -184,44 +186,10 @@ All insight endpoints return `{ "markdown": "...", "meta": { "model", "cached", 
 
 ---
 
-## UX
-
-### Insights button (design system)
-
-| Piece | Location |
-|-------|----------|
-| CSS | `static/css/insights.css` (`--insights-accent`, `.btn-insights`, navbar Ask styles) |
-| Include | `templates/includes/btn_insights.html` |
-| Icon | Bootstrap `bi-stars` on every Insights CTA |
-
-Filled CTA: `btn-insights`. Preset chips: `btn-insights-outline btn-sm`. Copy/Regenerate: `btn-outline-secondary`.
-
-Load `insights.css` on any page with Insights UI (`base.html` loads it when `insights_ui_enabled`).
-
-### Offcanvas panels
-
-Shared behavior in `static/js/insights_panel.js`:
-
-- Presets (except **Ask**) auto-generate on selection.
-- **Ask** shows a question field; Enter or button submits.
-- Spinner while the request is in flight; Copy and Regenerate in the action row.
-
-| Surface | Template |
-|---------|----------|
-| Rank detail | `player_insights_panel.html` |
-| Leaderboard, Hall of Fame | `group_insights_panel.html` |
-| Matchup, game detail | `matchup_insights_panel.html` |
-
-### Ask page
-
-`templates/insights/ask.html` with group/game filters and `static/js/ask_lodge.js`.
-
----
-
 ## Security, rate limits, and env
 
 - Keys in env only: `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`.
-- `INSIGHTS_ENABLED=false` hides the feature until ready.
+- `INSIGHTS_ENABLED=false` hides the AI feature.
 - Display names and aggregates are sent to third-party APIs.
 
 Rate limit code is complete but **off by default** (`INSIGHTS_RATE_LIMITS_ENABLED=false`). Views call `check_insight_rate_limit()` either way; flip the env var to enforce. Redis is only needed when limits are on and multiple workers share counters; LocMem is fine for single-process dev.
