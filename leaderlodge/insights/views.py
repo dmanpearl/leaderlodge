@@ -80,6 +80,7 @@ from leaderlodge.insights.tools.scope import AskScope
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
     available_leaderboard_periods,
+    leaderboard_filter_summary,
     month_label,
     resolve_leaderboard_period,
 )
@@ -551,6 +552,14 @@ def ask_page(request: HttpRequest) -> HttpResponse:
     )
     game_type_options = [(code, get_game_type(code).name) for code in game_type_codes]
 
+    filter_summary = ""
+    if selected_group:
+        filter_summary = leaderboard_filter_summary(
+            group_name=selected_group.name,
+            game_type_name=selected_game_type.name if selected_game_type else None,
+            period_label=period_ctx.get("period_label", ""),
+        )
+
     return render(
         request,
         "insights/ask.html",
@@ -560,6 +569,7 @@ def ask_page(request: HttpRequest) -> HttpResponse:
             "game_type_options": game_type_options,
             "selected_game_type_code": selected_game_type_code,
             "selected_game_type": selected_game_type,
+            "filter_summary": filter_summary,
             "navbar_active_section": "insights",
             **_ask_template_context(request),
             **period_ctx,

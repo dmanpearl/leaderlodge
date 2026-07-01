@@ -288,6 +288,7 @@
     });
   </script>
   {% if insights_enabled %}
+    {% include "includes/insights_result_script.html" %}
     {% include "includes/insights_debug_script.html" %}
     <script src="{% static 'js/insights_panel.js' %}"></script>
   {% endif %}

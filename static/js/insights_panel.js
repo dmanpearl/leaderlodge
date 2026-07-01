@@ -1,7 +1,9 @@
 (function () {
   document.querySelectorAll(".player-insights-offcanvas[data-insights-url]").forEach((panel) => {
-    const copyBtn = panel.querySelector(".insights-copy-btn");
-    const regenerateBtn = panel.querySelector(".insights-regenerate-btn");
+    const resultWrap = panel.querySelector(".insights-result-wrap");
+    const resultEl = panel.querySelector(".insights-result");
+    const copyBtn = resultWrap ? resultWrap.querySelector(".insights-copy-btn") : null;
+    const refreshBtn = resultWrap ? resultWrap.querySelector(".insights-refresh-btn") : null;
     const askGenerateBtn = panel.querySelector(".insights-ask-generate-btn");
     const modelSelect = panel.querySelector(".insights-model-select");
     const customWrap = panel.querySelector(".insights-custom-wrap");
@@ -9,10 +11,10 @@
     const progressEl = panel.querySelector(".insights-progress");
     const statusEl = panel.querySelector(".insights-status");
     const errorEl = panel.querySelector(".insights-error");
-    const resultEl = panel.querySelector(".insights-result");
     const presetInputs = panel.querySelectorAll(".insights-preset-input");
+    const resultUI = window.leaderlodgeInsightsResultUI;
 
-    if (!panel.dataset.insightsUrl || !copyBtn || !regenerateBtn) {
+    if (!panel.dataset.insightsUrl || !resultEl || !copyBtn || !refreshBtn || !resultUI) {
       return;
     }
 
@@ -37,6 +39,10 @@
       return checked ? checked.value : "custom";
     }
 
+    function markResultStale() {
+      resultUI.markStale(copyBtn);
+    }
+
     function updateCustomVisibility() {
       const isCustom = selectedPreset() === "custom";
       if (customWrap) {
@@ -46,8 +52,11 @@
 
     function setLoading(isLoading) {
       loading = isLoading;
-      regenerateBtn.disabled = isLoading || !lastMarkdown;
-      copyBtn.disabled = isLoading || !lastMarkdown;
+      resultUI.setResultActionsEnabled({
+        copyBtn,
+        refreshBtn,
+        enabled: !isLoading && Boolean(lastMarkdown),
+      });
       if (modelSelect) {
         modelSelect.disabled = isLoading;
       }
@@ -67,6 +76,7 @@
       panel.setAttribute("aria-busy", isLoading ? "true" : "false");
       if (isLoading) {
         statusEl.textContent = "";
+        markResultStale();
       }
     }
 
@@ -198,8 +208,12 @@
         if (window.leaderlodgeInsightsDebug) {
           window.leaderlodgeInsightsDebug.render(panel, data.debug);
         }
-        copyBtn.disabled = !lastMarkdown;
-        regenerateBtn.disabled = !lastMarkdown;
+        resultUI.resetCopyIcon(copyBtn);
+        resultUI.setResultActionsEnabled({
+          copyBtn,
+          refreshBtn,
+          enabled: Boolean(lastMarkdown),
+        });
       } catch (_error) {
         showError("Could not generate insight. Please try again.");
       } finally {
@@ -213,9 +227,16 @@
       requestInsight();
     }
 
+    resultUI.bindCopyButton(copyBtn, () => lastMarkdown);
+    resultUI.bindRefreshButton(refreshBtn, function () {
+      isRegenerate = true;
+      requestInsight();
+    });
+
     presetInputs.forEach((input) => {
       input.addEventListener("change", function () {
         updateCustomVisibility();
+        markResultStale();
       });
       input.addEventListener("click", function () {
         queueMicrotask(() => {
@@ -234,6 +255,7 @@
     }
 
     if (questionInput) {
+      questionInput.addEventListener("input", markResultStale);
       questionInput.addEventListener("keydown", function (event) {
         if (event.key === "Enter" && selectedPreset() === "custom") {
           event.preventDefault();
@@ -243,22 +265,9 @@
       });
     }
 
-    regenerateBtn.addEventListener("click", function () {
-      isRegenerate = true;
-      requestInsight();
-    });
-
-    copyBtn.addEventListener("click", async function () {
-      if (!lastMarkdown) {
-        return;
-      }
-      try {
-        await navigator.clipboard.writeText(lastMarkdown);
-        statusEl.textContent = "Copied to clipboard.";
-      } catch (_error) {
-        statusEl.textContent = "Could not copy to clipboard.";
-      }
-    });
+    if (modelSelect) {
+      modelSelect.addEventListener("change", markResultStale);
+    }
 
     updateCustomVisibility();
   });

@@ -4,6 +4,7 @@
 {% block title %}Ask the Lodge | LeaderLodge{% endblock %}
 
 {% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}" />
   <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
 {% endblock %}
 
@@ -21,34 +22,52 @@
     </div>
   {% endif %}
 
-  <div class="card mb-3">
-    <div class="card-body">
-      <form method="get" id="ask-lodge-filters" class="row g-3 align-items-end">
-        <div class="col-12 col-sm-6 col-lg-4 col-xl">
-          <label for="ask-group" class="form-label">Group</label>
-          <select id="ask-group" name="group" class="form-select" onchange="this.form.submit()">
-            <option value="">Choose a group</option>
-            {% for group in groups %}
-              <option value="{{ group.pk }}" {% if selected_group and selected_group.pk == group.pk %}selected{% endif %}>
-                {{ group.name }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-        {% if selected_group and game_type_options %}
+  <div class="card mb-3 game-list-filters-card">
+    <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
+      <button
+        class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start w-100"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#ask-lodge-filters-panel"
+        aria-expanded="false"
+        aria-controls="ask-lodge-filters-panel"
+      >
+        <i id="ask-lodge-filters-icon" class="bi bi-chevron-right" aria-hidden="true"></i>
+        <span class="fw-semibold">Filters</span>
+        {% if filter_summary %}
+          <span id="ask-lodge-filters-summary" class="text-muted game-list-filters-summary" hidden>({{ filter_summary }})</span>
+        {% endif %}
+      </button>
+    </div>
+    <div id="ask-lodge-filters-panel" class="collapse ask-lodge-filters-collapse">
+      <div class="card-body game-list-filters-body">
+        <form method="get" id="ask-lodge-filters" class="row g-3 align-items-end">
           <div class="col-12 col-sm-6 col-lg-4 col-xl">
-            <label for="ask-game-type" class="form-label">Game</label>
-            <select id="ask-game-type" name="game_type_code" class="form-select" onchange="this.form.submit()">
-              {% for code, name in game_type_options %}
-                <option value="{{ code }}" {% if selected_game_type_code == code %}selected{% endif %}>
-                  {{ name }}
+            <label for="ask-group" class="form-label">Group</label>
+            <select id="ask-group" name="group" class="form-select" onchange="this.form.submit()">
+              <option value="">Choose a group</option>
+              {% for group in groups %}
+                <option value="{{ group.pk }}" {% if selected_group and selected_group.pk == group.pk %}selected{% endif %}>
+                  {{ group.name }}
                 </option>
               {% endfor %}
             </select>
           </div>
-          {% include "includes/leaderboard_period_filters.html" with year_select_id="ask-year" month_select_id="ask-month" %}
-        {% endif %}
-      </form>
+          {% if selected_group and game_type_options %}
+            <div class="col-12 col-sm-6 col-lg-4 col-xl">
+              <label for="ask-game-type" class="form-label">Game</label>
+              <select id="ask-game-type" name="game_type_code" class="form-select" onchange="this.form.submit()">
+                {% for code, name in game_type_options %}
+                  <option value="{{ code }}" {% if selected_game_type_code == code %}selected{% endif %}>
+                    {{ name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            {% include "includes/leaderboard_period_filters.html" with year_select_id="ask-year" month_select_id="ask-month" %}
+          {% endif %}
+        </form>
+      </div>
     </div>
   </div>
 
@@ -110,11 +129,6 @@
           </p>
         </div>
 
-        <div class="d-flex flex-wrap gap-2">
-          <button type="button" class="btn btn-outline-secondary insights-copy-btn" disabled>Copy</button>
-          <button type="button" class="btn btn-outline-secondary ask-lodge-regenerate-btn" disabled>Regenerate</button>
-        </div>
-
         {% include "includes/insights_debug_controls.html" with debug_toggle_id="ask-lodge" %}
 
         <p class="text-muted small mb-0">AI summary. Rankings are computed by LeaderLodge.</p>
@@ -125,14 +139,16 @@
         </div>
         <div class="insights-status small text-muted" aria-live="polite"></div>
         <div class="insights-error alert alert-danger d-none mb-0" role="alert"></div>
-        <div class="insights-result player-insights-result flex-grow-1"></div>
+        {% include "includes/insights_result_area.html" %}
       </div>
     </div>
   {% endif %}
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'js/ask_lodge_filters.js' %}"></script>
   {% if selected_group and game_type_options %}
+    {% include "includes/insights_result_script.html" %}
     {% include "includes/insights_debug_script.html" %}
     <script src="{% static 'js/ask_lodge.js' %}"></script>
   {% endif %}

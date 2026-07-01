@@ -1,8 +1,3 @@
-    <div class="d-flex flex-wrap gap-2">
-      <button type="button" class="btn btn-outline-secondary insights-copy-btn" disabled>Copy</button>
-      <button type="button" class="btn btn-outline-secondary insights-regenerate-btn" disabled>Regenerate</button>
-    </div>
-
     {% include "includes/insights_debug_controls.html" with debug_toggle_id=debug_toggle_id|default:"insights-debug-toggle" %}
 
     <p class="text-muted small mb-0">
@@ -15,4 +10,4 @@
     </div>
     <div class="insights-status small text-muted" aria-live="polite"></div>
     <div class="insights-error alert alert-danger d-none mb-0" role="alert"></div>
-    <div class="insights-result player-insights-result flex-grow-1"></div>
+    {% include "includes/insights_result_area.html" %}
