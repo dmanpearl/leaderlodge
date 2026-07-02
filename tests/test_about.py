@@ -36,7 +36,10 @@ def test_about_insights_links_to_ask_when_enabled(client):
     content = client.get(reverse("core:about_insights")).content.decode()
 
     assert reverse("insights:ask") in content
+    assert reverse("insights:ask_examples") in content
     assert "btn-insights" in content
+    assert "Examples" in content
+    assert "About LeaderLodge" not in content
 
 
 @pytest.mark.django_db
