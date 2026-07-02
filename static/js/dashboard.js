@@ -54,7 +54,7 @@
       collapseId: "dashboard-recent-games",
       iconId: "dashboard-recent-games-icon",
       storageKey: RECENT_GAMES_STORAGE_KEY,
-      defaultOpen: true,
+      defaultOpen: false,
       onToggle(isOpen) {
         const summary = document.getElementById("dashboard-recent-games-summary");
         if (summary) {
@@ -64,5 +64,41 @@
     });
   }
 
+  function initLeaderboardCollapses() {
+    document.querySelectorAll("[data-dashboard-collapse]").forEach((button) => {
+      const target = button.getAttribute("data-bs-target");
+      if (!target || !target.startsWith("#")) {
+        return;
+      }
+      const collapseId = target.slice(1);
+      const icon = button.querySelector(".bi-chevron-right, .bi-chevron-down");
+      if (!icon || !icon.id) {
+        return;
+      }
+      const storageKey = button.dataset.collapseStorageKey;
+      if (!storageKey) {
+        return;
+      }
+      const summaryId = button.dataset.collapseSummaryId;
+
+      initCollapseSection({
+        collapseId,
+        iconId: icon.id,
+        storageKey,
+        defaultOpen: false,
+        onToggle(isOpen) {
+          if (!summaryId) {
+            return;
+          }
+          const summary = document.getElementById(summaryId);
+          if (summary) {
+            summary.hidden = isOpen;
+          }
+        },
+      });
+    });
+  }
+
   initRecentGamesCollapse();
+  initLeaderboardCollapses();
 })();

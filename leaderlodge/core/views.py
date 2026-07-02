@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from django.contrib.auth.views import redirect_to_login
+from django.contrib.staticfiles.finders import find
 from django.db.models import QuerySet
 from django.shortcuts import render
 from django.urls import reverse
@@ -41,6 +42,29 @@ class DashboardLeaderboardCard:
     rows: list[DashboardLeaderboardRow]
     composite: bool
     leaderboard_url: str
+    icon_class: str = ""
+    icon_image: str = ""
+
+
+DASHBOARD_GAME_TYPE_ICON_IMAGE_PREFIX = "img/game-types/"
+
+
+def _dashboard_leaderboard_icons(game_type_code: str) -> tuple[str, str]:
+    icon_image = _dashboard_game_type_icon_image(game_type_code)
+    if icon_image:
+        return "", icon_image
+    return _dashboard_game_type_icon_class(game_type_code), ""
+
+
+def _dashboard_game_type_icon_class(game_type_code: str) -> str:
+    return ""
+
+
+def _dashboard_game_type_icon_image(game_type_code: str) -> str:
+    relative_path = f"{DASHBOARD_GAME_TYPE_ICON_IMAGE_PREFIX}{game_type_code}.png"
+    if find(relative_path):
+        return relative_path
+    return ""
 
 
 def _game_type_codes_for_groups(groups: QuerySet[Group] | list[Group]) -> list[str]:
@@ -93,9 +117,7 @@ def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboa
                 )
                 for index, row in enumerate(top, start=1)
             ]
-            leaderboard_url = (
-                f"{reverse('leaderboards:index')}?game_type_code={code}"
-            )
+            leaderboard_url = f"{reverse('leaderboards:index')}?game_type_code={code}"
         else:
             group = group_list[0]
             rows = [
@@ -112,6 +134,7 @@ def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboa
                 f"?group={group.pk}&game_type_code={code}"
             )
 
+        icon_class, icon_image = _dashboard_leaderboard_icons(code)
         cards.append(
             DashboardLeaderboardCard(
                 game_type_code=code,
@@ -119,6 +142,8 @@ def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboa
                 rows=rows,
                 composite=composite,
                 leaderboard_url=leaderboard_url,
+                icon_class=icon_class,
+                icon_image=icon_image,
             )
         )
 
@@ -132,7 +157,11 @@ def _render_dashboard(
     is_demo_landing: bool,
     can_record_games: bool,
 ):
-    default_group = resolve_user_group(request.user, None) if request.user.is_authenticated else None
+    default_group = (
+        resolve_user_group(request.user, None)
+        if request.user.is_authenticated
+        else None
+    )
     if default_group is None and groups.count() == 1:
         default_group = groups.first()
 

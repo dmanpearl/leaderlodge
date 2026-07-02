@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-  <div class="row g-3">
+  <div class="row g-3 align-items-start">
     <div class="col-12">
       <div class="dashboard-header dashboard-header--mobile d-md-none d-flex align-items-center justify-content-between gap-2">
         <div class="d-flex align-items-center gap-2 min-w-0">
@@ -72,8 +72,8 @@
     </div>
 
     <div class="col-12 {% if leaderboard_cards %}col-xl-5{% endif %}">
-      <div class="card h-100 game-list-filters-card">
-        <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
+      <div class="card game-list-filters-card">
+        <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header dashboard-section-header">
           <button
             class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start"
             type="button"
@@ -83,6 +83,7 @@
             aria-controls="dashboard-recent-games"
           >
             <i id="dashboard-recent-games-icon" class="bi bi-chevron-right" aria-hidden="true"></i>
+            <i class="bi bi-controller dashboard-section-icon" aria-hidden="true"></i>
             <span class="fw-semibold">Recent Games</span>
             {% if recent_games %}
               <span id="dashboard-recent-games-summary" class="text-muted game-list-filters-summary" hidden>({{ recent_games|length }} game{{ recent_games|length|pluralize }})</span>
@@ -141,42 +142,77 @@
           {% if composite_leaderboards %}
             <p class="text-muted small mb-2">Leaderboards across your groups</p>
           {% endif %}
-          <div class="row g-3">
+          <div class="row g-3 align-items-start">
             {% for card in leaderboard_cards %}
               <div class="col-12 col-md-6">
-                <div class="card h-100">
-                  <div class="card-header d-flex justify-content-between align-items-center gap-2">
-                    <span class="text-truncate">{{ card.game_type_name }}</span>
-                    <a href="{{ card.leaderboard_url }}" class="small text-nowrap">
+                <div class="card game-list-filters-card">
+                  <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header dashboard-section-header gap-2">
+                    <button
+                      class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#dashboard-leaderboard-{{ card.game_type_code }}"
+                      aria-expanded="false"
+                      aria-controls="dashboard-leaderboard-{{ card.game_type_code }}"
+                      data-dashboard-collapse
+                      data-collapse-storage-key="leaderlodge.dashboardLeaderboard.{{ card.game_type_code }}.Open"
+                      data-collapse-summary-id="dashboard-leaderboard-summary-{{ card.game_type_code }}"
+                    >
+                      <i
+                        id="dashboard-leaderboard-icon-{{ card.game_type_code }}"
+                        class="bi bi-chevron-right"
+                        aria-hidden="true"
+                      ></i>
+                      {% if card.icon_image %}
+                        <img
+                          src="{% static card.icon_image %}"
+                          class="dashboard-section-icon dashboard-section-icon--image"
+                          alt=""
+                        />
+                      {% elif card.icon_class %}
+                        <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
+                      {% endif %}
+                      <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
+                      <span
+                        id="dashboard-leaderboard-summary-{{ card.game_type_code }}"
+                        class="text-muted game-list-filters-summary"
+                        hidden
+                      >
+                        ({{ card.rows|length }} player{{ card.rows|length|pluralize }})
+                      </span>
+                    </button>
+                    <a href="{{ card.leaderboard_url }}" class="small text-nowrap flex-shrink-0">
                       Full board
                     </a>
                   </div>
-                  <div class="card-body p-0">
-                    <div class="table-responsive">
-                      <table class="table table-striped mb-0">
-                        <thead>
-                          <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Player</th>
-                            {% if card.composite %}
-                              <th scope="col">Group</th>
-                            {% endif %}
-                            <th scope="col">Score</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for row in card.rows %}
+                  <div id="dashboard-leaderboard-{{ card.game_type_code }}" class="collapse">
+                    <div class="card-body p-0">
+                      <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                          <thead>
                             <tr>
-                              <td>{{ row.rank }}</td>
-                              <td class="text-truncate" style="max-width: 7rem;">{{ row.player_label }}</td>
+                              <th scope="col">#</th>
+                              <th scope="col">Player</th>
                               {% if card.composite %}
-                                <td class="text-truncate" style="max-width: 6rem;">{{ row.group_name }}</td>
+                                <th scope="col">Group</th>
                               {% endif %}
-                              <td>{{ row.rank_score|floatformat:1 }}</td>
+                              <th scope="col">Score</th>
                             </tr>
-                          {% endfor %}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {% for row in card.rows %}
+                              <tr>
+                                <td>{{ row.rank }}</td>
+                                <td class="text-truncate" style="max-width: 7rem;">{{ row.player_label }}</td>
+                                {% if card.composite %}
+                                  <td class="text-truncate" style="max-width: 6rem;">{{ row.group_name }}</td>
+                                {% endif %}
+                                <td>{{ row.rank_score|floatformat:1 }}</td>
+                              </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>

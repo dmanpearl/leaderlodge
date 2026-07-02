@@ -173,6 +173,37 @@
   text-align: start;
 }
 
+.dashboard-section-header {
+  padding: 0.375rem 0.75rem;
+}
+
+.dashboard-section-header .game-list-filters-toggle {
+  gap: 0.125rem 0.375rem;
+  align-items: center;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-section-icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+  margin: 1px 0;
+  padding: 0;
+}
+
+.dashboard-section-icon.bi {
+  font-size: 1.625rem;
+  line-height: 1;
+}
+
+.dashboard-section-icon--image {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  object-fit: contain;
+}
+
 .game-list-table-foot th {
   border-top-width: 2px;
   background-color: var(--bs-table-bg);

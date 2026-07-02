@@ -83,9 +83,9 @@
 - [x] 0e74a75 AI: Rewrite /about text and /about/insight text
 - [x] 8986d06 Add Spin-down section headers: Leaderboard Filter Controls, Dashboard Recent Games
 - [x] 5a20fd2 AI: 'Show data sent to AI' toggle (dev/demo JSON viewer open to all users)
-- [x] AI: Ask the Lodge: Progressive Rummy answers wrongly favored higher point totals (fixed via score_direction in tool payloads, user message, and prompt)
-- [x] AI: Ask the Lodge: player comparisons should lead with win/loss/tie percentages, not raw counts alone
-- [x] AI Examples: Ask tool and question examples table at `/insights/ask/examples/`
+- [x] 9160748 AI: Ask the Lodge: Progressive Rummy answers wrongly favored higher point totals (fixed via score_direction in tool payloads, user message, and prompt)
+- [x] 2db4bf0 AI: Ask the Lodge: player comparisons should lead with win/loss/tie percentages, not raw counts alone
+- [x] 7112a91 AI Examples: Ask tool and question examples table at `/insights/ask/examples/`
 
 ## Open Items
 
