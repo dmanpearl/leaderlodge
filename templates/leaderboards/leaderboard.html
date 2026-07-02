@@ -53,13 +53,32 @@
           {% if selected_group and game_type_options %}
             <div class="col-12 col-sm-6 col-lg-4 col-xl">
               <label for="game-type-select" class="form-label">Game</label>
-              <select name="game_type_code" id="game-type-select" class="form-select" onchange="this.form.submit()">
-                {% for code, name in game_type_options %}
-                  <option value="{{ code }}" {% if selected_game_type_code == code %}selected{% endif %}>
-                    {{ name }}
-                  </option>
-                {% endfor %}
-              </select>
+              <div class="leaderboard-game-type-wrap{% if selected_game_type_icon_url %} leaderboard-game-type-wrap--has-icon{% endif %}">
+                <img
+                  id="leaderboard-game-type-icon"
+                  class="leaderboard-game-type-icon{% if not selected_game_type_icon_url %} d-none{% endif %}"
+                  {% if selected_game_type_icon_url %}src="{{ selected_game_type_icon_url }}"{% endif %}
+                  alt=""
+                />
+                <select
+                  name="game_type_code"
+                  id="game-type-select"
+                  class="form-select leaderboard-game-type-select"
+                  onchange="this.form.submit()"
+                >
+                  {% for code, name in game_type_options %}
+                    {% with icon_path='img/game-types/'|add:code|add:'.png' %}
+                      <option
+                        value="{{ code }}"
+                        data-icon-url="{% static icon_path %}"
+                        {% if selected_game_type_code == code %}selected{% endif %}
+                      >
+                        {{ name }}
+                      </option>
+                    {% endwith %}
+                  {% endfor %}
+                </select>
+              </div>
             </div>
             {% include "includes/leaderboard_period_filters.html" with year_select_id="leaderboard-year" month_select_id="leaderboard-month" %}
             {% include "includes/game_size_filter.html" with select_id="leaderboard-game-size" %}

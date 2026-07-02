@@ -175,6 +175,8 @@ def test_leaderboard_index_shows_year_filter(client, user, group):
     content = response.content.decode()
     assert response.status_code == 200
     assert 'id="leaderboard-year"' in content
+    assert 'id="leaderboard-game-type-icon"' in content
+    assert "game-types/dominos.png" in content
     assert "All years" in content
     assert "2026" in content
     assert "Dominos" in content and "2026" in content.split("card-header", 1)[1]

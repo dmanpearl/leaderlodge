@@ -66,5 +66,38 @@
     });
   }
 
+  function syncGameTypeIcon() {
+    const select = document.getElementById("game-type-select");
+    const icon = document.getElementById("leaderboard-game-type-icon");
+    const wrap = document.querySelector(".leaderboard-game-type-wrap");
+    if (!select || !icon || !wrap) {
+      return;
+    }
+
+    const option = select.options[select.selectedIndex];
+    const iconUrl = option?.dataset.iconUrl;
+    if (iconUrl) {
+      icon.src = iconUrl;
+      icon.classList.remove("d-none");
+      wrap.classList.add("leaderboard-game-type-wrap--has-icon");
+      return;
+    }
+
+    icon.removeAttribute("src");
+    icon.classList.add("d-none");
+    wrap.classList.remove("leaderboard-game-type-wrap--has-icon");
+  }
+
+  function initGameTypeIcon() {
+    const select = document.getElementById("game-type-select");
+    if (!select) {
+      return;
+    }
+
+    syncGameTypeIcon();
+    select.addEventListener("change", syncGameTypeIcon);
+  }
+
   initFiltersCollapse();
+  initGameTypeIcon();
 })();

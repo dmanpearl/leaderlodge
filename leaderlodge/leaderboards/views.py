@@ -8,6 +8,7 @@ from leaderlodge.accounts.game_selection import resolve_game_type_code
 from leaderlodge.accounts.group_selection import resolve_view_group
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.game_size import available_game_sizes, resolve_game_size
+from leaderlodge.games.game_type_icons import game_type_icon_url
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
@@ -241,6 +242,11 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "game_type_options": game_type_options,
             "selected_game_type_code": selected_game_type_code,
             "selected_game_type": selected_game_type,
+            "selected_game_type_icon_url": (
+                game_type_icon_url(selected_game_type_code)
+                if selected_game_type_code
+                else ""
+            ),
             "rankings": rankings,
             "period_label": period_label,
             "leaderboard_query": leaderboard_query,
