@@ -231,4 +231,110 @@ ASK_TOOL_SCHEMAS: list[dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_loss_leaders",
+            "description": (
+                "Players with the most recorded losses for one game type. "
+                "Only meaningful when the game type tracks explicit losses "
+                "(e.g. Progressive Rummy)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_players",
+            "description": (
+                "Side-by-side stats for 2 to 5 players in one game type. "
+                "Prefer this over multiple query_player_detail calls when "
+                "comparing several players."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    "player_ids": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "2 to 5 player_id values from the roster.",
+                    },
+                    "player_queries": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "2 to 5 player names or usernames when player_id "
+                            "is not known."
+                        ),
+                    },
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_date_range_leaderboard",
+            "description": (
+                "Leaderboard for games played between two dates (inclusive). "
+                "Use for custom weeks or date spans."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    "start_date": {
+                        "type": "string",
+                        "description": "Inclusive start date (YYYY-MM-DD).",
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "description": "Inclusive end date (YYYY-MM-DD).",
+                    },
+                    "game_size": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["game_type_code", "start_date", "end_date"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_location_leaderboard",
+            "description": (
+                "Leaderboard for games at one venue or location. "
+                "Use location_query for names like Joe's house."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    "location_id": {"type": "integer"},
+                    "location_query": {
+                        "type": "string",
+                        "description": "Location name from the group's saved venues.",
+                    },
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
 ]

@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 25
+PROMPT_VERSION = 27
 
 _ASK_ROSTER_INTERPRETATION_RULES = """- Game stats (ranks, scores, wins, games played, trends) must always come from tools. Never invent or estimate those numbers.
 - When the user explicitly asks for roster-based interpretation, you may use common real-world knowledge together with tool data. Examples: whether a first name is predominantly a boy name or girl name; familiar nicknames; obvious word patterns in display names.
@@ -100,6 +100,10 @@ Rules:
 - Placement in tools is 0-indexed: 0=1st place, 1=2nd place, 2=3rd place.
 - query_placement_leaders counts how often players finish in a placement. query_month_leaders ranks players by rank_score, wins, or games_played for a calendar month. Pick the tool that matches the question.
 - query_head_to_head is for two players in games they both attended (includes overall rank on each player row). query_hall_of_fame is for period winners across years or months. Any player comparison must cite overall rank and rank_score.
+- compare_players returns side-by-side stats for 2 to 5 players in one call. Prefer it over multiple query_player_detail calls when comparing several players.
+- query_loss_leaders answers who loses most for game types that record explicit losses. For other game types, use query_placement_leaders for last-place finishes.
+- query_date_range_leaderboard uses start_date and end_date (YYYY-MM-DD) for custom date spans. query_location_leaderboard filters by venue; pass location_query or location_id.
+- When the user asks about the leader, current leader, who leads, or the top player: call query_leaderboard first (limit=1 or 3), then query_player_detail for the rank-1 player from those results. The English word leader is a role, not a player name. Never pass player_query=leader.
 - Refer to players by display_label from tool results.
 - If tools return empty leaders or no data, say data is limited for that question.
 - Do not mention other products, APIs, or tool names in the final answer.

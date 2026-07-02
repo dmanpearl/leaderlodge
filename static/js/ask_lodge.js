@@ -9,12 +9,17 @@
   }
 
   const submitBtn = panel.querySelector(".ask-lodge-submit-btn");
+  const submitStars = submitBtn
+    ? submitBtn.querySelector(".ask-lodge-submit-stars")
+    : null;
+  const submitSpinner = submitBtn
+    ? submitBtn.querySelector(".ask-lodge-submit-spinner")
+    : null;
   const resultWrap = panel.querySelector(".insights-result-wrap");
   const copyBtn = resultWrap ? resultWrap.querySelector(".insights-copy-btn") : null;
   const refreshBtn = resultWrap ? resultWrap.querySelector(".insights-refresh-btn") : null;
   const modelSelect = panel.querySelector(".insights-model-select");
   const questionInput = panel.querySelector(".insights-question-input");
-  const progressEl = panel.querySelector(".insights-progress");
   const statusEl = panel.querySelector(".insights-status");
   const errorEl = panel.querySelector(".insights-error");
   const resultEl = panel.querySelector(".insights-result");
@@ -55,10 +60,12 @@
     }
     if (submitBtn) {
       submitBtn.disabled = isLoading;
-    }
-    if (progressEl) {
-      progressEl.classList.toggle("d-none", !isLoading);
-      progressEl.classList.toggle("d-flex", isLoading);
+      if (submitStars) {
+        submitStars.classList.toggle("d-none", isLoading);
+      }
+      if (submitSpinner) {
+        submitSpinner.classList.toggle("d-none", !isLoading);
+      }
     }
     panel.setAttribute("aria-busy", isLoading ? "true" : "false");
     if (isLoading) {

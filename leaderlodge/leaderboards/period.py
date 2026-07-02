@@ -3,6 +3,7 @@ from __future__ import annotations
 import calendar
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import date
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode
 
@@ -100,6 +101,23 @@ def filter_results_by_period(
             **{f"{game_prefix}played_on__month": period.month}
         )
     return results_qs
+
+
+def filter_results_by_date_range(
+    results_qs: QuerySet,
+    *,
+    start_date: date,
+    end_date: date,
+    game_prefix: str = "game__",
+) -> QuerySet:
+    if start_date > end_date:
+        raise ValueError("start_date must be on or before end_date.")
+    return results_qs.filter(
+        **{
+            f"{game_prefix}played_on__gte": start_date,
+            f"{game_prefix}played_on__lte": end_date,
+        }
+    )
 
 
 def month_label(month: int) -> str:

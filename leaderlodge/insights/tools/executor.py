@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from leaderlodge.games.game_size import available_game_sizes, resolve_game_size
 from leaderlodge.games.models import Game
+from leaderlodge.insights.tools.compare import compare_players
 from leaderlodge.insights.tools.head_to_head import query_head_to_head
 from leaderlodge.insights.tools.hall_of_fame import query_hall_of_fame
+from leaderlodge.insights.tools.locations import resolve_location_for_group
+from leaderlodge.insights.tools.loss_leaders import query_loss_leaders
 from leaderlodge.insights.tools.placements import query_placement_leaders
 from leaderlodge.insights.tools.players import (
     build_ask_player_roster,
@@ -15,7 +19,9 @@ from leaderlodge.insights.tools.players import (
 from leaderlodge.insights.tools.scope import AskScope
 from leaderlodge.insights.tools.standings import (
     list_game_types,
+    query_date_range_leaderboard,
     query_leaderboard,
+    query_location_leaderboard,
     query_player_detail,
 )
 from leaderlodge.insights.tools.trends import query_month_leaders, query_rank_trends
@@ -47,6 +53,10 @@ class ToolExecutor:
             "query_player_detail": self._query_player_detail,
             "query_head_to_head": self._query_head_to_head,
             "query_hall_of_fame": self._query_hall_of_fame,
+            "query_loss_leaders": self._query_loss_leaders,
+            "compare_players": self._compare_players,
+            "query_date_range_leaderboard": self._query_date_range_leaderboard,
+            "query_location_leaderboard": self._query_location_leaderboard,
         }
         handler = handlers.get(name)
         if handler is None:
@@ -105,6 +115,51 @@ class ToolExecutor:
         except (TypeError, ValueError) as exc:
             raise ToolExecutionError("limit must be an integer.") from exc
         return max(1, min(limit, self.MAX_LIMIT))
+
+    def _parse_iso_date(self, raw: object, field_name: str) -> date:
+        try:
+            return date.fromisoformat(str(raw).strip())
+        except (TypeError, ValueError) as exc:
+            raise ToolExecutionError(f"{field_name} must be YYYY-MM-DD.") from exc
+
+    def _resolve_player_ids_list(self, arguments: dict[str, Any]) -> list[int]:
+        raw_ids = arguments.get("player_ids")
+        raw_queries = arguments.get("player_queries")
+        if raw_ids is not None and raw_queries is not None:
+            raise ToolExecutionError("Provide player_ids or player_queries, not both.")
+
+        player_ids: list[int] = []
+        if raw_queries is not None:
+            if not isinstance(raw_queries, list):
+                raise ToolExecutionError("player_queries must be a list of names.")
+            if len(raw_queries) < 2 or len(raw_queries) > 5:
+                raise ToolExecutionError("player_queries must include 2 to 5 players.")
+            for query in raw_queries:
+                player_ids.append(
+                    self._resolve_player_id_from_args(
+                        {"player_query": str(query)},
+                        prefix="",
+                    )
+                )
+            return player_ids
+
+        if raw_ids is None:
+            raise ToolExecutionError("player_ids or player_queries is required.")
+        if not isinstance(raw_ids, list):
+            raise ToolExecutionError("player_ids must be a list of integers.")
+        if len(raw_ids) < 2 or len(raw_ids) > 5:
+            raise ToolExecutionError("player_ids must include 2 to 5 players.")
+        for raw_id in raw_ids:
+            try:
+                player_id = int(raw_id)
+            except (TypeError, ValueError) as exc:
+                raise ToolExecutionError("player_ids must be integers.") from exc
+            if not self.scope.group.players.filter(pk=player_id).exists():
+                raise ToolExecutionError(
+                    f"player_id {player_id} not found in this group."
+                )
+            player_ids.append(player_id)
+        return player_ids
 
     def _list_game_types(self, arguments: dict[str, Any]) -> dict[str, Any]:
         return list_game_types(self.scope.group)
@@ -272,5 +327,64 @@ class ToolExecutor:
             self.scope.group,
             granularity=granularity,
             game_type_code=game_type_code,
+            limit=self._resolve_limit(arguments),
+        )
+
+    def _query_loss_leaders(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        return query_loss_leaders(
+            self.scope.group,
+            game_type_code=game_type_code,
+            period=self._resolve_period(arguments, game_type_code),
+            game_size=self._resolve_game_size(arguments, game_type_code),
+            limit=self._resolve_limit(arguments),
+        )
+
+    def _compare_players(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        player_ids = self._resolve_player_ids_list(arguments)
+        return compare_players(
+            self.scope.group,
+            player_ids=player_ids,
+            game_type_code=game_type_code,
+            period=self._resolve_period(arguments, game_type_code),
+            game_size=self._resolve_game_size(arguments, game_type_code),
+        )
+
+    def _query_date_range_leaderboard(
+        self, arguments: dict[str, Any]
+    ) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        start_date = self._parse_iso_date(arguments.get("start_date"), "start_date")
+        end_date = self._parse_iso_date(arguments.get("end_date"), "end_date")
+        if start_date > end_date:
+            raise ToolExecutionError("start_date must be on or before end_date.")
+        return query_date_range_leaderboard(
+            self.scope.group,
+            game_type_code=game_type_code,
+            start_date=start_date,
+            end_date=end_date,
+            game_size=self._resolve_game_size(arguments, game_type_code),
+            limit=self._resolve_limit(arguments),
+        )
+
+    def _query_location_leaderboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        try:
+            location = resolve_location_for_group(
+                self.scope.group,
+                location_id=arguments.get("location_id"),
+                location_query=arguments.get("location_query"),
+            )
+        except ValueError as exc:
+            raise ToolExecutionError(str(exc)) from exc
+
+        return query_location_leaderboard(
+            self.scope.group,
+            game_type_code=game_type_code,
+            location_id=location.pk,
+            location_name=location.name,
+            period=self._resolve_period(arguments, game_type_code),
+            game_size=self._resolve_game_size(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )

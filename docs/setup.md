@@ -125,7 +125,7 @@ railway run python manage.py setup_demo
 
 Use `--owner USERNAME` if you have multiple superusers and want a specific group owner. No Django admin step is required to set **Is demo**.
 
-When AI Insights (Phase 1) ships, add `INSIGHTS_ENABLED`, `OPENAI_API_KEY`, and `GOOGLE_AI_API_KEY` to Railway Variables before turning the feature on in production. See [ai-insights.md](ai-insights.md#railway-promotion-do-before-enabling-insights-in-production).
+Before enabling AI Insights in production, add `INSIGHTS_ENABLED`, `OPENAI_API_KEY`, and `GOOGLE_AI_API_KEY` to Railway Variables. See [ai-insights.md](ai-insights.md#railway-promotion-do-before-enabling-insights-in-production).
 
 ## User accounts
 

@@ -121,7 +121,14 @@
               placeholder="Who gets 2nd place most often in Mah Jongg?"
             />
             <button type="button" class="btn btn-insights ask-lodge-submit-btn">
-              <i class="bi bi-stars" aria-hidden="true"></i> Ask
+              <span class="ask-lodge-submit-leading" aria-hidden="true">
+                <i class="bi bi-stars ask-lodge-submit-stars"></i>
+                <span
+                  class="spinner-border spinner-border-sm ask-lodge-submit-spinner d-none"
+                  role="status"
+                ></span>
+              </span>
+              Ask
             </button>
           </div>
           <p class="text-muted small mb-0 mt-2">
@@ -133,10 +140,6 @@
 
         <p class="text-muted small mb-0">AI summary. Rankings are computed by LeaderLodge.</p>
 
-        <div class="insights-progress d-none align-items-center gap-2" role="status" aria-live="polite">
-          <div class="spinner-border spinner-border-sm insights-progress-spinner" aria-hidden="true"></div>
-          <span class="insights-progress-label small text-muted">Analyzing...</span>
-        </div>
         <div class="insights-status small text-muted" aria-live="polite"></div>
         <div class="insights-error alert alert-danger d-none mb-0" role="alert"></div>
         {% include "includes/insights_result_area.html" %}

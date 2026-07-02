@@ -254,3 +254,197 @@ def test_tool_executor_rejects_unknown_game_type(user, group):
             "query_leaderboard",
             {"game_type_code": "mahjongg"},
         )
+
+
+@pytest.mark.django_db
+def test_query_loss_leaders_orders_by_losses(user, group):
+    from datetime import date
+
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.insights.tools.loss_leaders import query_loss_leaders
+
+    players = list(group.players.order_by("pk"))
+    while len(players) < 3:
+        players.append(
+            add_guest_player(group=group, display_name=f"Guest{len(players)}")
+        )
+
+    def record_pr(winner_idx=0):
+        rows = [
+            {"player": players[0], "score": 30},
+            {"player": players[1], "score": 20},
+            {"player": players[2], "score": 10},
+        ]
+        rows[winner_idx]["score"] = 0
+        assign_results_from_scores(rows, "progressiverummy")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="progressiverummy",
+            played_on=date(2026, 2, 1),
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    record_pr(winner_idx=0)
+    record_pr(winner_idx=0)
+    record_pr(winner_idx=1)
+
+    result = query_loss_leaders(group, game_type_code="progressiverummy", limit=5)
+    assert result["supports_loser"] is True
+    assert len(result["leaders"]) >= 1
+    top = result["leaders"][0]
+    assert top["losses"] >= 1
+    assert "losses_display" in top
+
+
+@pytest.mark.django_db
+def test_query_loss_leaders_rejects_dominos(user, group):
+    _record_game(group, user, third_idx=None)
+    from leaderlodge.insights.tools.loss_leaders import query_loss_leaders
+
+    result = query_loss_leaders(group, game_type_code="dominos")
+    assert result["supports_loser"] is False
+    assert "error" in result
+
+
+@pytest.mark.django_db
+def test_compare_players_returns_multiple_snapshots(user, group):
+    _record_game(group, user, third_idx=None)
+    players = list(group.players.order_by("pk")[:2])
+    from leaderlodge.insights.tools.compare import compare_players
+
+    result = compare_players(
+        group,
+        player_ids=[players[0].pk, players[1].pk],
+        game_type_code="dominos",
+    )
+
+    assert len(result["players"]) == 2
+    assert all(row.get("rank") is not None for row in result["players"])
+
+
+@pytest.mark.django_db
+def test_query_date_range_leaderboard_filters_games(user, group):
+    from datetime import date
+
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.insights.tools.standings import query_date_range_leaderboard
+
+    players = list(group.players.order_by("pk")[:2])
+    rows = [
+        {"player": players[0], "score": 35},
+        {"player": players[1], "score": 20},
+    ]
+    assign_results_from_scores(rows, "dominos")
+    participants = [
+        ParticipantInput(
+            player=row["player"],
+            score=row["score"],
+            result=row["result"],
+            placement=row["placement"],
+        )
+        for row in rows
+    ]
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 3, 10),
+        participants=participants,
+    )
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 4, 10),
+        participants=participants,
+    )
+
+    result = query_date_range_leaderboard(
+        group,
+        game_type_code="dominos",
+        start_date=date(2026, 3, 1),
+        end_date=date(2026, 3, 31),
+    )
+
+    assert result["start_date"] == "2026-03-01"
+    assert len(result["rankings"]) >= 1
+    assert result["rankings"][0]["games_played"] == 1
+
+
+@pytest.mark.django_db
+def test_query_location_leaderboard_filters_by_venue(user, group):
+    from datetime import date
+
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.groups.locations import resolve_game_location
+    from leaderlodge.insights.tools.standings import query_location_leaderboard
+
+    location = resolve_game_location(group=group, location_name="Joe's House")
+    players = list(group.players.order_by("pk")[:2])
+    rows = [
+        {"player": players[0], "score": 35},
+        {"player": players[1], "score": 20},
+    ]
+    assign_results_from_scores(rows, "dominos")
+    participants = [
+        ParticipantInput(
+            player=row["player"],
+            score=row["score"],
+            result=row["result"],
+            placement=row["placement"],
+        )
+        for row in rows
+    ]
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 5, 1),
+        location=location,
+        participants=participants,
+    )
+
+    result = query_location_leaderboard(
+        group,
+        game_type_code="dominos",
+        location_id=location.pk,
+        location_name=location.name,
+    )
+
+    assert result["location_name"] == "Joe's House"
+    assert len(result["rankings"]) >= 1
+
+
+@pytest.mark.django_db
+def test_tool_executor_compare_players(user, group):
+    _record_game(group, user, third_idx=None)
+    players = list(group.players.order_by("pk")[:2])
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+
+    result = executor.execute(
+        "compare_players",
+        {
+            "game_type_code": "dominos",
+            "player_queries": [players[0].display_label, players[1].display_label],
+        },
+    )
+
+    assert len(result["players"]) == 2

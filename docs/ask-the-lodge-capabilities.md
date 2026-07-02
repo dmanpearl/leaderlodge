@@ -155,6 +155,50 @@ Returns `games_together`, `score_direction`, optional `scoring_note`, and per-pl
 
 Returns period leaders like the Hall of Fame grid: `period_label`, leader `display_label`, `rank_score` per game type.
 
+### `query_loss_leaders`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `year`, `month`, `all_time` | No | Same period resolution as leaderboard |
+| `game_size` | No | |
+| `limit` | No | Default 10, max 20 |
+
+Returns players ordered by recorded **losses** (weighted count). Only meaningful when the game type tracks explicit losses (Progressive Rummy). Other game types return `supports_loser: false` and an error hint; use `query_placement_leaders` for last-place frequency.
+
+### `compare_players`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `player_ids` or `player_queries` | One of | 2 to 5 players |
+| `year`, `month`, `all_time`, `game_size` | No | Period and field-size filters |
+
+Returns one JSON payload with a `players` array of `query_player_detail` snapshots (rank, outcomes, scores, display fields). Saves tool rounds vs multiple `query_player_detail` calls.
+
+### `query_date_range_leaderboard`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `start_date`, `end_date` | Yes | Inclusive dates (`YYYY-MM-DD`) |
+| `game_size` | No | |
+| `limit` | No | Default 10, max 20 |
+
+Returns ranked rows for games played in the date span. Vesting is not applied (same as calendar period filters).
+
+### `query_location_leaderboard`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `location_id` or `location_query` | One of | Venue from the group's location library |
+| `year`, `month`, `all_time` | No | Period filter |
+| `game_size` | No | |
+| `limit` | No | Default 10, max 20 |
+
+Returns ranked rows for games at that location, plus `location_name`.
+
 ---
 
 ## Capability matrix
@@ -181,9 +225,14 @@ Returns period leaders like the Hall of Fame grid: `period_label`, leader `displ
 | Hall of Fame / dynasty | "Who dominated across years?" / "Repeat monthly winners?" | `query_hall_of_fame` |
 | Period winners by game | "Who won 2024 in each game?" | `query_hall_of_fame`, `granularity=year` |
 | Roster discovery | "Who is in our group?" | `list_group_players` |
-| Name-based grouping | "Do boys or girls play better?" / classify by first name | `list_group_players` + model name knowledge + per-player or leaderboard tools for stats |
+| Name-based grouping | "Do boys or girls play better?" / "Do men or women play better?" / classify by first name | `list_group_players` + model name knowledge + per-player or leaderboard tools for stats |
 | Game types | "What games do we track?" | `list_game_types` |
-| Two-player career compare | "How do Nancy and David stack up in dominos?" | Two `query_player_detail` calls, or `query_head_to_head` for shared-table stats |
+| Two-player career compare | "How do Nancy and David stack up in dominos?" | Two `query_player_detail` calls, `query_head_to_head`, or `compare_players` |
+| Multi-player compare | "Compare Nancy, David, and Pat in dominos" | `compare_players` (2 to 5 players) |
+| Loss leaders | "Who loses most in Progressive Rummy?" | `query_loss_leaders` |
+| Custom date span | "Who led dominos during spring break?" / "Leaders from Spring Break week" | `query_date_range_leaderboard` with `start_date` / `end_date` (model infers dates from the question) |
+| Venue leaders | "Who leads at Joe's house?" | `query_location_leaderboard` with `location_query` |
+| Current leader profile | "Tell me about the leader" / "Who is on top?" | `query_leaderboard` (limit 1), then `query_player_detail` for rank 1 |
 
 ### Partial or unreliable
 
@@ -192,22 +241,19 @@ Returns period leaders like the Hall of Fame grid: `period_label`, leader `displ
 | UI period vs question intent | Ask filter set to "2025" but question says "all time" | Model may omit `all_time: true` despite prompt guidance |
 | Placement without field size | "Who finishes last?" in groups that mix 3- and 5-player games | Last placement index depends on `game_size` |
 | Multi-tool chains | "Compare dominos and mahjongg leaders, then who improves faster" | May exceed 5 rounds if the model chains one tool per round |
-| Name-based group compares | "Boys vs girls average rank" for large rosters | Many `query_player_detail` calls; may hit round limits. Response `meta.coverage` flags when stats were fetched for fewer than 60% of roster players |
+| Name-based group compares | "Boys vs girls average rank" / "Men vs women average rank" for large rosters | Many `query_player_detail` or `compare_players` calls; may hit round limits. Response `meta.coverage` flags when stats were fetched for fewer than 60% of roster players |
 | Inactive players | "How did former member Alex do?" | Active roster only |
 | Sparse trends | "Who improved most this month?" | Trend tool needs games in both windows |
 | Ambiguous names | "How is Pat doing?" with two Pats | Ambiguity error or wrong match |
 | "Most" without metric | "Who is the best in dominos?" | Model must choose rank_score vs wins vs placement |
-| Last place / loss leaders | "Who loses most?" | No dedicated loss-leader tool yet |
 | Exact counts across many players | "Rank everyone by 2nd-place finishes" | 20-row cap |
-| Three or more players together | "Stats when Nancy, David, and Pat play together" | Head-to-head is two-player only |
+| Three or more players together | "Stats when Nancy, David, and Pat play together" | Head-to-head is two-player only; `compare_players` is career stats, not shared-table only |
 
 ### Not supported
 
 | Category | Example questions | Gap |
 | -------- | ----------------- | --- |
 | Specific game | "What happened in the game on 3/15/2026?" | No game-level tool |
-| Location stats | "Who leads at Joe's house?" | No location filter on Ask tools |
-| Custom date range | "Leaders from Spring Break week" | Calendar year/month or fixed-day trend windows only |
 | Streaks | "Longest win streak?" | Not computed in any Ask tool |
 | Rank movement after one game | "Who did Nancy pass when she won last Tuesday?" | Matchup page only |
 | Cross game type summary | "Who is best across all our games?" | No multi-type aggregate tool |
@@ -221,14 +267,11 @@ Remaining high-value gaps and proposed tools. Ordered roughly by effort and impa
 
 | Priority | Tool or change | Unlocks |
 | -------- | -------------- | ------- |
-| Next | `query_loss_leaders` | "Who loses most?" for game types with losses |
-| Next | `compare_players` | Side-by-side stats for 2 to 5 players in one tool round |
-| Next | `query_date_range_leaderboard` | Custom week or date-range leaders |
-| Next | `query_location_leaderboard` | Venue-specific leaders |
-| Later | `query_game_detail` | "Tell me about the game on ..." |
-| Later | `query_streaks` | Win/loss/podium streaks |
-| Later | `query_multi_game_type` | Cross-game-type player summary |
+| Next | `query_game_detail` | "Tell me about the game on ..." |
+| Next | `query_streaks` | Win/loss/podium streaks |
+| Next | `query_multi_game_type` | Cross-game-type player summary |
 | Later | Inactive player support | Alumni questions |
+| Later | Suggested questions UI | Guide users toward supported patterns |
 
 Optional HTTP endpoints (for matchup picker UI or marketing embeds, not required for Ask):
 
@@ -268,6 +311,9 @@ Optional HTTP endpoints (for matchup picker UI or marketing embeds, not required
 | Executor | `leaderlodge/insights/tools/executor.py` |
 | Head-to-head | `leaderlodge/insights/tools/head_to_head.py` |
 | Hall of Fame | `leaderlodge/insights/tools/hall_of_fame.py` |
+| Loss leaders | `leaderlodge/insights/tools/loss_leaders.py` |
+| Compare players | `leaderlodge/insights/tools/compare.py` |
+| Location resolution | `leaderlodge/insights/tools/locations.py` |
 | Placements | `leaderlodge/insights/tools/placements.py` |
 | Trends / month leaders | `leaderlodge/insights/tools/trends.py` |
 | Standings / player detail | `leaderlodge/insights/tools/standings.py` |

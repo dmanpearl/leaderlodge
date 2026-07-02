@@ -148,3 +148,20 @@ def test_query_player_detail_accepts_player_query(group):
 
     assert result["display_label"] == "Nancy"
     assert result["has_games"] is False
+
+
+@pytest.mark.django_db
+def test_leader_question_does_not_bind_short_name_inside_word(group):
+    add_guest_player(group=group, display_name="Bo")
+
+    hints = build_question_player_hints(group, "Tell me about the leader")
+
+    assert hints is None
+
+
+@pytest.mark.django_db
+def test_resolve_player_query_leader_is_not_a_player_name(group):
+    add_guest_player(group=group, display_name="Bo")
+
+    with pytest.raises(ValueError, match="Use query_leaderboard"):
+        resolve_player_query(group, "leader")

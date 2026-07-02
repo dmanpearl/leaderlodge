@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from datetime import date
+
+from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.registry import (
+    ScoreDirection,
     get_game_type,
     score_direction_label,
     scoring_interpretation_note,
@@ -10,9 +14,17 @@ from leaderlodge.insights.tools.rate_display import (
     add_avg_score_display_fields,
     add_outcome_display_fields,
 )
-from leaderlodge.leaderboards.period import LeaderboardPeriod
+from leaderlodge.leaderboards.period import (
+    LeaderboardPeriod,
+    filter_results_by_date_range,
+)
 from leaderlodge.leaderboards.ranking import compute_percentage
-from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
+from leaderlodge.leaderboards.service import (
+    _assign_ranks,
+    _standings_for_game_type,
+    get_player_rank_detail,
+    get_player_rankings,
+)
 
 
 def _ranking_row(row) -> dict:
@@ -33,6 +45,7 @@ def query_leaderboard(
     game_type_code: str,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    location_id: int | None = None,
     limit: int = 10,
 ) -> dict:
     if period is None:
@@ -44,13 +57,88 @@ def query_leaderboard(
         game_type_code=game_type_code,
         period=period,
         game_size=game_size,
+        location_id=location_id,
     )
-    return {
+    payload = {
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
         "score_direction": score_direction_label(game_type_code),
         "game_size": game_size,
         "period": period.query_params() or {"all_time": True},
+        "rankings": [_ranking_row(row) for row in rankings[:limit]],
+    }
+    if location_id is not None:
+        payload["location_id"] = location_id
+    return payload
+
+
+def query_location_leaderboard(
+    group: Group,
+    *,
+    game_type_code: str,
+    location_id: int,
+    location_name: str,
+    period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
+    limit: int = 10,
+) -> dict:
+    payload = query_leaderboard(
+        group,
+        game_type_code=game_type_code,
+        period=period,
+        game_size=game_size,
+        location_id=location_id,
+        limit=limit,
+    )
+    payload["location_name"] = location_name
+    return payload
+
+
+def query_date_range_leaderboard(
+    group: Group,
+    *,
+    game_type_code: str,
+    start_date: date,
+    end_date: date,
+    game_size: int | None = None,
+    limit: int = 10,
+) -> dict:
+    game_type = get_game_type(game_type_code)
+    results_qs = GameParticipantResult.objects.filter(
+        game__group=group,
+        game__game_type_code=game_type_code,
+    )
+    if game_size is not None:
+        results_qs = results_qs.filter(game__player_count=game_size)
+    results_qs = filter_results_by_date_range(
+        results_qs,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    # Any filtered period disables vesting; year is arbitrary here.
+    period = LeaderboardPeriod(year=start_date.year)
+    standings = _standings_for_game_type(
+        group,
+        game_type_code,
+        period=period,
+        results_qs=results_qs,
+    )
+    active = [row for row in standings if row.games_played > 0]
+    low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
+    rankings = _assign_ranks(active, low_wins=low_wins)
+
+    return {
+        "game_type_code": game_type_code,
+        "game_type_name": game_type.name,
+        "score_direction": score_direction_label(game_type_code),
+        "game_size": game_size,
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "period": {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        },
         "rankings": [_ranking_row(row) for row in rankings[:limit]],
     }
 

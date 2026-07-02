@@ -158,21 +158,36 @@
     return "Result returned";
   }
 
-  const APP_LANE_LABEL =
-    '<span class="d-none d-md-inline">LeaderLodge</span><span class="d-md-none">LL</span>';
+  const APP_LANE_LABEL = "LL";
 
   function renderAppLane(tagName) {
     return `<${tagName} class="insights-debug-seq-lane insights-debug-seq-lane--app">${APP_LANE_LABEL}</${tagName}>`;
   }
 
+  function renderSequenceHeader() {
+    return `
+      <div class="insights-debug-seq-step insights-debug-seq-step--header">
+        ${renderAppLane("div")}
+        <div class="insights-debug-seq-mid insights-debug-seq-mid--header">
+          <span class="insights-debug-seq-header-label">Action</span>
+        </div>
+        <div class="insights-debug-seq-lane insights-debug-seq-lane--ai">AI</div>
+      </div>
+    `;
+  }
+
   function renderSequenceStep({ label, direction }) {
+    const actionLabel = String(label || "").trim();
+    if (!actionLabel) {
+      return "";
+    }
     const arrow = direction === "app-to-ai" ? "→" : "←";
     return `
       <div class="insights-debug-seq-step">
         ${renderAppLane("div")}
         <div class="insights-debug-seq-mid">
           <span class="insights-debug-seq-arrow" aria-hidden="true">${arrow}</span>
-          <span class="insights-debug-seq-label">${escapeHtml(label)}</span>
+          <span class="insights-debug-seq-label">${escapeHtml(actionLabel)}</span>
         </div>
         <div class="insights-debug-seq-lane insights-debug-seq-lane--ai">AI</div>
       </div>
@@ -208,18 +223,21 @@
   }
 
   function renderAskSequenceOverview(debug) {
-    const question = debug.question || "Your question";
+    const question = String(debug.question || "").trim();
     const toolRounds = Array.isArray(debug.tool_rounds) ? debug.tool_rounds : [];
-    const steps = [
-      renderSequenceStep({ label: question, direction: "app-to-ai" }),
-    ];
+    const steps = [];
+
+    if (question) {
+      steps.push(renderSequenceStep({ label: question, direction: "app-to-ai" }));
+    }
 
     toolRounds.forEach((round) => {
       (round.calls || []).forEach((call) => {
         const argsSummary = summarizeToolArgs(call.tool, call.arguments);
+        const toolLabel = `${call.tool}${argsSummary ? ` (${argsSummary})` : ""}`;
         steps.push(
           renderSequenceStep({
-            label: `${call.tool}${argsSummary ? ` (${argsSummary})` : ""}`,
+            label: toolLabel,
             direction: "ai-to-app",
           })
         );
@@ -241,7 +259,11 @@
       );
     }
 
-    return steps.join("");
+    if (!steps.length) {
+      return '<p class="text-muted mb-0">No actions recorded for this request.</p>';
+    }
+
+    return `${renderSequenceHeader()}${steps.join("")}`;
   }
 
   function renderAskDebug(debug) {
@@ -304,10 +326,6 @@
               ? `<p class="text-muted mb-2">${escapeHtml(debug.note)}</p>`
               : ""
           }
-          <div class="insights-debug-seq-legend mb-2">
-            ${renderAppLane("span")}
-            <span class="insights-debug-seq-lane insights-debug-seq-lane--ai">AI</span>
-          </div>
           <div class="insights-debug-seq mb-3">${renderAskSequenceOverview(debug)}</div>
           ${toolRounds.map((round, index) => renderToolRoundDetails(round, index)).join("")}
         `,

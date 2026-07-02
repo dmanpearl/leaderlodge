@@ -77,6 +77,10 @@ The model cannot run SQL or invent stats. It selects from a fixed tool catalog; 
 | `query_player_detail` | One player: rank, placements, scores, dates, podium, ties, outcome display fields |
 | `query_head_to_head` | Two players in games they both attended (with `wins_display`, scores, `scoring_note` when low-wins) |
 | `query_hall_of_fame` | Period leaders across years or months |
+| `query_loss_leaders` | Players with the most recorded losses (loss-tracking game types) |
+| `compare_players` | Side-by-side stats for 2 to 5 players in one call |
+| `query_date_range_leaderboard` | Leaders for an inclusive `start_date` to `end_date` span |
+| `query_location_leaderboard` | Leaders at one venue (`location_query` or `location_id`) |
 
 Period-aware tools accept optional `year`, `month`, and `all_time` (ignore Ask page default period). Game-type tools return `score_direction`; low-wins types also return `scoring_note`. Player outcome stats include `wins_display`, `losses_display`, and `ties_display`; point totals include `total_points_display` and `avg_points_display` (per-game average). See [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) for the full capability matrix and shared response fields.
 
@@ -166,7 +170,7 @@ Default: `gpt-4o-mini`. User preference: `UserProfile.ui_settings['insights']['m
 
 ## Prompts and guardrails
 
-- `PROMPT_VERSION = 23` in `prompts.py`; bump when instructions change (invalidates Ask cache keys).
+- `PROMPT_VERSION = 27` in `prompts.py`; bump when instructions change (invalidates Ask cache keys).
 - Contextual prompts: analyst role, JSON-only facts, use `computed_rankings` for comparisons, sparse-data handling, markdown cap.
 - Ask prompt: call tools before answering; placement is 0-indexed in tools; no tool names in the final answer. **Game stats must come from tools**; when the user asks, the model may use real-world knowledge for roster interpretation (e.g. boy vs girl first names) and then fetch stats. Two-player comparisons use prose only (no stat bullet blocks) and **must lead with overall rank and rank_score**. Cite `wins_display` / `losses_display` / `ties_display` exactly. For `low_wins` game types (Progressive Rummy), lower **raw game points** are better; `rank_score` is always higher-is-better. Follow `scoring_note`.
 - Ask tool loop: `ASK_MAX_TOOL_ROUNDS = 5` in `router.py` (one LLM call per round; parallel tool calls within a round count as one round).

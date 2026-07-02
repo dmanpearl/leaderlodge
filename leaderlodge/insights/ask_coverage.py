@@ -9,6 +9,8 @@ _WHOLE_ROSTER_QUESTION = re.compile(
     r"\b("
     r"boys?\s+and\s+girls?|"
     r"boys?\s+or\s+girls?|"
+    r"men\s+and\s+women|"
+    r"men\s+or\s+women|"
     r"all players|"
     r"everyone|"
     r"each player|"

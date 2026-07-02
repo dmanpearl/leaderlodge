@@ -10,6 +10,64 @@ _COMPARISON_SPLIT = re.compile(
     re.IGNORECASE,
 )
 _WORD_TOKEN = re.compile(r"[a-z0-9']+", re.IGNORECASE)
+_MIN_VARIANT_IN_QUERY_LENGTH = 4
+_QUESTION_TOKEN_STOPWORDS = frozenset(
+    {
+        "about",
+        "all",
+        "and",
+        "are",
+        "best",
+        "bottom",
+        "compare",
+        "current",
+        "does",
+        "first",
+        "for",
+        "from",
+        "group",
+        "have",
+        "how",
+        "last",
+        "leader",
+        "leaders",
+        "leading",
+        "loser",
+        "losers",
+        "many",
+        "most",
+        "much",
+        "our",
+        "second",
+        "tell",
+        "the",
+        "third",
+        "top",
+        "was",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "why",
+        "winner",
+        "winners",
+        "with",
+        "worst",
+    }
+)
+_ROLE_PLAYER_QUERY_WORDS = frozenset(
+    {
+        "leader",
+        "leaders",
+        "winner",
+        "winners",
+        "loser",
+        "losers",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -76,7 +134,14 @@ def _display_name_matches(query: str, variant: str) -> bool:
     lowered_variant = variant.lower()
     if lowered_query == lowered_variant:
         return True
-    return lowered_query in lowered_variant or lowered_variant in lowered_query
+    if lowered_query in lowered_variant:
+        return True
+    if (
+        len(lowered_variant) >= _MIN_VARIANT_IN_QUERY_LENGTH
+        and lowered_variant in lowered_query
+    ):
+        return True
+    return False
 
 
 def _segment_query_attempts(segment: str) -> list[str]:
@@ -160,7 +225,7 @@ def resolve_question_player_bindings(
                 break
 
     for token in _WORD_TOKEN.findall(question):
-        if len(token) < 3:
+        if len(token) < 3 or token.lower() in _QUESTION_TOKEN_STOPWORDS:
             continue
         try:
             player = resolve_player_query(group, token)
@@ -238,6 +303,11 @@ def resolve_player_query(group: Group, query: str) -> GroupPlayer:
         raise ValueError("This group has no active players.")
 
     lowered = normalized.lower()
+    if lowered in _ROLE_PLAYER_QUERY_WORDS:
+        raise ValueError(
+            f"No player matched {query!r} in this group. "
+            "Use query_leaderboard to find the current leader."
+        )
 
     username_matches = [
         player
