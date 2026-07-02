@@ -45,7 +45,6 @@ from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
     can_edit_group,
     can_view_group,
-    editable_groups,
     get_demo_group,
     single_user_group,
     visible_groups,
@@ -377,9 +376,6 @@ def game_list(request: HttpRequest) -> HttpResponse:
 
     groups = visible_groups(request.user).order_by("name")
     has_any_games = Game.objects.filter(group__in=groups).exists()
-    can_record_games = (
-        request.user.is_authenticated and editable_groups(request.user).exists()
-    )
 
     return render(
         request,
@@ -417,7 +413,6 @@ def game_list(request: HttpRequest) -> HttpResponse:
                 game_type_code=params["game_type"],
             ),
             "show_location_column": not params["location"],
-            "can_record_games": can_record_games,
         },
     )
 
