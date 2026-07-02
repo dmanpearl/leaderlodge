@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-  <div class="game-list game-list-density--{{ list_density|default:'comfortable' }}">
+  <div class="game-list">
   <div class="game-list-page-header mb-3">
     <div class="game-list-title-wrap{% if selected_game_type_icon_url %} game-list-title-wrap--has-icon{% endif %}">
       <img
@@ -43,6 +43,7 @@
     </div>
   </div>
 
+  <div class="game-list-body game-list-density--{{ list_density|default:'comfortable' }}">
   <div class="card mb-3 game-list-filters-card">
     <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
       <button
@@ -313,6 +314,7 @@
       </div>
     </div>
   {% endif %}
+  </div>
   </div>
 {% endblock %}
 
