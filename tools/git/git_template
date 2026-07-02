@@ -1,0 +1,49 @@
+
+
+# Commit Message
+#     - Format
+#         - Subject line
+#         - Blank line
+#         - Body
+#         - Blank line
+#         - Footer
+#     - Subject line
+#         - <type>(<scope>): <subject>
+#         - type is one of
+#             - feat    : A new feature
+#             - fix     : A bug fix
+#             - docs    : Documentation only changes
+#             - style   : Changes that do not affect the meaning of the code
+#                         (white-space, formatting, missing semi-colons, etc)
+#             - refactor: A code change that neither fixes a bug nor adds a feature
+#             - perf    : A code change that improves performance
+#             - test    : Adding missing or correcting existing tests
+#             - chore   : Changes to the build process or auxiliary tools and
+#                         libraries such as documentation generation
+#         - scope specifies which component is affected
+#             - e.g. ai, games, docs
+#             - * can be used to indicate more than one scope
+#         - subject is a short description
+#             - use imperative present tense
+#                 - e.g. change not changed or changes
+#             - do not capitalize
+#             - no . at end
+#         - max length
+#             - recommended <= 50 characters
+#             - max 72 characters
+#             - readable in git log --oneline
+#             - allows for use as reference/footnote
+#     - Blank line
+#     - Body
+#         - Explain what and why, not how
+#         - Wrap at 72 characters
+#     - Blank line
+#     - Footer
+#         - links to issues (optional)
+#         - links to relevant commits
+#             - shorthash (subject)
+#             - e.g.: 523cb73 (feat(logs): add resource usage and temp logs)
+#             - use git ref alias below for the correct format
+#             - git config alias.ref "log --format='%h (%s)' -1"
+#             - git ref <hash>
+#         - other footnotes

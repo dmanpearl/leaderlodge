@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Git: user owns add, commit, and push
 
+**Commit message format:** `tools/git/git_template` is the format source of truth for this repository. Read it before suggesting or writing commit messages. Also see user rule `~/.cursor/rules/git-commit.mdc`. Do not edit the template unless the user explicitly asks.
+
 The user adds, commits, and pushes all code. The agent does **not** run git write commands unless the user explicitly asks the agent to perform that specific git operation (e.g. "commit these changes for me").
 
 ## Never run without explicit permission
@@ -20,9 +22,10 @@ Reading git state (`git status`, `git diff`, `git log`) is fine when needed to d
 
 When the user asks for a commit message (with or without "please"):
 
-1. Run read-only git commands if helpful (`status`, `diff`, `log`).
-2. **Output the suggested message** (HEREDOC format is fine for copy-paste).
-3. **Do not** stage or commit.
+1. **Read `tools/git/git_template`** before drafting.
+2. Run read-only git commands if helpful (`status`, `diff`, `log`).
+3. **Output the suggested message** in `<type>(<scope>): <subject>` format (HEREDOC for copy-paste).
+4. **Do not** stage or commit.
 
 Same for pull requests: suggest title/body or use `gh` only when the user explicitly asks to create the PR.
 

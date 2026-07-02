@@ -126,3 +126,23 @@ See [Demo group setup](docs/setup.md#demo-group-public-read-only) and [Importing
 - [Local development setup](docs/setup.md) — settings, tests, day-to-day commands, **previewing transactional email**
 - [Architecture](docs/architecture.md) — app layout, models, leaderboard design
 - [Importing game history](docs/importing.md) — seed spreadsheets, `import_games`, and `setup_demo`
+
+## Git setup
+
+Commit message format is documented in [`tools/git/git_template`](tools/git/git_template). Comment lines in that file are stripped when you save a commit.
+
+From the repository root, point this clone at the template (writes `[commit] template` in `.git/config`, similar to global `~/.gitconfig`):
+
+```bash
+git config --local commit.template tools/git/git_template
+```
+
+Optional commit reference alias (global or local):
+
+```bash
+git config alias.ref "log --format='%h (%s)' -1"
+
+# Example:
+git ref 0a2c604
+0a2c604 (feat(accounts): add send_sample_email dev command)
+```
