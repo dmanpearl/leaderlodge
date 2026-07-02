@@ -39,7 +39,7 @@ The model cannot run SQL or invent stats. It selects from a fixed tool catalog; 
 
 **Capability audit and expansion plan:** [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) (supported vs unsupported question types, tool limits, planned expansion).
 
-**Entry points:** Navbar **Ask** (violet `bi-stars`; icon on mobile, icon + label on desktop) and Account menu **Ask the Lodge**.
+**Entry points:** Navbar **Ask** (violet `bi-stars`; icon on mobile, icon + label on desktop), Account menu **Ask the Lodge**, and **Examples** on the Ask page (`/insights/ask/examples/`).
 
 ---
 

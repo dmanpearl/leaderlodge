@@ -370,3 +370,61 @@ nav.navbar.bg-primary
   min-width: 0;
   word-break: break-word;
 }
+
+.ask-examples-table-wrap {
+  overflow: auto;
+  max-height: min(70vh, 42rem);
+}
+
+.ask-examples-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--bs-table-bg);
+  box-shadow: inset 0 -1px 0 var(--bs-table-border-color);
+}
+
+.ask-examples-col-category {
+  width: 28%;
+  min-width: 7rem;
+}
+
+.ask-examples-col-question {
+  width: auto;
+}
+
+.ask-examples-col-more {
+  width: 2.75rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.ask-examples-more-btn {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ask-examples-reliability--supported {
+  background-color: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
+}
+
+.ask-examples-reliability--partial {
+  background-color: var(--bs-warning-bg-subtle);
+  color: var(--bs-warning-text-emphasis);
+}
+
+.ask-examples-reliability--not_supported {
+  background-color: var(--bs-secondary-bg-subtle);
+  color: var(--bs-secondary-text-emphasis);
+}
+
+.ask-examples-tool-list .ask-examples-tool-item + .ask-examples-tool-item {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bs-border-color);
+}

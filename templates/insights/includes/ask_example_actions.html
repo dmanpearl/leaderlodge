@@ -1,0 +1,44 @@
+<div class="dropdown">
+  <button
+    type="button"
+    class="btn btn-sm btn-light ask-examples-more-btn"
+    data-bs-toggle="dropdown"
+    aria-expanded="false"
+    title="More options"
+    aria-label="More options for {{ example.category }}"
+  >
+    <i class="bi bi-three-dots" aria-hidden="true"></i>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end">
+    <li>
+      <a
+        class="dropdown-item d-flex align-items-center gap-2"
+        href="{% url 'insights:ask_example_detail' example.slug %}"
+      >
+        <i class="bi bi-card-text" aria-hidden="true"></i>
+        Details
+      </a>
+    </li>
+    {% if example.can_try_it %}
+      <li>
+        {% if try_it_url %}
+          <a
+            class="dropdown-item d-flex align-items-center gap-2 dropdown-item--insights"
+            href="{{ try_it_url }}"
+          >
+            <i class="bi bi-stars" aria-hidden="true"></i>
+            Try It
+          </a>
+        {% else %}
+          <span
+            class="dropdown-item disabled text-muted d-flex align-items-center gap-2"
+            title="Set up the Demo group to try this example."
+          >
+            <i class="bi bi-stars" aria-hidden="true"></i>
+            Try It
+          </span>
+        {% endif %}
+      </li>
+    {% endif %}
+  </ul>
+</div>

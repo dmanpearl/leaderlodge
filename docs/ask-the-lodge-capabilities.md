@@ -199,6 +199,16 @@ Returns ranked rows for games played in the date span. Vesting is not applied (s
 
 Returns ranked rows for games at that location, plus `location_name`.
 
+### `query_game_detail`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `played_on` | Yes | Game date (`YYYY-MM-DD`); model infers from natural-language questions |
+| `game_size` | No | Disambiguate when multiple games share a date |
+
+Returns scores, placements, location, and players for one recorded game.
+
 ---
 
 ## Capability matrix
@@ -209,29 +219,30 @@ Returns ranked rows for games at that location, plus `location_name`.
 | -------- | ----------------- | ------- |
 | Current standings | "Who leads dominos all time?" | `query_leaderboard` + `all_time: true` |
 | Period standings | "Who was on top in 2025?" / "March 2026 leaderboard" | `query_leaderboard` with `year` / `month` |
-| Field-size standings | "Who leads 5-player dominos?" | `query_leaderboard` + `game_size` |
+| Field-size standings | "Who leads 4-player mahjongg?" | `query_leaderboard` + `game_size` |
 | Placement frequency | "Who finishes 2nd most in dominos?" | `query_placement_leaders`, `placement=1` |
 | Placement + period | "Who got 2nd place most in January 2026?" | `query_placement_leaders`, `placement=1`, `month=1`, `year=2026` |
 | Placement + month (all years) | "Who gets 2nd most every January?" | `query_placement_leaders`, `placement=1`, `month=1` |
 | Monthly leaders | "Who wins most in December?" | `query_month_leaders`, `month=12`, `metric=wins` |
 | Monthly rank score | "Best rank score in June 2025" | `query_month_leaders`, `year=2025`, `month=6` |
 | Trends | "Who is improving most in the last quarter?" | `query_rank_trends`, `days=90` |
-| Player snapshot | "How is Nancy doing in dominos?" | `query_player_detail`, `player_query` |
-| Player placement mix | "What place does David finish most often?" | `query_player_detail` (read `placements`) |
-| Score highlights | "What was Nancy's best dominos score?" | `query_player_detail` (`best_score`, `worst_score`) |
-| Player dates and podiums | "When did Nancy last play?" / "How often does she podium?" | `query_player_detail` |
-| Head-to-head | "Who wins more when Nancy and David play together?" | `query_head_to_head` |
-| Head-to-head (alt phrasing) | "Nancy vs David: who wins when they share a table?" | `query_head_to_head` |
+| Player snapshot | "How is Amelia doing in dominos?" | `query_player_detail`, `player_query` |
+| Player placement mix | "What place does Hudson finish most often?" | `query_player_detail` (read `placements`) |
+| Score highlights | "What was Amelia's best dominos score?" | `query_player_detail` (`best_score`, `worst_score`) |
+| Player dates and podiums | "When did Amelia last play?" / "How often does she podium?" | `query_player_detail` |
+| Head-to-head | "Who wins more when Amelia and Hudson play together?" | `query_head_to_head` |
+| Head-to-head (alt phrasing) | "Amelia vs Hudson: who wins when they share a table?" | `query_head_to_head` |
 | Hall of Fame / dynasty | "Who dominated across years?" / "Repeat monthly winners?" | `query_hall_of_fame` |
 | Period winners by game | "Who won 2024 in each game?" | `query_hall_of_fame`, `granularity=year` |
 | Roster discovery | "Who is in our group?" | `list_group_players` |
 | Name-based grouping | "Do boys or girls play better?" / "Do men or women play better?" / classify by first name | `list_group_players` + model name knowledge + per-player or leaderboard tools for stats |
 | Game types | "What games do we track?" | `list_game_types` |
-| Two-player career compare | "How do Nancy and David stack up in dominos?" | Two `query_player_detail` calls, `query_head_to_head`, or `compare_players` |
-| Multi-player compare | "Compare Nancy, David, and Pat in dominos" | `compare_players` (2 to 5 players) |
+| Two-player career compare | "How do Amelia and Hudson stack up in dominos?" | Two `query_player_detail` calls, `query_head_to_head`, or `compare_players` |
+| Multi-player compare | "Compare Aurora, Lucas, and Lily in Progressive Rummy" | `compare_players` (2 to 5 players) |
 | Loss leaders | "Who loses most in Progressive Rummy?" | `query_loss_leaders` |
 | Custom date span | "Who led dominos during spring break?" / "Leaders from Spring Break week" | `query_date_range_leaderboard` with `start_date` / `end_date` (model infers dates from the question) |
-| Venue leaders | "Who leads at Joe's house?" | `query_location_leaderboard` with `location_query` |
+| Venue leaders | "Who leads at Home?" | `query_location_leaderboard` with `location_query` |
+| Specific game | "What happened in the game on 3/15/2026?" | `query_game_detail` with `played_on` (model infers date from the question) |
 | Current leader profile | "Tell me about the leader" / "Who is on top?" | `query_leaderboard` (limit 1), then `query_player_detail` for rank 1 |
 
 ### Partial or unreliable
@@ -244,18 +255,17 @@ Returns ranked rows for games at that location, plus `location_name`.
 | Name-based group compares | "Boys vs girls average rank" / "Men vs women average rank" for large rosters | Many `query_player_detail` or `compare_players` calls; may hit round limits. Response `meta.coverage` flags when stats were fetched for fewer than 60% of roster players |
 | Inactive players | "How did former member Alex do?" | Active roster only |
 | Sparse trends | "Who improved most this month?" | Trend tool needs games in both windows |
-| Ambiguous names | "How is Pat doing?" with two Pats | Ambiguity error or wrong match |
+| Ambiguous names | "How is Lucas doing?" with two Lucases | Ambiguity error or wrong match |
 | "Most" without metric | "Who is the best in dominos?" | Model must choose rank_score vs wins vs placement |
 | Exact counts across many players | "Rank everyone by 2nd-place finishes" | 20-row cap |
-| Three or more players together | "Stats when Nancy, David, and Pat play together" | Head-to-head is two-player only; `compare_players` is career stats, not shared-table only |
+| Three or more players together | "Stats when Amelia, Hudson, and Lucas play together" | Head-to-head is two-player only; `compare_players` is career stats, not shared-table only |
 
 ### Not supported
 
 | Category | Example questions | Gap |
 | -------- | ----------------- | --- |
-| Specific game | "What happened in the game on 3/15/2026?" | No game-level tool |
 | Streaks | "Longest win streak?" | Not computed in any Ask tool |
-| Rank movement after one game | "Who did Nancy pass when she won last Tuesday?" | Matchup page only |
+| Rank movement after one game | "Who did Amelia pass when she won last Tuesday?" | Matchup page only |
 | Cross game type summary | "Who is best across all our games?" | No multi-type aggregate tool |
 | Predictions | "Who will win next month?" | Prompt forbids; no predictive data |
 
@@ -267,11 +277,11 @@ Remaining high-value gaps and proposed tools. Ordered roughly by effort and impa
 
 | Priority | Tool or change | Unlocks |
 | -------- | -------------- | ------- |
-| Next | `query_game_detail` | "Tell me about the game on ..." |
 | Next | `query_streaks` | Win/loss/podium streaks |
 | Next | `query_multi_game_type` | Cross-game-type player summary |
 | Later | Inactive player support | Alumni questions |
-| Later | Suggested questions UI | Guide users toward supported patterns |
+
+Example questions and tools are listed in the Ask **Examples** UI (`/insights/ask/examples/`).
 
 Optional HTTP endpoints (for matchup picker UI or marketing embeds, not required for Ask):
 

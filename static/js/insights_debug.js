@@ -333,7 +333,7 @@
       renderCollapsibleSection({
         title: "4. Final answer from AI",
         summary: finalAnswer.split("\n")[0].replace(/^#+\s*/, "").slice(0, 60),
-        open: true,
+        open: false,
         bodyHtml: `<pre class="insights-debug-answer mb-0">${escapeHtml(finalAnswer)}</pre>`,
       }),
       renderCollapsibleSection({

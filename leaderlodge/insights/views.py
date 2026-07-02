@@ -15,6 +15,12 @@ from leaderlodge.accounts.group_selection import resolve_view_group
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.services import visible_groups
+from leaderlodge.insights.ask_examples import (
+    get_ask_example,
+    group_ask_examples_by_reliability,
+    try_it_url_for_example,
+    try_it_urls_by_slug,
+)
 from leaderlodge.insights.access import (
     InsightAccessError,
     game_type_codes_for_group,
@@ -60,6 +66,7 @@ from leaderlodge.insights.prompts import (
     resolve_group_preset,
     resolve_matchup_preset,
     resolve_preset,
+    sanitize_custom_question,
 )
 from leaderlodge.leaderboards.hall_of_fame import resolve_hall_of_fame_granularity
 from leaderlodge.insights.rate_limit import (
@@ -524,6 +531,16 @@ def _ask_meta(result: AskResult) -> dict[str, Any]:
     return meta
 
 
+def _ask_example_rows(examples, try_it_urls: dict[str, str]) -> list[dict[str, object]]:
+    return [
+        {
+            "example": example,
+            "try_it_url": try_it_urls.get(example.slug),
+        }
+        for example in examples
+    ]
+
+
 @demo_or_login_required
 def ask_page(request: HttpRequest) -> HttpResponse:
     if not insights_ui_enabled():
@@ -566,6 +583,11 @@ def ask_page(request: HttpRequest) -> HttpResponse:
             period_label=period_ctx.get("period_label", ""),
         )
 
+    prefill_question = ""
+    raw_question = request.GET.get("question", "").strip()
+    if raw_question:
+        prefill_question = sanitize_custom_question(raw_question)
+
     return render(
         request,
         "insights/ask.html",
@@ -576,9 +598,75 @@ def ask_page(request: HttpRequest) -> HttpResponse:
             "selected_game_type_code": selected_game_type_code,
             "selected_game_type": selected_game_type,
             "filter_summary": filter_summary,
+            "prefill_question": prefill_question,
             "navbar_active_section": "insights",
             **_ask_template_context(request),
             **period_ctx,
+        },
+    )
+
+
+@demo_or_login_required
+def ask_examples_page(request: HttpRequest) -> HttpResponse:
+    if not insights_ui_enabled():
+        raise Http404()
+
+    examples_by_reliability = group_ask_examples_by_reliability()
+    try_it_urls = try_it_urls_by_slug()
+    examples_sections = [
+        {
+            "label": "Supported",
+            "examples": _ask_example_rows(
+                examples_by_reliability["supported"],
+                try_it_urls,
+            ),
+        },
+        {
+            "label": "Partial or unreliable",
+            "examples": _ask_example_rows(
+                examples_by_reliability["partial"],
+                try_it_urls,
+            ),
+        },
+        {
+            "label": "Not supported",
+            "examples": _ask_example_rows(
+                examples_by_reliability["not_supported"],
+                try_it_urls,
+            ),
+        },
+    ]
+
+    return render(
+        request,
+        "insights/ask_examples.html",
+        {
+            "examples_sections": examples_sections,
+            "navbar_active_section": "insights",
+            "insights_ready": insights_feature_enabled(),
+        },
+    )
+
+
+@demo_or_login_required
+def ask_example_detail(request: HttpRequest, slug: str) -> HttpResponse:
+    if not insights_ui_enabled():
+        raise Http404()
+
+    example = get_ask_example(slug)
+    if example is None:
+        raise Http404()
+
+    try_it_url = try_it_url_for_example(example)
+
+    return render(
+        request,
+        "insights/ask_example_detail.html",
+        {
+            "example": example,
+            "try_it_url": try_it_url,
+            "navbar_active_section": "insights",
+            "insights_ready": insights_feature_enabled(),
         },
     )
 
