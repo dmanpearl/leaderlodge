@@ -14,6 +14,7 @@ from leaderlodge.games.forms import (
     prepare_participant_rows,
 )
 from leaderlodge.groups.player_search import roster_for_group
+from leaderlodge.games.game_type_icons import game_type_icon_url
 from leaderlodge.games.list_density import (
     game_list_date_format,
     resolve_game_list_density,
@@ -409,6 +410,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
                 int(params["game_size"]) if params["game_size"].isdigit() else None
             ),
             "selected_game_type": selected_game_type,
+            "selected_game_type_icon_url": game_type_icon_url(params["game_type"]),
             "show_group_column": not params["group"],
             "show_weight_column": show_weight_column(
                 games=games,

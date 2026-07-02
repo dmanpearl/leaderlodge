@@ -10,22 +10,36 @@
 {% block content %}
   <div class="game-list game-list-density--{{ list_density|default:'comfortable' }}">
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 game-list-page-header mb-3">
-    <div class="game-list-title-wrap">
-      <label for="filter-game-type" class="visually-hidden">Game type</label>
-      <select
-        id="filter-game-type"
-        name="game_type"
-        class="form-select game-list-title-select"
-        form="game-list-filters"
-        onchange="this.form.submit()"
-      >
-        {% for code, name in game_types %}
-          <option value="{{ code }}" {% if params.game_type == code %}selected{% endif %}>
-            {{ name }}
-          </option>
-        {% endfor %}
-      </select>
-      <i class="bi bi-chevron-down game-list-title-chevron" aria-hidden="true"></i>
+    <div class="game-list-title-wrap{% if selected_game_type_icon_url %} game-list-title-wrap--has-icon{% endif %}">
+      <img
+        id="game-list-title-icon"
+        class="game-list-title-icon{% if not selected_game_type_icon_url %} d-none{% endif %}"
+        {% if selected_game_type_icon_url %}src="{{ selected_game_type_icon_url }}"{% endif %}
+        alt=""
+      />
+      <div class="game-list-title-select-wrap">
+        <label for="filter-game-type" class="visually-hidden">Game type</label>
+        <select
+          id="filter-game-type"
+          name="game_type"
+          class="form-select game-list-title-select"
+          form="game-list-filters"
+          onchange="this.form.submit()"
+        >
+          {% for code, name in game_types %}
+            {% with icon_path='img/game-types/'|add:code|add:'.png' %}
+              <option
+                value="{{ code }}"
+                data-icon-url="{% static icon_path %}"
+                {% if params.game_type == code %}selected{% endif %}
+              >
+                {{ name }}
+              </option>
+            {% endwith %}
+          {% endfor %}
+        </select>
+        <i class="bi bi-chevron-down game-list-title-chevron" aria-hidden="true"></i>
+      </div>
     </div>
     {% if can_record_games %}
       <a href="{% url 'games:create' %}?{% if params.group %}group={{ params.group }}&{% endif %}game_type={{ params.game_type }}" class="btn btn-primary game-list-record-btn">

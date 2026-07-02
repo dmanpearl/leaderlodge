@@ -96,6 +96,28 @@
     footer.classList.toggle("d-none", !overflowsViewport);
   }
 
+  function syncTitleIcon() {
+    const select = document.getElementById("filter-game-type");
+    const icon = document.getElementById("game-list-title-icon");
+    const wrap = document.querySelector(".game-list-title-wrap");
+    if (!select || !icon || !wrap) {
+      return;
+    }
+
+    const option = select.options[select.selectedIndex];
+    const iconUrl = option?.dataset.iconUrl;
+    if (iconUrl) {
+      icon.src = iconUrl;
+      icon.classList.remove("d-none");
+      wrap.classList.add("game-list-title-wrap--has-icon");
+      return;
+    }
+
+    icon.removeAttribute("src");
+    icon.classList.add("d-none");
+    wrap.classList.remove("game-list-title-wrap--has-icon");
+  }
+
   function initTitleSelect() {
     const select = document.getElementById("filter-game-type");
     if (!select) {
@@ -119,11 +141,19 @@
       measurer.style.letterSpacing = style.letterSpacing;
       measurer.textContent = option.text;
       // Select boxes clip the last glyph when width matches text exactly.
-      select.style.width = `${Math.ceil(measurer.getBoundingClientRect().width) + 4}px`;
+      let extra = 10;
+      if (option.value === "progressiverummy") {
+        extra += 3;
+      }
+      select.style.width = `${Math.ceil(measurer.getBoundingClientRect().width) + extra}px`;
     }
 
+    syncTitleIcon();
     resizeTitleSelect();
-    select.addEventListener("change", resizeTitleSelect);
+    select.addEventListener("change", () => {
+      syncTitleIcon();
+      resizeTitleSelect();
+    });
     window.addEventListener("resize", resizeTitleSelect);
   }
 

@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 
 from django.contrib.auth.views import redirect_to_login
-from django.contrib.staticfiles.finders import find
 from django.db.models import QuerySet
 from django.shortcuts import render
 from django.urls import reverse
 
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.display import winner_labels_for_games
+from leaderlodge.games.game_type_icons import game_type_icon_image
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
@@ -46,25 +46,11 @@ class DashboardLeaderboardCard:
     icon_image: str = ""
 
 
-DASHBOARD_GAME_TYPE_ICON_IMAGE_PREFIX = "img/game-types/"
-
-
 def _dashboard_leaderboard_icons(game_type_code: str) -> tuple[str, str]:
-    icon_image = _dashboard_game_type_icon_image(game_type_code)
+    icon_image = game_type_icon_image(game_type_code)
     if icon_image:
         return "", icon_image
-    return _dashboard_game_type_icon_class(game_type_code), ""
-
-
-def _dashboard_game_type_icon_class(game_type_code: str) -> str:
-    return ""
-
-
-def _dashboard_game_type_icon_image(game_type_code: str) -> str:
-    relative_path = f"{DASHBOARD_GAME_TYPE_ICON_IMAGE_PREFIX}{game_type_code}.png"
-    if find(relative_path):
-        return relative_path
-    return ""
+    return "", ""
 
 
 def _game_type_codes_for_groups(groups: QuerySet[Group] | list[Group]) -> list[str]:

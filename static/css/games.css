@@ -112,8 +112,27 @@
   min-width: 0;
 }
 
+.game-list-title-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 1.625rem;
+  height: 1.625rem;
+  margin: 1px 0;
+  padding: 0;
+  object-fit: contain;
+}
+
+.game-list-title-select-wrap {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
 .game-list-title-select {
   width: auto;
+  flex-shrink: 0;
   max-width: calc(100% - 1.5rem);
   font-size: calc(1.275rem + 0.3vw);
   font-weight: 500;
