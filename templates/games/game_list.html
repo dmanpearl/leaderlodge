@@ -138,7 +138,15 @@
             <table class="table table-bordered mb-0 game-list-stats-table game-list-data-table{% if list_density != 'comfortable' %} table-sm{% endif %}">
               <thead>
                 <tr>
-                  <th scope="col" class="game-list-stats-sticky-col"></th>
+                  <th scope="col" class="game-list-stats-sticky-col game-list-stats-game-icon-col">
+                    {% if selected_game_type_icon_url %}
+                      <img
+                        src="{{ selected_game_type_icon_url }}"
+                        class="game-list-stats-game-icon"
+                        alt=""
+                      />
+                    {% endif %}
+                  </th>
                   {% for player_stat in list_stats.players %}
                     <th scope="col" class="text-center game-list-player-col">{{ player_stat.player.display_label }}</th>
                   {% endfor %}

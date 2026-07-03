@@ -299,6 +299,7 @@ def test_game_list_for_member(client, user, group):
     assert "Dominos" in content
     assert "game-list-title-icon" in content
     assert 'id="game-list-title-icon"' in content
+    assert "game-list-stats-game-icon" in content
     assert "game-types/dominos.png" in content
     assert '<option value="">All games</option>' not in content
 
