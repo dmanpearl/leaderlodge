@@ -195,7 +195,15 @@
                 <th scope="col" class="game-list-nowrap-col">Group</th>
               {% endif %}
               {% if show_weight_column %}
-                <th scope="col" class="text-center game-list-nowrap-col game-list-weight-col" aria-label="Weight modifier">×</th>
+                <th scope="col" class="text-center game-list-nowrap-col game-list-weight-col" aria-label="Weight modifier">
+                  {% if selected_game_type_icon_url %}
+                    <img
+                      src="{{ selected_game_type_icon_url }}"
+                      class="game-list-stats-game-icon"
+                      alt=""
+                    />
+                  {% endif %}
+                </th>
               {% endif %}
               {% if show_location_column %}
                 <th scope="col" class="game-list-nowrap-col">Location</th>
@@ -254,7 +262,15 @@
                 <th scope="col" class="game-list-nowrap-col">Group</th>
               {% endif %}
               {% if show_weight_column %}
-                <th scope="col" class="text-center game-list-nowrap-col game-list-weight-col" aria-label="Weight modifier">×</th>
+                <th scope="col" class="text-center game-list-nowrap-col game-list-weight-col" aria-label="Weight modifier">
+                  {% if selected_game_type_icon_url %}
+                    <img
+                      src="{{ selected_game_type_icon_url }}"
+                      class="game-list-stats-game-icon"
+                      alt=""
+                    />
+                  {% endif %}
+                </th>
               {% endif %}
               {% if show_location_column %}
                 <th scope="col" class="game-list-nowrap-col">Location</th>

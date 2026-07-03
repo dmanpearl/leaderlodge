@@ -2,7 +2,11 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from leaderlodge.games.list_table import build_game_list_table, result_cell_class, show_weight_column
+from leaderlodge.games.list_table import (
+    build_game_list_table,
+    result_cell_class,
+    show_weight_column,
+)
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from tests.test_games import _load_roster_post, _save_game_post
 
@@ -21,9 +25,14 @@ def group(user):
 
 def test_result_cell_class():
     assert result_cell_class(result="win", is_double=False) == "game-list-cell--win"
-    assert result_cell_class(result="win", is_double=True) == "game-list-cell--win-double"
+    assert (
+        result_cell_class(result="win", is_double=True) == "game-list-cell--win-double"
+    )
     assert result_cell_class(result="loss", is_double=False) == "game-list-cell--loss"
-    assert result_cell_class(result="loss", is_double=True) == "game-list-cell--loss-double"
+    assert (
+        result_cell_class(result="loss", is_double=True)
+        == "game-list-cell--loss-double"
+    )
     assert result_cell_class(result="tie", is_double=False) == "game-list-cell--tie"
     assert result_cell_class(result="played", is_double=False) == ""
 
@@ -101,7 +110,9 @@ def test_game_list_rows_link_to_game_detail(client, user, group):
 def test_game_list_shows_weight_column_when_game_type_filtered(client, user, group):
     players = list(group.players.order_by("pk"))
     while len(players) < 2:
-        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+        players.append(
+            add_guest_player(group=group, display_name=f"Guest{len(players)}")
+        )
     data = _save_game_post(
         group,
         players_played=players[:2],
@@ -122,6 +133,8 @@ def test_game_list_shows_weight_column_when_game_type_filtered(client, user, gro
     assert response.status_code == 200
     assert content.count('<th scope="col">Game</th>') == 0
     assert 'aria-label="Weight modifier"' in games_table
+    assert "game-list-stats-game-icon" in games_table
+    assert "game-types/dominos.png" in games_table
     assert "2×" in games_table
     assert games_table.count("game-list-weight-badge") == 1
 
@@ -130,7 +143,9 @@ def test_game_list_shows_weight_column_when_game_type_filtered(client, user, gro
 def test_game_list_puts_weight_badges_in_weight_column(client, user, group):
     players = list(group.players.order_by("pk"))
     while len(players) < 2:
-        players.append(add_guest_player(group=group, display_name=f"Guest{len(players)}"))
+        players.append(
+            add_guest_player(group=group, display_name=f"Guest{len(players)}")
+        )
     data = _save_game_post(
         group,
         players_played=players[:2],
