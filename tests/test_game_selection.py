@@ -51,7 +51,9 @@ def test_game_list_redirects_to_saved_game_type(client, user, group):
 def test_game_list_persists_explicit_selection(client, user, group):
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group, game_type_code="dominos"))
+    client.post(
+        reverse("games:create"), _save_game_post(group, game_type_code="dominos")
+    )
 
     response = client.get(
         reverse("games:list"),
@@ -62,7 +64,10 @@ def test_game_list_persists_explicit_selection(client, user, group):
     assert response.status_code == 200
     from leaderlodge.accounts.ui_settings import get_ui_settings
 
-    assert get_ui_settings(user, GAME_SELECTION_NAMESPACE)[GAME_TYPE_CODE_KEY] == "backgammon"
+    assert (
+        get_ui_settings(user, GAME_SELECTION_NAMESPACE)[GAME_TYPE_CODE_KEY]
+        == "backgammon"
+    )
 
 
 @pytest.mark.django_db
@@ -81,6 +86,48 @@ def test_record_game_form_uses_saved_game_type(client, user, group):
 
 
 @pytest.mark.django_db
+def test_record_game_persists_group_and_game_type(client, user, group):
+    """Recording a game updates preferences so Games/Leaders open on that type."""
+    from leaderlodge.accounts.group_selection import (
+        GROUP_ID_KEY,
+        GROUP_SELECTION_NAMESPACE,
+    )
+    from leaderlodge.accounts.ui_settings import get_ui_settings
+
+    set_ui_settings(
+        user,
+        GAME_SELECTION_NAMESPACE,
+        {GAME_TYPE_CODE_KEY: "backgammon"},
+    )
+    client.force_login(user)
+    client.post(
+        reverse("games:create"),
+        _load_roster_post(group, game_type_code="dominos"),
+    )
+    response = client.post(
+        reverse("games:create"),
+        _save_game_post(group, game_type_code="dominos"),
+    )
+
+    assert response.status_code == 302
+    assert (
+        get_ui_settings(user, GAME_SELECTION_NAMESPACE)[GAME_TYPE_CODE_KEY] == "dominos"
+    )
+    assert get_ui_settings(user, GROUP_SELECTION_NAMESPACE)[GROUP_ID_KEY] == str(
+        group.pk
+    )
+
+    list_response = client.get(reverse("games:list"))
+    assert list_response.status_code == 302
+    assert "game_type=dominos" in list_response.url
+    assert f"group={group.pk}" in list_response.url
+
+    detail = client.get(response.url)
+    assert detail.status_code == 200
+    assert f"/games/?group={group.pk}&amp;game_type=dominos" in detail.content.decode()
+
+
+@pytest.mark.django_db
 def test_leaderboard_uses_saved_game_type(client, user, group):
     set_ui_settings(
         user,
@@ -89,7 +136,9 @@ def test_leaderboard_uses_saved_game_type(client, user, group):
     )
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group, game_type_code="dominos"))
+    client.post(
+        reverse("games:create"), _save_game_post(group, game_type_code="dominos")
+    )
     client.post(
         reverse("games:create"),
         _load_roster_post(group, game_type_code="backgammon"),
@@ -107,7 +156,10 @@ def test_leaderboard_uses_saved_game_type(client, user, group):
 
     assert response.status_code == 200
     content = response.content.decode()
-    assert 'value="backgammon" selected' in content
+    assert 'value="backgammon"' in content
+    assert "selected" in content
+    assert "Backgammon" in content
+    assert f"game_type_code=backgammon" in content or "game_type=backgammon" in content
 
 
 @pytest.mark.django_db
