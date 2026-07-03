@@ -402,7 +402,7 @@ def test_game_list_filters_by_group_and_game_type(client, user, group):
 
     assert default_list.status_code == 200
     default_content = default_list.content.decode()
-    assert "BackGammon" in default_content
+    assert "Backgammon" in default_content
     assert f'value="{other_group.pk}" selected' in default_content
     assert '<option value="">All games</option>' not in default_content
     assert dominos_only.status_code == 200
@@ -412,7 +412,7 @@ def test_game_list_filters_by_group_and_game_type(client, user, group):
     assert '<th scope="col">Group</th>' not in dominos_content
     assert '<th scope="col">Game</th>' not in dominos_content
     assert backgammon_only.status_code == 200
-    assert "BackGammon" in backgammon_only.content.decode()
+    assert "Backgammon" in backgammon_only.content.decode()
     assert '<th scope="col">Game</th>' not in backgammon_only.content.decode()
 
 

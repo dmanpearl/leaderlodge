@@ -44,7 +44,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         ),
         "backgammon": GameTypeDefinition(
             code="backgammon",
-            name="BackGammon",
+            name="Backgammon",
             min_players=2,
             max_players=2,
             supports_loser=False,
