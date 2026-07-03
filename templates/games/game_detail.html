@@ -11,26 +11,35 @@
 {% endblock %}
 
 {% block content %}
-  <div class="mb-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2">
-    <div>
-    <h1 class="h3 mb-1">
-      {{ game_type.name }}
-      {% if is_double %}
-        <span class="badge result-badge result-badge--win-double align-middle">Double game</span>
-      {% elif is_half %}
-        <span class="badge text-bg-secondary align-middle">Half game</span>
+  <div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+      <div class="game-detail-title-wrap{% if game_type_icon_url %} game-detail-title-wrap--has-icon{% endif %}">
+        {% if game_type_icon_url %}
+          <img
+            src="{{ game_type_icon_url }}"
+            class="game-detail-title-icon"
+            alt=""
+          />
+        {% endif %}
+        <h1 class="h3 mb-0">
+          {{ game_type.name }}
+          {% if is_double %}
+            <span class="badge result-badge result-badge--win-double align-middle">Double game</span>
+          {% elif is_half %}
+            <span class="badge text-bg-secondary align-middle">Half game</span>
+          {% endif %}
+        </h1>
+      </div>
+      {% if insights_enabled %}
+        {% include "includes/btn_insights.html" with btn_size="sm" extra_class="flex-shrink-0" offcanvas_target="#game-detail-insights-panel" offcanvas_controls="game-detail-insights-panel" %}
       {% endif %}
-    </h1>
+    </div>
     <p class="text-muted mb-0">
       {{ game.group.name }} &middot; {{ game.played_on|date:"M j, Y" }}
       {% if game.location %}
         &middot; {{ game.location.name }}
       {% endif %}
     </p>
-    </div>
-    {% if insights_enabled %}
-      {% include "includes/btn_insights.html" with btn_size="sm" offcanvas_target="#game-detail-insights-panel" offcanvas_controls="game-detail-insights-panel" %}
-    {% endif %}
   </div>
 
   <div class="card">

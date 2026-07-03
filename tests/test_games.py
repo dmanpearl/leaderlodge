@@ -587,6 +587,8 @@ def test_game_detail_for_member(client, user, group):
 
     assert response.status_code == 200
     assert "Dom Club" in content
+    assert "game-detail-title-icon" in content
+    assert "game-types/dominos.png" in content
     assert f'href="/games/matchup/?game={game.pk}"' in content
     player = group.players.order_by("pk").first()
     assert (
