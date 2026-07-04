@@ -1,3 +1,22 @@
+.game-setup-game-type-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-setup-game-type-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  object-fit: contain;
+}
+
+.game-setup-game-type-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .game-setup-actions {
   display: flex;
   flex-wrap: wrap;

@@ -289,6 +289,9 @@
       this.tbody = tbody;
       this.form = form;
       this.defaultParticipantScore = form.dataset.defaultParticipantScore ?? "";
+      this.addPlayerLabelText = "Add player";
+      this.addTeammateLabelText = "Add Teammate";
+      this.pickerLabelTextEl = form.querySelector("[data-player-picker-label-text]");
       this.suggestions = [];
       this.activeIndex = -1;
       this.isOpen = false;
@@ -547,14 +550,22 @@
       );
     }
 
+    setPickerLabelText(text) {
+      if (this.pickerLabelTextEl) {
+        this.pickerLabelTextEl.textContent = text;
+      }
+    }
+
     setTeammateTarget(row) {
       this.teammateTargetRow = row;
+      this.setPickerLabelText(this.addTeammateLabelText);
       this.input.setAttribute("placeholder", "Type teammate name");
       this.input.focus();
     }
 
     clearTeammateTarget() {
       this.teammateTargetRow = null;
+      this.setPickerLabelText(this.addPlayerLabelText);
       this.input.setAttribute("placeholder", "Type player name");
     }
 

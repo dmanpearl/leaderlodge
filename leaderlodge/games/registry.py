@@ -2,10 +2,23 @@ from enum import StrEnum
 
 from dataclasses import dataclass
 
+from django.core.exceptions import ValidationError
+
 
 class ScoreDirection(StrEnum):
     HIGH_WINS = "high"
     LOW_WINS = "low"
+
+
+class ScoreType(StrEnum):
+    TRADITIONAL = "traditional"
+    RALLY = "rally"
+
+
+SCORE_TYPE_LABELS: dict[ScoreType, str] = {
+    ScoreType.TRADITIONAL: "Traditional",
+    ScoreType.RALLY: "Rally",
+}
 
 
 @dataclass(frozen=True)
@@ -18,6 +31,7 @@ class GameTypeDefinition:
     score_direction: ScoreDirection
     win_target_score: int | None
     icon_filename: str
+    score_types: tuple[ScoreType, ...] = ()
 
 
 def _load_registry() -> dict[str, GameTypeDefinition]:
@@ -62,6 +76,17 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             win_target_score=None,
             icon_filename="mahjongg.png",
         ),
+        "pickleball": GameTypeDefinition(
+            code="pickleball",
+            name="Pickleball",
+            min_players=2,
+            max_players=3,
+            supports_loser=False,
+            score_direction=ScoreDirection.HIGH_WINS,
+            win_target_score=None,
+            icon_filename="pickleball.png",
+            score_types=(ScoreType.TRADITIONAL, ScoreType.RALLY),
+        ),
     }
 
 
@@ -98,3 +123,28 @@ def scoring_interpretation_note(code: str) -> str | None:
 
 def game_type_choices() -> list[tuple[str, str]]:
     return [(gt.code, gt.name) for gt in GAME_TYPES.values()]
+
+
+def game_type_has_score_type(code: str) -> bool:
+    return bool(get_game_type(code).score_types)
+
+
+def score_type_choices_for(code: str) -> list[tuple[str, str]]:
+    game_type = get_game_type(code)
+    return [
+        (score_type.value, SCORE_TYPE_LABELS[score_type])
+        for score_type in game_type.score_types
+    ]
+
+
+def normalize_score_type(code: str, score_type: str) -> str:
+    """Return stored score_type for a game; empty when the type has no score modes."""
+    game_type = get_game_type(code)
+    if not game_type.score_types:
+        return ""
+    value = (score_type or "").strip() or ScoreType.TRADITIONAL.value
+    valid = {item.value for item in game_type.score_types}
+    if value not in valid:
+        labels = ", ".join(sorted(valid))
+        raise ValidationError(f"Score type must be one of: {labels}.")
+    return value

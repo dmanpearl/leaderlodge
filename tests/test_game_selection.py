@@ -80,9 +80,13 @@ def test_record_game_form_uses_saved_game_type(client, user, group):
     client.force_login(user)
 
     response = client.get(reverse("games:create"))
+    content = response.content.decode()
 
     assert response.status_code == 200
-    assert 'value="backgammon" selected' in response.content.decode()
+    assert 'value="backgammon"' in content
+    assert "selected" in content.split('value="backgammon"', 1)[1].split("</option>", 1)[0]
+    assert "game-setup-game-type-icon" in content
+    assert "game-types/backgammon.png" in content
 
 
 @pytest.mark.django_db

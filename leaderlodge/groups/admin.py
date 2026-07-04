@@ -5,6 +5,7 @@ from leaderlodge.groups.models import (
     GroupInvite,
     GroupMembership,
     GroupPlayer,
+    GroupTeamMember,
     Location,
     LocationLibrary,
 )
@@ -18,8 +19,22 @@ class GroupMembershipInline(admin.TabularInline):
 class GroupPlayerInline(admin.TabularInline):
     model = GroupPlayer
     extra = 0
-    fields = ("display_name", "hide_from_game_list", "is_active", "linked_user")
+    fields = (
+        "display_name",
+        "is_team",
+        "hide_from_game_list",
+        "is_active",
+        "linked_user",
+    )
     show_change_link = True
+
+
+class GroupTeamMemberInline(admin.TabularInline):
+    model = GroupTeamMember
+    fk_name = "team"
+    extra = 0
+    fields = ("member",)
+    autocomplete_fields = ("member",)
 
 
 class LocationInline(admin.TabularInline):
@@ -74,17 +89,37 @@ class GroupPlayerAdmin(admin.ModelAdmin):
     list_display = (
         "display_name",
         "group",
+        "is_team",
         "linked_user",
         "is_active",
         "hide_from_game_list",
     )
-    list_filter = ("is_active", "hide_from_game_list", "group")
+    list_filter = ("is_team", "is_active", "hide_from_game_list", "group")
     list_editable = ("hide_from_game_list",)
     search_fields = ("display_name",)
+    autocomplete_fields = ("group", "linked_user")
     fields = (
         "group",
         "display_name",
+        "is_team",
         "linked_user",
         "is_active",
         "hide_from_game_list",
     )
+    inlines = [GroupTeamMemberInline]
+
+
+@admin.register(GroupTeamMember)
+class GroupTeamMemberAdmin(admin.ModelAdmin):
+    list_display = ("team", "member", "group")
+    list_filter = ("team__group",)
+    search_fields = (
+        "team__display_name",
+        "member__display_name",
+        "team__group__name",
+    )
+    autocomplete_fields = ("team", "member")
+
+    @admin.display(description="Group", ordering="team__group__name")
+    def group(self, obj):
+        return obj.team.group

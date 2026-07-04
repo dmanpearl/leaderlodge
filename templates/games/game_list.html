@@ -238,6 +238,8 @@
                       <span class="badge text-bg-secondary game-list-weight-badge">2×</span>
                     {% elif row.game.half_weight == 2 %}
                       <span class="badge text-bg-secondary game-list-weight-badge">½</span>
+                    {% elif row.game.score_type == "rally" %}
+                      <span class="badge text-bg-secondary game-list-weight-badge">R</span>
                     {% endif %}
                   </td>
                 {% endif %}

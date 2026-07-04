@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from leaderlodge.games.models import Game, GameParticipantResult
 
-WEIGHT_GAME_TYPES = frozenset({"dominos", "progressiverummy"})
+WEIGHT_GAME_TYPES = frozenset({"dominos", "progressiverummy", "pickleball"})
 
 
 def show_weight_column(*, games: list[Game], game_type_code: str) -> bool:

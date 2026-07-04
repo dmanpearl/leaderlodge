@@ -54,6 +54,21 @@ def test_resolve_side_player_creates_team_with_sorted_label(group, user):
 
 
 @pytest.mark.django_db
+def test_resolve_side_player_reuses_team_when_member_pks_differ_from_label_order(
+    group,
+    user,
+):
+    """Member match must ignore label sort order vs player pk order."""
+    _, nancy, zach, _ = _people(group)
+    if nancy.pk < zach.pk:
+        nancy, zach = zach, nancy
+
+    team_a = resolve_side_player(group=group, members=[nancy, zach])
+    team_b = resolve_side_player(group=group, members=[zach, nancy])
+    assert team_b.pk == team_a.pk
+
+
+@pytest.mark.django_db
 def test_resolve_side_player_reuses_team_and_refreshes_label(group, user):
     _, nancy, zach, _ = _people(group)
     team_a = resolve_side_player(group=group, members=[nancy, zach])

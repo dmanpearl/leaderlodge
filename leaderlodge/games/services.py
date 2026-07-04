@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from leaderlodge.games.models import Game, GameParticipantResult
-from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.registry import get_game_type, normalize_score_type
 from leaderlodge.games.validators import validate_game_for_type
 from leaderlodge.games.scoring import compute_double_weight
 from leaderlodge.groups.models import Group, GroupPlayer, Location
@@ -33,6 +33,7 @@ def record_game(
     import_source: str = "",
     import_row_key: str = "",
     half_weight: int = 1,
+    score_type: str = "",
 ) -> Game:
     game_type = get_game_type(game_type_code)
 
@@ -78,6 +79,8 @@ def record_game(
     if half_weight not in (1, 2):
         raise ValidationError("Half weight must be 1 or 2.")
 
+    stored_score_type = normalize_score_type(game_type_code, score_type)
+
     row_dicts = [
         {
             "player": item.player,
@@ -102,6 +105,7 @@ def record_game(
         player_count=len(participants),
         double_weight=double_weight,
         half_weight=half_weight,
+        score_type=stored_score_type,
         location=location,
         import_source=import_source,
         import_row_key=import_row_key,

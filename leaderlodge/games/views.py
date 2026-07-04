@@ -27,7 +27,13 @@ from leaderlodge.games.game_size import (
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
 from leaderlodge.games.models import Game, GameParticipantResult
-from leaderlodge.games.registry import GAME_TYPES, game_type_choices, get_game_type
+from leaderlodge.games.registry import (
+    GAME_TYPES,
+    ScoreType,
+    game_type_choices,
+    get_game_type,
+    score_type_choices_for,
+)
 from leaderlodge.games.reuse_players import (
     previous_game_participant_rows,
     reuse_players_summary,
@@ -618,6 +624,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     played_on=save_form.cleaned_data["played_on"],
                     participants=participants,
                     location=location,
+                    score_type=request.POST.get("score_type", ""),
                 )
             except ValidationError as exc:
                 participant_error = (
@@ -638,10 +645,27 @@ def game_create(request: HttpRequest) -> HttpResponse:
     played_on_value = ""
     played_on_display = ""
     location_name = ""
+    score_type = ScoreType.TRADITIONAL.value
+    selected_setup_game_type_code = ""
+    if form.is_bound:
+        selected_setup_game_type_code = (form.data.get("game_type_code") or "").strip()
+    else:
+        initial_code = form.initial.get("game_type_code")
+        if initial_code:
+            selected_setup_game_type_code = str(initial_code).strip()
+    setup_game_type_options = [
+        (code, name, game_type_icon_url(code)) for code, name in game_type_choices()
+    ]
+    selected_setup_game_type_icon_url = (
+        game_type_icon_url(selected_setup_game_type_code)
+        if selected_setup_game_type_code in GAME_TYPES
+        else ""
+    )
     if show_roster and group:
         played_on_value, played_on_display = _played_on_value_and_display(form)
         if form.is_bound:
             location_name = form.data.get("location_name", "")
+            score_type = request.POST.get("score_type", score_type)
         elif form.initial.get("location_name"):
             location_name = form.initial.get("location_name", "")
 
@@ -657,11 +681,18 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 record_game_rules_summary(game_type.code) if game_type else ""
             ),
             "game_type": game_type,
+            "score_type_choices": (
+                score_type_choices_for(game_type.code) if game_type else []
+            ),
+            "score_type": score_type,
             "show_roster": show_roster and group is not None and game_type is not None,
             "participant_error": participant_error,
             "played_on_value": played_on_value,
             "played_on_display": played_on_display,
             "location_name": location_name,
+            "setup_game_type_options": setup_game_type_options,
+            "selected_setup_game_type_code": selected_setup_game_type_code,
+            "selected_setup_game_type_icon_url": selected_setup_game_type_icon_url,
             "default_participant_score": (
                 default_participant_score_value(game_type.code) if game_type else ""
             ),

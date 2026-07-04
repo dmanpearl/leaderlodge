@@ -75,7 +75,7 @@ def team_display_name(members: list[GroupPlayer]) -> str:
 
 
 def _member_key(members: list[GroupPlayer]) -> tuple[int, ...]:
-    return tuple(player.pk for player in _sorted_members(members))
+    return tuple(sorted(player.pk for player in members))
 
 
 def validate_side_members(members: list[GroupPlayer], *, group: Group) -> None:
@@ -112,7 +112,7 @@ def resolve_side_player(*, group: Group, members: list[GroupPlayer]) -> GroupPla
         return members[0]
 
     ordered = _sorted_members(members)
-    member_ids = [player.pk for player in ordered]
+    member_key = _member_key(ordered)
     label = team_display_name(ordered)
 
     existing_teams = (
@@ -126,8 +126,10 @@ def resolve_side_player(*, group: Group, members: list[GroupPlayer]) -> GroupPla
         .order_by("pk")
     )
     for team in existing_teams:
-        team_member_ids = sorted(link.member_id for link in team.team_members.all())
-        if team_member_ids == member_ids:
+        team_member_key = tuple(
+            sorted(link.member_id for link in team.team_members.all())
+        )
+        if team_member_key == member_key:
             if team.display_name != label:
                 team.display_name = label
                 team.save(update_fields=["display_name"])

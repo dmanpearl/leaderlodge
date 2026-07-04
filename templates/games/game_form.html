@@ -45,8 +45,32 @@
               {% endif %}
             </div>
             <div class="col-12 col-md-4">
-              <label for="{{ form.game_type_code.id_for_label }}" class="form-label">Game</label>
-              {{ form.game_type_code }}
+              <label for="game-setup-game-type-select" class="form-label">Game</label>
+              <div class="game-setup-game-type-wrap{% if selected_setup_game_type_icon_url %} game-setup-game-type-wrap--has-icon{% endif %}">
+                <img
+                  id="game-setup-game-type-icon"
+                  class="game-setup-game-type-icon{% if not selected_setup_game_type_icon_url %} d-none{% endif %}"
+                  {% if selected_setup_game_type_icon_url %}src="{{ selected_setup_game_type_icon_url }}"{% endif %}
+                  alt=""
+                />
+                <select
+                  name="game_type_code"
+                  id="game-setup-game-type-select"
+                  class="form-select game-setup-game-type-select"
+                  required
+                >
+                  <option value="" data-icon-url="">Choose a game</option>
+                  {% for code, name, icon_url in setup_game_type_options %}
+                    <option
+                      value="{{ code }}"
+                      data-icon-url="{{ icon_url }}"
+                      {% if selected_setup_game_type_code == code %}selected{% endif %}
+                    >
+                      {{ name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
               {% if form.game_type_code.errors %}
                 <div class="invalid-feedback d-block">{{ form.game_type_code.errors }}</div>
               {% endif %}
@@ -129,6 +153,24 @@
           <input type="hidden" name="played_on" value="{{ played_on_value }}" />
           <input type="hidden" name="location_name" value="{{ location_name }}" />
 
+          {% if score_type_choices %}
+            <div class="mb-3">
+              <label for="game-score-type" class="form-label">Score type</label>
+              <select
+                id="game-score-type"
+                name="score_type"
+                class="form-select"
+                style="max-width: 12rem;"
+              >
+                {% for value, label in score_type_choices %}
+                  <option value="{{ value }}"{% if score_type == value %} selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+
           {{ roster|json_script:"game-roster-data" }}
 
           <div class="table-responsive">
@@ -206,7 +248,8 @@
 
           <div class="game-record-footer">
             <label for="player-picker-input" class="form-label player-picker-cta-label game-record-footer-label">
-              <i class="bi bi-person-plus-fill" aria-hidden="true"></i> Add player
+              <i class="bi bi-person-plus-fill" aria-hidden="true"></i>
+              <span data-player-picker-label-text>Add player</span>
             </label>
             <div class="player-picker-wrap player-picker-cta-wrap game-record-footer-field">
               <div class="combobox-input-wrap player-picker-field">
@@ -237,12 +280,13 @@
 {% block extra_js %}
   {% if show_roster %}
     <script src="{% static 'js/game_record_form.js' %}?v=5"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=9"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=10"></script>
   {% else %}
     <script>
       document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
     </script>
     <script src="{% static 'js/location_autocomplete.js' %}?v=4"></script>
+    <script src="{% static 'js/game_setup.js' %}?v=1"></script>
     {% if not is_guest_demo %}
       <script src="{% static 'js/game_setup_reuse.js' %}?v=3"></script>
     {% endif %}
