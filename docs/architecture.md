@@ -66,7 +66,7 @@ close second earns more than a far second. Last place earns 0 placement credit.
 Tied scores use lower-place tie ranking. Ties multiply finish credit by 0.5. Raw
 rank score is total finish points divided by weighted games played.
 
-High-wins game types (dominos, backgammon, mahjongg): unvested scores are
+High-wins game types (dominos, backgammon, mahjongg, pickleball): unvested scores are
 multiplied by vesting progress (lower displayed score until fully vested at
 `LEADERBOARD_VESTING_COUNT` games). Higher displayed score is better.
 

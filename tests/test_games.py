@@ -711,8 +711,9 @@ def test_record_game_setup_honors_game_type_query_param(client, user, group):
     content = response.content.decode()
 
     assert response.status_code == 200
-    assert 'value="progressiverummy" selected' in content
-    assert 'value="dominos" selected' not in content
+    assert 'value="progressiverummy"' in content
+    assert "selected" in content.split('value="progressiverummy"', 1)[1].split("</option>", 1)[0]
+    assert 'value="dominos" selected' not in content.replace("\n", " ")
 
 
 @pytest.mark.django_db

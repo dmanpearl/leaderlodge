@@ -21,6 +21,7 @@ DEMO_SEED_IMPORTS: tuple[tuple[str, str], ...] = (
         "data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx",
     ),
     ("mahjongg", "data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx"),
+    ("pickleball", "data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx"),
 )
 
 

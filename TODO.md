@@ -86,11 +86,11 @@
 - [x] 9160748 AI: Ask the Lodge: Progressive Rummy answers wrongly favored higher point totals (fixed via score_direction in tool payloads, user message, and prompt)
 - [x] 2db4bf0 AI: Ask the Lodge: player comparisons should lead with win/loss/tie percentages, not raw counts alone
 - [x] 7112a91 AI Examples: Ask tool and question examples table at `/insights/ask/examples/`
-- [x] Implemet teams for support of two-on-two types of games
+- [x] f839094 Implemet teams for support of two-on-two types of games
+- [x] 0d84f67 Add Pickleball
 
 ## Open Items
 
-- [ ] Add Pickleball
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)

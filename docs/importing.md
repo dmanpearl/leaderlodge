@@ -10,11 +10,12 @@ Store versioned seed files under `data/seeds/<game-type>/`:
 data/seeds/dominos/dominos_seed_2026-06-16.xlsx
 data/seeds/backgammon/backgammon_seed_2026-06-16.xlsx
 data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx
+data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
 ```
 
 Date-stamped filenames act as lightweight version control for binary spreadsheets. You can keep older exports alongside newer ones; each file is identified separately during import.
 
-Progressive Rummy uses a **Raw Games** worksheet in a separate seed format (see below).
+Progressive Rummy, Mah Jongg, and Pickleball use a **Raw Games** worksheet in a separate seed format (see below).
 
 ## Spreadsheet format (dominos & backgammon)
 
@@ -60,6 +61,11 @@ python manage.py import_games \
   --group "Family" \
   --game-type progressiverummy \
   data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx
+
+python manage.py import_games \
+  --group Demo \
+  --game-type pickleball \
+  data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
 ```
 
 ### Options
@@ -68,7 +74,7 @@ python manage.py import_games \
 |--------|-------------|
 | `spreadsheet` | Path to the `.xlsx` file (positional, required) |
 | `-g`, `--group` | Target group name or primary key (required) |
-| `--game-type` | Game type code: `dominos`, `backgammon`, `progressiverummy`, etc. (required) |
+| `--game-type` | Game type code: `dominos`, `backgammon`, `progressiverummy`, `pickleball`, etc. (required) |
 | `--recorded-by` | Username stored as recorder (default: group owner) |
 | `--dry-run` | Parse and validate without writing to the database |
 
@@ -151,6 +157,38 @@ Differences during import:
 
 Blank player cells mean that player did not participate in the game. A score of `0` is valid (for example, a wall game).
 
+## Spreadsheet format (Pickleball)
+
+Store seed files under `data/seeds/pickleball/`. Uses the **Raw Games** worksheet with side columns that can rotate from row to row (unlike ScoreKeeper, which fixes two player columns for the whole file).
+
+| Column | Field |
+|--------|-------|
+| A | Date played |
+| B | Location (`Where`) |
+| C | Score type (`Rally` or blank for Traditional) |
+| D | Skipped (`aa` placeholder column) |
+| E+ | Side labels with scores for that game |
+
+Each **side** is one column header:
+
+- Solo: `Lucas`, `Aurora`
+- Team: `Harper+Owen`, `Elena+Lucy` (member display names joined with `+`)
+
+Only the sides that played receive scores on each row. Rows with **2 to 3** scored sides are imported (Pickleball player limits). Rows where the same person would appear on more than one side are skipped.
+
+`Rally` in the **Score type** column is stored on the game. A blank cell means Traditional.
+
+Win/loss/tie results use Pickleball rules (high score wins). Team sides create or reuse team roster entries the same way as **Record Game**.
+
+### Export Pickleball seeds from a group
+
+To build a spreadsheet from games already in the database:
+
+```bash
+python tools/export_pickleball_seed.py --group Demo \
+  --output data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
+```
+
 ## Demo group seeds
 
 Bundled demo spreadsheets use fictional player names and live in the repo under `data/seeds/`:
@@ -160,11 +198,12 @@ data/seeds/dominos/dominos_demo_2026-06-22.xlsx
 data/seeds/backgammon/backgammon_demo_2026-06-22.xlsx
 data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx
 data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx
+data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
 ```
 
 ### One-command demo setup
 
-`setup_demo` creates the **Demo** group (if needed), sets **`is_demo=True`**, and imports all four files above. Re-running is safe: existing games from the same spreadsheet rows are skipped.
+`setup_demo` creates the **Demo** group (if needed), sets **`is_demo=True`**, and imports all five files above. Re-running is safe: existing games from the same spreadsheet rows are skipped.
 
 ```bash
 source venv/bin/activate
@@ -206,6 +245,9 @@ python manage.py import_games --group Demo --game-type progressiverummy \
 
 python manage.py import_games --group Demo --game-type mahjongg \
   data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx
+
+python manage.py import_games --group Demo --game-type pickleball \
+  data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
 ```
 
 ## Dependencies

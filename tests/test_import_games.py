@@ -15,6 +15,7 @@ from leaderlodge.games.importing.scorekeeper import parse_scorekeeper_workbook
 from leaderlodge.games.importing.service import (
     import_games_file,
     import_mahjongg_file,
+    import_pickleball_file,
     import_progressiverummy_file,
     import_scorekeeper_file,
 )
@@ -30,7 +31,10 @@ from leaderlodge.groups.services import (
     create_group_with_owner,
     resolve_seed_player,
 )
-from tests.fixtures.test_seeds import EXPECTED_IMPORT_SUMMARIES, committed_test_seed_paths
+from tests.fixtures.test_seeds import (
+    EXPECTED_IMPORT_SUMMARIES,
+    committed_test_seed_paths,
+)
 
 
 @pytest.fixture
@@ -52,7 +56,15 @@ def _write_scorekeeper(
     path: Path,
     rows: list[tuple],
     *,
-    headers: tuple[str, ...] = ("Date", "Nancy", "David", "Where", "Nancy", "David", "Diff"),
+    headers: tuple[str, ...] = (
+        "Date",
+        "Nancy",
+        "David",
+        "Where",
+        "Nancy",
+        "David",
+        "Diff",
+    ),
 ) -> None:
     workbook = Workbook()
     worksheet = workbook.active
@@ -111,7 +123,9 @@ def test_group_detail_shows_first_with_username(client, user, group):
     user.username = "dmanpearl"
     user.save(update_fields=["username"])
     client.force_login(user)
-    content = client.get(reverse("groups:detail", kwargs={"pk": group.pk})).content.decode()
+    content = client.get(
+        reverse("groups:detail", kwargs={"pk": group.pk})
+    ).content.decode()
     assert "David" in content
     assert "dmanpearl" in content
     assert "user-name-username-suffix" in content
@@ -203,7 +217,9 @@ def test_resolve_seed_player_prefers_linked_user_over_guest_display_name(group, 
 
 
 @pytest.mark.django_db
-def test_import_scorekeeper_file_uses_linked_nancy_player(group, user, sample_spreadsheet):
+def test_import_scorekeeper_file_uses_linked_nancy_player(
+    group, user, sample_spreadsheet
+):
     nancy_user = User.objects.create_user(
         username="nmanpearl",
         password="test-pass-123",
@@ -336,7 +352,9 @@ def test_import_games_command(group, user, sample_spreadsheet):
 
     output = stdout.getvalue()
     assert "Created: 2" in output
-    assert Game.objects.filter(group=group, import_source="dominos_seed_test").count() == 2
+    assert (
+        Game.objects.filter(group=group, import_source="dominos_seed_test").count() == 2
+    )
 
 
 @pytest.mark.django_db
@@ -428,8 +446,34 @@ def progressiverummy_spreadsheet(tmp_path):
     _write_progressiverummy(
         path,
         [
-            (datetime(2026, 3, 8), "Sally", "Yes", "skip", 10, 20, 30, 10, 30, "Nancy", "Pat", 3),
-            (datetime(2026, 3, 9), "<?>", None, None, 5, 15, 25, 5, 25, "Nancy", "Pat", 3),
+            (
+                datetime(2026, 3, 8),
+                "Sally",
+                "Yes",
+                "skip",
+                10,
+                20,
+                30,
+                10,
+                30,
+                "Nancy",
+                "Pat",
+                3,
+            ),
+            (
+                datetime(2026, 3, 9),
+                "<?>",
+                None,
+                None,
+                5,
+                15,
+                25,
+                5,
+                25,
+                "Nancy",
+                "Pat",
+                3,
+            ),
             ("<?>", "Kitchen", None, None, 8, 18, 28, 8, 28, "Nancy", "Pat", 3),
         ],
     )
@@ -465,7 +509,9 @@ def test_import_progressiverummy_file(group, user, progressiverummy_spreadsheet)
     assert summary.created == 3
     assert summary.skipped == 0
 
-    games = Game.objects.filter(group=group, game_type_code="progressiverummy").order_by("pk")
+    games = Game.objects.filter(
+        group=group, game_type_code="progressiverummy"
+    ).order_by("pk")
     assert games.count() == 3
     assert games[0].half_weight == 2
     assert games[1].half_weight == 1
@@ -474,7 +520,9 @@ def test_import_progressiverummy_file(group, user, progressiverummy_spreadsheet)
 
 
 @pytest.mark.django_db
-def test_import_progressiverummy_file_is_idempotent(group, user, progressiverummy_spreadsheet):
+def test_import_progressiverummy_file_is_idempotent(
+    group, user, progressiverummy_spreadsheet
+):
     import_progressiverummy_file(
         path=progressiverummy_spreadsheet,
         group=group,
@@ -505,10 +553,13 @@ def test_import_progressiverummy_command(group, user, progressiverummy_spreadshe
 
     output = stdout.getvalue()
     assert "Created: 3" in output
-    assert Game.objects.filter(
-        group=group,
-        import_source="progressiverummy_seed_test",
-    ).count() == 3
+    assert (
+        Game.objects.filter(
+            group=group,
+            import_source="progressiverummy_seed_test",
+        ).count()
+        == 3
+    )
 
 
 def _write_mahjongg(path: Path, rows: list[tuple]) -> None:
@@ -564,8 +615,7 @@ def test_import_mahjongg_file(group, user, mahjongg_spreadsheet):
     assert GroupPlayer.objects.filter(group=group, display_name="Owen").exists()
 
     winners = {
-        game.participant_results.get(result="win").player.display_name
-        for game in games
+        game.participant_results.get(result="win").player.display_name for game in games
     }
     assert winners == {"Carter", "Elena"}
 
@@ -585,7 +635,125 @@ def test_import_mahjongg_command(group, user, mahjongg_spreadsheet):
 
     output = stdout.getvalue()
     assert "Created: 2" in output
-    assert Game.objects.filter(
+    assert (
+        Game.objects.filter(
+            group=group,
+            import_source="mahjongg_seed_test",
+        ).count()
+        == 2
+    )
+
+
+def _write_pickleball(path: Path, rows: list[tuple]) -> None:
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "Raw Games"
+    worksheet.append(
+        (
+            "Date",
+            "Where",
+            "Score type",
+            "aa",
+            "Harper+Owen",
+            "Lucas",
+            "Elena+Lucy",
+        )
+    )
+    for row in rows:
+        worksheet.append(row)
+    workbook.save(path)
+
+
+@pytest.fixture
+def pickleball_spreadsheet(tmp_path):
+    path = tmp_path / "pickleball_seed_test.xlsx"
+    _write_pickleball(
+        path,
+        [
+            (datetime(2026, 7, 1), "Park A", None, None, 15, 10, None),
+            (datetime(2026, 7, 2), "Park B", "Rally", None, 11, None, 0),
+            (datetime(2026, 7, 3), "Park C", None, None, None, 17, 12),
+            (datetime(2026, 7, 4), "Park D", None, None, 15, None, None),
+        ],
+    )
+    return path
+
+
+@pytest.mark.django_db
+def test_parse_pickleball_workbook(pickleball_spreadsheet):
+    from leaderlodge.games.importing.pickleball import parse_pickleball_workbook
+    from leaderlodge.games.registry import ScoreType
+
+    rows = parse_pickleball_workbook(pickleball_spreadsheet)
+    assert len(rows) == 4
+    assert rows[0].side_scores[0].label == "Harper+Owen"
+    assert rows[1].score_type == ScoreType.RALLY.value
+    assert rows[2].side_scores[0].label == "Lucas"
+
+
+@pytest.mark.django_db
+def test_import_pickleball_file(group, user, pickleball_spreadsheet):
+    summary = import_pickleball_file(
+        path=pickleball_spreadsheet,
         group=group,
-        import_source="mahjongg_seed_test",
-    ).count() == 2
+        recorded_by=user,
+    )
+
+    assert summary.parsed == 4
+    assert summary.created == 3
+    assert summary.skipped == 1
+
+    games = Game.objects.filter(group=group, game_type_code="pickleball").order_by("pk")
+    assert games.count() == 3
+    assert games.filter(score_type="rally").count() == 1
+    assert GroupPlayer.objects.filter(group=group, is_team=True).exists()
+
+    team_game = games.first()
+    team_result = team_game.participant_results.filter(player__is_team=True).first()
+    assert team_result is not None
+    assert "+" in team_result.player.display_name
+
+
+@pytest.mark.django_db
+def test_import_pickleball_command(group, user, pickleball_spreadsheet):
+    stdout = StringIO()
+    call_command(
+        "import_games",
+        str(pickleball_spreadsheet),
+        "--group",
+        str(group.pk),
+        "--game-type",
+        "pickleball",
+        stdout=stdout,
+    )
+
+    output = stdout.getvalue()
+    assert "Created: 3" in output
+    assert (
+        Game.objects.filter(
+            group=group,
+            import_source="pickleball_seed_test",
+        ).count()
+        == 3
+    )
+
+
+def test_sides_have_shared_members_detects_overlap():
+    from leaderlodge.games.importing.pickleball import sides_have_shared_members
+
+    assert sides_have_shared_members(["Harper+Owen", "Lucas+Owen"]) is True
+    assert sides_have_shared_members(["Harper+Owen", "Elena+Lucy"]) is False
+    assert sides_have_shared_members(["Lucas", "Elena+Lucy"]) is False
+
+
+@pytest.mark.django_db
+def test_import_committed_pickleball_demo_seed(group, user):
+    path = Path("data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx")
+    if not path.is_file():
+        pytest.skip("Pickleball demo seed not present")
+
+    summary = import_pickleball_file(path=path, group=group, recorded_by=user)
+    assert summary.parsed == 18
+    assert summary.created == 15
+    assert summary.skipped == 3
+    assert Game.objects.filter(group=group, game_type_code="pickleball").count() == 15

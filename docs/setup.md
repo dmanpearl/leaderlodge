@@ -109,7 +109,7 @@ After `migrate` and `createsuperuser`:
 python manage.py setup_demo
 ```
 
-This creates the **Demo** group, sets **`is_demo=True`**, and imports all four bundled `*_demo_2026-06-22.xlsx` seed files. Re-running is idempotent.
+This creates the **Demo** group, sets `is_demo=True`, and imports all five bundled demo seed files (dominos, backgammon, Progressive Rummy, Mah Jongg, and Pickleball). Re-running is idempotent.
 
 Log out and open http://127.0.0.1:8000/ to confirm the demo landing page. Set `DEMO_MODE_ENABLED=false` in `.env` or Railway variables to disable public demo browsing.
 
