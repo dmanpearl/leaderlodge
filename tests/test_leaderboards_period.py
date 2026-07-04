@@ -183,6 +183,25 @@ def test_leaderboard_index_shows_year_filter(client, user, group):
 
 
 @pytest.mark.django_db
+def test_leaderboard_index_shows_disabled_game_types_without_games(client, user, group):
+    client.force_login(user)
+    _record_dominos_game(group, user, played_on=date(2026, 3, 1))
+
+    response = client.get(
+        reverse("leaderboards:index"),
+        {"group": str(group.pk), "game_type_code": "dominos"},
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert 'value="dominos"' in content
+    assert 'value="pickleball"' in content
+    assert 'value="pickleball" disabled' in content or (
+        'value="pickleball"' in content and "disabled" in content
+    )
+    assert "Pickleball" in content
+
+
+@pytest.mark.django_db
 def test_leaderboard_index_shows_game_size_filter(client, user, group):
     add_guest_player(group=group, display_name="Alex")
     client.force_login(user)

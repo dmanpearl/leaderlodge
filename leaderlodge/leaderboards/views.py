@@ -4,7 +4,10 @@ from django.http import HttpRequest, HttpResponse, HttpResponseNotFound
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from leaderlodge.accounts.game_selection import resolve_game_type_code
+from leaderlodge.accounts.game_selection import (
+    all_game_type_codes,
+    resolve_game_type_code,
+)
 from leaderlodge.accounts.group_selection import resolve_view_group
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.game_size import available_game_sizes, resolve_game_size
@@ -47,6 +50,37 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
+    )
+
+
+def _leaderboard_game_type_options(
+    played_codes: list[str],
+) -> list[tuple[str, str, bool]]:
+    played_set = frozenset(played_codes)
+    return [
+        (code, get_game_type(code).name, code not in played_set)
+        for code in all_game_type_codes()
+    ]
+
+
+def _resolve_leaderboard_game_type_code(
+    request: HttpRequest,
+    *,
+    played_codes: list[str],
+) -> str:
+    all_codes = all_game_type_codes()
+    requested = request.GET.get("game_type_code", "").strip()
+    if requested in all_codes:
+        resolve_game_type_code(
+            request,
+            requested=requested,
+            available_codes=all_codes,
+        )
+        return requested
+    return resolve_game_type_code(
+        request,
+        requested="",
+        available_codes=played_codes if played_codes else all_codes,
     )
 
 
@@ -156,14 +190,13 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         available_groups=groups,
     )
 
-    game_type_codes = (
+    played_game_type_codes = (
         _game_type_codes_for_group(selected_group) if selected_group else []
     )
-    if game_type_codes:
-        selected_game_type_code = resolve_game_type_code(
+    if selected_group:
+        selected_game_type_code = _resolve_leaderboard_game_type_code(
             request,
-            requested=request.GET.get("game_type_code", "").strip(),
-            available_codes=game_type_codes,
+            played_codes=played_game_type_codes,
         )
     else:
         selected_game_type_code = None
@@ -208,7 +241,11 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             player_type=player_type,
         )
 
-    game_type_options = [(code, get_game_type(code).name) for code in game_type_codes]
+    game_type_options = _leaderboard_game_type_options(played_game_type_codes)
+    selected_game_type_has_games = bool(
+        selected_game_type_code
+        and selected_game_type_code in frozenset(played_game_type_codes)
+    )
     period_label = selected_period.display_label()
     leaderboard_query = build_leaderboard_query(
         group_id=resolved_group_id,
@@ -251,6 +288,8 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "groups": groups,
             "selected_group": selected_group,
             "game_type_options": game_type_options,
+            "played_game_type_codes": played_game_type_codes,
+            "selected_game_type_has_games": selected_game_type_has_games,
             "selected_game_type_code": selected_game_type_code,
             "selected_game_type": selected_game_type,
             "selected_game_type_icon_url": (
