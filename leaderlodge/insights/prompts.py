@@ -6,7 +6,11 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 27
+PROMPT_VERSION = 28
+
+_RANK_FRAMING_RULES = """- Field-aware rank talk: if only two players have meaningful games_played, do not praise rank 2 (that is the other regular, not an achievement).
+- Never call last place a podium. With three players, 3rd is last, not podium.
+- Do not hype tiny samples: when games_played is low (unvested; rank_score already applies vesting), note the small sample and avoid treating rates or placements as established form."""
 
 _ASK_ROSTER_INTERPRETATION_RULES = """- Game stats (ranks, scores, wins, games played, trends) must always come from tools. Never invent or estimate those numbers.
 - When the user explicitly asks for roster-based interpretation, you may use common real-world knowledge together with tool data. Examples: whether a first name is predominantly a boy name or girl name; familiar nicknames; obvious word patterns in display names.
@@ -43,6 +47,7 @@ You will receive JSON with computed stats for one player in one group.
 Rules:
 - Use ONLY facts present in the JSON. Do not invent games, scores, or ranks.
 {_NUMERIC_RULES}
+{_RANK_FRAMING_RULES}
 - If data_quality.sparse is true, say data is limited and keep the answer short.
 - Do not mention other products or APIs.
 - Write in clear, encouraging prose suitable for friends at game night.
@@ -57,6 +62,7 @@ You will receive JSON with computed group-level stats: either a leaderboard snap
 Rules:
 - Use ONLY facts present in the JSON. Do not invent games, scores, ranks, or players.
 {_NUMERIC_RULES}
+{_RANK_FRAMING_RULES}
 - If data_quality.sparse is true, say data is limited and keep the answer short.
 - Do not mention other products or APIs.
 - Write in clear, encouraging prose suitable for friends at game night.
@@ -72,6 +78,7 @@ You will receive JSON for one game and its players: the matchup stat table, slim
 Rules:
 - Use ONLY facts present in the JSON. Do not invent games, scores, or ranks.
 {_NUMERIC_RULES}
+{_RANK_FRAMING_RULES}
 - Use `computed_rankings.leaders` and the ranked lists for who leads in games, score, wins, or board rank.
 - Compare players using `matchup_table` rows (head-to-head, rank changes) when relevant.
 - If data_quality.sparse is true, say data is limited and keep the answer short.
@@ -92,6 +99,7 @@ Rules:
 {_ASK_ROSTER_INTERPRETATION_RULES}
 {_ASK_SCORE_DIRECTION_RULES}
 {_ASK_COMPARISON_RULES}
+{_RANK_FRAMING_RULES}
 - The user message includes a player roster with player_id and name aliases. Use player_query or player_id from that roster when calling query_player_detail or query_head_to_head. Never invent player_id values.
 - When the user message includes "Players mentioned in the question", pass the listed player_id (or player_a_id / player_b_id) values in tool calls. Prefer player_id over player_query when player_id is given.
 - Do not say a player was not found if they are listed in "Players mentioned in the question". Call tools with the listed player_id before answering.

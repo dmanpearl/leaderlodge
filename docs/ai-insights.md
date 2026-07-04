@@ -170,8 +170,9 @@ Default: `gpt-4o-mini`. User preference: `UserProfile.ui_settings['insights']['m
 
 ## Prompts and guardrails
 
-- `PROMPT_VERSION = 27` in `prompts.py`; bump when instructions change (invalidates Ask cache keys).
+- `PROMPT_VERSION = 28` in `prompts.py`; bump when instructions change (invalidates Ask cache keys).
 - Contextual prompts: analyst role, JSON-only facts, use `computed_rankings` for comparisons, sparse-data handling, markdown cap.
+- Rank framing (Ask and panels): do not praise rank 2 in a two-regular field; never call last place a podium (3rd of 3 is last); qualify praise when `games_played` is low (unvested sample).
 - Ask prompt: call tools before answering; placement is 0-indexed in tools; no tool names in the final answer. **Game stats must come from tools**; when the user asks, the model may use real-world knowledge for roster interpretation (e.g. boy vs girl first names) and then fetch stats. Two-player comparisons use prose only (no stat bullet blocks) and **must lead with overall rank and rank_score**. Cite `wins_display` / `losses_display` / `ties_display` exactly. For `low_wins` game types (Progressive Rummy), lower **raw game points** are better; `rank_score` is always higher-is-better. Follow `scoring_note`.
 - Ask tool loop: `ASK_MAX_TOOL_ROUNDS = 5` in `router.py` (one LLM call per round; parallel tool calls within a round count as one round).
 - Custom questions: length cap, strip control chars.
