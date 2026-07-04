@@ -60,6 +60,7 @@ from leaderlodge.accounts.group_selection import (
     resolve_group_id,
 )
 from leaderlodge.groups.locations import locations_for_group, resolve_game_location
+from leaderlodge.groups.teams import PLAYER_TYPE_CHOICES, normalize_player_type
 
 GAMES_PER_PAGE = 25
 
@@ -75,6 +76,7 @@ def _game_list_params(request: HttpRequest) -> dict:
         "group": group,
         "game_type": request.GET.get("game_type", "").strip(),
         "player": request.GET.get("player", "").strip(),
+        "player_type": normalize_player_type(request.GET.get("player_type", "")),
         "location": request.GET.get("location", "").strip(),
         "game_size": request.GET.get("game_size", "").strip(),
         "sort": sort,
@@ -107,6 +109,7 @@ def _resolve_game_list_params(
             available_codes=all_game_type_codes(),
         ),
         "player": params["player"],
+        "player_type": params.get("player_type", ""),
         "location": params["location"],
         "game_size": params["game_size"],
         "sort": params["sort"],
@@ -142,8 +145,29 @@ def _filtered_games_queryset(user, params: dict[str, str]):
     if params["location"].isdigit():
         games_qs = games_qs.filter(location_id=int(params["location"]))
     if params.get("player", "").isdigit():
+        from django.db.models import Q
+
+        player_id = int(params["player"])
         games_qs = games_qs.filter(
-            participant_results__player_id=int(params["player"]),
+            Q(participant_results__player_id=player_id)
+            | Q(participant_results__player__team_members__member_id=player_id)
+        ).distinct()
+    player_type = params.get("player_type", "")
+    if player_type == "team":
+        games_qs = games_qs.filter(participant_results__player__is_team=True).distinct()
+    elif player_type == "people":
+        games_qs = games_qs.filter(
+            participant_results__player__is_team=False
+        ).distinct()
+    elif player_type == "user":
+        games_qs = games_qs.filter(
+            participant_results__player__is_team=False,
+            participant_results__player__linked_user__isnull=False,
+        ).distinct()
+    elif player_type == "guest":
+        games_qs = games_qs.filter(
+            participant_results__player__is_team=False,
+            participant_results__player__linked_user__isnull=True,
         ).distinct()
     if params.get("game_size", "").isdigit():
         games_qs = games_qs.filter(player_count=int(params["game_size"]))
@@ -211,7 +235,11 @@ def _game_list_filter_query(params: dict[str, str]) -> str:
 
 
 def _game_list_has_filters(params: dict[str, str]) -> bool:
-    return any(params[key] for key in ("group", "player", "location", "game_size"))
+    return any(
+        params[key]
+        for key in ("group", "player", "player_type", "location", "game_size")
+        if key != "player_type" or params[key]
+    )
 
 
 def _game_list_filter_summary(
@@ -237,6 +265,12 @@ def _game_list_filter_summary(
                 labels.append(player.display_label)
                 break
 
+    from leaderlodge.groups.teams import player_type_filter_label
+
+    type_label = player_type_filter_label(params.get("player_type", ""))
+    if type_label:
+        labels.append(type_label)
+
     if params["location"].isdigit():
         location_id = int(params["location"])
         for location in locations:
@@ -250,40 +284,78 @@ def _game_list_filter_summary(
     return ", ".join(labels)
 
 
+def _resolve_row_player(group, player_id_raw: str, guest_name: str):
+    player = None
+    display_label = ""
+    if player_id_raw.strip():
+        player = (
+            group.players.filter(pk=player_id_raw.strip(), is_active=True)
+            .select_related("linked_user")
+            .first()
+        )
+        if player is not None:
+            display_label = player.display_label
+    elif guest_name.strip():
+        display_label = guest_name.strip()
+        player = group.players.filter(
+            display_name__iexact=display_label,
+            is_active=True,
+        ).first()
+    return player, display_label
+
+
 def _participant_rows_from_post(group, post):
     rows = []
     player_ids = post.getlist("participant_player_id")
     guest_names = post.getlist("participant_guest_name")
+    teammate_player_ids = post.getlist("participant_teammate_player_id")
+    teammate_guest_names = post.getlist("participant_teammate_guest_name")
     scores = post.getlist("participant_score")
-    for player_id_raw, guest_name, score_raw in zip(
-        player_ids, guest_names, scores, strict=False
-    ):
-        player = None
-        display_label = ""
-        if player_id_raw.strip():
-            player = (
-                group.players.filter(pk=player_id_raw.strip(), is_active=True)
-                .select_related("linked_user")
-                .first()
-            )
-            if player is not None:
-                display_label = player.display_label
-        elif guest_name.strip():
-            display_label = guest_name.strip()
-            player = group.players.filter(
-                display_name__iexact=display_label,
-                is_active=True,
-            ).first()
+    while len(teammate_player_ids) < len(player_ids):
+        teammate_player_ids.append("")
+    while len(teammate_guest_names) < len(player_ids):
+        teammate_guest_names.append("")
 
+    for (
+        player_id_raw,
+        guest_name,
+        teammate_player_id_raw,
+        teammate_guest_name,
+        score_raw,
+    ) in zip(
+        player_ids,
+        guest_names,
+        teammate_player_ids,
+        teammate_guest_names,
+        scores,
+        strict=False,
+    ):
+        player, display_label = _resolve_row_player(group, player_id_raw, guest_name)
         if not display_label:
             continue
+        teammate, teammate_label = _resolve_row_player(
+            group, teammate_player_id_raw, teammate_guest_name
+        )
+        side_label = display_label
+        if teammate_label:
+            labels = sorted(
+                [display_label, teammate_label], key=lambda value: value.lower()
+            )
+            side_label = "+".join(labels)
 
         rows.append(
             {
                 "player": player,
                 "player_id": player.pk if player else "",
                 "guest_name": guest_name.strip() if not player_id_raw.strip() else "",
-                "display_label": display_label,
+                "teammate_player_id": teammate.pk if teammate else "",
+                "teammate_guest_name": (
+                    teammate_guest_name.strip()
+                    if teammate_label and not teammate_player_id_raw.strip()
+                    else ""
+                ),
+                "teammate_display_label": teammate_label,
+                "display_label": side_label,
                 "played": True,
                 "score": score_raw,
             }
@@ -363,6 +435,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
     list_stats = build_game_list_stats(
         games_qs=games_qs,
         game_type_code=params["game_type"],
+        player_type=params.get("player_type", ""),
     )
     paginator = Paginator(games_qs, GAMES_PER_PAGE)
     page = paginator.get_page(request.GET.get("page"))
@@ -399,6 +472,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "show_empty_filters_message": has_any_games,
             "groups": groups,
             "game_types": game_type_choices(),
+            "player_type_choices": PLAYER_TYPE_CHOICES,
             "locations": locations,
             "players": players,
             "game_size_options": game_size_options,

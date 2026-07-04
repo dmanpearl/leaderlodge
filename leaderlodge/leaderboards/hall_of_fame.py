@@ -65,12 +65,15 @@ def build_hall_of_fame_query(
     *,
     group_id: str = "",
     granularity: str = GRANULARITY_YEAR,
+    player_type: str = "",
 ) -> str:
     params: dict[str, str] = {}
     if group_id:
         params["group"] = group_id
     if granularity != GRANULARITY_YEAR:
         params["granularity"] = granularity
+    if player_type:
+        params["player_type"] = player_type
     return urlencode(params)
 
 
@@ -97,9 +100,7 @@ def _period_rows(group: Group, *, granularity: str) -> list[LeaderboardPeriod]:
         for played_on in dates:
             seen.add((played_on.year, played_on.month))
         ordered = sorted(seen, reverse=True)
-        return [
-            LeaderboardPeriod(year=year, month=month) for year, month in ordered
-        ]
+        return [LeaderboardPeriod(year=year, month=month) for year, month in ordered]
 
     years = sorted({played_on.year for played_on in dates}, reverse=True)
     return [LeaderboardPeriod(year=year) for year in years]
@@ -118,11 +119,13 @@ def _leader_cell(
     *,
     game_type_code: str,
     period: LeaderboardPeriod,
+    player_type: str = "",
 ) -> HallOfFameCell:
     rankings = get_player_rankings(
         group,
         game_type_code=game_type_code,
         period=period,
+        player_type=player_type,
     )
     if not rankings:
         return HallOfFameCell(
@@ -155,6 +158,7 @@ def build_hall_of_fame_grid(
     group: Group,
     *,
     granularity: str,
+    player_type: str = "",
 ) -> HallOfFameGrid:
     codes = _game_type_codes_for_group(group)
     columns = tuple(
@@ -164,7 +168,12 @@ def build_hall_of_fame_grid(
     rows: list[HallOfFameRow] = []
     for period in periods:
         cells = tuple(
-            _leader_cell(group, game_type_code=column.code, period=period)
+            _leader_cell(
+                group,
+                game_type_code=column.code,
+                period=period,
+                player_type=player_type,
+            )
             for column in columns
         )
         rows.append(

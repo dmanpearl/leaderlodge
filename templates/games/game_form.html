@@ -149,12 +149,15 @@
                     data-game-row
                     data-row-key="{% if row.player_id %}player-{{ row.player_id }}{% else %}guest-{{ row.guest_name|lower }}{% endif %}"
                     data-player-id="{% if row.player_id %}{{ row.player_id }}{% else %}guest:{{ row.guest_name }}{% endif %}"
+                    {% if row.teammate_player_id or row.teammate_guest_name %}data-has-teammate="1"{% endif %}
                   >
                     <td>
                       <div class="d-flex align-items-center justify-content-between gap-2 participant-label">
-                        <span>
+                        <span data-side-label>
                           {{ row.display_label }}
-                          {% if row.player and row.player.linked_user %}
+                          {% if row.teammate_player_id or row.teammate_guest_name %}
+                            <span class="badge text-bg-primary ms-1">Team</span>
+                          {% elif row.player and row.player.linked_user %}
                             <span class="text-muted small">({{ row.player.linked_user.username }})</span>
                           {% elif row.player %}
                             <span class="badge text-bg-secondary ms-1">Guest</span>
@@ -162,10 +165,21 @@
                             <span class="badge text-bg-secondary ms-1">New guest</span>
                           {% endif %}
                         </span>
-                        <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-remove-participant aria-label="Remove player">&times;</button>
+                        <span class="d-flex align-items-center gap-1 flex-shrink-0">
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary{% if row.teammate_player_id or row.teammate_guest_name %} d-none{% endif %}"
+                            data-add-teammate
+                          >
+                            Add Teammate
+                          </button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary" data-remove-participant aria-label="Remove player">&times;</button>
+                        </span>
                       </div>
                       <input type="hidden" name="participant_player_id" value="{{ row.player_id }}" />
                       <input type="hidden" name="participant_guest_name" value="{{ row.guest_name }}" />
+                      <input type="hidden" name="participant_teammate_player_id" value="{{ row.teammate_player_id }}" />
+                      <input type="hidden" name="participant_teammate_guest_name" value="{{ row.teammate_guest_name }}" />
                     </td>
                     <td>
                       <input

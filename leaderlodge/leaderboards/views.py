@@ -33,6 +33,11 @@ from leaderlodge.insights.context.group import SCOPE_HALL_OF_FAME
 from leaderlodge.insights.model_selection import preferred_insight_model_id
 from leaderlodge.insights.registry import MODEL_REGISTRY
 from leaderlodge.insights.views import insights_feature_enabled, insights_ui_enabled
+from leaderlodge.groups.teams import (
+    PLAYER_TYPE_CHOICES,
+    normalize_player_type,
+    player_type_filter_label,
+)
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
@@ -189,6 +194,8 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             url = f"{url}?{query}"
         return redirect(url)
 
+    player_type = normalize_player_type(request.GET.get("player_type", ""))
+
     rankings = []
     selected_game_type = None
     if selected_group and selected_game_type_code:
@@ -198,6 +205,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             game_type_code=selected_game_type_code,
             period=selected_period,
             game_size=selected_game_size,
+            player_type=player_type,
         )
 
     game_type_options = [(code, get_game_type(code).name) for code in game_type_codes]
@@ -207,6 +215,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         game_type_code=selected_game_type_code or "",
         period=selected_period,
         game_size=selected_game_size,
+        player_type=player_type,
     )
     game_size_label = ""
     if selected_game_size is not None:
@@ -224,6 +233,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             )
         )
     )
+    player_type_label = player_type_filter_label(player_type)
     filter_summary = ""
     if selected_group:
         filter_summary = leaderboard_filter_summary(
@@ -231,6 +241,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             game_type_name=selected_game_type.name if selected_game_type else None,
             period_label=period_label,
             game_size_label=game_size_label,
+            player_type_label=player_type_label,
         )
 
     return render(
@@ -250,10 +261,15 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "rankings": rankings,
             "period_label": period_label,
             "leaderboard_query": leaderboard_query,
-            "hall_of_fame_query": build_hall_of_fame_query(group_id=resolved_group_id),
+            "hall_of_fame_query": build_hall_of_fame_query(
+                group_id=resolved_group_id,
+                player_type=player_type,
+            ),
             "insight_subtitle": insight_subtitle,
             "filter_summary": filter_summary,
             "game_size_label": game_size_label,
+            "player_type": player_type,
+            "player_type_choices": PLAYER_TYPE_CHOICES,
             **period_ctx,
             **game_size_ctx,
             **_insights_template_context(request),
@@ -298,6 +314,8 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
         request.GET.get("granularity", "").strip()
     )
 
+    player_type = normalize_player_type(request.GET.get("player_type", ""))
+
     if _hall_of_fame_needs_redirect(
         request,
         resolved_group_id=resolved_group_id,
@@ -306,6 +324,7 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
         query = build_hall_of_fame_query(
             group_id=resolved_group_id,
             granularity=granularity,
+            player_type=player_type,
         )
         url = reverse("leaderboards:hall_of_fame")
         if query:
@@ -315,17 +334,28 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
     grid = None
     filter_summary = ""
     if selected_group:
-        grid = build_hall_of_fame_grid(selected_group, granularity=granularity)
+        grid = build_hall_of_fame_grid(
+            selected_group,
+            granularity=granularity,
+            player_type=player_type,
+        )
         filter_summary = hall_of_fame_filter_summary(
             group_name=selected_group.name,
             granularity=granularity,
         )
+        type_label = player_type_filter_label(player_type)
+        if type_label:
+            filter_summary = f"{filter_summary}, {type_label}"
 
     hall_of_fame_query = build_hall_of_fame_query(
         group_id=resolved_group_id,
         granularity=granularity,
+        player_type=player_type,
     )
-    leaderboard_query = build_leaderboard_query(group_id=resolved_group_id)
+    leaderboard_query = build_leaderboard_query(
+        group_id=resolved_group_id,
+        player_type=player_type,
+    )
 
     return render(
         request,
@@ -345,6 +375,8 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
             ),
             "selected_period": LeaderboardPeriod.all_time(),
             "insight_scope": SCOPE_HALL_OF_FAME,
+            "player_type": player_type,
+            "player_type_choices": PLAYER_TYPE_CHOICES,
             **_insights_template_context(request),
         },
     )

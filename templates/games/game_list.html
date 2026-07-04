@@ -89,6 +89,7 @@
             {% endfor %}
           </select>
         </div>
+        {% include "includes/player_type_filter.html" with select_id="filter-player-type" select_class="game-list-filter-select" %}
         <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-location" class="form-label">Location</label>
           <select id="filter-location" name="location" class="form-select game-list-filter-select" onchange="this.form.submit()">
@@ -148,7 +149,9 @@
                     {% endif %}
                   </th>
                   {% for player_stat in list_stats.players %}
-                    <th scope="col" class="text-center game-list-player-col">{{ player_stat.player.display_label }}</th>
+                    <th scope="col" class="text-center game-list-player-col">
+                      {% include "includes/player_type_icon.html" with player=player_stat.player %}{{ player_stat.player.display_label }}
+                    </th>
                   {% endfor %}
                   {% if list_stats.show_all_column %}
                     <th scope="col" class="text-center game-list-stats-col--all">All</th>
@@ -209,7 +212,9 @@
                 <th scope="col" class="game-list-nowrap-col">Location</th>
               {% endif %}
               {% for player in player_columns %}
-                <th scope="col" class="text-center game-list-player-col">{{ player.display_label }}</th>
+                <th scope="col" class="text-center game-list-player-col">
+                  {% include "includes/player_type_icon.html" with player=player %}{{ player.display_label }}
+                </th>
               {% endfor %}
             </tr>
           </thead>
@@ -276,7 +281,9 @@
                 <th scope="col" class="game-list-nowrap-col">Location</th>
               {% endif %}
               {% for player in player_columns %}
-                <th scope="col" class="text-center game-list-player-col">{{ player.display_label }}</th>
+                <th scope="col" class="text-center game-list-player-col">
+                  {% include "includes/player_type_icon.html" with player=player %}{{ player.display_label }}
+                </th>
               {% endfor %}
             </tr>
           </tfoot>

@@ -101,6 +101,11 @@ class GroupMembership(models.Model):
 
 
 class GroupPlayer(models.Model):
+    class PlayerType(models.TextChoices):
+        USER = "user", "User"
+        GUEST = "guest", "Guest"
+        TEAM = "team", "Team"
+
     group = models.ForeignKey(
         Group,
         on_delete=models.CASCADE,
@@ -113,6 +118,10 @@ class GroupPlayer(models.Model):
         null=True,
         blank=True,
         related_name="group_player_profiles",
+    )
+    is_team = models.BooleanField(
+        default=False,
+        help_text="True when this roster entry is a team of member players.",
     )
     is_active = models.BooleanField(default=True)
     hide_from_game_list = models.BooleanField(
@@ -128,12 +137,42 @@ class GroupPlayer(models.Model):
 
     @property
     def display_label(self) -> str:
+        if self.is_team:
+            return self.display_name
         if self.linked_user_id:
             return format_user_display_name(self.linked_user)
         return self.display_name
 
+    @property
+    def player_type(self) -> str:
+        if self.is_team:
+            return self.PlayerType.TEAM
+        if self.linked_user_id:
+            return self.PlayerType.USER
+        return self.PlayerType.GUEST
+
     def __str__(self) -> str:
         return f"{self.display_label} ({self.group.name})"
+
+
+class GroupTeamMember(models.Model):
+    team = models.ForeignKey(
+        GroupPlayer,
+        on_delete=models.CASCADE,
+        related_name="team_members",
+    )
+    member = models.ForeignKey(
+        GroupPlayer,
+        on_delete=models.PROTECT,
+        related_name="member_of_teams",
+    )
+
+    class Meta:
+        unique_together = [("team", "member")]
+        ordering = ["pk"]
+
+    def __str__(self) -> str:
+        return f"{self.member.display_label} in {self.team.display_name}"
 
 
 class GroupInvite(models.Model):

@@ -5,7 +5,9 @@ MAX_PLAYER_SUGGESTIONS = 8
 
 
 def roster_for_group(group: Group) -> list[dict]:
-    players = group.players.filter(is_active=True).select_related("linked_user")
+    players = group.players.filter(is_active=True, is_team=False).select_related(
+        "linked_user"
+    )
     entries = []
     for player in players.order_by("display_name"):
         linked_user = player.linked_user
@@ -54,7 +56,7 @@ def resolve_participant_player(
 
     if player_id:
         return (
-            group.players.filter(pk=player_id, is_active=True)
+            group.players.filter(pk=player_id, is_active=True, is_team=False)
             .select_related("linked_user")
             .first()
         )
@@ -63,7 +65,7 @@ def resolve_participant_player(
     if not cleaned:
         return None
 
-    existing = group.players.filter(display_name__iexact=cleaned).first()
+    existing = group.players.filter(display_name__iexact=cleaned, is_team=False).first()
     if existing is not None:
         return existing
 

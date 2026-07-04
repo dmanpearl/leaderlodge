@@ -46,9 +46,17 @@ def record_game(
     if len(player_ids) != len(set(player_ids)):
         raise ValidationError("Each player can only appear once.")
 
+    from leaderlodge.groups.teams import (
+        credit_players_for_result,
+        validate_sides_no_shared_players,
+    )
+
+    sides: list[list] = []
     for item in participants:
         if item.player.group_id != group.pk:
             raise ValidationError("All players must belong to the selected group.")
+        sides.append(credit_players_for_result(item.player))
+    validate_sides_no_shared_players(sides)
 
     winner_count = sum(
         1 for p in participants if p.result == GameParticipantResult.Result.WIN

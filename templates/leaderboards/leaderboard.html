@@ -50,6 +50,7 @@
               {% endfor %}
             </select>
           </div>
+          {% include "includes/player_type_filter.html" with select_id="leaderboard-player-type" %}
           {% if selected_group and game_type_options %}
             <div class="col-12 col-sm-6 col-lg-4 col-xl">
               <label for="game-type-select" class="form-label">Game</label>
@@ -141,7 +142,9 @@
                 data-href="{% url 'leaderboards:detail' %}?{{ leaderboard_query }}&amp;player={{ row.player.pk }}"
               >
                 <td class="leaderboard-sticky-col leaderboard-sticky-col--rank">{{ row.rank }}</td>
-                <td class="leaderboard-sticky-col leaderboard-sticky-col--player">{{ row.player.display_label }}</td>
+                <td class="leaderboard-sticky-col leaderboard-sticky-col--player">
+                  {% include "includes/player_type_icon.html" with player=row.player %}{{ row.player.display_label }}
+                </td>
                 <td>{{ row.rank_score|floatformat:1 }}</td>
                 <td>{{ row.wins|floatformat:-1 }}</td>
                 <td>{{ row.games_played|floatformat:-1 }}</td>

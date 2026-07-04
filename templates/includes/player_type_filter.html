@@ -1,0 +1,18 @@
+<div class="col-12 col-sm-6 col-lg-4 col-xl">
+  <label for="{{ select_id|default:'filter-player-type' }}" class="form-label">Player type</label>
+  <select
+    id="{{ select_id|default:'filter-player-type' }}"
+    name="player_type"
+    class="form-select {{ select_class }}"
+    onchange="this.form.submit()"
+  >
+    {% for value, label in player_type_choices %}
+      <option
+        value="{{ value }}"
+        {% if player_type == value or params.player_type == value %}selected{% endif %}
+      >
+        {{ label }}
+      </option>
+    {% endfor %}
+  </select>
+</div>

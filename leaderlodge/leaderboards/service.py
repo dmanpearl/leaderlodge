@@ -173,11 +173,13 @@ def get_player_rank_detail(
     low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
     if period is None:
         period = LeaderboardPeriod.all_time()
+    from leaderlodge.groups.teams import results_queryset_for_player_credit
+
     results_qs = (
-        GameParticipantResult.objects.filter(
+        results_queryset_for_player_credit(player)
+        .filter(
             game__group=group,
             game__game_type_code=game_type_code,
-            player=player,
         )
         .select_related("game")
         .prefetch_related("game__participant_results")
@@ -320,14 +322,17 @@ def get_player_rank_detail(
     rank_by_player = {row.player.pk: row.rank for row in rankings}
     ranking = replace(ranking_row, rank=rank_by_player.get(player.pk))
 
+    from leaderlodge.groups.teams import vesting_games_played_for_player
+
+    games_played_by_id = {row.player.pk: row.games_played for row in standings}
+    vesting_games = vesting_games_played_for_player(player, games_played_by_id)
+
     raw_rank_score = compute_rank_score(
         points_total=ranking.finish_points,
         games_played=ranking.games_played,
     )
     vesting_multiplier = (
-        compute_vesting_multiplier(ranking.games_played)
-        if period.apply_vesting
-        else 1.0
+        compute_vesting_multiplier(vesting_games) if period.apply_vesting else 1.0
     )
     half_game_penalty = compute_half_game_penalty_factor(
         weighted_games=weighted_games,
@@ -413,6 +418,7 @@ def get_player_rankings(
     location_id: int | None = None,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    player_type: str = "",
 ) -> list[PlayerRanking]:
     """
     Return ranked players for a group, ordered by vested rank score.
@@ -423,6 +429,7 @@ def get_player_rankings(
 
     Players with no recorded games are omitted. Low game counts reduce the
     displayed rank score via the vesting multiplier in settings.
+    Team participant results credit the team entity and each member fully.
     """
     if game_type_code is not None:
         game_type_codes = [game_type_code]
@@ -440,6 +447,7 @@ def get_player_rankings(
             location_id=location_id,
             period=period,
             game_size=game_size,
+            player_type=player_type,
         )
         active = [row for row in standings if row.games_played > 0]
         low_wins = get_game_type(code).score_direction == ScoreDirection.LOW_WINS
@@ -590,41 +598,37 @@ def _finish_points_by_player(
     low_wins: bool,
 ) -> dict[int, float]:
     from leaderlodge.games.models import GameParticipantResult
+    from leaderlodge.groups.teams import leaderboard_credit_players
 
-    rows = list(
-        results_qs.values(
-            "player_id",
-            "score",
-            "placement",
-            "result",
-            "game_id",
-            "game__player_count",
-            "game__double_weight",
-            "game__half_weight",
+    results = list(
+        results_qs.select_related("player", "game").prefetch_related(
+            "player__team_members__member"
         )
     )
-    if not rows:
+    if not results:
         return {}
 
     game_scores: dict[int, list[float]] = defaultdict(list)
-    for row in rows:
-        game_scores[row["game_id"]].append(row["score"])
+    for result in results:
+        game_scores[result.game_id].append(result.score)
 
     totals: dict[int, float] = defaultdict(float)
-    for row in rows:
-        weight = row["game__double_weight"] / row["game__half_weight"]
-        totals[row["player_id"]] += compute_finish_points(
-            player_count=row["game__player_count"],
-            placement=row["placement"] if row["placement"] is not None else 0,
+    for result in results:
+        weight = result.game.double_weight / result.game.half_weight
+        points = compute_finish_points(
+            player_count=result.game.player_count,
+            placement=result.placement if result.placement is not None else 0,
             weight=weight,
-            is_tie=row["result"] == GameParticipantResult.Result.TIE,
+            is_tie=result.result == GameParticipantResult.Result.TIE,
             score_magnitude=compute_score_magnitude(
-                row["score"],
-                game_scores[row["game_id"]],
+                result.score,
+                game_scores[result.game_id],
                 low_wins=low_wins,
-                placement=row["placement"] if row["placement"] is not None else 0,
+                placement=result.placement if result.placement is not None else 0,
             ),
         )
+        for credited in leaderboard_credit_players(result.player):
+            totals[credited.pk] += points
     return dict(totals)
 
 
@@ -699,9 +703,14 @@ def _standings_for_game_type(
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
     results_qs=None,
+    player_type: str = "",
 ) -> list[PlayerRanking]:
     from leaderlodge.games.models import GameParticipantResult
-    from leaderlodge.groups.models import GroupPlayer
+    from leaderlodge.groups.teams import (
+        leaderboard_credit_players,
+        matches_player_type,
+        vesting_games_played_for_player,
+    )
 
     game_type = get_game_type(game_type_code)
     low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
@@ -720,50 +729,57 @@ def _standings_for_game_type(
             results_qs = results_qs.filter(game__player_count=game_size)
         results_qs = filter_results_by_period(results_qs, period)
 
+    results = list(
+        results_qs.select_related(
+            "player", "player__linked_user", "game"
+        ).prefetch_related(
+            "player__team_members__member",
+            "player__team_members__member__linked_user",
+        )
+    )
     finish_points_by_player = _finish_points_by_player(results_qs, low_wins=low_wins)
 
-    weight, player_count = _standings_weight_factors()
-    win_points_expr = player_count * weight
-    tie_points_expr = player_count * weight * Value(TIE_WIN_POINTS_FACTOR)
-    half_weighted_games_expr = Sum(
-        Case(
-            When(game__half_weight=2, then=weight),
-            default=Value(0.0),
-            output_field=FloatField(),
-        )
+    stats: dict[int, dict[str, float]] = defaultdict(
+        lambda: {
+            "games_played": 0.0,
+            "half_weighted_games": 0.0,
+            "wins": 0.0,
+            "losses": 0.0,
+            "win_points": 0.0,
+        }
     )
+    players_by_id: dict[int, GroupPlayer] = {}
 
-    stats = results_qs.values("player_id").annotate(
-        games_played=Sum(weight),
-        half_weighted_games=half_weighted_games_expr,
-        wins=Sum(weight, filter=Q(result=GameParticipantResult.Result.WIN)),
-        losses=Sum(weight, filter=Q(result=GameParticipantResult.Result.LOSS)),
-        win_point_wins=Sum(
-            win_points_expr,
-            filter=Q(result=GameParticipantResult.Result.WIN),
-        ),
-        win_point_ties=Sum(
-            tie_points_expr,
-            filter=Q(result=GameParticipantResult.Result.TIE),
-        ),
-    )
+    for result in results:
+        weight = result.game.double_weight / result.game.half_weight
+        field_size = float(result.game.player_count)
+        for credited in leaderboard_credit_players(result.player):
+            players_by_id[credited.pk] = credited
+            row = stats[credited.pk]
+            row["games_played"] += weight
+            if result.game.half_weight == 2:
+                row["half_weighted_games"] += weight
+            if result.result == GameParticipantResult.Result.WIN:
+                row["wins"] += weight
+                row["win_points"] += field_size * weight
+            elif result.result == GameParticipantResult.Result.LOSS:
+                row["losses"] += weight
+            elif result.result == GameParticipantResult.Result.TIE:
+                row["win_points"] += field_size * weight * TIE_WIN_POINTS_FACTOR
 
-    players_by_id = {
-        player.pk: player
-        for player in GroupPlayer.objects.filter(
-            pk__in=[row["player_id"] for row in stats]
-        ).select_related("linked_user")
+    games_played_by_id = {
+        player_id: row["games_played"] for player_id, row in stats.items()
     }
-
     rows: list[PlayerRanking] = []
-    for row in stats:
-        player = players_by_id[row["player_id"]]
-        games_played = float(row["games_played"] or 0)
-        wins = float(row["wins"] or 0)
-        losses = float(row["losses"] or 0)
-        win_points = float(row["win_point_wins"] or 0) + float(
-            row["win_point_ties"] or 0
-        )
+    for player_id, row in stats.items():
+        player = players_by_id[player_id]
+        if not matches_player_type(player, player_type):
+            continue
+        games_played = row["games_played"]
+        vesting_games = vesting_games_played_for_player(player, games_played_by_id)
+        wins = row["wins"]
+        losses = row["losses"]
+        win_points = row["win_points"]
         finish_points = finish_points_by_player.get(player.pk, 0.0)
         raw_rank_score = compute_rank_score(
             points_total=finish_points,
@@ -771,11 +787,11 @@ def _standings_for_game_type(
         )
         half_game_penalty = compute_half_game_penalty_factor(
             weighted_games=games_played,
-            half_weighted_games=float(row["half_weighted_games"] or 0),
+            half_weighted_games=row["half_weighted_games"],
         )
         rank_score = apply_vesting_to_rank_score(
             raw_rank_score,
-            games_played,
+            vesting_games,
             low_wins=low_wins,
             half_game_penalty=half_game_penalty,
             apply_vesting=period.apply_vesting,

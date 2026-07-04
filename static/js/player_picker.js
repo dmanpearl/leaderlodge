@@ -77,11 +77,16 @@
   }
 
   function existingRowKeys(tbody) {
-    return new Set(
-      Array.from(tbody.querySelectorAll("[data-game-row]")).map(
-        (row) => row.dataset.rowKey
-      )
-    );
+    const keys = new Set();
+    tbody.querySelectorAll("[data-game-row]").forEach((row) => {
+      if (row.dataset.rowKey) {
+        keys.add(row.dataset.rowKey);
+      }
+      if (row.dataset.teammateKey) {
+        keys.add(row.dataset.teammateKey);
+      }
+    });
+    return keys;
   }
 
   function buildRowEntry({ entry, guestName }) {
@@ -103,6 +108,38 @@
     };
   }
 
+  function sideLabel(primaryLabel, teammateLabel) {
+    if (!teammateLabel) {
+      return primaryLabel;
+    }
+    return [primaryLabel, teammateLabel]
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      .join("+");
+  }
+
+  function updateSideLabel(row) {
+    const labelEl = row.querySelector("[data-side-label]");
+    if (!labelEl) {
+      return;
+    }
+    const primaryLabel =
+      row.dataset.primaryLabel || labelEl.dataset.primaryLabel || "";
+    const teammateLabel = row.dataset.teammateLabel || "";
+    const hasTeammate = Boolean(teammateLabel);
+    labelEl.innerHTML = `${sideLabel(primaryLabel, teammateLabel)}${
+      hasTeammate
+        ? ' <span class="badge text-bg-primary ms-1">Team</span>'
+        : row.dataset.primaryDetail
+          ? ` <span class="text-muted small ms-1">${row.dataset.primaryDetail}</span>`
+          : ""
+    }`;
+    const addBtn = row.querySelector("[data-add-teammate]");
+    if (addBtn) {
+      addBtn.classList.toggle("d-none", hasTeammate);
+    }
+    row.dataset.hasTeammate = hasTeammate ? "1" : "";
+  }
+
   function appendParticipantRow(tbody, rowEntry, defaultParticipantScore, focusEl) {
     const rowKey = rowKeyForEntry(
       rowEntry.id ? { id: rowEntry.id } : { guestName: rowEntry.guestName }
@@ -117,11 +154,7 @@
     row.dataset.playerId = rowEntry.id
       ? String(rowEntry.id)
       : `guest:${normalizeForMatch(rowEntry.guestName)}`;
-
-    const initialScoreAttr = defaultParticipantScore
-      ? ` data-initial-score="${defaultParticipantScore}"`
-      : "";
-
+    row.dataset.primaryLabel = rowEntry.label;
     const detail =
       rowEntry.username ||
       (rowEntry.id && rowEntry.kind === "guest"
@@ -129,22 +162,37 @@
         : rowEntry.id
           ? ""
           : "New guest");
+    row.dataset.primaryDetail =
+      detail === "Guest" || detail === "New guest"
+        ? `<span class="badge text-bg-secondary">${detail}</span>`
+        : detail
+          ? `(${detail})`
+          : "";
+
+    const initialScoreAttr = defaultParticipantScore
+      ? ` data-initial-score="${defaultParticipantScore}"`
+      : "";
 
     row.innerHTML = `
         <td>
           <div class="d-flex align-items-center justify-content-between gap-2 participant-label">
-            <span>
+            <span data-side-label>
               ${rowEntry.label}
               ${
-                detail
-                  ? `<span class="text-muted small ms-1">${detail === "Guest" || detail === "New guest" ? `<span class="badge text-bg-secondary">${detail}</span>` : `(${detail})`}</span>`
+                row.dataset.primaryDetail
+                  ? `<span class="text-muted small ms-1">${row.dataset.primaryDetail}</span>`
                   : ""
               }
             </span>
-            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" data-remove-participant aria-label="Remove player">&times;</button>
+            <span class="d-flex align-items-center gap-1 flex-shrink-0">
+              <button type="button" class="btn btn-sm btn-outline-primary" data-add-teammate>Add Teammate</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" data-remove-participant aria-label="Remove player">&times;</button>
+            </span>
           </div>
           <input type="hidden" name="participant_player_id" value="${rowEntry.id || ""}" />
           <input type="hidden" name="participant_guest_name" value="${rowEntry.guestName || ""}" />
+          <input type="hidden" name="participant_teammate_player_id" value="" />
+          <input type="hidden" name="participant_teammate_guest_name" value="" />
         </td>
         <td>
           <input
@@ -168,6 +216,36 @@
     if (focusEl) {
       focusEl.focus();
     }
+    return true;
+  }
+
+  function assignTeammate(row, rowEntry) {
+    const teammateId = rowEntry.id ? String(rowEntry.id) : "";
+    const teammateGuest = rowEntry.guestName || "";
+    const teammateKey = rowEntry.id
+      ? `player-${rowEntry.id}`
+      : `guest-${normalizeForMatch(rowEntry.guestName)}`;
+    if (row.dataset.rowKey === teammateKey) {
+      return false;
+    }
+    const tbody = row.closest("tbody");
+    if (tbody && existingRowKeys(tbody).has(teammateKey) && row.dataset.rowKey !== teammateKey) {
+      // Teammate already on another side.
+      const alreadyOnSide = Array.from(tbody.querySelectorAll("[data-game-row]")).some(
+        (other) =>
+          other !== row &&
+          (other.dataset.rowKey === teammateKey ||
+            other.dataset.teammateKey === teammateKey)
+      );
+      if (alreadyOnSide) {
+        return false;
+      }
+    }
+    row.querySelector('[name="participant_teammate_player_id"]').value = teammateId;
+    row.querySelector('[name="participant_teammate_guest_name"]').value = teammateGuest;
+    row.dataset.teammateLabel = rowEntry.label;
+    row.dataset.teammateKey = teammateKey;
+    updateSideLabel(row);
     return true;
   }
 
@@ -238,13 +316,25 @@
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
       window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
+      this.teammateTargetRow = null;
       tbody.addEventListener("click", (event) => {
+        const addTeammate = event.target.closest("[data-add-teammate]");
+        if (addTeammate) {
+          const row = addTeammate.closest("[data-game-row]");
+          if (row) {
+            this.setTeammateTarget(row);
+          }
+          return;
+        }
         const button = event.target.closest("[data-remove-participant]");
         if (!button) {
           return;
         }
         const row = button.closest("[data-game-row]");
         if (row) {
+          if (this.teammateTargetRow === row) {
+            this.clearTeammateTarget();
+          }
           row.remove();
         }
       });
@@ -433,12 +523,39 @@
     }
 
     addParticipant({ entry, guestName }) {
+      const rowEntry = buildRowEntry({ entry, guestName });
+      const teammateRow = this.teammateTargetRow;
+      if (teammateRow && teammateRow.isConnected) {
+        const ok = assignTeammate(teammateRow, rowEntry);
+        this.clearTeammateTarget();
+        if (!ok) {
+          this.input.setAttribute(
+            "placeholder",
+            "Player already on a side"
+          );
+          window.setTimeout(() => {
+            this.input.setAttribute("placeholder", "Type player name");
+          }, 1500);
+        }
+        return;
+      }
       appendParticipantRow(
         this.tbody,
-        buildRowEntry({ entry, guestName }),
+        rowEntry,
         this.defaultParticipantScore,
         this.input
       );
+    }
+
+    setTeammateTarget(row) {
+      this.teammateTargetRow = row;
+      this.input.setAttribute("placeholder", "Type teammate name");
+      this.input.focus();
+    }
+
+    clearTeammateTarget() {
+      this.teammateTargetRow = null;
+      this.input.setAttribute("placeholder", "Type player name");
     }
 
     open() {

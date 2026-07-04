@@ -48,32 +48,97 @@ class GameRecordForm(forms.Form):
                 self.fields["group"].queryset = Group.objects.filter(pk=demo.pk)
 
 
+def _resolve_side_members_from_post(
+    *,
+    group,
+    player_id_raw: str,
+    guest_name: str,
+    teammate_player_id_raw: str,
+    teammate_guest_name: str,
+) -> list:
+    from leaderlodge.groups.teams import resolve_side_player, validate_side_members
+
+    members = []
+    primary = resolve_participant_player(
+        group=group,
+        player_id=player_id_raw.strip() or None,
+        guest_name=guest_name.strip() or None,
+    )
+    if primary is None:
+        return []
+    members.append(primary)
+
+    teammate = resolve_participant_player(
+        group=group,
+        player_id=teammate_player_id_raw.strip() or None,
+        guest_name=teammate_guest_name.strip() or None,
+    )
+    if teammate is not None:
+        members.append(teammate)
+
+    validate_side_members(members, group=group)
+    return members
+
+
 def parse_participants_from_post(post, *, group) -> list[dict]:
+    from leaderlodge.groups.teams import (
+        resolve_side_player,
+        validate_sides_no_shared_players,
+    )
+
     rows = []
     player_ids = post.getlist("participant_player_id")
     guest_names = post.getlist("participant_guest_name")
+    teammate_player_ids = post.getlist("participant_teammate_player_id")
+    teammate_guest_names = post.getlist("participant_teammate_guest_name")
     scores = post.getlist("participant_score")
-    for player_id_raw, guest_name, score_raw in zip(
-        player_ids, guest_names, scores, strict=False
+
+    # Older forms omit teammate fields; pad to match side count.
+    while len(teammate_player_ids) < len(player_ids):
+        teammate_player_ids.append("")
+    while len(teammate_guest_names) < len(player_ids):
+        teammate_guest_names.append("")
+
+    sides: list[list] = []
+    for (
+        player_id_raw,
+        guest_name,
+        teammate_player_id_raw,
+        teammate_guest_name,
+        score_raw,
+    ) in zip(
+        player_ids,
+        guest_names,
+        teammate_player_ids,
+        teammate_guest_names,
+        scores,
+        strict=False,
     ):
-        player = resolve_participant_player(
+        members = _resolve_side_members_from_post(
             group=group,
-            player_id=player_id_raw.strip() or None,
-            guest_name=guest_name.strip() or None,
+            player_id_raw=player_id_raw,
+            guest_name=guest_name,
+            teammate_player_id_raw=teammate_player_id_raw,
+            teammate_guest_name=teammate_guest_name,
         )
-        if player is None:
+        if not members:
             continue
+        sides.append(members)
         try:
             score = int(score_raw)
         except (TypeError, ValueError):
             score = 0
+        side_player = resolve_side_player(group=group, members=members)
         rows.append(
             {
-                "player": player,
+                "player": side_player,
                 "score": score,
                 "result": GameParticipantResult.Result.PLAYED,
+                "members": members,
             }
         )
+
+    validate_sides_no_shared_players(sides)
     return rows
 
 

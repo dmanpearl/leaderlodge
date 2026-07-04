@@ -20,10 +20,10 @@ def most_recent_game(group: Group, game_type_code: str) -> Game | None:
     )
 
 
-def previous_game_participant_rows(
-    group: Group, game_type_code: str
-) -> list[dict]:
-    """Players from the latest game for this exact group and game type."""
+def previous_game_participant_rows(group: Group, game_type_code: str) -> list[dict]:
+    """Sides from the latest game for this exact group and game type."""
+    from leaderlodge.groups.teams import team_member_players
+
     game = most_recent_game(group, game_type_code)
     if game is None:
         return []
@@ -31,16 +31,42 @@ def previous_game_participant_rows(
     rows = []
     for result in (
         game.participant_results.select_related("player", "player__linked_user")
+        .prefetch_related("player__team_members__member__linked_user")
         .order_by("placement", "pk")
     ):
         player = result.player
         if not player.is_active:
+            continue
+        if player.is_team:
+            members = team_member_players(player)
+            if not members:
+                continue
+            primary = members[0]
+            teammate = members[1] if len(members) > 1 else None
+            rows.append(
+                {
+                    "player": primary,
+                    "player_id": primary.pk,
+                    "guest_name": "",
+                    "teammate_player_id": teammate.pk if teammate else "",
+                    "teammate_guest_name": "",
+                    "teammate_display_label": (
+                        teammate.display_label if teammate else ""
+                    ),
+                    "display_label": player.display_label,
+                    "played": True,
+                    "score": "",
+                }
+            )
             continue
         rows.append(
             {
                 "player": player,
                 "player_id": player.pk,
                 "guest_name": "",
+                "teammate_player_id": "",
+                "teammate_guest_name": "",
+                "teammate_display_label": "",
                 "display_label": player.display_label,
                 "played": True,
                 "score": "",

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from django.db.models import Count, Max, Min, Q, QuerySet, Sum
+from django.db.models import Max, Min, QuerySet
 
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import GAME_TYPES, ScoreDirection, get_game_type
@@ -148,10 +148,7 @@ def _format_dates_summary(first: date, last: date) -> str:
             f"{_format_stat_date_short(first)} - "
             f"{_format_stat_date(last)} ({duration})"
         )
-    return (
-        f"{_format_stat_date(first)} - "
-        f"{_format_stat_date(last)} ({duration})"
-    )
+    return f"{_format_stat_date(first)} - " f"{_format_stat_date(last)} ({duration})"
 
 
 def humanize_date_range(first: date, last: date) -> str:
@@ -310,6 +307,7 @@ def build_game_list_stats(
     *,
     games_qs: QuerySet[Game],
     game_type_code: str,
+    player_type: str = "",
 ) -> GameListStats | None:
     """
     Aggregate stats for the full filtered game queryset (not a paginated page).
@@ -318,11 +316,14 @@ def build_game_list_stats(
         return None
 
     total_games = games_qs.count()
-    date_agg = games_qs.aggregate(first_date=Min("played_on"), last_date=Max("played_on"))
-    show_losses = (
-        game_type_code in GAME_TYPES
-        and get_game_type(game_type_code).supports_loser
+    date_agg = games_qs.aggregate(
+        first_date=Min("played_on"), last_date=Max("played_on")
     )
+    show_losses = (
+        game_type_code in GAME_TYPES and get_game_type(game_type_code).supports_loser
+    )
+
+    from leaderlodge.groups.teams import leaderboard_credit_players, matches_player_type
 
     results_qs = GameParticipantResult.objects.filter(game__in=games_qs)
     global_agg = results_qs.aggregate(
@@ -330,32 +331,48 @@ def build_game_list_stats(
         global_min_score=Min("score"),
     )
 
-    player_rows = (
-        results_qs.values("player_id")
-        .annotate(
-            games_played=Count("pk"),
-            wins=Count("pk", filter=Q(result=GameParticipantResult.Result.WIN)),
-            ties=Count("pk", filter=Q(result=GameParticipantResult.Result.TIE)),
-            losses=Count("pk", filter=Q(result=GameParticipantResult.Result.LOSS)),
-            total_points=Sum("score"),
-            max_score=Max("score"),
-            min_score=Min("score"),
+    results = list(
+        results_qs.select_related("player", "player__linked_user").prefetch_related(
+            "player__team_members__member",
+            "player__team_members__member__linked_user",
         )
-        .order_by("player_id")
     )
-
-    player_ids = [row["player_id"] for row in player_rows]
-    players_by_id = {
-        player.pk: player
-        for player in GroupPlayer.objects.filter(pk__in=player_ids).select_related(
-            "linked_user"
-        )
-    }
+    stats: dict[int, dict] = {}
+    players_by_id: dict[int, GroupPlayer] = {}
+    for result in results:
+        for credited in leaderboard_credit_players(result.player):
+            players_by_id[credited.pk] = credited
+            row = stats.setdefault(
+                credited.pk,
+                {
+                    "games_played": 0,
+                    "wins": 0,
+                    "ties": 0,
+                    "losses": 0,
+                    "total_points": 0,
+                    "max_score": None,
+                    "min_score": None,
+                },
+            )
+            row["games_played"] += 1
+            row["total_points"] += result.score
+            if result.result == GameParticipantResult.Result.WIN:
+                row["wins"] += 1
+            elif result.result == GameParticipantResult.Result.TIE:
+                row["ties"] += 1
+            elif result.result == GameParticipantResult.Result.LOSS:
+                row["losses"] += 1
+            if row["max_score"] is None or result.score > row["max_score"]:
+                row["max_score"] = result.score
+            if row["min_score"] is None or result.score < row["min_score"]:
+                row["min_score"] = result.score
 
     players: list[PlayerListStats] = []
-    for row in player_rows:
-        player = players_by_id[row["player_id"]]
+    for player_id, row in stats.items():
+        player = players_by_id[player_id]
         if player.hide_from_game_list:
+            continue
+        if not matches_player_type(player, player_type):
             continue
         players.append(
             PlayerListStats(

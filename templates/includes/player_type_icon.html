@@ -1,0 +1,7 @@
+{% if player.is_team %}
+  <i class="bi bi-people player-type-icon" aria-hidden="true" title="Team"></i>
+{% elif player.linked_user_id %}
+  <i class="bi bi-person-check player-type-icon" aria-hidden="true" title="User"></i>
+{% else %}
+  <i class="bi bi-person player-type-icon" aria-hidden="true" title="Guest"></i>
+{% endif %}
