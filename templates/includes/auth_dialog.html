@@ -18,7 +18,11 @@
         </p>
       </div>
       <div class="modal-footer d-flex flex-column flex-sm-row gap-2 justify-content-stretch">
-        <a href="{% url 'accounts:login' %}" class="btn btn-primary flex-sm-fill">Login</a>
+        <a
+          href="{% url 'accounts:login' %}"
+          class="btn btn-primary flex-sm-fill"
+          data-guest-auth-login-link
+        >Login</a>
         <a href="{% url 'accounts:signup' %}" class="btn btn-outline-primary flex-sm-fill">Sign up</a>
       </div>
     </div>

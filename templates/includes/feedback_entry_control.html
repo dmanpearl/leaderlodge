@@ -11,6 +11,7 @@
     class="{{ classes }}"
     data-guest-auth-trigger
     data-guest-auth-message="{{ guest_feedback_auth_message }}"
+    data-guest-auth-next="{% url 'feedback:create' %}"
   >
     {% if icon %}
       <i class="bi bi-chat-left-text {{ icon_class|default:'navbar-menu-icon' }}" aria-hidden="true"></i>

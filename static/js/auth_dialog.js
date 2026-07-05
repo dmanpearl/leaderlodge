@@ -6,6 +6,8 @@
 
   var messageEl = dialogEl.querySelector("[data-guest-auth-dialog-message]");
   var defaultEl = dialogEl.querySelector("[data-guest-auth-dialog-default]");
+  var loginLink = dialogEl.querySelector("[data-guest-auth-login-link]");
+  var loginBaseHref = loginLink ? loginLink.getAttribute("href") : "";
   var modal = bootstrap.Modal.getOrCreateInstance(dialogEl);
 
   function closeParentDropdown(el) {
@@ -25,7 +27,18 @@
     }
   }
 
-  function showGuestAuthDialog(message) {
+  function setLoginHref(nextUrl) {
+    if (!loginLink || !loginBaseHref) {
+      return;
+    }
+    var base = loginBaseHref.split("?")[0];
+    var text = (nextUrl || "").trim();
+    loginLink.href = text
+      ? base + "?next=" + encodeURIComponent(text)
+      : loginBaseHref;
+  }
+
+  function showGuestAuthDialog(message, nextUrl) {
     var text = (message || "").trim();
     if (messageEl && defaultEl) {
       if (text) {
@@ -38,6 +51,7 @@
         defaultEl.classList.remove("d-none");
       }
     }
+    setLoginHref(nextUrl);
     modal.show();
   }
 
@@ -51,7 +65,7 @@
         closeParentDropdown(el);
         var msg =
           el.dataset.guestAuthMessage || el.dataset.guestLoginPrompt || "";
-        showGuestAuthDialog(msg);
+        showGuestAuthDialog(msg, el.dataset.guestAuthNext || "");
       });
     });
 })();

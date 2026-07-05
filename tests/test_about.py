@@ -69,8 +69,9 @@ def test_about_page_guest_feedback_uses_auth_dialog(client):
 
     assert "guest-auth-dialog" in content
     assert "data-guest-auth-trigger" in content
+    assert "data-guest-auth-next" in content
     assert GUEST_FEEDBACK_AUTH_MESSAGE in content
-    assert reverse("feedback:create") not in content
+    assert f'href="{reverse("feedback:create")}"' not in content
 
 
 @pytest.mark.django_db

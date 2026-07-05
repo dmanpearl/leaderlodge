@@ -470,3 +470,31 @@ def test_signup_page_linked_from_login(client):
     content = client.get(reverse("accounts:login")).content.decode()
     assert reverse("accounts:signup") in content
     assert reverse("accounts:password_reset") in content
+
+
+@pytest.mark.django_db
+def test_login_form_preserves_next_query_param(client):
+    feedback_url = reverse("feedback:create")
+    content = client.get(
+        reverse("accounts:login"),
+        {"next": feedback_url},
+    ).content.decode()
+
+    assert f'value="{feedback_url}"' in content
+    assert 'name="next"' in content
+
+
+@pytest.mark.django_db
+def test_login_with_next_redirects_to_feedback(client, user):
+    feedback_url = reverse("feedback:create")
+    response = client.post(
+        reverse("accounts:login"),
+        {
+            "username": user.username,
+            "password": "test-pass-123",
+            "next": feedback_url,
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.url == feedback_url

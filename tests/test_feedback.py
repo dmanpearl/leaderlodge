@@ -30,13 +30,16 @@ def test_about_page_guest_feedback_prompts_auth(client):
     assert "Send feedback" in content
     assert GUEST_FEEDBACK_AUTH_MESSAGE in content
     assert "data-guest-auth-trigger" in content
+    assert "data-guest-auth-next" in content
+    assert reverse("feedback:create") in content
 
 
 @pytest.mark.django_db
 def test_feedback_create_requires_login(client):
     response = client.get(reverse("feedback:create"))
     assert response.status_code == 302
-    assert "/accounts/login/" in response.url
+    assert reverse("accounts:login") in response.url
+    assert "next=" in response.url
 
 
 @pytest.mark.django_db
