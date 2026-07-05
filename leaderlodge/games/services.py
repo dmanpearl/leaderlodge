@@ -121,4 +121,5 @@ def record_game(
         )
 
     game.full_clean()
+    game.validate_participant_results()
     return game

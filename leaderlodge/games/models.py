@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from leaderlodge.games.registry import get_game_type, normalize_score_type
-from leaderlodge.games.validators import validate_game_for_type
+from leaderlodge.games.validators import validate_participant_results
 
 
 class Game(models.Model):
@@ -65,25 +65,14 @@ class Game(models.Model):
             )
         elif game_type.score_types:
             self.score_type = normalize_score_type(self.game_type_code, "")
+
+    def validate_participant_results(self) -> None:
         results = list(self.participant_results.all())
         if not results:
             return
-
-        winner_count = sum(
-            1 for r in results if r.result == GameParticipantResult.Result.WIN
-        )
-        tie_count = sum(
-            1 for r in results if r.result == GameParticipantResult.Result.TIE
-        )
-        loser_count = sum(
-            1 for r in results if r.result == GameParticipantResult.Result.LOSS
-        )
-        validate_game_for_type(
-            game_type=game_type,
-            player_count=len(results),
-            winner_count=winner_count,
-            tie_count=tie_count,
-            loser_count=loser_count,
+        validate_participant_results(
+            game_type=get_game_type(self.game_type_code),
+            results=[row.result for row in results],
         )
 
 
@@ -122,3 +111,7 @@ class GameParticipantResult(models.Model):
     def clean(self) -> None:
         if self.player.group_id != self.game.group_id:
             raise ValidationError("Player must belong to the same group as the game.")
+        if self.result == self.Result.LOSS:
+            game_type = get_game_type(self.game.game_type_code)
+            if not game_type.supports_loser:
+                self.result = self.Result.PLAYED

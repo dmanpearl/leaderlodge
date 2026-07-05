@@ -67,3 +67,17 @@ def validate_game_for_type(
         tie_count=tie_count,
         loser_count=loser_count,
     )
+
+
+def validate_participant_results(
+    *,
+    game_type: GameTypeValidation,
+    results: list[str],
+) -> None:
+    validate_game_for_type(
+        game_type=game_type,
+        player_count=len(results),
+        winner_count=sum(1 for result in results if result == "win"),
+        tie_count=sum(1 for result in results if result == "tie"),
+        loser_count=sum(1 for result in results if result == "loss"),
+    )

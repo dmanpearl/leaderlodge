@@ -1,11 +1,48 @@
 from django.contrib import admin
+from django.forms.models import BaseInlineFormSet
 
 from leaderlodge.games.models import Game, GameParticipantResult
+from leaderlodge.games.registry import get_game_type
+from leaderlodge.games.validators import validate_participant_results
+
+
+class GameParticipantResultInlineFormSet(BaseInlineFormSet):
+    def clean(self) -> None:
+        super().clean()
+        if any(form.errors for form in self.forms):
+            return
+
+        game_type_code = self.instance.game_type_code
+        if not game_type_code:
+            return
+
+        game_type = get_game_type(game_type_code)
+        participant_results: list[str] = []
+        for form in self.forms:
+            if not form.cleaned_data or form.cleaned_data.get("DELETE"):
+                continue
+            result = form.cleaned_data.get("result")
+            if (
+                not game_type.supports_loser
+                and result == GameParticipantResult.Result.LOSS
+            ):
+                result = GameParticipantResult.Result.PLAYED
+                form.cleaned_data["result"] = result
+            participant_results.append(result)
+
+        if not participant_results:
+            return
+
+        validate_participant_results(
+            game_type=game_type,
+            results=participant_results,
+        )
 
 
 class GameParticipantResultInline(admin.TabularInline):
     model = GameParticipantResult
     extra = 0
+    formset = GameParticipantResultInlineFormSet
 
 
 @admin.register(Game)
