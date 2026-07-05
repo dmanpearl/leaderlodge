@@ -3,6 +3,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from leaderlodge.core.brand import TAGLINE
+from leaderlodge.feedback.prompts import GUEST_FEEDBACK_AUTH_MESSAGE
 
 
 @pytest.mark.django_db
@@ -63,11 +64,40 @@ def test_site_footer_links_to_about_pages(client):
 
 
 @pytest.mark.django_db
+def test_about_page_guest_feedback_uses_auth_dialog(client):
+    content = client.get(reverse("core:about")).content.decode()
+
+    assert "guest-auth-dialog" in content
+    assert "data-guest-auth-trigger" in content
+    assert GUEST_FEEDBACK_AUTH_MESSAGE in content
+    assert reverse("feedback:create") not in content
+
+
+@pytest.mark.django_db
+def test_about_page_authenticated_feedback_links_directly(client, django_user_model):
+    user = django_user_model.objects.create_user(
+        username="david",
+        password="test-pass-123",
+    )
+    client.force_login(user)
+    content = client.get(reverse("core:about")).content.decode()
+
+    assert reverse("feedback:create") in content
+    assert "data-guest-auth-trigger" not in content
+    assert "guest-auth-dialog" not in content
+
+
+@pytest.mark.django_db
 def test_account_menu_includes_about_for_guest(client):
     content = client.get(reverse("accounts:login")).content.decode()
 
     assert reverse("core:about") in content
     assert ">About</a>" in content
+    assert "Feedback" in content
+    assert "data-guest-auth-trigger" in content
+    assert GUEST_FEEDBACK_AUTH_MESSAGE in content
+    assert "guest-auth-dialog" in content
+    assert "auth_dialog.js" in content
 
 
 @pytest.mark.django_db
@@ -84,3 +114,6 @@ def test_account_menu_includes_about_for_signed_in_user(client, django_user_mode
 
     assert reverse("core:about") in content
     assert ">About</a>" in content
+    assert reverse("feedback:create") in content
+    assert "Feedback" in content
+    assert "data-guest-auth-trigger" not in content

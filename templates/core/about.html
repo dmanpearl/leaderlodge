@@ -79,9 +79,7 @@
           <p class="mb-3">
             Found a bug or have an idea? Tell us what would make LeaderLodge better.
           </p>
-          <a href="{% url 'feedback:create' %}" class="btn btn-outline-primary btn-sm">
-            Send feedback
-          </a>
+          {% include "includes/feedback_entry_control.html" with classes="btn btn-outline-primary btn-sm" label="Send feedback" icon=False %}
         </div>
       </div>
 

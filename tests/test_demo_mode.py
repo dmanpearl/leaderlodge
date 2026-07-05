@@ -69,6 +69,8 @@ def test_anonymous_can_browse_groups_and_record_game_setup(client, demo_group_fl
     list_content = list_response.content.decode()
     assert "Demo" in list_content
     assert "data-guest-login-prompt" in list_content
+    assert "auth_dialog.js" in list_content
+    assert "guest-auth-dialog" in list_content
     assert "Create Group" in list_content
 
     detail_response = client.get(

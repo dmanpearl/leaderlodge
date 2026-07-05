@@ -8,6 +8,7 @@ from leaderlodge.core.brand import (
 )
 from leaderlodge.core.decorators import demo_mode_enabled
 from leaderlodge.core.formats import TABLE_DATE_FORMAT
+from leaderlodge.feedback.prompts import GUEST_FEEDBACK_AUTH_MESSAGE
 from leaderlodge.groups.demo import GUEST_DEMO_PAGE_NOTICE, GUEST_LOGIN_PROMPT
 from leaderlodge.groups.services import get_demo_group
 
@@ -22,6 +23,9 @@ def demo_context(request):
         "is_visitor": is_visitor,
         "is_guest_demo": guest_showcase,
         "guest_login_prompt": GUEST_LOGIN_PROMPT if guest_showcase else "",
+        "guest_feedback_auth_message": (
+            GUEST_FEEDBACK_AUTH_MESSAGE if is_visitor else ""
+        ),
         "guest_demo_page_notice": GUEST_DEMO_PAGE_NOTICE if guest_showcase else "",
     }
 

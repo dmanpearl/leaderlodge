@@ -1,0 +1,26 @@
+<div
+  class="modal fade"
+  id="guest-auth-dialog"
+  tabindex="-1"
+  aria-labelledby="guest-auth-dialog-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="guest-auth-dialog-label">Account required</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0 d-none" data-guest-auth-dialog-message></p>
+        <p class="mb-0" data-guest-auth-dialog-default>
+          Sign in or create an account to continue.
+        </p>
+      </div>
+      <div class="modal-footer d-flex flex-column flex-sm-row gap-2 justify-content-stretch">
+        <a href="{% url 'accounts:login' %}" class="btn btn-primary flex-sm-fill">Login</a>
+        <a href="{% url 'accounts:signup' %}" class="btn btn-outline-primary flex-sm-fill">Sign up</a>
+      </div>
+    </div>
+  </div>
+</div>

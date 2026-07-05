@@ -4,6 +4,7 @@ from django.core import mail
 from django.urls import reverse
 
 from leaderlodge.feedback.models import Feedback
+from leaderlodge.feedback.prompts import GUEST_FEEDBACK_AUTH_MESSAGE
 
 
 @pytest.fixture
@@ -16,10 +17,19 @@ def user(db):
 
 
 @pytest.mark.django_db
-def test_about_page_links_to_feedback(client):
+def test_about_page_links_to_feedback_for_authenticated_user(client, user):
+    client.force_login(user)
     content = client.get(reverse("core:about")).content.decode()
     assert reverse("feedback:create") in content
     assert "Send feedback" in content
+
+
+@pytest.mark.django_db
+def test_about_page_guest_feedback_prompts_auth(client):
+    content = client.get(reverse("core:about")).content.decode()
+    assert "Send feedback" in content
+    assert GUEST_FEEDBACK_AUTH_MESSAGE in content
+    assert "data-guest-auth-trigger" in content
 
 
 @pytest.mark.django_db

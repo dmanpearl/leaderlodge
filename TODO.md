@@ -93,6 +93,7 @@
 - [x] d23b2eb Location Component: Location entry field is a component reused for Record and Edit, includes an 'x' clear button on right, in Record is pre-populated with last location used by user for same game-type
 - [x] 3045cb8 Edit Own Game: Allows any user to edit his own games (Staff can still edit any game)
 - [x] 3045cb8 Feedback Tracker: Users can enter bugs, suggestions, comments, and more
+- [ ] feat(feedback): add account menu entry and guest auth dialog
 
 ## Open Items
 
