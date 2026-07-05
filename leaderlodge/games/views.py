@@ -49,7 +49,7 @@ from leaderlodge.insights.model_selection import preferred_insight_model_id
 from leaderlodge.insights.registry import MODEL_REGISTRY
 from leaderlodge.insights.views import insights_ui_enabled
 from leaderlodge.games.services import ParticipantInput, record_game
-from leaderlodge.games.score_changes import apply_game_edits, user_can_edit_game_scores
+from leaderlodge.games.score_changes import apply_game_edits, user_can_edit_game
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
     can_edit_group,
@@ -787,23 +787,22 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "insights_enabled": insights_ui_enabled(),
             "insight_models": tuple(MODEL_REGISTRY.values()),
             "selected_insight_model": preferred_insight_model_id(request),
-            "can_edit_game": user_can_edit_game_scores(request.user),
+            "can_edit_game": user_can_edit_game(request.user, game),
         },
     )
 
 
 @login_required
 def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
-    if not user_can_edit_game_scores(request.user):
-        raise Http404
-
     game = get_object_or_404(
         Game.objects.select_related("group", "location").prefetch_related(
             "participant_results__player"
         ),
         pk=pk,
     )
-    if not can_view_group(request.user, game.group):
+    if not can_view_group(request.user, game.group) or not user_can_edit_game(
+        request.user, game
+    ):
         raise Http404
 
     game_type = get_game_type(game.game_type_code)

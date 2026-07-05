@@ -8,5 +8,6 @@ urlpatterns = [
     path("games/", include("leaderlodge.games.urls")),
     path("leaderboards/", include("leaderlodge.leaderboards.urls")),
     path("insights/", include("leaderlodge.insights.urls")),
+    path("feedback/", include("leaderlodge.feedback.urls")),
     path("", include("leaderlodge.core.urls")),
 ]

@@ -30,11 +30,20 @@ class RecalculateSummary:
 
 
 def user_can_edit_game_scores(user: AbstractBaseUser | None) -> bool:
+    """Staff may use management commands and edit any game."""
     if user is None or not user.is_authenticated:
         return False
     return bool(
         getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)
     )
+
+
+def user_can_edit_game(user: AbstractBaseUser | None, game: Game) -> bool:
+    if user is None or not user.is_authenticated:
+        return False
+    if user_can_edit_game_scores(user):
+        return True
+    return game.recorded_by_id == user.pk
 
 
 def _require_notes(notes: str) -> str:
@@ -211,8 +220,8 @@ def apply_game_edits(
     dry_run: bool = False,
 ) -> RecalculateSummary:
     notes = _require_notes(notes)
-    if not user_can_edit_game_scores(user):
-        raise ValidationError("Only staff can edit games.")
+    if not user_can_edit_game(user, game):
+        raise ValidationError("You do not have permission to edit this game.")
 
     updates = score_updates or {}
     location_changed = new_location is not _UNCHANGED and game.location != new_location
@@ -305,8 +314,8 @@ def recalculate_game_results(
     dry_run: bool = False,
 ) -> RecalculateSummary:
     notes = _require_notes(notes)
-    if not user_can_edit_game_scores(user):
-        raise ValidationError("Only staff can change game scores.")
+    if not user_can_edit_game(user, game):
+        raise ValidationError("You do not have permission to edit this game.")
 
     old_snapshot = _game_snapshot(game)
     rows, new_double_weight, participants_updated, double_weight_changed = (

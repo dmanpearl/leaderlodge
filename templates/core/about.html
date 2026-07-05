@@ -45,6 +45,18 @@
         </div>
       </div>
 
+      <div class="card mb-4">
+        <div class="card-body">
+          <h2 class="h5 mb-3">Feedback</h2>
+          <p class="mb-3">
+            Found a bug or have an idea? Tell us what would make LeaderLodge better.
+          </p>
+          <a href="{% url 'feedback:create' %}" class="btn btn-outline-primary btn-sm">
+            Send feedback
+          </a>
+        </div>
+      </div>
+
       <p class="text-muted small mb-0">
         <a href="{% url 'core:dashboard' %}">Back to home</a>
       </p>

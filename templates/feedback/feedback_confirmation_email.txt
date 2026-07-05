@@ -1,0 +1,13 @@
+Hi{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+Thanks for sending feedback to LeaderLodge. Here is a copy of what we received:
+
+Type: {{ feedback.get_feedback_type_display }}
+Game: {{ feedback.game_type_label }}
+Title: {{ feedback.title }}
+
+{{ feedback.description }}
+
+We read every submission. You do not need to reply to this message.
+
+LeaderLodge

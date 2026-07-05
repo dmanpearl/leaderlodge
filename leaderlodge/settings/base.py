@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     "leaderlodge.games",
     "leaderlodge.leaderboards",
     "leaderlodge.insights",
+    "leaderlodge.feedback",
 ]
 
 MIDDLEWARE = [

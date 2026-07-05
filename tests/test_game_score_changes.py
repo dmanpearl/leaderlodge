@@ -65,6 +65,33 @@ def dominos_game(staff_user, group):
     return game
 
 
+@pytest.fixture
+def member_dominos_game(member_user, group):
+    players = list(group.players.order_by("pk"))
+    game = Game.objects.create(
+        group=group,
+        game_type_code="dominos",
+        played_on=timezone.localdate(),
+        recorded_by=member_user,
+        player_count=2,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[0],
+        score=30,
+        result=Result.WIN,
+        placement=0,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[1],
+        score=20,
+        result=Result.PLAYED,
+        placement=1,
+    )
+    return game
+
+
 @pytest.mark.django_db
 def test_change_game_score_updates_results_and_logs(staff_user, dominos_game):
     players = list(dominos_game.group.players.order_by("pk"))
@@ -285,12 +312,60 @@ def test_game_detail_shows_edit_game_for_staff(client, staff_user, dominos_game)
 
 
 @pytest.mark.django_db
-def test_game_detail_hides_edit_game_for_member(client, member_user, dominos_game):
+def test_game_detail_hides_edit_game_for_other_users_game(
+    client, member_user, dominos_game
+):
     client.force_login(member_user)
     response = client.get(reverse("games:detail", kwargs={"pk": dominos_game.pk}))
     content = response.content.decode()
     assert response.status_code == 200
     assert "bi-pencil-square" not in content
+
+
+@pytest.mark.django_db
+def test_game_detail_shows_edit_game_for_recorder(
+    client, member_user, member_dominos_game
+):
+    client.force_login(member_user)
+    response = client.get(
+        reverse("games:detail", kwargs={"pk": member_dominos_game.pk})
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert "bi-pencil-square" in content
+    assert reverse("games:edit_game", kwargs={"pk": member_dominos_game.pk}) in content
+
+
+@pytest.mark.django_db
+def test_member_can_edit_own_game(client, member_user, member_dominos_game):
+    client.force_login(member_user)
+    participants = list(member_dominos_game.participant_results.order_by("pk"))
+    url = reverse("games:edit_game", kwargs={"pk": member_dominos_game.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+
+    response = client.post(
+        url,
+        {
+            "played_on": member_dominos_game.played_on.isoformat(),
+            f"score_{participants[0].pk}": participants[0].score,
+            f"score_{participants[1].pk}": 35,
+            "notes": "Fixed my typo.",
+        },
+    )
+    assert response.status_code == 302
+    member_dominos_game.refresh_from_db()
+    winner = member_dominos_game.participant_results.get(player=participants[1].player)
+    assert winner.score == 35
+    assert winner.result == Result.WIN
+
+
+@pytest.mark.django_db
+def test_member_cannot_edit_other_users_game(client, member_user, dominos_game):
+    client.force_login(member_user)
+    url = reverse("games:edit_game", kwargs={"pk": dominos_game.pk})
+    response = client.get(url)
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db
@@ -332,14 +407,6 @@ def test_game_edit_requires_notes(client, staff_user, dominos_game):
     assert response.status_code == 200
     form = response.context["form"]
     assert "notes" in form.errors
-
-
-@pytest.mark.django_db
-def test_game_edit_is_staff_only(client, member_user, dominos_game):
-    client.force_login(member_user)
-    url = reverse("games:edit_game", kwargs={"pk": dominos_game.pk})
-    response = client.get(url)
-    assert response.status_code == 404
 
 
 @pytest.mark.django_db
