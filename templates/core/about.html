@@ -1,18 +1,36 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}About | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/about.css' %}" />
+{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
-      <h1 class="h3 mb-3">About LeaderLodge</h1>
+      <div class="about-page-title mb-3">
+        <img
+          src="{% static 'img/favicon/apple-touch-icon.png' %}"
+          alt=""
+          class="about-page-title-icon"
+          width="32"
+          height="32"
+        />
+        <h1 class="h3 mb-0">About LeaderLodge</h1>
+      </div>
       <p class="lead mb-4">
         LeaderLodge helps groups of people who play games together record results, track standings, discover hidden insights, explain your stats, and celebrate leaders over time.
       </p>
 
       <div class="card mb-4">
         <div class="card-body">
-          <h2 class="h5 mb-3">What it does</h2>
+          <h2 class="h5 mb-3 about-section-heading">
+            <i class="bi bi-list-check about-section-icon" aria-hidden="true"></i>
+            <span>What it does</span>
+          </h2>
           <ul class="mb-0">
             <li>Record games with scores, dates, locations, and player counts</li>
             <li>Rank players per game type within each group</li>
@@ -24,7 +42,10 @@
 
       <div class="card mb-4">
         <div class="card-body">
-          <h2 class="h5 mb-3">Built for game night</h2>
+          <h2 class="h5 mb-3 about-section-heading">
+            <i class="bi bi-controller about-section-icon" aria-hidden="true"></i>
+            <span>Built for game night</span>
+          </h2>
           <p class="mb-0">
             LeaderLodge is mobile-friendly and designed for recurring groups: Dominos, Backgammon,
             Mah Jongg, Progressive Rummy, and other games. Rankings are computed from your recorded games.
@@ -34,12 +55,16 @@
 
       <div class="card mb-4">
         <div class="card-body">
-          <h2 class="h5 mb-3">AI insights</h2>
+          <h2 class="h5 mb-3 about-section-heading about-section-heading--insights">
+            <i class="bi bi-stars about-section-icon" aria-hidden="true"></i>
+            <span>AI insights</span>
+          </h2>
           <p class="mb-3">
             LeaderLodge can explain your stats in plain language. Rankings are computed by
             LeaderLodge; AI narrates what the numbers mean.
           </p>
-          <a href="{% url 'core:about_insights' %}" class="btn btn-outline-primary btn-sm">
+          <a href="{% url 'core:about_insights' %}" class="btn btn-insights-outline btn-sm">
+            <i class="bi bi-stars" aria-hidden="true"></i>
             How AI works in LeaderLodge
           </a>
         </div>
@@ -47,7 +72,10 @@
 
       <div class="card mb-4">
         <div class="card-body">
-          <h2 class="h5 mb-3">Feedback</h2>
+          <h2 class="h5 mb-3 about-section-heading">
+            <i class="bi bi-chat-left-text about-section-icon" aria-hidden="true"></i>
+            <span>Feedback</span>
+          </h2>
           <p class="mb-3">
             Found a bug or have an idea? Tell us what would make LeaderLodge better.
           </p>

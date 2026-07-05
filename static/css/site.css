@@ -1,3 +1,8 @@
+:root {
+  --insights-accent: #7c3aed;
+  --insights-accent-hover: #6d28d9;
+}
+
 nav.navbar.bg-primary {
   --bs-navbar-padding-y: 0.3125rem;
 }
@@ -104,6 +109,14 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
 
 .site-footer-nav a:hover {
   text-decoration: underline;
+}
+
+.site-footer-nav a.site-footer-nav-link--insights {
+  color: var(--insights-accent, #7c3aed);
+}
+
+.site-footer-nav a.site-footer-nav-link--insights:hover {
+  color: var(--insights-accent-hover, #6d28d9);
 }
 
 .site-footer-credit a {

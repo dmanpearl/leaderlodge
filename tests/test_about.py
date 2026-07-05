@@ -12,6 +12,13 @@ def test_about_page_is_public(client):
 
     assert response.status_code == 200
     assert "About LeaderLodge" in content
+    assert "about-page-title-icon" in content
+    assert "bi-list-check" in content
+    assert "bi-controller" in content
+    assert "bi-stars" in content
+    assert "btn-insights-outline" in content
+    assert "about-section-heading--insights" in content
+    assert "bi-chat-left-text" in content
     assert reverse("core:about_insights") in content
 
 
@@ -49,6 +56,7 @@ def test_site_footer_links_to_about_pages(client):
     assert "site-footer" in content
     assert reverse("core:about") in content
     assert reverse("core:about_insights") in content
+    assert "site-footer-nav-link--insights" in content
     assert 'href="https://pixelmonks.com"' in content
     assert ">Pixelmonks</a>" in content
     assert "LeaderLodge</span>" not in content

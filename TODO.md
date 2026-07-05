@@ -91,8 +91,8 @@
 - [x] f96bf78 Bug: Admin View won't allow me to save a Backgammon game as 'Played'. error: 'Please correct the error below. This game type does not use a loser.'
 - [x] 78adb39, 4b2cdce: Added score edit capability and change log auditing
 - [x] d23b2eb Location Component: Location entry field is a component reused for Record and Edit, includes an 'x' clear button on right, in Record is pre-populated with last location used by user for same game-type
-- [x] Edit Own Game: Allows any user to edit his own games (Staff can still edit any game)
-- [x] Feedback Tracker: Users can enter bugs, suggestions, comments, and more
+- [x] 3045cb8 Edit Own Game: Allows any user to edit his own games (Staff can still edit any game)
+- [x] 3045cb8 Feedback Tracker: Users can enter bugs, suggestions, comments, and more
 
 ## Open Items
 
