@@ -1,6 +1,8 @@
 from leaderlodge.core.brand import (
     DEFAULT_META_DESCRIPTION,
     HOME_PAGE_TITLE,
+    PIXELMONKS_NAME,
+    PIXELMONKS_URL,
     SITE_NAME,
     TAGLINE,
 )
@@ -65,6 +67,8 @@ def brand_context(request):
         "site_name": SITE_NAME,
         "home_page_title": HOME_PAGE_TITLE,
         "default_meta_description": DEFAULT_META_DESCRIPTION,
+        "pixelmonks_name": PIXELMONKS_NAME,
+        "pixelmonks_url": PIXELMONKS_URL,
     }
 
 

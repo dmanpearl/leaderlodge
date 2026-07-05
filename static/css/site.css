@@ -20,7 +20,8 @@ nav.navbar.bg-primary {
 
 .navbar-brand-text-lodge {
   font-weight: 400;
-  font-family: "Helvetica Neue Condensed", "Arial Narrow", var(--bs-font-sans-serif);
+  font-family:
+    "Helvetica Neue Condensed", "Arial Narrow", var(--bs-font-sans-serif);
   font-stretch: condensed;
   font-variation-settings: "wdth" 80;
 }
@@ -105,6 +106,15 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
   text-decoration: underline;
 }
 
+.site-footer-credit a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-footer-credit a:hover {
+  text-decoration: underline;
+}
+
 .account-name-with-badge {
   position: relative;
   display: inline-block;
@@ -186,12 +196,18 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     z-index: 5;
   }
 
-  .leaderboard-table.table-striped > tbody > tr:nth-of-type(odd) > .leaderboard-sticky-col,
+  .leaderboard-table.table-striped
+    > tbody
+    > tr:nth-of-type(odd)
+    > .leaderboard-sticky-col,
   .leaderboard-table.table-hover > tbody > tr:hover > .leaderboard-sticky-col {
     background-color: var(--bs-table-bg);
   }
 
-  .leaderboard-table.table-striped > tbody > tr:nth-of-type(odd) > .leaderboard-sticky-col {
+  .leaderboard-table.table-striped
+    > tbody
+    > tr:nth-of-type(odd)
+    > .leaderboard-sticky-col {
     box-shadow:
       inset 0 0 0 9999px var(--bs-table-striped-bg),
       var(--leaderboard-sticky-edge-shadow);

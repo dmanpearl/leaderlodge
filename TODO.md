@@ -89,7 +89,7 @@
 - [x] f839094 Implemet teams for support of two-on-two types of games
 - [x] 0d84f67 Add Pickleball
 - [x] f96bf78 Bug: Admin View won't allow me to save a Backgammon game as 'Played'. error: 'Please correct the error below. This game type does not use a loser.'
-- [x] Provide a way to change a game score that will update result and placement after score change. This should be a management command and a Staff available UI (Edit button as pencil icon in Game Detail view). There should also be a record of changes made. I think there should also be a management command to recalculate game result assuming the score had been changed or even the registry rules changed
+- [x] 78adb39, 4b2cdce: Added score edit capability and change log auditing
 
 ## Open Items
 

@@ -49,6 +49,9 @@ def test_site_footer_links_to_about_pages(client):
     assert "site-footer" in content
     assert reverse("core:about") in content
     assert reverse("core:about_insights") in content
+    assert 'href="https://pixelmonks.com"' in content
+    assert ">Pixelmonks</a>" in content
+    assert "LeaderLodge</span>" not in content
 
 
 @pytest.mark.django_db

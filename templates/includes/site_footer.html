@@ -1,6 +1,9 @@
 <footer class="site-footer border-top bg-white">
   <div class="container py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-    <span class="text-muted small">&copy; {% now "Y" %} LeaderLodge</span>
+    <span class="text-muted small site-footer-credit">
+      &copy; {% now "Y" %}
+      <a href="{{ pixelmonks_url }}" rel="noopener noreferrer">{{ pixelmonks_name }}</a>
+    </span>
     <nav class="site-footer-nav d-flex flex-wrap gap-3 small" aria-label="Site">
       <a href="{% url 'core:about' %}">About</a>
       <a href="{% url 'core:about_insights' %}">How AI works</a>

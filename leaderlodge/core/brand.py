@@ -1,4 +1,6 @@
 SITE_NAME = "LeaderLodge"
+PIXELMONKS_NAME = "Pixelmonks"
+PIXELMONKS_URL = "https://pixelmonks.com"
 TAGLINE = "Computed by LeaderLodge. Explained by AI."
 HOME_PAGE_TITLE = "AI Game Insights"
 DEFAULT_META_DESCRIPTION = (
