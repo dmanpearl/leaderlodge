@@ -62,12 +62,46 @@
   }
 
   function attachListToInput(input, listEl) {
+    const existingWrap = input.closest(".location-field-input-wrap");
+    if (existingWrap) {
+      existingWrap.appendChild(listEl);
+      return existingWrap;
+    }
+
     const wrap = document.createElement("div");
     wrap.className = "combobox-input-wrap";
     input.parentNode.insertBefore(wrap, input);
     wrap.appendChild(input);
     wrap.appendChild(listEl);
     return wrap;
+  }
+
+  function syncLocationClearButton(input) {
+    const field = input.closest("[data-location-field]");
+    const clearButton = field?.querySelector("[data-location-clear]");
+    if (!clearButton) {
+      return;
+    }
+    clearButton.hidden = !input.value.trim();
+  }
+
+  function initLocationClearButton(input) {
+    const field = input.closest("[data-location-field]");
+    const clearButton = field?.querySelector("[data-location-clear]");
+    if (!clearButton) {
+      return;
+    }
+
+    clearButton.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+    });
+    clearButton.addEventListener("click", () => {
+      input.value = "";
+      syncLocationClearButton(input);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.focus();
+    });
+    syncLocationClearButton(input);
   }
 
   function viewportHeight() {
@@ -135,6 +169,7 @@
         this.groupSelect.addEventListener("change", this.onGroupChange);
       }
 
+      initLocationClearButton(this.input);
       this.loadLocationsForSelectedGroup();
     }
 
@@ -172,6 +207,7 @@
     }
 
     onInput() {
+      syncLocationClearButton(this.input);
       if (this.skipRefresh) {
         this.skipRefresh = false;
         return;
@@ -267,6 +303,7 @@
     selectSuggestion(location) {
       this.skipRefresh = true;
       this.input.value = location.name;
+      syncLocationClearButton(this.input);
       this.close();
     }
 

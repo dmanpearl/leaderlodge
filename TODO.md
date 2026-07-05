@@ -90,9 +90,12 @@
 - [x] 0d84f67 Add Pickleball
 - [x] f96bf78 Bug: Admin View won't allow me to save a Backgammon game as 'Played'. error: 'Please correct the error below. This game type does not use a loser.'
 - [x] 78adb39, 4b2cdce: Added score edit capability and change log auditing
+- [x] Location Component: Location entry field is a component reused for Record and Edit, includes an 'x' clear button on right, in Record is pre-populated with last location used by user for same game-type
 
 ## Open Items
 
+- [ ] Edit Own Game: Allows any user to edit his own games (Staff can still edit any game)
+- [ ] Issue Tracker: Users can enter bugs and suggestions into the database
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)

@@ -270,6 +270,7 @@ def test_game_edit_includes_location_autocomplete(client, staff_user, dominos_ga
     assert 'data-location-autocomplete="true"' in content
     assert f'data-location-group-id="{dominos_game.group.pk}"' in content
     assert "location_autocomplete.js" in content
+    assert "data-location-clear" in content
     assert "/groups/0/locations/" in content
 
 

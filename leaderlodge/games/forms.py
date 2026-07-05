@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from leaderlodge.games.location_field import location_name_form_field
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import game_type_choices, get_game_type
 from leaderlodge.games.scoring import assign_results_from_scores, player_count_is_valid
@@ -22,22 +23,12 @@ class GameRecordForm(forms.Form):
         initial=timezone.localdate,
         widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
     )
-    location_name = forms.CharField(
-        required=False,
-        max_length=200,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Optional",
-                "autocomplete": "off",
-                "data-location-autocomplete": "true",
-            }
-        ),
-    )
+    location_name = location_name_form_field()
 
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
+        from leaderlodge.games.last_location import last_recorded_location_name
         from leaderlodge.groups.services import editable_groups, get_demo_group
 
         if user is not None and user.is_authenticated:
@@ -46,6 +37,14 @@ class GameRecordForm(forms.Form):
             demo = get_demo_group()
             if demo is not None:
                 self.fields["group"].queryset = Group.objects.filter(pk=demo.pk)
+
+        if self.is_bound or self.initial.get("location_name"):
+            return
+        game_type_code = self.initial.get("game_type_code", "")
+        if user is not None and game_type_code:
+            last_location = last_recorded_location_name(user, game_type_code)
+            if last_location:
+                self.initial["location_name"] = last_location
 
 
 def _resolve_side_members_from_post(
@@ -160,19 +159,7 @@ class GameEditForm(forms.Form):
         label="Date played",
         widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
     )
-    location_name = forms.CharField(
-        required=False,
-        max_length=200,
-        label="Location",
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Optional",
-                "autocomplete": "off",
-                "data-location-autocomplete": "true",
-            }
-        ),
-    )
+    location_name = location_name_form_field()
     notes = forms.CharField(
         label="Notes",
         help_text="Required. Explain why this game was edited.",

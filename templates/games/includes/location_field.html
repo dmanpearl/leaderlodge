@@ -1,0 +1,20 @@
+{% if show_label|default:True %}
+  <label for="{{ field.id_for_label }}" class="form-label">{{ label|default:field.label }}</label>
+{% endif %}
+<div class="location-field" data-location-field>
+  <div class="location-field-input-wrap combobox-input-wrap">
+    {{ field }}
+    <button
+      type="button"
+      class="location-field-clear"
+      data-location-clear
+      aria-label="Clear location"
+      hidden
+    >
+      &times;
+    </button>
+  </div>
+</div>
+{% if field.errors %}
+  <div class="invalid-feedback d-block">{{ field.errors }}</div>
+{% endif %}

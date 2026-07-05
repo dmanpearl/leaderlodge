@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />
-  <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=2" />
 {% endblock %}
 
 {% block content %}
@@ -69,11 +69,7 @@
         {% endif %}
       </div>
       <div class="mb-3">
-        <label for="{{ form.location_name.id_for_label }}" class="form-label">{{ form.location_name.label }}</label>
-        {{ form.location_name }}
-        {% if form.location_name.errors %}
-          <div class="invalid-feedback d-block">{{ form.location_name.errors }}</div>
-        {% endif %}
+        {% include "games/includes/location_field.html" with field=form.location_name %}
       </div>
       {% for field in form %}
         {% if field.name != "notes" and field.name != "location_name" and field.name != "played_on" %}
@@ -108,5 +104,5 @@
   <script>
     document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
   </script>
-  <script src="{% static 'js/location_autocomplete.js' %}?v=6"></script>
+  <script src="{% static 'js/location_autocomplete.js' %}?v=7"></script>
 {% endblock %}

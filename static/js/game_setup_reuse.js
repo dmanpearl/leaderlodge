@@ -7,6 +7,7 @@
   const previewUrl = form.dataset.reusePreviewUrl;
   const groupSelect = form.querySelector('[name="group"]');
   const gameSelect = form.querySelector('[name="game_type_code"]');
+  const locationInput = form.querySelector('[name="location_name"]');
   const button = document.getElementById("reuse-players-btn");
   const summary = document.getElementById("reuse-players-summary");
   if (!previewUrl || !groupSelect || !gameSelect || !button || !summary) {
@@ -47,6 +48,10 @@
       }
       button.disabled = !data.available;
       summary.textContent = data.available ? data.summary : "";
+      if (locationInput) {
+        locationInput.value = data.last_location_name || "";
+        locationInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
     } catch (_error) {
       if (requestId === fetchId) {
         clearReuseAction();

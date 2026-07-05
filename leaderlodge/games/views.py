@@ -35,6 +35,7 @@ from leaderlodge.games.registry import (
     get_game_type,
     score_type_choices_for,
 )
+from leaderlodge.games.last_location import last_recorded_location_name
 from leaderlodge.games.reuse_players import (
     previous_game_participant_rows,
     reuse_players_summary,
@@ -707,13 +708,24 @@ def game_reuse_preview(request: HttpRequest) -> JsonResponse:
     group_id = request.GET.get("group", "").strip()
     game_type_code = _requested_game_type_code(request)
     if not group_id.isdigit() or game_type_code not in GAME_TYPES:
-        return JsonResponse({"available": False, "summary": "", "labels": []})
+        return JsonResponse(
+            {
+                "available": False,
+                "summary": "",
+                "labels": [],
+                "last_location_name": "",
+            }
+        )
 
     group = Group.objects.filter(pk=int(group_id)).first()
     if group is None or not can_edit_group(request.user, group):
         raise Http404
 
-    return JsonResponse(reuse_players_summary(group, game_type_code))
+    payload = reuse_players_summary(group, game_type_code)
+    payload["last_location_name"] = last_recorded_location_name(
+        request.user, game_type_code
+    )
+    return JsonResponse(payload)
 
 
 @demo_or_login_required
