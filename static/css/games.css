@@ -1,3 +1,11 @@
+.game-detail-edit-scores {
+  line-height: 1;
+}
+
+.game-detail-edit-scores .bi {
+  font-size: 1rem;
+}
+
 .result-badge--win {
   background-color: #198754;
   color: #fff;

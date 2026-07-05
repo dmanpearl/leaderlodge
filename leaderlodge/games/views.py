@@ -10,6 +10,7 @@ from django.utils.dateparse import parse_date
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.forms import (
     GameRecordForm,
+    GameScoreEditForm,
     parse_participants_from_post,
     prepare_participant_rows,
 )
@@ -26,7 +27,7 @@ from leaderlodge.games.game_size import (
 )
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
-from leaderlodge.games.models import Game, GameParticipantResult
+from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
 from leaderlodge.games.registry import (
     GAME_TYPES,
     ScoreType,
@@ -47,6 +48,10 @@ from leaderlodge.insights.model_selection import preferred_insight_model_id
 from leaderlodge.insights.registry import MODEL_REGISTRY
 from leaderlodge.insights.views import insights_ui_enabled
 from leaderlodge.games.services import ParticipantInput, record_game
+from leaderlodge.games.score_changes import (
+    recalculate_game_results,
+    user_can_edit_game_scores,
+)
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
     can_edit_group,
@@ -773,5 +778,59 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "insights_enabled": insights_ui_enabled(),
             "insight_models": tuple(MODEL_REGISTRY.values()),
             "selected_insight_model": preferred_insight_model_id(request),
+            "can_edit_scores": user_can_edit_game_scores(request.user),
+        },
+    )
+
+
+@login_required
+def game_edit_scores(request: HttpRequest, pk: int) -> HttpResponse:
+    if not user_can_edit_game_scores(request.user):
+        raise Http404
+
+    game = get_object_or_404(
+        Game.objects.select_related("group").prefetch_related(
+            "participant_results__player"
+        ),
+        pk=pk,
+    )
+    if not can_view_group(request.user, game.group):
+        raise Http404
+
+    game_type = get_game_type(game.game_type_code)
+    if request.method == "POST":
+        form = GameScoreEditForm(request.POST, game=game)
+        if form.is_valid():
+            try:
+                summary = recalculate_game_results(
+                    game=game,
+                    user=request.user,
+                    notes=form.cleaned_data["notes"],
+                    score_updates=form.score_updates(),
+                    change_type=GameScoreChangeLog.ChangeType.SCORE_CHANGE,
+                )
+            except ValidationError as exc:
+                messages.error(request, str(exc))
+            else:
+                if summary.logs:
+                    messages.success(
+                        request,
+                        "Scores updated and results recalculated.",
+                    )
+                    return redirect("games:detail", pk=game.pk)
+                messages.warning(request, "No changes were made.")
+    else:
+        form = GameScoreEditForm(game=game)
+
+    return render(
+        request,
+        "games/game_score_edit.html",
+        {
+            "game": game,
+            "game_type": game_type,
+            "game_type_icon_url": game_type_icon_url(game.game_type_code),
+            "form": form,
+            "results": game.participant_results.order_by("placement", "pk"),
+            "is_double": game.double_weight == 2,
         },
     )

@@ -115,3 +115,55 @@ class GameParticipantResult(models.Model):
             game_type = get_game_type(self.game.game_type_code)
             if not game_type.supports_loser:
                 self.result = self.Result.PLAYED
+
+
+class GameScoreChangeLog(models.Model):
+    class ChangeType(models.TextChoices):
+        SCORE_CHANGE = "score_change", "Score change"
+        RECALCULATE = "recalculate", "Recalculate"
+
+    game = models.ForeignKey(
+        Game,
+        on_delete=models.CASCADE,
+        related_name="score_change_logs",
+    )
+    participant_result = models.ForeignKey(
+        GameParticipantResult,
+        on_delete=models.CASCADE,
+        related_name="score_change_logs",
+        null=True,
+        blank=True,
+    )
+    player = models.ForeignKey(
+        "groups.GroupPlayer",
+        on_delete=models.PROTECT,
+        related_name="score_change_logs",
+        null=True,
+        blank=True,
+    )
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="game_score_changes",
+    )
+    notes = models.TextField()
+    change_type = models.CharField(
+        max_length=20,
+        choices=ChangeType.choices,
+    )
+    old_score = models.IntegerField()
+    new_score = models.IntegerField()
+    old_result = models.CharField(max_length=10, blank=True)
+    new_result = models.CharField(max_length=10, blank=True)
+    old_placement = models.PositiveSmallIntegerField(null=True, blank=True)
+    new_placement = models.PositiveSmallIntegerField(null=True, blank=True)
+    old_double_weight = models.PositiveSmallIntegerField()
+    new_double_weight = models.PositiveSmallIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+
+    def __str__(self) -> str:
+        player_label = self.player.display_label if self.player_id else "Game"
+        return f"{player_label} score change on {self.game}"

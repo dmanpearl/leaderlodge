@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from leaderlodge.games.models import GameParticipantResult
+from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import game_type_choices, get_game_type
 from leaderlodge.games.scoring import assign_results_from_scores, player_count_is_valid
 from leaderlodge.groups.models import Group
@@ -153,3 +153,58 @@ def prepare_participant_rows(rows: list[dict], game_type_code: str) -> list[dict
         )
     assign_results_from_scores(rows, game_type_code)
     return rows
+
+
+class GameScoreEditForm(forms.Form):
+    notes = forms.CharField(
+        label="Notes",
+        help_text="Required. Explain why these scores were changed.",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control",
+                "rows": 3,
+                "placeholder": "Why are these scores being corrected?",
+            }
+        ),
+    )
+
+    def __init__(self, *args, game: Game | None = None, **kwargs):
+        self.game = game
+        super().__init__(*args, **kwargs)
+        if game is None:
+            return
+        for participant in game.participant_results.select_related("player").order_by(
+            "pk"
+        ):
+            self.fields[f"score_{participant.pk}"] = forms.IntegerField(
+                label=participant.player.display_label,
+                initial=participant.score,
+                widget=forms.NumberInput(attrs={"class": "form-control"}),
+            )
+
+    def clean_notes(self):
+        notes = self.cleaned_data["notes"].strip()
+        if not notes:
+            raise ValidationError(
+                "Notes are required explaining why the change was made."
+            )
+        return notes
+
+    def score_updates(self) -> dict[int, int]:
+        if self.game is None:
+            return {}
+        updates: dict[int, int] = {}
+        for participant in self.game.participant_results.order_by("pk"):
+            field_name = f"score_{participant.pk}"
+            new_score = self.cleaned_data[field_name]
+            if new_score != participant.score:
+                updates[participant.player_id] = new_score
+        return updates
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.errors:
+            return cleaned
+        if not self.score_updates():
+            raise ValidationError("Change at least one score before saving.")
+        return cleaned

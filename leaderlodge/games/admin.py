@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.forms.models import BaseInlineFormSet
 
-from leaderlodge.games.models import Game, GameParticipantResult
+from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.validators import validate_participant_results
 
@@ -43,6 +43,49 @@ class GameParticipantResultInline(admin.TabularInline):
     model = GameParticipantResult
     extra = 0
     formset = GameParticipantResultInlineFormSet
+
+
+@admin.register(GameScoreChangeLog)
+class GameScoreChangeLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "game",
+        "player",
+        "change_type",
+        "old_score",
+        "new_score",
+        "changed_by",
+        "created_at",
+    )
+    list_filter = ("change_type", "game__game_type_code", "created_at")
+    search_fields = (
+        "game__pk",
+        "player__display_name",
+        "changed_by__username",
+        "notes",
+    )
+    readonly_fields = (
+        "game",
+        "participant_result",
+        "player",
+        "changed_by",
+        "notes",
+        "change_type",
+        "old_score",
+        "new_score",
+        "old_result",
+        "new_result",
+        "old_placement",
+        "new_placement",
+        "old_double_weight",
+        "new_double_weight",
+        "created_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Game)

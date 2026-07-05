@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit scores | {{ game_type.name }} | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="mb-3">
+    <div class="game-detail-title-wrap{% if game_type_icon_url %} game-detail-title-wrap--has-icon{% endif %}">
+      {% if game_type_icon_url %}
+        <img
+          src="{{ game_type_icon_url }}"
+          class="game-detail-title-icon"
+          alt=""
+        />
+      {% endif %}
+      <h1 class="h3 mb-0">Edit scores</h1>
+    </div>
+    <p class="text-muted mb-0">
+      {{ game_type.name }} &middot; {{ game.group.name }} &middot; {{ game.played_on|date:"M j, Y" }}
+    </p>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Current results</div>
+    <div class="table-responsive">
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Player</th>
+            <th scope="col">Score</th>
+            <th scope="col">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for result in results %}
+            <tr>
+              <td>{{ result.player.display_label }}</td>
+              <td>{{ result.score }}</td>
+              <td>
+                {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <form method="post" class="card">
+    {% csrf_token %}
+    <div class="card-header">Updated scores</div>
+    <div class="card-body">
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% for field in form %}
+        {% if field.name != "notes" %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <div class="invalid-feedback d-block">{{ field.errors }}</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+      <div class="mb-0">
+        <label class="form-label" for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+        {{ form.notes }}
+        {% if form.notes.help_text %}
+          <div class="form-text">{{ form.notes.help_text }}</div>
+        {% endif %}
+        {% if form.notes.errors %}
+          <div class="invalid-feedback d-block">{{ form.notes.errors }}</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-footer d-flex flex-wrap gap-2">
+      <button type="submit" class="btn btn-primary">Save and recalculate</button>
+      <a href="{% url 'games:detail' pk=game.pk %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+{% endblock %}
