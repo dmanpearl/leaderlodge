@@ -92,9 +92,10 @@
   }
 
   class LocationAutocomplete {
-    constructor(input, groupSelect, locationsUrlTemplate) {
+    constructor(input, groupSelect, locationsUrlTemplate, fixedGroupId = "") {
       this.input = input;
       this.groupSelect = groupSelect;
+      this.fixedGroupId = fixedGroupId;
       this.locationsUrlTemplate = locationsUrlTemplate;
       this.locations = [];
       this.suggestions = [];
@@ -142,7 +143,7 @@
     }
 
     async loadLocationsForSelectedGroup() {
-      const groupId = this.groupSelect ? this.groupSelect.value : "";
+      const groupId = this.groupSelect ? this.groupSelect.value : this.fixedGroupId;
       if (!groupId) {
         this.locations = [];
         this.close();
@@ -160,7 +161,6 @@
         }
         const data = await response.json();
         this.locations = Array.isArray(data.locations) ? data.locations : [];
-        this.refreshSuggestions();
       } catch (_error) {
         this.locations = [];
         this.close();
@@ -304,7 +304,9 @@
     document.querySelectorAll("[data-location-autocomplete]").forEach((input) => {
       const form = input.closest("form");
       const groupSelect = form ? form.querySelector('[name="group"]') : null;
-      new LocationAutocomplete(input, groupSelect, urlTemplate);
+      const fixedGroupId =
+        form?.dataset.locationGroupId || input.dataset.locationGroupId || "";
+      new LocationAutocomplete(input, groupSelect, urlTemplate, fixedGroupId);
     });
   }
 

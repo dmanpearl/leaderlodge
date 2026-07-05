@@ -155,15 +155,32 @@ def prepare_participant_rows(rows: list[dict], game_type_code: str) -> list[dict
     return rows
 
 
-class GameScoreEditForm(forms.Form):
+class GameEditForm(forms.Form):
+    played_on = forms.DateField(
+        label="Date played",
+        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+    )
+    location_name = forms.CharField(
+        required=False,
+        max_length=200,
+        label="Location",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Optional",
+                "autocomplete": "off",
+                "data-location-autocomplete": "true",
+            }
+        ),
+    )
     notes = forms.CharField(
         label="Notes",
-        help_text="Required. Explain why these scores were changed.",
+        help_text="Required. Explain why this game was edited.",
         widget=forms.Textarea(
             attrs={
                 "class": "form-control",
                 "rows": 3,
-                "placeholder": "Why are these scores being corrected?",
+                "placeholder": "Why are these changes being made?",
             }
         ),
     )
@@ -173,6 +190,9 @@ class GameScoreEditForm(forms.Form):
         super().__init__(*args, **kwargs)
         if game is None:
             return
+        self.fields["played_on"].initial = game.played_on
+        if game.location_id:
+            self.fields["location_name"].initial = game.location.name
         for participant in game.participant_results.select_related("player").order_by(
             "pk"
         ):
@@ -190,6 +210,26 @@ class GameScoreEditForm(forms.Form):
             )
         return notes
 
+    def resolved_location(self):
+        if self.game is None:
+            return None
+        from leaderlodge.groups.locations import resolve_game_location
+
+        return resolve_game_location(
+            group=self.game.group,
+            location_name=self.cleaned_data.get("location_name", ""),
+        )
+
+    def location_changed(self) -> bool:
+        if self.game is None:
+            return False
+        return self.resolved_location() != self.game.location
+
+    def played_on_changed(self) -> bool:
+        if self.game is None:
+            return False
+        return self.cleaned_data["played_on"] != self.game.played_on
+
     def score_updates(self) -> dict[int, int]:
         if self.game is None:
             return {}
@@ -205,6 +245,12 @@ class GameScoreEditForm(forms.Form):
         cleaned = super().clean()
         if self.errors:
             return cleaned
-        if not self.score_updates():
-            raise ValidationError("Change at least one score before saving.")
+        if (
+            not self.score_updates()
+            and not self.location_changed()
+            and not self.played_on_changed()
+        ):
+            raise ValidationError(
+                "Change at least one score, the date, or the location before saving."
+            )
         return cleaned

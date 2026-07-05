@@ -49,36 +49,44 @@ class GameParticipantResultInline(admin.TabularInline):
 class GameScoreChangeLogAdmin(admin.ModelAdmin):
     list_display = (
         "game",
-        "player",
-        "change_type",
-        "old_score",
-        "new_score",
         "changed_by",
         "created_at",
     )
-    list_filter = ("change_type", "game__game_type_code", "created_at")
+    list_filter = ("game__game_type_code", "created_at")
     search_fields = (
         "game__pk",
-        "player__display_name",
         "changed_by__username",
         "notes",
     )
     readonly_fields = (
         "game",
-        "participant_result",
-        "player",
         "changed_by",
-        "notes",
-        "change_type",
-        "old_score",
-        "new_score",
-        "old_result",
-        "new_result",
-        "old_placement",
-        "new_placement",
-        "old_double_weight",
-        "new_double_weight",
         "created_at",
+        "notes",
+        "old_snapshot",
+        "new_snapshot",
+    )
+    fieldsets = (
+        (
+            "Audit",
+            {
+                "fields": (
+                    "game",
+                    "changed_by",
+                    "created_at",
+                    "notes",
+                )
+            },
+        ),
+        (
+            "Snapshots",
+            {
+                "fields": (
+                    "old_snapshot",
+                    "new_snapshot",
+                )
+            },
+        ),
     )
 
     def has_add_permission(self, request):

@@ -10,5 +10,5 @@ urlpatterns = [
     path("reuse-preview/", views.game_reuse_preview, name="reuse_preview"),
     path("matchup/", views.game_matchup, name="matchup"),
     path("<int:pk>/", views.game_detail, name="detail"),
-    path("<int:pk>/edit-scores/", views.game_edit_scores, name="edit_scores"),
+    path("<int:pk>/edit-game/", views.game_edit_game, name="edit_game"),
 ]

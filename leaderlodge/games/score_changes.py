@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
+from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.core.exceptions import ValidationError
@@ -8,15 +10,23 @@ from django.db import transaction
 
 from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
 from leaderlodge.games.scoring import assign_results_from_scores, compute_double_weight
-from leaderlodge.groups.models import GroupPlayer
+from leaderlodge.groups.models import GroupPlayer, Location
+
+_UNCHANGED = object()
 
 
 @dataclass(frozen=True)
 class RecalculateSummary:
     game: Game
-    logs: list[GameScoreChangeLog]
+    log: GameScoreChangeLog | None
     participants_updated: int
     double_weight_changed: bool
+    location_changed: bool = False
+    date_changed: bool = False
+
+    @property
+    def logs(self) -> list[GameScoreChangeLog]:
+        return [self.log] if self.log is not None else []
 
 
 def user_can_edit_game_scores(user: AbstractBaseUser | None) -> bool:
@@ -49,20 +59,58 @@ def _participant_row_dicts(game: Game) -> list[dict]:
     ]
 
 
-@transaction.atomic
-def recalculate_game_results(
-    *,
+def _game_snapshot(
     game: Game,
-    user: AbstractBaseUser,
-    notes: str,
-    score_updates: dict[int, int] | None = None,
-    change_type: str = GameScoreChangeLog.ChangeType.RECALCULATE,
-    dry_run: bool = False,
-) -> RecalculateSummary:
-    notes = _require_notes(notes)
-    if not user_can_edit_game_scores(user):
-        raise ValidationError("Only staff can change game scores.")
+    *,
+    rows: list[dict] | None = None,
+    location: Location | None | object = _UNCHANGED,
+    double_weight: int | object = _UNCHANGED,
+    played_on: date | object = _UNCHANGED,
+) -> dict[str, Any]:
+    if rows is None:
+        rows = _participant_row_dicts(game)
+    resolved_location = game.location if location is _UNCHANGED else location
+    resolved_double_weight = (
+        game.double_weight if double_weight is _UNCHANGED else double_weight
+    )
+    resolved_played_on = game.played_on if played_on is _UNCHANGED else played_on
+    participants = sorted(
+        [
+            {
+                "player_id": row["player"].pk,
+                "display_name": row["player"].display_label,
+                "score": row["score"],
+                "result": row["result"],
+                "placement": row["placement"],
+            }
+            for row in rows
+        ],
+        key=lambda participant: (
+            participant["placement"] if participant["placement"] is not None else 9999,
+            participant["player_id"],
+        ),
+    )
+    return {
+        "game_type_code": game.game_type_code,
+        "played_on": resolved_played_on.isoformat(),
+        "player_count": game.player_count,
+        "score_type": game.score_type,
+        "double_weight": resolved_double_weight,
+        "half_weight": game.half_weight,
+        "location": (
+            {"id": resolved_location.pk, "name": resolved_location.name}
+            if resolved_location
+            else None
+        ),
+        "participants": participants,
+    }
 
+
+def _compute_participant_updates(
+    game: Game,
+    *,
+    score_updates: dict[int, int] | None = None,
+) -> tuple[list[dict], int, int, bool]:
     participants = list(
         game.participant_results.select_related("player").order_by("pk")
     )
@@ -96,74 +144,28 @@ def recalculate_game_results(
     assign_results_from_scores(rows, game.game_type_code)
     new_double_weight = compute_double_weight(rows, game.game_type_code)
 
-    logs: list[GameScoreChangeLog] = []
     participants_updated = 0
     for row in rows:
         participant = row["participant_result"]
         previous = before[participant.pk]
-        new_score = row["score"]
-        new_result = row["result"]
-        new_placement = row["placement"]
-        score_changed = previous["score"] != new_score
-        result_changed = previous["result"] != new_result
-        placement_changed = previous["placement"] != new_placement
-        if not (score_changed or result_changed or placement_changed):
-            continue
         if (
-            change_type == GameScoreChangeLog.ChangeType.SCORE_CHANGE
-            and row["player"].pk not in updates
+            previous["score"] != row["score"]
+            or previous["result"] != row["result"]
+            or previous["placement"] != row["placement"]
         ):
-            continue
-        participants_updated += 1
-        logs.append(
-            GameScoreChangeLog(
-                game=game,
-                participant_result=participant,
-                player=participant.player,
-                changed_by=user,
-                notes=notes,
-                change_type=change_type,
-                old_score=previous["score"],
-                new_score=new_score,
-                old_result=previous["result"],
-                new_result=new_result,
-                old_placement=previous["placement"],
-                new_placement=new_placement,
-                old_double_weight=old_double_weight,
-                new_double_weight=new_double_weight,
-            )
-        )
+            participants_updated += 1
 
     double_weight_changed = old_double_weight != new_double_weight
-    if double_weight_changed and not logs:
-        logs.append(
-            GameScoreChangeLog(
-                game=game,
-                participant_result=None,
-                player=None,
-                changed_by=user,
-                notes=notes,
-                change_type=change_type,
-                old_score=0,
-                new_score=0,
-                old_result="",
-                new_result="",
-                old_placement=None,
-                new_placement=None,
-                old_double_weight=old_double_weight,
-                new_double_weight=new_double_weight,
-            )
-        )
+    return rows, new_double_weight, participants_updated, double_weight_changed
 
-    if dry_run:
-        transaction.set_rollback(True)
-        return RecalculateSummary(
-            game=game,
-            logs=logs,
-            participants_updated=participants_updated,
-            double_weight_changed=double_weight_changed,
-        )
 
+def _save_participant_updates(
+    game: Game,
+    *,
+    rows: list[dict],
+    new_double_weight: int,
+    double_weight_changed: bool,
+) -> None:
     for row in rows:
         participant = row["participant_result"]
         participant.score = row["score"]
@@ -175,13 +177,177 @@ def recalculate_game_results(
         game.double_weight = new_double_weight
         game.save(update_fields=["double_weight"])
 
-    if logs:
-        GameScoreChangeLog.objects.bulk_create(logs)
-
     game.validate_participant_results()
+
+
+def _build_change_log(
+    *,
+    game: Game,
+    user: AbstractBaseUser,
+    notes: str,
+    old_snapshot: dict[str, Any],
+    new_snapshot: dict[str, Any],
+) -> GameScoreChangeLog | None:
+    if old_snapshot == new_snapshot:
+        return None
+    return GameScoreChangeLog(
+        game=game,
+        changed_by=user,
+        notes=notes,
+        old_snapshot=old_snapshot,
+        new_snapshot=new_snapshot,
+    )
+
+
+@transaction.atomic
+def apply_game_edits(
+    *,
+    game: Game,
+    user: AbstractBaseUser,
+    notes: str,
+    score_updates: dict[int, int] | None = None,
+    new_location: Location | None | object = _UNCHANGED,
+    new_played_on: date | object = _UNCHANGED,
+    dry_run: bool = False,
+) -> RecalculateSummary:
+    notes = _require_notes(notes)
+    if not user_can_edit_game_scores(user):
+        raise ValidationError("Only staff can edit games.")
+
+    updates = score_updates or {}
+    location_changed = new_location is not _UNCHANGED and game.location != new_location
+    date_changed = new_played_on is not _UNCHANGED and game.played_on != new_played_on
+
+    if not updates and not location_changed and not date_changed:
+        raise ValidationError(
+            "Change at least one score, the date, or the location before saving."
+        )
+
+    old_snapshot = _game_snapshot(game)
+    participants_updated = 0
+    double_weight_changed = False
+    rows: list[dict] | None = None
+    new_double_weight = game.double_weight
+
+    if updates:
+        rows, new_double_weight, participants_updated, double_weight_changed = (
+            _compute_participant_updates(game, score_updates=updates)
+        )
+
+    resolved_location = (
+        new_location if new_location is not _UNCHANGED else game.location
+    )
+    resolved_played_on = (
+        new_played_on if new_played_on is not _UNCHANGED else game.played_on
+    )
+    new_snapshot = _game_snapshot(
+        game,
+        rows=rows,
+        location=resolved_location,
+        double_weight=new_double_weight,
+        played_on=resolved_played_on,
+    )
+    log = _build_change_log(
+        game=game,
+        user=user,
+        notes=notes,
+        old_snapshot=old_snapshot,
+        new_snapshot=new_snapshot,
+    )
+
+    if dry_run:
+        transaction.set_rollback(True)
+        return RecalculateSummary(
+            game=game,
+            log=log,
+            participants_updated=participants_updated,
+            double_weight_changed=double_weight_changed,
+            location_changed=location_changed,
+            date_changed=date_changed,
+        )
+
+    if updates:
+        _save_participant_updates(
+            game,
+            rows=rows,
+            new_double_weight=new_double_weight,
+            double_weight_changed=double_weight_changed,
+        )
+
+    if location_changed:
+        game.location = new_location
+        game.save(update_fields=["location"])
+
+    if date_changed:
+        game.played_on = new_played_on
+        game.save(update_fields=["played_on"])
+
+    if log is not None:
+        log.save()
+
     return RecalculateSummary(
         game=game,
-        logs=logs,
+        log=log,
+        participants_updated=participants_updated,
+        double_weight_changed=double_weight_changed,
+        location_changed=location_changed,
+        date_changed=date_changed,
+    )
+
+
+@transaction.atomic
+def recalculate_game_results(
+    *,
+    game: Game,
+    user: AbstractBaseUser,
+    notes: str,
+    score_updates: dict[int, int] | None = None,
+    dry_run: bool = False,
+) -> RecalculateSummary:
+    notes = _require_notes(notes)
+    if not user_can_edit_game_scores(user):
+        raise ValidationError("Only staff can change game scores.")
+
+    old_snapshot = _game_snapshot(game)
+    rows, new_double_weight, participants_updated, double_weight_changed = (
+        _compute_participant_updates(game, score_updates=score_updates)
+    )
+    new_snapshot = _game_snapshot(game, rows=rows, double_weight=new_double_weight)
+    log = _build_change_log(
+        game=game,
+        user=user,
+        notes=notes,
+        old_snapshot=old_snapshot,
+        new_snapshot=new_snapshot,
+    )
+
+    if dry_run:
+        transaction.set_rollback(True)
+        return RecalculateSummary(
+            game=game,
+            log=log,
+            participants_updated=participants_updated,
+            double_weight_changed=double_weight_changed,
+        )
+
+    if log is None:
+        return RecalculateSummary(
+            game=game,
+            log=None,
+            participants_updated=0,
+            double_weight_changed=False,
+        )
+
+    _save_participant_updates(
+        game,
+        rows=rows,
+        new_double_weight=new_double_weight,
+        double_weight_changed=double_weight_changed,
+    )
+    log.save()
+    return RecalculateSummary(
+        game=game,
+        log=log,
         participants_updated=participants_updated,
         double_weight_changed=double_weight_changed,
     )
@@ -195,15 +361,16 @@ def change_game_score(
     player: GroupPlayer,
     new_score: int,
     notes: str,
+    new_location: Location | None | object = _UNCHANGED,
     dry_run: bool = False,
 ) -> RecalculateSummary:
     if player.group_id != game.group_id:
         raise ValidationError("Player must belong to the same group as the game.")
-    return recalculate_game_results(
+    return apply_game_edits(
         game=game,
         user=user,
         notes=notes,
         score_updates={player.pk: new_score},
-        change_type=GameScoreChangeLog.ChangeType.SCORE_CHANGE,
+        new_location=new_location,
         dry_run=dry_run,
     )

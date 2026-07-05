@@ -27,30 +27,8 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("notes", models.TextField()),
-                (
-                    "change_type",
-                    models.CharField(
-                        choices=[
-                            ("score_change", "Score change"),
-                            ("recalculate", "Recalculate"),
-                        ],
-                        max_length=20,
-                    ),
-                ),
-                ("old_score", models.IntegerField()),
-                ("new_score", models.IntegerField()),
-                ("old_result", models.CharField(blank=True, max_length=10)),
-                ("new_result", models.CharField(blank=True, max_length=10)),
-                (
-                    "old_placement",
-                    models.PositiveSmallIntegerField(blank=True, null=True),
-                ),
-                (
-                    "new_placement",
-                    models.PositiveSmallIntegerField(blank=True, null=True),
-                ),
-                ("old_double_weight", models.PositiveSmallIntegerField()),
-                ("new_double_weight", models.PositiveSmallIntegerField()),
+                ("old_snapshot", models.JSONField()),
+                ("new_snapshot", models.JSONField()),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (
                     "changed_by",
@@ -58,6 +36,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.PROTECT,
                         related_name="game_score_changes",
                         to=settings.AUTH_USER_MODEL,
+                        verbose_name="changed by",
                     ),
                 ),
                 (
@@ -66,26 +45,6 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="score_change_logs",
                         to="games.game",
-                    ),
-                ),
-                (
-                    "participant_result",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="score_change_logs",
-                        to="games.gameparticipantresult",
-                    ),
-                ),
-                (
-                    "player",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.PROTECT,
-                        related_name="score_change_logs",
-                        to="groups.groupplayer",
                     ),
                 ),
             ],

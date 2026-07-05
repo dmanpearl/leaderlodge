@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Edit scores | {{ game_type.name }} | LeaderLodge{% endblock %}
+{% block title %}Edit game | {{ game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}" />
 {% endblock %}
 
 {% block content %}
@@ -17,10 +18,13 @@
           alt=""
         />
       {% endif %}
-      <h1 class="h3 mb-0">Edit scores</h1>
+      <h1 class="h3 mb-0">Edit game</h1>
     </div>
     <p class="text-muted mb-0">
       {{ game_type.name }} &middot; {{ game.group.name }} &middot; {{ game.played_on|date:"M j, Y" }}
+      {% if game.location %}
+        &middot; {{ game.location.name }}
+      {% endif %}
     </p>
   </div>
 
@@ -50,15 +54,29 @@
     </div>
   </div>
 
-  <form method="post" class="card">
+  <form method="post" class="card" data-location-group-id="{{ game.group.pk }}">
     {% csrf_token %}
-    <div class="card-header">Updated scores</div>
+    <div class="card-header">Changes</div>
     <div class="card-body">
       {% if form.non_field_errors %}
         <div class="alert alert-danger">{{ form.non_field_errors }}</div>
       {% endif %}
+      <div class="mb-3">
+        <label for="{{ form.played_on.id_for_label }}" class="form-label">{{ form.played_on.label }}</label>
+        {{ form.played_on }}
+        {% if form.played_on.errors %}
+          <div class="invalid-feedback d-block">{{ form.played_on.errors }}</div>
+        {% endif %}
+      </div>
+      <div class="mb-3">
+        <label for="{{ form.location_name.id_for_label }}" class="form-label">{{ form.location_name.label }}</label>
+        {{ form.location_name }}
+        {% if form.location_name.errors %}
+          <div class="invalid-feedback d-block">{{ form.location_name.errors }}</div>
+        {% endif %}
+      </div>
       {% for field in form %}
-        {% if field.name != "notes" %}
+        {% if field.name != "notes" and field.name != "location_name" and field.name != "played_on" %}
           <div class="mb-3">
             <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
@@ -80,8 +98,15 @@
       </div>
     </div>
     <div class="card-footer d-flex flex-wrap gap-2">
-      <button type="submit" class="btn btn-primary">Save and recalculate</button>
+      <button type="submit" class="btn btn-primary">Save changes</button>
       <a href="{% url 'games:detail' pk=game.pk %}" class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
+  </script>
+  <script src="{% static 'js/location_autocomplete.js' %}?v=6"></script>
 {% endblock %}

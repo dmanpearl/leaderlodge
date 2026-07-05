@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from leaderlodge.games.models import Game, GameScoreChangeLog
+from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES
 from leaderlodge.games.score_changes import recalculate_game_results
 from leaderlodge.groups.services import resolve_group
@@ -40,15 +40,6 @@ class Command(BaseCommand):
             help="Required note explaining why results were recalculated.",
         )
         parser.add_argument(
-            "--change-type",
-            choices=[
-                GameScoreChangeLog.ChangeType.RECALCULATE,
-                GameScoreChangeLog.ChangeType.SCORE_CHANGE,
-            ],
-            default=GameScoreChangeLog.ChangeType.RECALCULATE,
-            help="Audit log change type to record.",
-        )
-        parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Validate and preview changes without writing to the database.",
@@ -66,17 +57,16 @@ class Command(BaseCommand):
                     game=game,
                     user=user,
                     notes=options["notes"],
-                    change_type=options["change_type"],
                     dry_run=options["dry_run"],
                 )
             except Exception as exc:
                 raise CommandError(f"Game {game.pk}: {exc}") from exc
 
-            if not summary.logs:
+            if summary.log is None:
                 continue
 
             total_games += 1
-            total_logs += len(summary.logs)
+            total_logs += 1
             prefix = "Would update" if options["dry_run"] else "Updated"
             self.stdout.write(
                 f"{prefix} game {game.pk} ({game.game_type_code} on {game.played_on}): "

@@ -10,7 +10,7 @@ from django.utils.dateparse import parse_date
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.forms import (
     GameRecordForm,
-    GameScoreEditForm,
+    GameEditForm,
     parse_participants_from_post,
     prepare_participant_rows,
 )
@@ -27,7 +27,7 @@ from leaderlodge.games.game_size import (
 )
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
-from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
+from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import (
     GAME_TYPES,
     ScoreType,
@@ -48,10 +48,7 @@ from leaderlodge.insights.model_selection import preferred_insight_model_id
 from leaderlodge.insights.registry import MODEL_REGISTRY
 from leaderlodge.insights.views import insights_ui_enabled
 from leaderlodge.games.services import ParticipantInput, record_game
-from leaderlodge.games.score_changes import (
-    recalculate_game_results,
-    user_can_edit_game_scores,
-)
+from leaderlodge.games.score_changes import apply_game_edits, user_can_edit_game_scores
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
     can_edit_group,
@@ -778,18 +775,18 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "insights_enabled": insights_ui_enabled(),
             "insight_models": tuple(MODEL_REGISTRY.values()),
             "selected_insight_model": preferred_insight_model_id(request),
-            "can_edit_scores": user_can_edit_game_scores(request.user),
+            "can_edit_game": user_can_edit_game_scores(request.user),
         },
     )
 
 
 @login_required
-def game_edit_scores(request: HttpRequest, pk: int) -> HttpResponse:
+def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
     if not user_can_edit_game_scores(request.user):
         raise Http404
 
     game = get_object_or_404(
-        Game.objects.select_related("group").prefetch_related(
+        Game.objects.select_related("group", "location").prefetch_related(
             "participant_results__player"
         ),
         pk=pk,
@@ -799,32 +796,30 @@ def game_edit_scores(request: HttpRequest, pk: int) -> HttpResponse:
 
     game_type = get_game_type(game.game_type_code)
     if request.method == "POST":
-        form = GameScoreEditForm(request.POST, game=game)
+        form = GameEditForm(request.POST, game=game)
         if form.is_valid():
             try:
-                summary = recalculate_game_results(
+                summary = apply_game_edits(
                     game=game,
                     user=request.user,
                     notes=form.cleaned_data["notes"],
                     score_updates=form.score_updates(),
-                    change_type=GameScoreChangeLog.ChangeType.SCORE_CHANGE,
+                    new_location=form.resolved_location(),
+                    new_played_on=form.cleaned_data["played_on"],
                 )
             except ValidationError as exc:
                 messages.error(request, str(exc))
             else:
                 if summary.logs:
-                    messages.success(
-                        request,
-                        "Scores updated and results recalculated.",
-                    )
+                    messages.success(request, "Game updated.")
                     return redirect("games:detail", pk=game.pk)
                 messages.warning(request, "No changes were made.")
     else:
-        form = GameScoreEditForm(game=game)
+        form = GameEditForm(game=game)
 
     return render(
         request,
-        "games/game_score_edit.html",
+        "games/game_edit.html",
         {
             "game": game,
             "game_type": game_type,

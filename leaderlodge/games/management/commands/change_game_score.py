@@ -1,14 +1,15 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from leaderlodge.games.models import Game
-from leaderlodge.games.score_changes import change_game_score
+from leaderlodge.games.score_changes import _UNCHANGED, apply_game_edits
+from leaderlodge.groups.locations import resolve_game_location
 from leaderlodge.groups.models import GroupPlayer
 
 
 class Command(BaseCommand):
     help = (
-        "Change one participant score on a game, recalculate results and placements, "
-        "and record an audit log entry."
+        "Change one participant score on a game, optionally update location, "
+        "recalculate results and placements, and record audit log entries."
     )
 
     def add_arguments(self, parser):
@@ -19,6 +20,11 @@ class Command(BaseCommand):
             help="Participant player primary key or display name.",
         )
         parser.add_argument("--score", type=int, required=True, help="New score value.")
+        parser.add_argument(
+            "--location",
+            default=None,
+            help="Optional new location name. Pass an empty string to clear.",
+        )
         parser.add_argument(
             "--changed-by",
             required=True,
@@ -36,7 +42,11 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        game = Game.objects.filter(pk=options["game"]).first()
+        game = (
+            Game.objects.select_related("group", "location")
+            .filter(pk=options["game"])
+            .first()
+        )
         if game is None:
             raise CommandError(f"No game with pk={options['game']}.")
 
@@ -46,16 +56,33 @@ class Command(BaseCommand):
         if participant is None:
             raise CommandError(f"{player.display_label} is not in game {game.pk}.")
 
-        if participant.score == options["score"]:
-            raise CommandError("New score matches the current score.")
+        score_updates = {}
+        if participant.score != options["score"]:
+            score_updates[player.pk] = options["score"]
+
+        new_location = _UNCHANGED
+        if options["location"] is not None:
+            new_location = resolve_game_location(
+                group=game.group,
+                location_name=options["location"],
+            )
+
+        if not score_updates and new_location is _UNCHANGED:
+            raise CommandError("No score or location change requested.")
+        if (
+            not score_updates
+            and new_location is not _UNCHANGED
+            and game.location == new_location
+        ):
+            raise CommandError("New location matches the current location.")
 
         try:
-            summary = change_game_score(
+            summary = apply_game_edits(
                 game=game,
                 user=user,
-                player=player,
-                new_score=options["score"],
                 notes=options["notes"],
+                score_updates=score_updates or None,
+                new_location=new_location,
                 dry_run=options["dry_run"],
             )
         except Exception as exc:
@@ -63,32 +90,25 @@ class Command(BaseCommand):
         self._write_summary(summary, dry_run=options["dry_run"])
 
     def _write_summary(self, summary, *, dry_run: bool) -> None:
-        if not summary.logs:
+        if summary.log is None:
             self.stdout.write(
                 self.style.WARNING(
                     f"No changes for game {summary.game.pk}; "
-                    "score already produced the same results."
+                    "requested edits produced no audit row."
                 )
             )
             return
 
         prefix = "Would update" if dry_run else "Updated"
-        self.stdout.write(
-            f"{prefix} game {summary.game.pk}: "
-            f"{summary.participants_updated} participant(s)"
-            + (", double weight changed" if summary.double_weight_changed else "")
-        )
-        for log in summary.logs:
-            if log.participant_result_id:
-                self.stdout.write(
-                    f"  {log.player.display_label}: score {log.old_score} -> {log.new_score}, "
-                    f"result {log.old_result or '-'} -> {log.new_result or '-'}, "
-                    f"placement {log.old_placement} -> {log.new_placement}"
-                )
-            else:
-                self.stdout.write(
-                    f"  double weight {log.old_double_weight} -> {log.new_double_weight}"
-                )
+        parts = []
+        if summary.participants_updated:
+            parts.append(f"{summary.participants_updated} participant(s)")
+        if summary.double_weight_changed:
+            parts.append("double weight changed")
+        if summary.location_changed:
+            parts.append("location changed")
+        self.stdout.write(f"{prefix} game {summary.game.pk}: {', '.join(parts)}")
+        self.stdout.write("  Audit log recorded.")
 
     def _resolve_player(self, game: Game, raw_player: str) -> GroupPlayer:
         if raw_player.isdigit():
