@@ -49,9 +49,10 @@ def reset_preferences(request: HttpRequest) -> JsonResponse:
 
 @require_http_methods(["GET", "POST"])
 def signup(request: HttpRequest) -> HttpResponse:
-    invite_token = request.GET.get("invite", "").strip() or request.POST.get(
-        "invite_token", ""
-    ).strip()
+    invite_token = (
+        request.GET.get("invite", "").strip()
+        or request.POST.get("invite_token", "").strip()
+    )
     invite = invite_for_token(invite_token) if invite_token else None
     if invite is not None and not invite.is_pending:
         invite = None
@@ -72,6 +73,9 @@ def signup(request: HttpRequest) -> HttpResponse:
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
+        from leaderlodge.core.admin_notifications import notify_admin_signup
+
+        notify_admin_signup(user=user)
         try:
             send_welcome_email(request=request, user=user)
             record_verification_email_sent(user)
@@ -126,9 +130,7 @@ def _verify_email_confirm_context(
     already_verified: bool,
 ) -> dict:
     if request.user.is_authenticated:
-        session_match = (
-            "same" if request.user.pk == verified_user.pk else "different"
-        )
+        session_match = "same" if request.user.pk == verified_user.pk else "different"
     else:
         session_match = "anonymous"
 
@@ -170,9 +172,7 @@ def verify_email_confirm(request: HttpRequest, uidb64: str, token: str) -> HttpR
         return render(request, "accounts/verify_email_invalid.html", status=400)
 
     if is_email_verified(user):
-        return _render_verify_email_complete(
-            request, user, already_verified=True
-        )
+        return _render_verify_email_complete(request, user, already_verified=True)
 
     mark_email_verified(user)
     return _render_verify_email_complete(request, user, already_verified=False)

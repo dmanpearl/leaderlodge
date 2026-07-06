@@ -25,6 +25,7 @@ Then:
 ```bash
 python manage.py migrate
 python manage.py createsuperuser
+python manage.py setup_site_settings --email=you@example.com
 python manage.py runserver
 ```
 
@@ -94,6 +95,7 @@ Production email setup (Brevo + Porkbun DNS): [docs/setup.md#production-email-br
 ```bash
 railway link
 railway run python manage.py createsuperuser
+railway run python manage.py setup_site_settings --email=you@example.com
 ```
 
 Create the `manpearl` group and link players in the app, then import seeds:
@@ -122,6 +124,8 @@ This creates **Demo**, sets `is_demo=True`, and imports:
 - `data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx`
 
 See [Demo group setup](docs/setup.md#demo-group-public-read-only) and [Importing — Demo seeds](docs/importing.md#demo-group-seeds) for local use, `--dry-run`, and manual import alternatives.
+
+Admin notification email (signup, invites, game edits, feedback): [Site settings](docs/setup.md#site-settings-admin-notifications).
 
 ## Documentation
 

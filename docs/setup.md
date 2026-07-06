@@ -43,6 +43,7 @@ cp .env.example .env
 # edit .env — set DJANGO_SECRET_KEY
 python manage.py migrate
 python manage.py createsuperuser
+python manage.py setup_site_settings --email=you@example.com
 python manage.py runserver
 ```
 
@@ -124,6 +125,64 @@ railway run python manage.py setup_demo
 ```
 
 Use `--owner USERNAME` if you have multiple superusers and want a specific group owner. No Django admin step is required to set **Is demo**.
+
+## Site settings (admin notifications)
+
+LeaderLodge can email an operator when users sign up, invites are sent or accepted, games are edited, or feedback is submitted. Settings live in a single **Site settings** row (Django admin, not environment variables).
+
+### What `setup_site_settings` does
+
+```bash
+python manage.py setup_site_settings --email=you@example.com
+```
+
+`--email` is **required**. The command creates or updates the site settings singleton:
+
+- Sets **notify email** to the address you pass
+- Turns **on** all notification types: signup, invite sent, invite accepted, game change, feedback
+
+Re-running is safe. It refreshes the email address and fills in an empty notifications map; it does not wipe toggles you already saved.
+
+There is **no default email in code**. Until you set an email here or in admin, notifications are skipped even when toggles are on.
+
+**Local:** run once after `migrate` and `createsuperuser`.
+
+**Production:**
+
+```bash
+railway run python manage.py setup_site_settings --email=you@example.com
+```
+
+### Configure in Django admin instead
+
+1. Sign in as staff at `/admin/`.
+2. Open **Core** > **Site settings**.
+3. If no row exists, click **Add site settings** (only one row is allowed).
+4. Set **Notify email** and check the notification types you want.
+5. Save.
+
+To change settings later, open the existing row and edit the same fields. Deleting the row is disabled.
+
+Notification types are stored as JSON internally; the admin form shows checkboxes only.
+
+### Replacing an initial `core` migration locally
+
+If you already applied an older `core.0001_*` migration and the migration file was renamed or rewritten (for example **Site configuration** to **Site settings**), `python manage.py migrate core zero` may report **No migrations to apply** because Django only sees the new file on disk while `django_migrations` still lists the old name.
+
+Clean up the orphan record and old table, then re-run setup:
+
+```bash
+python manage.py shell -c "
+from django.db import connection
+with connection.cursor() as c:
+    c.execute(\"DELETE FROM django_migrations WHERE app='core' AND name='0001_site_configuration'\")
+    c.execute('DROP TABLE IF EXISTS core_siteconfiguration')
+"
+
+python manage.py setup_site_settings --email=you@example.com
+```
+
+You should have only `core_sitesettings` and one row in `django_migrations` for `core.0001_site_settings`. Use this on local SQLite only when the old migration was never deployed to production.
 
 Before enabling AI Insights in production, add `INSIGHTS_ENABLED`, `OPENAI_API_KEY`, and `GOOGLE_AI_API_KEY` to Railway Variables. See [ai-insights.md](ai-insights.md#railway-promotion-do-before-enabling-insights-in-production).
 

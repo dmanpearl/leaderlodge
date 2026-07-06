@@ -1,0 +1,7 @@
+A group invite was accepted on LeaderLodge.
+
+Group: {{ group.name }}
+User: {{ display_name }}
+Email: {{ email|default:"(none)" }}
+{% if roster_name %}Roster name: {{ roster_name }}
+{% endif %}

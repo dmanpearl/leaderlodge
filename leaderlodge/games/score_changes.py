@@ -8,6 +8,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from leaderlodge.core.admin_notifications import notify_admin_game_change
 from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
 from leaderlodge.games.scoring import assign_results_from_scores, compute_double_weight
 from leaderlodge.groups.models import GroupPlayer, Location
@@ -293,6 +294,7 @@ def apply_game_edits(
 
     if log is not None:
         log.save()
+        notify_admin_game_change(log=log)
 
     return RecalculateSummary(
         game=game,
@@ -354,6 +356,7 @@ def recalculate_game_results(
         double_weight_changed=double_weight_changed,
     )
     log.save()
+    notify_admin_game_change(log=log)
     return RecalculateSummary(
         game=game,
         log=log,

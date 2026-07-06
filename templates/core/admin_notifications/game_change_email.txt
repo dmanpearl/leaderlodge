@@ -1,0 +1,11 @@
+A game was edited on LeaderLodge.
+
+Group: {{ group.name }}
+Game type: {{ game_type_label }}
+Date played: {{ played_on }}
+Changed by: {{ changed_by_display }}
+Notes: {{ notes }}
+
+{% if game_url %}Game: {{ game_url }}
+{% endif %}{% if admin_url %}Admin: {{ admin_url }}
+{% endif %}

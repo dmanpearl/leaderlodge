@@ -16,6 +16,9 @@ def feedback_create(request: HttpRequest) -> HttpResponse:
             feedback.user = request.user
             feedback.full_clean()
             feedback.save()
+            from leaderlodge.core.admin_notifications import notify_admin_feedback
+
+            notify_admin_feedback(feedback=feedback)
             try:
                 send_feedback_confirmation_email(feedback=feedback)
             except ValueError:

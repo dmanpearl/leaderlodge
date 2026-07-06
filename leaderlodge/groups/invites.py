@@ -10,6 +10,10 @@ from django.db import transaction
 from django.template import loader
 from django.utils import timezone
 
+from leaderlodge.core.admin_notifications import (
+    notify_admin_invite_accepted,
+    notify_admin_invite_sent,
+)
 from leaderlodge.groups.models import Group, GroupInvite, GroupMembership, GroupPlayer
 from leaderlodge.groups.names import format_user_display_name
 from leaderlodge.groups.services import (
@@ -103,15 +107,12 @@ def _unique_guest_name(group: Group, base_name: str) -> str:
 
 def _pending_invite_for_guest(guest_player: GroupPlayer) -> GroupInvite | None:
     now = timezone.now()
-    return (
-        GroupInvite.objects.filter(
-            guest_player=guest_player,
-            accepted_at__isnull=True,
-            revoked_at__isnull=True,
-            expires_at__gt=now,
-        )
-        .first()
-    )
+    return GroupInvite.objects.filter(
+        guest_player=guest_player,
+        accepted_at__isnull=True,
+        revoked_at__isnull=True,
+        expires_at__gt=now,
+    ).first()
 
 
 @transaction.atomic
@@ -324,6 +325,11 @@ def accept_group_invite(
         user=user,
         roster_name=roster_name,
     )
+    notify_admin_invite_accepted(
+        invite=invite,
+        user=user,
+        roster_name=roster_name,
+    )
     return membership
 
 
@@ -377,3 +383,11 @@ def send_invite_email(*, request, invite: GroupInvite) -> None:
             invite.group_id,
         )
         raise
+
+    player_name = invite.guest_player.display_name if invite.guest_player else ""
+    notify_admin_invite_sent(
+        invite=invite,
+        invited_by_display=format_user_display_name(invite.invited_by),
+        player_name=player_name,
+        invite_url=accept_url,
+    )

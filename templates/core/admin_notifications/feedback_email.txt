@@ -1,0 +1,11 @@
+New feedback was submitted on LeaderLodge.
+
+From: {{ user_display }}
+Type: {{ feedback.get_feedback_type_display }}
+Game: {{ feedback.game_type_label }}
+Title: {{ feedback.title }}
+
+{{ feedback.description }}
+
+{% if admin_url %}Admin: {{ admin_url }}
+{% endif %}

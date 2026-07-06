@@ -89,9 +89,7 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
                 {
                     "membership": membership,
                     "role_choices": choices,
-                    "can_remove": can_remove_membership(
-                        actor_membership, membership
-                    ),
+                    "can_remove": can_remove_membership(actor_membership, membership),
                 }
             )
     else:
@@ -154,9 +152,7 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
             period=selected_period,
         )
         for row in standings:
-            remove_state = roster_remove_state(
-                actor_membership, row.player, group
-            )
+            remove_state = roster_remove_state(actor_membership, row.player, group)
             standings_rows.append(
                 {
                     "standing": row,
@@ -493,6 +489,9 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
             if join_form.is_valid():
                 user = join_form.save()
                 login(request, user)
+                from leaderlodge.core.admin_notifications import notify_admin_signup
+
+                notify_admin_signup(user=user)
                 try:
                     send_welcome_email(request=request, user=user)
                     record_verification_email_sent(user)
@@ -560,7 +559,9 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
 
 
 @login_required
-def member_update_role(request: HttpRequest, pk: int, membership_pk: int) -> HttpResponse:
+def member_update_role(
+    request: HttpRequest, pk: int, membership_pk: int
+) -> HttpResponse:
     group = get_object_or_404(Group, pk=pk)
     membership = get_object_or_404(GroupMembership, pk=membership_pk, group=group)
     actor_membership = get_membership(request.user, group)

@@ -1,0 +1,5 @@
+A new user signed up on LeaderLodge.
+
+Name: {{ display_name }}
+Username: {{ username }}
+Email: {{ email|default:"(none)" }}

@@ -1,0 +1,8 @@
+A group invite was sent on LeaderLodge.
+
+Group: {{ group.name }}
+Invitee email: {{ invite.email }}
+{% if player_name %}Roster name: {{ player_name }}
+{% endif %}Invited by: {{ invited_by_display }}
+{% if invite_url %}Accept link: {{ invite_url }}
+{% endif %}
