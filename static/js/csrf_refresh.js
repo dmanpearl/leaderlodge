@@ -6,15 +6,20 @@
     return match ? decodeURIComponent(match[1]) : "";
   }
 
-  function updateCsrfInputs(token) {
+  function updateCsrfInputs(token, root) {
     if (!token) {
       return;
     }
-    document
+    var scope = root && root.querySelector ? root : document;
+    scope
       .querySelectorAll('input[name="csrfmiddlewaretoken"]')
       .forEach(function (input) {
         input.value = token;
       });
+  }
+
+  function syncCsrfFromCookie(root) {
+    updateCsrfInputs(getCsrfTokenFromCookie(), root);
   }
 
   function refreshCsrfTokens() {
@@ -51,13 +56,35 @@
 
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") {
+      syncCsrfFromCookie();
       scheduleCsrfRefresh();
     }
   });
 
   window.addEventListener("pageshow", function (event) {
+    syncCsrfFromCookie();
     if (event.persisted) {
       scheduleCsrfRefresh();
     }
   });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    syncCsrfFromCookie();
+    scheduleCsrfRefresh();
+  });
+
+  document.addEventListener(
+    "submit",
+    function (event) {
+      var form = event.target;
+      if (!form || !form.querySelector) {
+        return;
+      }
+      if (!form.querySelector('input[name="csrfmiddlewaretoken"]')) {
+        return;
+      }
+      syncCsrfFromCookie(form);
+    },
+    true,
+  );
 })();
