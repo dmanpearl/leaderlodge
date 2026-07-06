@@ -24,6 +24,7 @@ from leaderlodge.insights.tools.standings import (
     query_location_leaderboard,
     query_player_detail,
 )
+from leaderlodge.insights.tools.teams import query_team_pairings
 from leaderlodge.insights.tools.trends import query_month_leaders, query_rank_trends
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
@@ -57,6 +58,7 @@ class ToolExecutor:
             "compare_players": self._compare_players,
             "query_date_range_leaderboard": self._query_date_range_leaderboard,
             "query_location_leaderboard": self._query_location_leaderboard,
+            "query_team_pairings": self._query_team_pairings,
         }
         handler = handlers.get(name)
         if handler is None:
@@ -384,6 +386,16 @@ class ToolExecutor:
             game_type_code=game_type_code,
             location_id=location.pk,
             location_name=location.name,
+            period=self._resolve_period(arguments, game_type_code),
+            game_size=self._resolve_game_size(arguments, game_type_code),
+            limit=self._resolve_limit(arguments),
+        )
+
+    def _query_team_pairings(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        return query_team_pairings(
+            self.scope.group,
+            game_type_code=game_type_code,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
             limit=self._resolve_limit(arguments),

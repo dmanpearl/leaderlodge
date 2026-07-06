@@ -258,6 +258,20 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
         typical_tool_rounds="1 to 2",
     ),
     _example(
+        "Team pairings",
+        (
+            "Which players would make the best two-person team in pickleball?",
+            "Who is the strongest duo in pickleball?",
+        ),
+        reliability="supported",
+        game_type_code="pickleball",
+        tool_calls=(AskToolCall("query_team_pairings"),),
+        limitation=(
+            "Answers use recorded two-player sides only (e.g. Amelia+Harper), "
+            "not name-based guesses."
+        ),
+    ),
+    _example(
         "Hall of Fame / dynasty",
         ("Who dominated across years?", "Repeat monthly winners?"),
         reliability="supported",

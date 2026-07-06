@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-PROMPT_VERSION = 28
+PROMPT_VERSION = 29
 
 _RANK_FRAMING_RULES = """- Field-aware rank talk: if only two players have meaningful games_played, do not praise rank 2 (that is the other regular, not an achievement).
 - Never call last place a podium. With three players, 3rd is last, not podium.
@@ -27,6 +27,12 @@ _ASK_SCORE_DIRECTION_RULES = """- Game-type tool results include score_direction
 - When comparing total_points or scoring volume, cite total_points_display or avg_points_display from tool results exactly (e.g. 404.4/game or 136,100 (404.4/game)). Never compare raw total_points alone without the per-game average.
 - For who leads or is winning, use rank and rank_score from tool results (higher rank_score is better). Use wins when the question is about win counts. Do not infer leadership by comparing total_points or raw scores unless score_direction is high_wins.
 - best_score and worst_score in query_player_detail already follow LeaderLodge rules for that game type (best = favorable raw score for that game type)."""
+
+_ASK_TEAM_RULES = """- When the user asks about teams, partners, pairings, duos, or the best two-person side: call query_team_pairings for the game type in scope.
+- Team answers must use observed_duo_teams from query_team_pairings: real recorded two-player teams (e.g. Amelia+Harper) with rank_score, wins_display, and games_played.
+- Never recommend teams based on player names, gender, personality, or stereotypes. Name-based boy/girl grouping rules apply only when the user explicitly asks for that grouping.
+- Individual rankings from query_team_pairings or query_leaderboard are supporting context only; they do not replace stats for playing together as a duo.
+- If observed_duo_teams is empty or a pair has zero games together, say data is limited. Do not invent chemistry or compatibility."""
 
 _ASK_COMPARISON_RULES = """- When comparing two players, you MUST include each player's overall rank and rank_score for the game type and period in scope. Overall standing is the most important comparison: state it first (who ranks higher, each player's rank number, and rank_score). Higher rank_score is always better; lower rank number (1 is best) is better.
 - Call query_player_detail for each player when rank is not already in tool results. query_head_to_head covers shared-table stats only; it does not replace overall rank unless player rows already include rank and rank_score.
@@ -98,6 +104,7 @@ Rules:
 - Use ONLY facts returned by tools for game statistics. Do not invent games, players, or numbers.
 {_ASK_ROSTER_INTERPRETATION_RULES}
 {_ASK_SCORE_DIRECTION_RULES}
+{_ASK_TEAM_RULES}
 {_ASK_COMPARISON_RULES}
 {_RANK_FRAMING_RULES}
 - The user message includes a player roster with player_id and name aliases. Use player_query or player_id from that roster when calling query_player_detail or query_head_to_head. Never invent player_id values.
@@ -109,6 +116,7 @@ Rules:
 - query_placement_leaders counts how often players finish in a placement. query_month_leaders ranks players by rank_score, wins, or games_played for a calendar month. Pick the tool that matches the question.
 - query_head_to_head is for two players in games they both attended (includes overall rank on each player row). query_hall_of_fame is for period winners across years or months. Any player comparison must cite overall rank and rank_score.
 - compare_players returns side-by-side stats for 2 to 5 players in one call. Prefer it over multiple query_player_detail calls when comparing several players.
+- query_team_pairings returns observed two-player teams (duo sides) plus individual rankings. Use it for best partner, best duo, or team pairing questions.
 - query_loss_leaders answers who loses most for game types that record explicit losses. For other game types, use query_placement_leaders for last-place finishes.
 - query_date_range_leaderboard uses start_date and end_date (YYYY-MM-DD) for custom date spans. query_location_leaderboard filters by venue; pass location_query or location_id.
 - When the user asks about the leader, current leader, who leads, or the top player: call query_leaderboard first (limit=1 or 3), then query_player_detail for the rank-1 player from those results. The English word leader is a role, not a player name. Never pass player_query=leader.

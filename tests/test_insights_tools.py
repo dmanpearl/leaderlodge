@@ -129,6 +129,14 @@ def test_ask_prompt_allows_name_based_roster_interpretation():
     assert "Do not refuse name-based grouping" in ASK_SYSTEM_PROMPT
 
 
+def test_ask_prompt_team_pairings_use_recorded_data():
+    from leaderlodge.insights.prompts import ASK_SYSTEM_PROMPT
+
+    assert "query_team_pairings" in ASK_SYSTEM_PROMPT
+    assert "observed_duo_teams" in ASK_SYSTEM_PROMPT
+    assert "Never recommend teams based on player names" in ASK_SYSTEM_PROMPT
+
+
 @pytest.mark.django_db
 def test_query_head_to_head_includes_score_direction(user, group):
     _record_game(group, user, winner_idx=0, loser_idx=1, third_idx=2)
@@ -448,3 +456,95 @@ def test_tool_executor_compare_players(user, group):
     )
 
     assert len(result["players"]) == 2
+
+
+@pytest.mark.django_db
+def test_query_team_pairings_returns_observed_duo_teams(user, group):
+    from leaderlodge.games.models import GameParticipantResult
+    from leaderlodge.groups.services import add_guest_player
+    from leaderlodge.groups.teams import resolve_side_player
+    from leaderlodge.insights.tools.teams import query_team_pairings
+
+    add_guest_player(group=group, display_name="Alex")
+    players = list(group.players.order_by("pk"))
+    team_ab = resolve_side_player(group=group, members=players[:2])
+    team_cd = resolve_side_player(group=group, members=players[2:4])
+
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on="2026-01-20",
+        participants=[
+            ParticipantInput(
+                player=team_ab,
+                score=30,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=team_cd,
+                score=10,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+
+    result = query_team_pairings(group, game_type_code="dominos")
+
+    assert result["team_size"] == 2
+    assert len(result["observed_duo_teams"]) == 2
+    top = result["observed_duo_teams"][0]
+    assert top["wins"] == 1
+    assert len(top["member_labels"]) == 2
+    assert "wins_display" in top
+    assert "Do not recommend pairs that never played together" in result["guidance"]
+
+
+@pytest.mark.django_db
+def test_tool_executor_query_team_pairings(user, group):
+    from leaderlodge.games.models import GameParticipantResult
+    from leaderlodge.groups.services import add_guest_player
+    from leaderlodge.groups.teams import resolve_side_player
+
+    add_guest_player(group=group, display_name="Alex")
+    players = list(group.players.order_by("pk"))
+    team_ab = resolve_side_player(group=group, members=players[:2])
+    team_cd = resolve_side_player(group=group, members=players[2:4])
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on="2026-01-20",
+        participants=[
+            ParticipantInput(
+                player=team_ab,
+                score=30,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=team_cd,
+                score=10,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+
+    result = executor.execute(
+        "query_team_pairings",
+        {"game_type_code": "dominos"},
+    )
+
+    assert len(result["observed_duo_teams"]) == 2
+    assert result["observed_duo_teams"][0]["rank_score"] is not None

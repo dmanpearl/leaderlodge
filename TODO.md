@@ -98,6 +98,8 @@
 
 ## Open Items
 
+- [ ] AI: Be team savoy
+- [ ] AI: Log Ask questions and answers that users type in to any interface.
 - [ ] As an admin, I'd like to be notified by email when users signup, invite, change game, or submit feedback. I'd like to have boolean or bit-wise switches for each of these notification types. I'd like to be able to configure the notification email, but default to dmanpearl@pixelmonks.com (default by seed command ok).
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)

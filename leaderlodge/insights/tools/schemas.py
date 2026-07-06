@@ -337,4 +337,26 @@ ASK_TOOL_SCHEMAS: list[dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_team_pairings",
+            "description": (
+                "Observed two-player teams (duo sides) and individual rankings for "
+                "one game type. Use for best partner, best duo, or team pairing "
+                "questions. Returns observed_duo_teams with member labels, "
+                "rank_score, wins_display, and games_played."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
 ]

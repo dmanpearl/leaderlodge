@@ -176,6 +176,17 @@ Returns players ordered by recorded **losses** (weighted count). Only meaningful
 
 Returns one JSON payload with a `players` array of `query_player_detail` snapshots (rank, outcomes, scores, display fields). Saves tool rounds vs multiple `query_player_detail` calls.
 
+### `query_team_pairings`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | Team games such as pickleball |
+| `year`, `month`, `all_time` | No | Same period resolution as leaderboard |
+| `game_size` | No | |
+| `limit` | No | Default 10, max 20 |
+
+Returns `observed_duo_teams` (recorded two-player sides with `member_labels`, `rank_score`, `wins_display`, and `games_played`) plus `individual_rankings` for context. Use for best partner, best duo, or team pairing questions. The model must not recommend pairs from names or stereotypes when this tool is available.
+
 ### `query_date_range_leaderboard`
 
 | Parameter | Required | Notes |
@@ -232,6 +243,7 @@ Returns scores, placements, location, and players for one recorded game.
 | Player dates and podiums | "When did Amelia last play?" / "How often does she podium?" | `query_player_detail` |
 | Head-to-head | "Who wins more when Amelia and Hudson play together?" | `query_head_to_head` |
 | Head-to-head (alt phrasing) | "Amelia vs Hudson: who wins when they share a table?" | `query_head_to_head` |
+| Team pairings | "Which players would make the best two-person team in pickleball?" | `query_team_pairings` |
 | Hall of Fame / dynasty | "Who dominated across years?" / "Repeat monthly winners?" | `query_hall_of_fame` |
 | Period winners by game | "Who won 2024 in each game?" | `query_hall_of_fame`, `granularity=year` |
 | Roster discovery | "Who is in our group?" | `list_group_players` |
