@@ -30,6 +30,7 @@
   }
 
   let lastMarkdown = "";
+  let lastLogId = null;
   let isRegenerate = false;
   let loading = false;
 
@@ -111,6 +112,9 @@
     if (panel.dataset.month) {
       payload.month = panel.dataset.month;
     }
+    if (isRegenerate && lastLogId) {
+      payload.regenerate_of_id = lastLogId;
+    }
     if (
       window.leaderlodgeInsightsDebug &&
       window.leaderlodgeInsightsDebug.isEnabled(panel)
@@ -146,6 +150,9 @@
         body: JSON.stringify(buildPayload()),
       });
       const data = await response.json();
+      if (data.log_id) {
+        lastLogId = data.log_id;
+      }
       if (!response.ok) {
         showError(data.error || "Could not answer that question.");
         return;

@@ -229,6 +229,29 @@ def resolve_matchup_preset(raw: str) -> str:
     return MATCHUP_PRESET_DYNAMICS
 
 
+def rendered_preset_question_text(
+    *,
+    source: str,
+    preset: str,
+    group_scope: str = "",
+) -> str:
+    from leaderlodge.insights.models import InsightLog
+
+    if source == InsightLog.Source.PLAYER:
+        resolved = resolve_preset(preset)
+        return _PRESET_MESSAGES[resolved]
+    if source in (
+        InsightLog.Source.GROUP_LEADERBOARD,
+        InsightLog.Source.GROUP_HALL_OF_FAME,
+    ):
+        resolved = resolve_group_preset(preset, scope=group_scope)
+        return _GROUP_PRESET_MESSAGES[resolved]
+    if source == InsightLog.Source.MATCHUP:
+        resolved = resolve_matchup_preset(preset)
+        return _MATCHUP_PRESET_MESSAGES[resolved]
+    raise ValueError(f"Unsupported preset source: {source}")
+
+
 def render_user_message(
     *,
     context: dict[str, Any],

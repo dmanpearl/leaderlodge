@@ -32,7 +32,6 @@ from leaderlodge.insights.access import (
 from leaderlodge.insights.context.group import (
     GroupInsightContextError,
     SCOPE_HALL_OF_FAME,
-    SCOPE_LEADERBOARD,
     build_group_insight_context,
 )
 from leaderlodge.insights.context.matchup import (
@@ -47,7 +46,13 @@ from leaderlodge.insights.debug import (
     build_contextual_insight_debug,
     request_include_debug,
 )
-from leaderlodge.insights.exceptions import InsightRateLimitExceeded
+from leaderlodge.insights.insight_log import (
+    InsightLogDraft,
+    json_response_with_log,
+    source_for_group_scope,
+    summarize_ask_scope,
+)
+from leaderlodge.insights.models import InsightLog
 from leaderlodge.insights.model_selection import (
     persist_insight_model_id,
     preferred_insight_model_id,
@@ -162,6 +167,7 @@ def _insight_meta(result: InsightResult, context: dict[str, Any]) -> dict[str, A
 
 def _insight_json_response(
     *,
+    draft: InsightLogDraft,
     result: InsightResult,
     context: dict[str, Any],
     debug: dict[str, Any] | None = None,
@@ -173,18 +179,53 @@ def _insight_json_response(
     }
     if debug is not None:
         body["debug"] = debug
-    return JsonResponse(body)
+    return json_response_with_log(draft=draft, body=body, status=200, result=result)
+
+
+def _rate_limit_response(
+    *,
+    draft: InsightLogDraft,
+    exc: InsightRateLimitExceeded,
+) -> JsonResponse:
+    return json_response_with_log(
+        draft=draft,
+        body={
+            "error": "Rate limit exceeded.",
+            "scope": exc.scope,
+            "window": exc.window,
+            "limit": exc.limit,
+        },
+        status=429,
+        extra_headers={"Retry-After": str(exc.retry_after_seconds)},
+    )
 
 
 @demo_or_login_required
 @require_POST
 def player_insight(request: HttpRequest) -> HttpResponse:
-    if not insights_feature_enabled():
-        return JsonResponse({"error": "Insights are not enabled."}, status=404)
-
     payload = _parse_json_body(request)
+    draft = InsightLogDraft(
+        request=request,
+        payload=payload or {},
+        source=InsightLog.Source.PLAYER,
+        preset=str((payload or {}).get("preset", "")).strip(),
+        raw_question=str((payload or {}).get("question", "")).strip(),
+        model_slug=resolve_model_slug(str((payload or {}).get("model", "")).strip()),
+    )
+
+    if not insights_feature_enabled():
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Insights are not enabled."},
+            status=404,
+        )
+
     if payload is None:
-        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Invalid JSON body."},
+            status=400,
+        )
 
     group_id = str(payload.get("group_id", "")).strip()
     player_id = str(payload.get("player_id", "")).strip()
@@ -192,11 +233,23 @@ def player_insight(request: HttpRequest) -> HttpResponse:
     preset = resolve_preset(str(payload.get("preset", "")).strip())
     question = str(payload.get("question", "")).strip()
     model_slug = resolve_model_slug(str(payload.get("model", "")).strip())
+    draft.preset = preset
+    draft.raw_question = question
+    draft.model_slug = model_slug
+    draft.game_type_code = game_type_code
 
     if not group_id or not player_id or not game_type_code:
-        return JsonResponse({"error": "Missing required fields."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Missing required fields."},
+            status=400,
+        )
     if preset == PRESET_CUSTOM and not question.strip():
-        return JsonResponse({"error": "A custom question is required."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "A custom question is required."},
+            status=400,
+        )
 
     try:
         group, player, game_type_code, period = resolve_player_insight_target(
@@ -209,22 +262,21 @@ def player_insight(request: HttpRequest) -> HttpResponse:
             raw_month=str(payload.get("month", "")),
         )
     except InsightAccessError as exc:
-        return JsonResponse({"error": str(exc)}, status=403)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=403,
+        )
+
+    draft.group = group
+    draft.player = player
+    draft.game_type_code = game_type_code
+    draft.period = period
 
     try:
         check_insight_rate_limit(request, user=request.user, model_slug=model_slug)
     except InsightRateLimitExceeded as exc:
-        response = JsonResponse(
-            {
-                "error": "Rate limit exceeded.",
-                "scope": exc.scope,
-                "window": exc.window,
-                "limit": exc.limit,
-            },
-            status=429,
-        )
-        response["Retry-After"] = str(exc.retry_after_seconds)
-        return response
+        return _rate_limit_response(draft=draft, exc=exc)
 
     try:
         context = build_player_insight_context(
@@ -234,8 +286,13 @@ def player_insight(request: HttpRequest) -> HttpResponse:
             period=period,
         )
     except InsightContextError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=400,
+        )
 
+    draft.insight_context = context
     include_debug = request_include_debug(request.user, payload)
 
     try:
@@ -247,9 +304,17 @@ def player_insight(request: HttpRequest) -> HttpResponse:
             skip_cache=bool(payload.get("refresh")) or include_debug,
         )
     except ValueError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=400,
+        )
     except InsightProviderError as exc:
-        return JsonResponse({"error": str(exc)}, status=502)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=502,
+        )
 
     if not result.cached:
         record_insight_usage(request, user=request.user, model_slug=model_slug)
@@ -272,18 +337,42 @@ def player_insight(request: HttpRequest) -> HttpResponse:
             ),
         )
 
-    return _insight_json_response(result=result, context=context, debug=debug)
+    return _insight_json_response(
+        draft=draft,
+        result=result,
+        context=context,
+        debug=debug,
+    )
 
 
 @demo_or_login_required
 @require_POST
 def group_insight(request: HttpRequest) -> HttpResponse:
-    if not insights_feature_enabled():
-        return JsonResponse({"error": "Insights are not enabled."}, status=404)
-
     payload = _parse_json_body(request)
+    scope_raw = str((payload or {}).get("scope", "")).strip()
+    draft = InsightLogDraft(
+        request=request,
+        payload=payload or {},
+        source=source_for_group_scope(scope_raw),
+        preset=str((payload or {}).get("preset", "")).strip(),
+        raw_question=str((payload or {}).get("question", "")).strip(),
+        group_scope=scope_raw,
+        model_slug=resolve_model_slug(str((payload or {}).get("model", "")).strip()),
+    )
+
+    if not insights_feature_enabled():
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Insights are not enabled."},
+            status=404,
+        )
+
     if payload is None:
-        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Invalid JSON body."},
+            status=400,
+        )
 
     group_id = str(payload.get("group_id", "")).strip()
     scope = str(payload.get("scope", "")).strip()
@@ -294,11 +383,25 @@ def group_insight(request: HttpRequest) -> HttpResponse:
     granularity = resolve_hall_of_fame_granularity(
         str(payload.get("granularity", "")).strip()
     )
+    draft.source = source_for_group_scope(scope)
+    draft.preset = preset
+    draft.raw_question = question
+    draft.group_scope = scope
+    draft.model_slug = model_slug
+    draft.game_type_code = game_type_code
 
     if not group_id or not scope:
-        return JsonResponse({"error": "Missing required fields."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Missing required fields."},
+            status=400,
+        )
     if preset == PRESET_CUSTOM and not question.strip():
-        return JsonResponse({"error": "A custom question is required."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "A custom question is required."},
+            status=400,
+        )
 
     try:
         group, resolved_scope, period, resolved_game_type_code = (
@@ -314,22 +417,22 @@ def group_insight(request: HttpRequest) -> HttpResponse:
             )
         )
     except InsightAccessError as exc:
-        return JsonResponse({"error": str(exc)}, status=403)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=403,
+        )
+
+    draft.group = group
+    draft.source = source_for_group_scope(resolved_scope)
+    draft.group_scope = resolved_scope
+    draft.period = period
+    draft.game_type_code = resolved_game_type_code or ""
 
     try:
         check_insight_rate_limit(request, user=request.user, model_slug=model_slug)
     except InsightRateLimitExceeded as exc:
-        response = JsonResponse(
-            {
-                "error": "Rate limit exceeded.",
-                "scope": exc.scope,
-                "window": exc.window,
-                "limit": exc.limit,
-            },
-            status=429,
-        )
-        response["Retry-After"] = str(exc.retry_after_seconds)
-        return response
+        return _rate_limit_response(draft=draft, exc=exc)
 
     try:
         context = build_group_insight_context(
@@ -340,8 +443,13 @@ def group_insight(request: HttpRequest) -> HttpResponse:
             granularity=granularity if resolved_scope == SCOPE_HALL_OF_FAME else None,
         )
     except GroupInsightContextError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=400,
+        )
 
+    draft.insight_context = context
     include_debug = request_include_debug(request.user, payload)
 
     try:
@@ -353,9 +461,17 @@ def group_insight(request: HttpRequest) -> HttpResponse:
             skip_cache=bool(payload.get("refresh")) or include_debug,
         )
     except ValueError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=400,
+        )
     except InsightProviderError as exc:
-        return JsonResponse({"error": str(exc)}, status=502)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=502,
+        )
 
     if not result.cached:
         record_insight_usage(request, user=request.user, model_slug=model_slug)
@@ -378,28 +494,61 @@ def group_insight(request: HttpRequest) -> HttpResponse:
             ),
         )
 
-    return _insight_json_response(result=result, context=context, debug=debug)
+    return _insight_json_response(
+        draft=draft,
+        result=result,
+        context=context,
+        debug=debug,
+    )
 
 
 @demo_or_login_required
 @require_POST
 def matchup_insight(request: HttpRequest) -> HttpResponse:
-    if not insights_feature_enabled():
-        return JsonResponse({"error": "Insights are not enabled."}, status=404)
-
     payload = _parse_json_body(request)
+    draft = InsightLogDraft(
+        request=request,
+        payload=payload or {},
+        source=InsightLog.Source.MATCHUP,
+        preset=str((payload or {}).get("preset", "")).strip(),
+        raw_question=str((payload or {}).get("question", "")).strip(),
+        model_slug=resolve_model_slug(str((payload or {}).get("model", "")).strip()),
+    )
+
+    if not insights_feature_enabled():
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Insights are not enabled."},
+            status=404,
+        )
+
     if payload is None:
-        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Invalid JSON body."},
+            status=400,
+        )
 
     game_id = str(payload.get("game_id", "")).strip()
     preset = resolve_matchup_preset(str(payload.get("preset", "")).strip())
     question = str(payload.get("question", "")).strip()
     model_slug = resolve_model_slug(str(payload.get("model", "")).strip())
+    draft.preset = preset
+    draft.raw_question = question
+    draft.model_slug = model_slug
 
     if not game_id:
-        return JsonResponse({"error": "Missing required fields."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Missing required fields."},
+            status=400,
+        )
     if preset == PRESET_CUSTOM and not question.strip():
-        return JsonResponse({"error": "A custom question is required."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "A custom question is required."},
+            status=400,
+        )
 
     try:
         game = resolve_matchup_insight_target(
@@ -408,28 +557,31 @@ def matchup_insight(request: HttpRequest) -> HttpResponse:
             game_id=game_id,
         )
     except InsightAccessError as exc:
-        return JsonResponse({"error": str(exc)}, status=403)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=403,
+        )
+
+    draft.game = game
+    draft.group = game.group
+    draft.game_type_code = game.game_type_code
 
     try:
         check_insight_rate_limit(request, user=request.user, model_slug=model_slug)
     except InsightRateLimitExceeded as exc:
-        response = JsonResponse(
-            {
-                "error": "Rate limit exceeded.",
-                "scope": exc.scope,
-                "window": exc.window,
-                "limit": exc.limit,
-            },
-            status=429,
-        )
-        response["Retry-After"] = str(exc.retry_after_seconds)
-        return response
+        return _rate_limit_response(draft=draft, exc=exc)
 
     try:
         context = build_matchup_insight_context(game)
     except MatchupInsightContextError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=400,
+        )
 
+    draft.insight_context = context
     include_debug = request_include_debug(request.user, payload)
 
     try:
@@ -441,9 +593,17 @@ def matchup_insight(request: HttpRequest) -> HttpResponse:
             skip_cache=bool(payload.get("refresh")) or include_debug,
         )
     except ValueError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=400,
+        )
     except InsightProviderError as exc:
-        return JsonResponse({"error": str(exc)}, status=502)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=502,
+        )
 
     if not result.cached:
         record_insight_usage(request, user=request.user, model_slug=model_slug)
@@ -466,7 +626,12 @@ def matchup_insight(request: HttpRequest) -> HttpResponse:
             ),
         )
 
-    return _insight_json_response(result=result, context=context, debug=debug)
+    return _insight_json_response(
+        draft=draft,
+        result=result,
+        context=context,
+        debug=debug,
+    )
 
 
 def _ask_template_context(request: HttpRequest) -> dict[str, Any]:
@@ -674,19 +839,43 @@ def ask_example_detail(request: HttpRequest, slug: str) -> HttpResponse:
 @demo_or_login_required
 @require_POST
 def ask_query(request: HttpRequest) -> HttpResponse:
-    if not insights_feature_enabled():
-        return JsonResponse({"error": "Insights are not enabled."}, status=404)
-
     payload = _parse_json_body(request)
+    draft = InsightLogDraft(
+        request=request,
+        payload=payload or {},
+        source=InsightLog.Source.ASK,
+        raw_question=str((payload or {}).get("question", "")).strip(),
+        model_slug=resolve_model_slug(str((payload or {}).get("model", "")).strip()),
+        game_type_code=str((payload or {}).get("game_type_code", "")).strip(),
+    )
+
+    if not insights_feature_enabled():
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Insights are not enabled."},
+            status=404,
+        )
+
     if payload is None:
-        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Invalid JSON body."},
+            status=400,
+        )
 
     group_id = str(payload.get("group_id", "")).strip()
     question = str(payload.get("question", "")).strip()
     model_slug = resolve_model_slug(str(payload.get("model", "")).strip())
+    draft.raw_question = question
+    draft.model_slug = model_slug
+    draft.game_type_code = str(payload.get("game_type_code", "")).strip()
 
     if not group_id or not question:
-        return JsonResponse({"error": "Missing required fields."}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": "Missing required fields."},
+            status=400,
+        )
 
     try:
         group, game_type_code, period = resolve_ask_target(
@@ -698,22 +887,24 @@ def ask_query(request: HttpRequest) -> HttpResponse:
             raw_month=str(payload.get("month", "")),
         )
     except InsightAccessError as exc:
-        return JsonResponse({"error": str(exc)}, status=403)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=403,
+        )
+
+    draft.group = group
+    draft.game_type_code = game_type_code or ""
+    draft.period = period
+    draft.context_summary = summarize_ask_scope(
+        group_name=group.name,
+        period_label=period.display_label(),
+    )
 
     try:
         check_insight_rate_limit(request, user=request.user, model_slug=model_slug)
     except InsightRateLimitExceeded as exc:
-        response = JsonResponse(
-            {
-                "error": "Rate limit exceeded.",
-                "scope": exc.scope,
-                "window": exc.window,
-                "limit": exc.limit,
-            },
-            status=429,
-        )
-        response["Retry-After"] = str(exc.retry_after_seconds)
-        return response
+        return _rate_limit_response(draft=draft, exc=exc)
 
     scope = AskScope(
         group=group,
@@ -734,9 +925,17 @@ def ask_query(request: HttpRequest) -> HttpResponse:
             collect_debug=include_debug,
         )
     except ValueError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=400,
+        )
     except InsightProviderError as exc:
-        return JsonResponse({"error": str(exc)}, status=502)
+        return json_response_with_log(
+            draft=draft,
+            body={"error": str(exc)},
+            status=502,
+        )
 
     if not result.cached:
         record_insight_usage(request, user=request.user, model_slug=model_slug)
@@ -776,4 +975,4 @@ def ask_query(request: HttpRequest) -> HttpResponse:
             note="Response served from cache; tool rounds not stored.",
         )
 
-    return JsonResponse(body)
+    return json_response_with_log(draft=draft, body=body, status=200, result=result)

@@ -95,12 +95,12 @@
 - [x] 3045cb8 Feedback Tracker: Users can enter bugs, suggestions, comments, and more
 - [x] 8bb48c5 feat(feedback): add account menu entry and guest auth dialog
 - [x] f7b6ad6 Feedback login redirect: after guest auth dialog, login returns to feedback form
+- [x] c1a6434 AI: Be team savoy with pairing tool for Ask the Lodge
+- [x] 87bbe4d As an admin, I'd like to be notified by email when users signup, invite, change game, or submit feedback. I'd like to have json site settings for each of the notification types. I'd like to be able to configure the notification email by seed command
+- [x] AI: Log Ask questions and answers that users type in to any interface.
 
 ## Open Items
 
-- [ ] AI: Be team savoy
-- [ ] AI: Log Ask questions and answers that users type in to any interface.
-- [ ] As an admin, I'd like to be notified by email when users signup, invite, change game, or submit feedback. I'd like to have boolean or bit-wise switches for each of these notification types. I'd like to be able to configure the notification email, but default to dmanpearl@pixelmonks.com (default by seed command ok).
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
