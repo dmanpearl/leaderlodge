@@ -43,6 +43,19 @@ def test_feedback_create_requires_login(client):
 
 
 @pytest.mark.django_db
+def test_feedback_create_form_defaults_type_to_bug(client, user):
+    client.force_login(user)
+    response = client.get(reverse("feedback:create"))
+    assert response.status_code == 200
+    form = response.context["form"]
+    assert form.fields["feedback_type"].initial == Feedback.FeedbackType.BUG
+    content = response.content.decode()
+    assert 'value="bug"' in content
+    assert "selected" in content
+    assert "---------" not in content
+
+
+@pytest.mark.django_db
 def test_feedback_create_submits_and_emails_user(client, user):
     client.force_login(user)
     response = client.post(

@@ -45,6 +45,9 @@ class FeedbackForm(forms.ModelForm):
             ("", "All games"),
             *game_type_choices(),
         ]
+        if not self.is_bound and not self.instance.pk:
+            self.fields["feedback_type"].initial = Feedback.FeedbackType.BUG
+        self.fields["feedback_type"].choices = Feedback.FeedbackType.choices
 
     def clean_game_type_code(self):
         code = self.cleaned_data.get("game_type_code", "")
