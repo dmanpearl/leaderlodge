@@ -269,3 +269,11 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     display: none;
   }
 }
+
+.honeypot-wrap {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}

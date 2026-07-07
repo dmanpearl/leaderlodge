@@ -188,3 +188,39 @@ def notify_admin_feedback(*, feedback) -> bool:
             "admin_url": reverse("admin:feedback_feedback_change", args=[feedback.pk]),
         },
     )
+
+
+_SIGNUP_BOT_SOURCE_LABELS = {
+    "signup": "Open signup",
+    "invite_join": "Invite join signup",
+}
+
+_SIGNUP_BOT_REASON_LABELS = {
+    "honeypot_filled": "Honeypot field filled",
+    "submitted_too_fast": "Form submitted too quickly",
+    "missing_timestamp": "Missing form timestamp",
+}
+
+
+def notify_admin_signup_bot_blocked(
+    *,
+    request,
+    source: str,
+    reason: str,
+    email: str = "",
+) -> bool:
+    from leaderlodge.accounts.honeypot import client_ip
+
+    user_agent = (request.META.get("HTTP_USER_AGENT") or "").strip()
+    if len(user_agent) > 300:
+        user_agent = f"{user_agent[:297]}..."
+    return notify_admin(
+        kind="signup_bot_blocked",
+        context={
+            "source_label": _SIGNUP_BOT_SOURCE_LABELS.get(source, source),
+            "reason_label": _SIGNUP_BOT_REASON_LABELS.get(reason, reason),
+            "email": email,
+            "ip_address": client_ip(request),
+            "user_agent": user_agent,
+        },
+    )

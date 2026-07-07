@@ -6,6 +6,7 @@ from django.core import mail
 from django.test import Client
 from django.urls import reverse
 
+from leaderlodge.accounts.honeypot import honeypot_post_data
 from leaderlodge.accounts.models import UserProfile
 from leaderlodge.accounts.registration import (
     unique_username_for_email,
@@ -39,12 +40,14 @@ def test_unique_username_for_email_adds_suffix_on_collision():
 def test_signup_creates_user_profile_and_logs_in(client):
     response = client.post(
         reverse("accounts:signup"),
-        {
-            "email": "newplayer@example.com",
-            "first_name": "New",
-            "password1": "strong-pass-123",
-            "password2": "strong-pass-123",
-        },
+        honeypot_post_data(
+            {
+                "email": "newplayer@example.com",
+                "first_name": "New",
+                "password1": "strong-pass-123",
+                "password2": "strong-pass-123",
+            }
+        ),
     )
 
     assert response.status_code == 302
@@ -61,11 +64,13 @@ def test_signup_creates_user_profile_and_logs_in(client):
 def test_signup_sends_welcome_email_with_verification_link(client):
     response = client.post(
         reverse("accounts:signup"),
-        {
-            "email": "newplayer@example.com",
-            "password1": "strong-pass-123",
-            "password2": "strong-pass-123",
-        },
+        honeypot_post_data(
+            {
+                "email": "newplayer@example.com",
+                "password1": "strong-pass-123",
+                "password2": "strong-pass-123",
+            }
+        ),
     )
 
     assert response.status_code == 302
@@ -82,11 +87,13 @@ def test_signup_sends_welcome_email_with_verification_link(client):
 def test_verify_email_confirm_marks_profile_verified(client):
     client.post(
         reverse("accounts:signup"),
-        {
-            "email": "verifyme@example.com",
-            "password1": "strong-pass-123",
-            "password2": "strong-pass-123",
-        },
+        honeypot_post_data(
+            {
+                "email": "verifyme@example.com",
+                "password1": "strong-pass-123",
+                "password2": "strong-pass-123",
+            }
+        ),
     )
     verify_url = re.search(
         r"http://testserver(/accounts/verify/[^\s]+)",
@@ -316,11 +323,13 @@ def test_signup_rejects_duplicate_email(client, user):
 
     response = client.post(
         reverse("accounts:signup"),
-        {
-            "email": "David@Example.com",
-            "password1": "strong-pass-123",
-            "password2": "strong-pass-123",
-        },
+        honeypot_post_data(
+            {
+                "email": "David@Example.com",
+                "password1": "strong-pass-123",
+                "password2": "strong-pass-123",
+            }
+        ),
     )
 
     assert response.status_code == 200

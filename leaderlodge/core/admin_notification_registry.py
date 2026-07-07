@@ -2,6 +2,7 @@
 
 NOTIFICATION_LABELS: dict[str, str] = {
     "signup": "New user signup",
+    "signup_bot_blocked": "Signup blocked (bot)",
     "invite_sent": "Group invite sent",
     "invite_accepted": "Group invite accepted",
     "game_change": "Game edited (change log)",

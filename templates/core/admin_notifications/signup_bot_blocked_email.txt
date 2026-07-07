@@ -1,0 +1,9 @@
+A signup attempt was blocked by the honeypot on LeaderLodge.
+
+Source: {{ source_label }}
+Reason: {{ reason_label }}
+Email attempted: {{ email|default:"(none)" }}
+IP address: {{ ip_address|default:"(unknown)" }}
+User agent: {{ user_agent|default:"(unknown)" }}
+
+No account was created.

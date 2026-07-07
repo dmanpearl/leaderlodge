@@ -1,0 +1,1 @@
+LeaderLodge: signup blocked ({{ reason_label }})

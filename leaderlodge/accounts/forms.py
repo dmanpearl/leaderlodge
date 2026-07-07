@@ -9,6 +9,12 @@ from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
 from django.template import loader
 
+from leaderlodge.accounts.honeypot import (
+    GENERIC_SIGNUP_ERROR,
+    add_honeypot_fields,
+    honeypot_triggered,
+    signup_email_from_post,
+)
 from leaderlodge.accounts.registration import unique_username_for_email
 
 User = get_user_model()
@@ -123,6 +129,7 @@ class SignupForm(forms.Form):
             self.fields["email"].widget.attrs["readonly"] = True
         if invite_first_name and not self.initial.get("first_name"):
             self.fields["first_name"].initial = invite_first_name
+        add_honeypot_fields(self)
 
     def clean_email(self):
         if self.lock_email and self.invite_email:
@@ -217,6 +224,7 @@ class InviteJoinSignupForm(forms.Form):
         super().__init__(*args, **kwargs)
         if invite is not None:
             self.fields["email"].initial = invite.email
+        add_honeypot_fields(self)
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
@@ -232,7 +240,10 @@ class InviteJoinSignupForm(forms.Form):
             password_validation.validate_password(password1)
         if password1 and password2 and password1 != password2:
             self.add_error("password2", "The two password fields didn’t match.")
-        if self.invite and User.objects.filter(email__iexact=self.invite.email).exists():
+        if (
+            self.invite
+            and User.objects.filter(email__iexact=self.invite.email).exists()
+        ):
             raise ValidationError("An account with this email already exists.")
         return cleaned
 

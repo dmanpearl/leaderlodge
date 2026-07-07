@@ -212,6 +212,13 @@ INSIGHTS_LIMITS_JSON = os.environ.get("INSIGHTS_LIMITS_JSON", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 GOOGLE_AI_API_KEY = os.environ.get("GOOGLE_AI_API_KEY", "")
 
+# Signup honeypot (hidden field + minimum submit time). Set false to disable.
+HONEYPOT_ENABLED = os.environ.get("HONEYPOT_ENABLED", "true").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL",
     "LeaderLodge <noreply@leaderlodge.com>",

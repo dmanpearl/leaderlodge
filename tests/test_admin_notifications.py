@@ -5,6 +5,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.urls import reverse
 
+from leaderlodge.accounts.honeypot import honeypot_post_data
 from leaderlodge.core.admin_notification_registry import (
     DEFAULT_NOTIFICATIONS,
     NOTIFICATION_LABELS,
@@ -96,12 +97,14 @@ def test_notify_admin_signup_sends_email(site_settings, user):
 def test_signup_view_notifies_admin(client, site_settings):
     response = client.post(
         reverse("accounts:signup"),
-        {
-            "email": "newplayer@example.com",
-            "first_name": "New",
-            "password1": "strong-pass-123",
-            "password2": "strong-pass-123",
-        },
+        honeypot_post_data(
+            {
+                "email": "newplayer@example.com",
+                "first_name": "New",
+                "password1": "strong-pass-123",
+                "password2": "strong-pass-123",
+            }
+        ),
     )
     assert response.status_code == 302
     assert len(mail.outbox) == 2

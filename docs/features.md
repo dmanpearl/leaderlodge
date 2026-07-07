@@ -155,8 +155,9 @@ and leaderboards for social games played by groups of people.
 
 ## Admin Interface
 
-- SiteSettings singleton: per-event email notification toggles (signup, invite
-  sent, invite accepted, game change, feedback) and destination address
+- SiteSettings singleton: per-event email notification toggles (signup, signup
+  bot blocked, invite sent, invite accepted, game change, feedback) and
+  destination address
 - Admin panels for games, score change logs, groups, players, teams, locations,
   invites, memberships, feedback, and insight logs
 - UserProfile admin with email verification tracking, UI settings, and
@@ -183,6 +184,14 @@ and leaderboards for social games played by groups of people.
 - Console email in development
 - Emails: welcome, email verification, password reset, invite acceptance, group
   invite, feedback confirmation, admin alerts
+
+## Security
+
+- Signup honeypot on open signup and invite-join signup: hidden decoy field plus
+  minimum submit timing; bots are blocked without creating an account
+- Optional admin email when a signup bot attempt is blocked (Site settings toggle:
+  "Signup blocked (bot)")
+- Disable honeypot checks site-wide with `HONEYPOT_ENABLED=false` in environment
 
 ## Deployment and Infrastructure
 

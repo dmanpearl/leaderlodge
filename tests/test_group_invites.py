@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.urls import reverse
 
+from leaderlodge.accounts.honeypot import honeypot_post_data
 from leaderlodge.groups.invites import (
     accept_group_invite,
     create_email_invite,
@@ -157,13 +158,15 @@ def test_signup_via_invite_auto_joins_group(client, owner, group):
 
     response = client.post(
         f"{reverse('accounts:signup')}?invite={invite.token}",
-        {
-            "invite_token": invite.token,
-            "email": "brandnew@example.com",
-            "password1": "ComplexPass123!",
-            "password2": "ComplexPass123!",
-            "first_name": "Brandon",
-        },
+        honeypot_post_data(
+            {
+                "invite_token": invite.token,
+                "email": "brandnew@example.com",
+                "password1": "ComplexPass123!",
+                "password2": "ComplexPass123!",
+                "first_name": "Brandon",
+            }
+        ),
         follow=True,
     )
 
@@ -238,11 +241,14 @@ def test_cannot_invite_duplicate_pending_email(client, owner, group):
     )
     assert response.status_code == 400
     assert "already pending" in response.content.decode()
-    assert GroupInvite.objects.filter(
-        group=group,
-        email="friend@example.com",
-        revoked_at__isnull=True,
-    ).count() == 1
+    assert (
+        GroupInvite.objects.filter(
+            group=group,
+            email="friend@example.com",
+            revoked_at__isnull=True,
+        ).count()
+        == 1
+    )
 
 
 @pytest.mark.django_db
@@ -292,13 +298,15 @@ def test_join_page_creates_account_and_joins_group(client, owner, group):
 
     response = client.post(
         reverse("groups:invite_accept", kwargs={"token": invite.token}),
-        {
-            "email": "brandnew@example.com",
-            "first_name": "Brandon",
-            "last_name": "New",
-            "password1": "ComplexPass123!",
-            "password2": "ComplexPass123!",
-        },
+        honeypot_post_data(
+            {
+                "email": "brandnew@example.com",
+                "first_name": "Brandon",
+                "last_name": "New",
+                "password1": "ComplexPass123!",
+                "password2": "ComplexPass123!",
+            }
+        ),
         follow=True,
     )
 

@@ -10,6 +10,7 @@ from leaderlodge.accounts.email_verification import (
     send_welcome_email,
 )
 from leaderlodge.accounts.forms import InviteJoinSignupForm
+from leaderlodge.accounts.honeypot import handle_signup_honeypot
 from leaderlodge.accounts.game_selection import resolve_game_type_code
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
@@ -486,7 +487,14 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
     if request.method == "POST":
         if not request.user.is_authenticated:
             join_form = InviteJoinSignupForm(request.POST, invite=invite)
-            if join_form.is_valid():
+            if handle_signup_honeypot(
+                request,
+                source="invite_join",
+                post_data=request.POST,
+                form=join_form,
+            ):
+                session_match = "anonymous"
+            elif join_form.is_valid():
                 user = join_form.save()
                 login(request, user)
                 from leaderlodge.core.admin_notifications import notify_admin_signup

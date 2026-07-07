@@ -19,6 +19,7 @@ from leaderlodge.accounts.email_verification import (
     verification_email_pending,
 )
 from leaderlodge.accounts.forms import SignupForm
+from leaderlodge.accounts.honeypot import handle_signup_honeypot
 from leaderlodge.accounts.game_selection import SESSION_GAME_TYPE_CODE
 from leaderlodge.accounts.group_selection import SESSION_GROUP_ID
 from leaderlodge.accounts.ui_settings import reset_ui_settings
@@ -70,6 +71,22 @@ def signup(request: HttpRequest) -> HttpResponse:
         lock_email=lock_email,
         invite_first_name=invite_first_name,
     )
+    if request.method == "POST":
+        if handle_signup_honeypot(
+            request,
+            source="signup",
+            post_data=request.POST,
+            form=form,
+        ):
+            return render(
+                request,
+                "accounts/signup.html",
+                {
+                    "form": form,
+                    "invite": invite,
+                    "invite_token": invite.token if invite else "",
+                },
+            )
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
