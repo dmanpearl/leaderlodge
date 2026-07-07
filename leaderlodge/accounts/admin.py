@@ -1,8 +1,31 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 
 from leaderlodge.accounts.models import UserProfile
+
+
+@admin.action(description="Activate selected users")
+def activate_users(modeladmin, request, queryset):
+    updated = queryset.update(is_active=True)
+    modeladmin.message_user(request, f"Activated {updated} user(s).")
+
+
+@admin.action(description="Deactivate selected users")
+def deactivate_users(modeladmin, request, queryset):
+    targets = queryset.exclude(pk=request.user.pk)
+    updated = targets.update(is_active=False)
+    skipped_self = queryset.filter(pk=request.user.pk).exists()
+    if updated:
+        modeladmin.message_user(request, f"Deactivated {updated} user(s).")
+    if skipped_self:
+        modeladmin.message_user(
+            request,
+            "Your own account was not deactivated.",
+            level=messages.WARNING,
+        )
+    if updated == 0 and not skipped_self:
+        modeladmin.message_user(request, "No users were deactivated.")
 
 
 class UserProfileInline(admin.StackedInline):
@@ -20,6 +43,7 @@ class UserProfileInline(admin.StackedInline):
 
 class UserAdmin(BaseUserAdmin):
     inlines = [UserProfileInline]
+    actions = (*BaseUserAdmin.actions, activate_users, deactivate_users)
     list_display = (
         "username",
         "email",
