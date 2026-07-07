@@ -59,7 +59,7 @@ def test_anonymous_dashboard_shows_demo_landing(client, demo_group_flagged):
 @pytest.mark.django_db
 def test_anonymous_can_browse_groups_and_record_game_setup(client, demo_group_flagged):
     demo_group_flagged.description = (
-        "Test group with example game data. Login and use '+ Create Group' "
+        "Example group with real game data. Login and use '+ Create Group' "
         "to add your own and start logging game scores."
     )
     demo_group_flagged.save(update_fields=["description"])
@@ -77,7 +77,7 @@ def test_anonymous_can_browse_groups_and_record_game_setup(client, demo_group_fl
         reverse("groups:detail", kwargs={"pk": demo_group_flagged.pk})
     )
     assert detail_response.status_code == 200
-    assert "Test group with example game data" in detail_response.content.decode()
+    assert "Example group with real game data" in detail_response.content.decode()
 
     create_response = client.get(reverse("games:create"))
     assert create_response.status_code == 200
@@ -134,9 +134,7 @@ def test_anonymous_cannot_view_private_group_leaderboard(
 
 
 @pytest.mark.django_db
-def test_other_user_cannot_record_in_demo_group(
-    client, demo_group_flagged, other_user
-):
+def test_other_user_cannot_record_in_demo_group(client, demo_group_flagged, other_user):
     client.force_login(other_user)
     response = client.post(
         reverse("games:create"),

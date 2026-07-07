@@ -99,14 +99,14 @@ def test_group_list_rows_link_to_detail(client, user, group):
 @pytest.mark.django_db
 def test_group_list_shows_full_description(client, user, group):
     group.description = (
-        "Test group with example game data. Login and use '+ Create Group' "
+        "Example group with real game data. Login and use '+ Create Group' "
         "to add your own and start logging game scores."
     )
     group.save(update_fields=["description"])
     client.force_login(user)
     content = client.get(reverse("groups:list")).content.decode()
 
-    assert "Test group with example game data" in content
+    assert "Example group with real game data" in content
     assert "start logging game scores" in content
     assert "Create Group" in content
     assert "…" not in content

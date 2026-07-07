@@ -98,6 +98,7 @@
 - [x] c1a6434 AI: Be team savoy with pairing tool for Ask the Lodge
 - [x] 87bbe4d As an admin, I'd like to be notified by email when users signup, invite, change game, or submit feedback. I'd like to have json site settings for each of the notification types. I'd like to be able to configure the notification email by seed command
 - [x] AI: Log Ask questions and answers that users type in to any interface.
+- [x] Bug: Record Game: When entering this view, the location menu gets pre-expanded. It should not be opened unless clicked. We already fixed a similar bug in the Edit Game screen
 
 ## Open Items
 

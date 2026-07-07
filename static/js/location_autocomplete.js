@@ -206,10 +206,13 @@
       this.loadLocationsForSelectedGroup();
     }
 
-    onInput() {
+    onInput(event) {
       syncLocationClearButton(this.input);
       if (this.skipRefresh) {
         this.skipRefresh = false;
+        return;
+      }
+      if (event && !event.isTrusted) {
         return;
       }
       this.refreshSuggestions();

@@ -4,7 +4,7 @@ from pathlib import Path
 
 DEMO_GROUP_NAME = "Demo"
 DEMO_GROUP_DESCRIPTION = (
-    "Test group with example game data. Login and use '+ Create Group' to add your "
+    "Example group with real game data. Login and use '+ Create Group' to add your "
     "own and start logging game scores."
 )
 GUEST_LOGIN_PROMPT = "Login to create your own Group of Players and start scoring"
