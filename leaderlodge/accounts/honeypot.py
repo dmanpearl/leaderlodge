@@ -98,13 +98,24 @@ def handle_signup_honeypot(
     if not triggered:
         return False
 
+    from leaderlodge.accounts.auth_log import record_auth_event
+    from leaderlodge.accounts.models import AuthEvent
     from leaderlodge.core.admin_notifications import notify_admin_signup_bot_blocked
 
+    email = signup_email_from_post(post_data)
+    event = record_auth_event(
+        event_type=AuthEvent.EventType.SIGNUP_BLOCKED,
+        request=request,
+        email=email,
+        source=source,
+        reason=reason,
+    )
     notify_admin_signup_bot_blocked(
         request=request,
         source=source,
         reason=reason,
-        email=signup_email_from_post(post_data),
+        email=email,
+        event=event,
     )
     form.add_error(None, GENERIC_SIGNUP_ERROR)
     return True

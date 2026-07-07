@@ -97,11 +97,15 @@
 - [x] f7b6ad6 Feedback login redirect: after guest auth dialog, login returns to feedback form
 - [x] c1a6434 AI: Be team savoy with pairing tool for Ask the Lodge
 - [x] 87bbe4d As an admin, I'd like to be notified by email when users signup, invite, change game, or submit feedback. I'd like to have json site settings for each of the notification types. I'd like to be able to configure the notification email by seed command
-- [x] AI: Log Ask questions and answers that users type in to any interface.
-- [x] Bug: Record Game: When entering this view, the location menu gets pre-expanded. It should not be opened unless clicked. We already fixed a similar bug in the Edit Game screen
+- [x] 99ba443 AI: Log Ask questions and answers that users type in to any interface.
+- [x] 3bca1f7 Bug: Record Game: When entering this view, the location menu gets pre-expanded. It should not be opened unless clicked. We already fixed a similar bug in the Edit Game screen
 
 ## Open Items
 
+- [ ] Honeypot bot signup detection: Provide additional bot provided information, such as first and last name, in the notification email
+- [ ] Bug: Location type-ahead conflict (https://leaderlodge.com/admin/feedback/feedback/3/change/)
+- [ ] Feat: Feedback type should be defaulted into a value (https://leaderlodge.com/admin/feedback/feedback/4/change/)
+- [ ] Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)

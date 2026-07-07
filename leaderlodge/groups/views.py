@@ -497,8 +497,17 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
             elif join_form.is_valid():
                 user = join_form.save()
                 login(request, user)
+                from leaderlodge.accounts.auth_log import record_auth_event
+                from leaderlodge.accounts.models import AuthEvent
                 from leaderlodge.core.admin_notifications import notify_admin_signup
 
+                record_auth_event(
+                    event_type=AuthEvent.EventType.SIGNUP,
+                    request=request,
+                    user=user,
+                    email=user.email or "",
+                    source="invite_join",
+                )
                 notify_admin_signup(user=user)
                 try:
                     send_welcome_email(request=request, user=user)
@@ -525,6 +534,10 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
                     return redirect("groups:detail", pk=group.pk)
                 except ValueError as exc:
                     messages.error(request, str(exc))
+            else:
+                from leaderlodge.accounts.auth_log import log_failed_signup
+
+                log_failed_signup(request, join_form, source="invite_join")
             session_match = "anonymous"
         else:
             accept_form = InviteAcceptForm(request.POST)

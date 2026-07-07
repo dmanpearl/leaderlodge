@@ -18,6 +18,7 @@ from leaderlodge.accounts.email_verification import (
     should_auto_send_verification,
     verification_email_pending,
 )
+from leaderlodge.accounts.auth_log import log_failed_signup
 from leaderlodge.accounts.forms import SignupForm
 from leaderlodge.accounts.honeypot import handle_signup_honeypot
 from leaderlodge.accounts.game_selection import SESSION_GAME_TYPE_CODE
@@ -90,8 +91,17 @@ def signup(request: HttpRequest) -> HttpResponse:
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
+        from leaderlodge.accounts.auth_log import record_auth_event
+        from leaderlodge.accounts.models import AuthEvent
         from leaderlodge.core.admin_notifications import notify_admin_signup
 
+        record_auth_event(
+            event_type=AuthEvent.EventType.SIGNUP,
+            request=request,
+            user=user,
+            email=user.email or "",
+            source="invite_join" if invite is not None else "signup",
+        )
         notify_admin_signup(user=user)
         try:
             send_welcome_email(request=request, user=user)
@@ -120,6 +130,13 @@ def signup(request: HttpRequest) -> HttpResponse:
             except ValueError as exc:
                 messages.error(request, str(exc))
         return redirect("core:dashboard")
+
+    if request.method == "POST":
+        log_failed_signup(
+            request,
+            form,
+            source="invite_join" if invite is not None else "signup",
+        )
 
     return render(
         request,
@@ -192,6 +209,16 @@ def verify_email_confirm(request: HttpRequest, uidb64: str, token: str) -> HttpR
         return _render_verify_email_complete(request, user, already_verified=True)
 
     mark_email_verified(user)
+    from leaderlodge.accounts.auth_log import record_auth_event
+    from leaderlodge.accounts.models import AuthEvent
+
+    record_auth_event(
+        event_type=AuthEvent.EventType.EMAIL_VERIFIED,
+        request=request,
+        user=user,
+        email=user.email or "",
+        source="verify_email",
+    )
     return _render_verify_email_complete(request, user, already_verified=False)
 
 

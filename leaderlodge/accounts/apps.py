@@ -8,3 +8,4 @@ class AccountsConfig(AppConfig):
 
     def ready(self):
         import leaderlodge.accounts.models  # noqa: F401
+        from leaderlodge.accounts import signals  # noqa: F401

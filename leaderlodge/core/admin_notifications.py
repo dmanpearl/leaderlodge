@@ -208,7 +208,9 @@ def notify_admin_signup_bot_blocked(
     source: str,
     reason: str,
     email: str = "",
+    event=None,
 ) -> bool:
+    from leaderlodge.accounts.auth_log import admin_event_url
     from leaderlodge.accounts.honeypot import client_ip
 
     user_agent = (request.META.get("HTTP_USER_AGENT") or "").strip()
@@ -222,5 +224,6 @@ def notify_admin_signup_bot_blocked(
             "email": email,
             "ip_address": client_ip(request),
             "user_agent": user_agent,
+            "admin_url": admin_event_url(request, event),
         },
     )

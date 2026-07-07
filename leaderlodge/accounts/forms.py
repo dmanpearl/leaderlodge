@@ -264,6 +264,9 @@ class StyledPasswordResetForm(PasswordResetForm):
         _form_control(self.fields["email"].widget)
 
     def save(self, *args, **kwargs):
+        from leaderlodge.accounts.auth_log import record_auth_event
+        from leaderlodge.accounts.models import AuthEvent
+
         email = self.cleaned_data["email"]
         users = list(self.get_users(email))
         if not users:
@@ -277,6 +280,14 @@ class StyledPasswordResetForm(PasswordResetForm):
                 email,
                 [user.pk for user in users],
             )
+        record_auth_event(
+            event_type=AuthEvent.EventType.PASSWORD_RESET_REQUESTED,
+            request=kwargs.get("request"),
+            user=users[0] if users else None,
+            email=email,
+            source="password_reset",
+            reason="" if users else "no_account",
+        )
         return super().save(*args, **kwargs)
 
     def send_mail(
@@ -310,3 +321,16 @@ class StyledSetPasswordForm(SetPasswordForm):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             _form_control(field.widget)
+
+    def save(self, *args, **kwargs):
+        from leaderlodge.accounts.auth_log import record_auth_event
+        from leaderlodge.accounts.models import AuthEvent
+
+        user = super().save(*args, **kwargs)
+        record_auth_event(
+            event_type=AuthEvent.EventType.PASSWORD_RESET_COMPLETED,
+            user=self.user,
+            email=getattr(self.user, "email", "") or "",
+            source="password_reset",
+        )
+        return user

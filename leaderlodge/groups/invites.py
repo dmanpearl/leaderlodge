@@ -330,6 +330,16 @@ def accept_group_invite(
         user=user,
         roster_name=roster_name,
     )
+    from leaderlodge.accounts.auth_log import record_auth_event
+    from leaderlodge.accounts.models import AuthEvent
+
+    record_auth_event(
+        event_type=AuthEvent.EventType.INVITE_ACCEPTED,
+        user=user,
+        email=user.email or "",
+        source="invite",
+        metadata={"group_id": invite.group_id, "group_name": invite.group.name},
+    )
     return membership
 
 
@@ -390,4 +400,15 @@ def send_invite_email(*, request, invite: GroupInvite) -> None:
         invited_by_display=format_user_display_name(invite.invited_by),
         player_name=player_name,
         invite_url=accept_url,
+    )
+    from leaderlodge.accounts.auth_log import record_auth_event
+    from leaderlodge.accounts.models import AuthEvent
+
+    record_auth_event(
+        event_type=AuthEvent.EventType.INVITE_SENT,
+        request=request,
+        user=invite.invited_by,
+        email=invite.email or "",
+        source="invite",
+        metadata={"group_id": invite.group_id, "group_name": invite.group.name},
     )

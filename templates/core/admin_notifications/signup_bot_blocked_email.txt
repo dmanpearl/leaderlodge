@@ -7,3 +7,6 @@ IP address: {{ ip_address|default:"(unknown)" }}
 User agent: {{ user_agent|default:"(unknown)" }}
 
 No account was created.
+{% if admin_url %}
+View event details: {{ admin_url }}
+{% endif %}
