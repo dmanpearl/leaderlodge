@@ -7,13 +7,12 @@ and leaderboards for social games played by groups of people.
 
 ## Game Recording
 
-- Record scores for 5 supported game types: Dominos, Backgammon, Progressive
+- Record scores for supported game types: Dominos, Backgammon, Progressive
   Rummy, Mah Jongg, and Pickleball
 - Easy to add additional game types and scoring rules
 - Games support Users, Players (roster members), or Teams
 - Fuzzy auto-complete for player name entry
-- Location tracking with fuzzy auto-complete and "last location used"
-  pre-population
+- Location tracking with fuzzy auto-complete and "last location used" pre-population
 - Reuse previous game's player roster with one click
 - Support for 2x (double) and 0.5x (half) game weighting
 - Automatic score-to-result and placement assignment based on game-type rules
@@ -44,8 +43,7 @@ and leaderboards for social games played by groups of people.
   damping early outlier performance
 - Filtering by period: all time, by year, or by specific month
 - Top-5 preview cards on the dashboard
-- Rank detail page showing a full breakdown (wins, losses, ties, points,
-  games played)
+- Rank detail page showing a full breakdown (wins, losses, ties, points, games played)
 
 ## Hall of Fame
 
@@ -69,7 +67,7 @@ and leaderboards for social games played by groups of people.
 - Bulk roster view with active/inactive status
 - Hide individual players from game stats
 - Team support: pairs of players appear as a combined roster entry with
-  individual leaderboard credit still applied
+individual leaderboard credit still applied
 
 ## Invitations
 
@@ -155,9 +153,8 @@ and leaderboards for social games played by groups of people.
 
 ## Admin Interface
 
-- SiteSettings singleton: per-event email notification toggles (signup, signup
-  bot blocked, invite sent, invite accepted, game change, feedback) and
-  destination address
+- SiteSettings: per-event email notification toggles (signup, invite sent, invite
+  accepted, game change, feedback, bot detection) and destination address
 - Admin panels for games, score change logs, groups, players, teams, locations,
   invites, memberships, feedback, and insight logs
 - UserProfile admin with email verification tracking, UI settings, and
@@ -165,9 +162,8 @@ and leaderboards for social games played by groups of people.
 
 ## Demo Mode
 
-- Public read-only demo group with seeded data for all 5 game types
+- Public read-only demo group with seeded data for all game types
 - Anonymous users can browse without logging in
-- Setup command: `python manage.py setup_demo`
 
 ## Mobile and Responsive Design
 
@@ -181,17 +177,14 @@ and leaderboards for social games played by groups of people.
 ## Email and Notifications
 
 - Transactional email via Brevo HTTPS API in production
-- Console email in development
-- Emails: welcome, email verification, password reset, invite acceptance, group
-  invite, feedback confirmation, admin alerts
+- Emails: welcome, email verification, password reset, invite acceptance,
+  group invite, feedback confirmation, admin alerts
 
 ## Security
 
-- Signup honeypot on open signup and invite-join signup: hidden decoy field plus
-  minimum submit timing; bots are blocked without creating an account
-- Optional admin email when a signup bot attempt is blocked (Site settings toggle:
-  "Signup blocked (bot)")
-- Disable honeypot checks site-wide with `HONEYPOT_ENABLED=false` in environment
+- Automated bot signup detection and blocking
+- Admin email alerts when a bot signup is blocked
+- Per-notification admin controls to turn alerts on or off
 
 ## Deployment and Infrastructure
 
