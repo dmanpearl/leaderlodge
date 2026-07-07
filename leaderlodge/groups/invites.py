@@ -271,6 +271,7 @@ def accept_group_invite(
     user: AbstractBaseUser,
     first_name: str | None = None,
     last_name: str | None = None,
+    request=None,
 ) -> GroupMembership:
     if not invite.is_pending:
         raise ValueError("This invite is no longer valid.")
@@ -325,20 +326,22 @@ def accept_group_invite(
         user=user,
         roster_name=roster_name,
     )
-    notify_admin_invite_accepted(
-        invite=invite,
-        user=user,
-        roster_name=roster_name,
-    )
     from leaderlodge.accounts.auth_log import record_auth_event
     from leaderlodge.accounts.models import AuthEvent
 
-    record_auth_event(
+    accepted_event = record_auth_event(
         event_type=AuthEvent.EventType.INVITE_ACCEPTED,
+        request=request,
         user=user,
         email=user.email or "",
         source="invite",
         metadata={"group_id": invite.group_id, "group_name": invite.group.name},
+    )
+    notify_admin_invite_accepted(
+        invite=invite,
+        user=user,
+        roster_name=roster_name,
+        event=accepted_event,
     )
     return membership
 
@@ -395,20 +398,21 @@ def send_invite_email(*, request, invite: GroupInvite) -> None:
         raise
 
     player_name = invite.guest_player.display_name if invite.guest_player else ""
-    notify_admin_invite_sent(
-        invite=invite,
-        invited_by_display=format_user_display_name(invite.invited_by),
-        player_name=player_name,
-        invite_url=accept_url,
-    )
     from leaderlodge.accounts.auth_log import record_auth_event
     from leaderlodge.accounts.models import AuthEvent
 
-    record_auth_event(
+    invite_event = record_auth_event(
         event_type=AuthEvent.EventType.INVITE_SENT,
         request=request,
         user=invite.invited_by,
         email=invite.email or "",
         source="invite",
         metadata={"group_id": invite.group_id, "group_name": invite.group.name},
+    )
+    notify_admin_invite_sent(
+        invite=invite,
+        invited_by_display=format_user_display_name(invite.invited_by),
+        player_name=player_name,
+        invite_url=accept_url,
+        event=invite_event,
     )

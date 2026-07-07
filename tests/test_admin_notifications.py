@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 from django.contrib.auth.models import User
 from django.core import mail
@@ -110,6 +112,38 @@ def test_signup_view_notifies_admin(client, site_settings):
     assert len(mail.outbox) == 2
     subjects = [message.subject.lower() for message in mail.outbox]
     assert any("new user signup" in subject for subject in subjects)
+
+
+@pytest.mark.django_db
+@mock.patch("leaderlodge.core.geoip._lookup_ip_http")
+def test_signup_notification_includes_location(mock_lookup, client, site_settings):
+    from leaderlodge.core.geoip import GeoLookup
+
+    mock_lookup.return_value = GeoLookup(
+        city="Istanbul",
+        region="Istanbul",
+        country="Turkey",
+        timezone="Europe/Istanbul",
+    )
+    client.post(
+        reverse("accounts:signup"),
+        honeypot_post_data(
+            {
+                "email": "newplayer@example.com",
+                "first_name": "New",
+                "password1": "strong-pass-123",
+                "password2": "strong-pass-123",
+            }
+        ),
+        REMOTE_ADDR="31.40.204.182",
+    )
+    signup_email = next(
+        message
+        for message in mail.outbox
+        if "new user signup" in message.subject.lower()
+    )
+    assert "Location: Istanbul, Turkey" in signup_email.body
+    assert "Timezone: Europe/Istanbul" in signup_email.body
 
 
 @pytest.mark.django_db

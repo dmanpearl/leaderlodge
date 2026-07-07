@@ -501,14 +501,14 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
                 from leaderlodge.accounts.models import AuthEvent
                 from leaderlodge.core.admin_notifications import notify_admin_signup
 
-                record_auth_event(
+                signup_event = record_auth_event(
                     event_type=AuthEvent.EventType.SIGNUP,
                     request=request,
                     user=user,
                     email=user.email or "",
                     source="invite_join",
                 )
-                notify_admin_signup(user=user)
+                notify_admin_signup(user=user, event=signup_event)
                 try:
                     send_welcome_email(request=request, user=user)
                     record_verification_email_sent(user)
@@ -528,6 +528,7 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
                         user=user,
                         first_name=user.first_name,
                         last_name=user.last_name,
+                        request=request,
                     )
                     persist_group_id(request, group.pk)
                     messages.success(request, f'You joined "{group.name}".')
@@ -555,6 +556,7 @@ def invite_accept(request: HttpRequest, token: str) -> HttpResponse:
                         user=request.user,
                         first_name=accept_form.cleaned_data["first_name"],
                         last_name=accept_form.cleaned_data.get("last_name", ""),
+                        request=request,
                     )
                     persist_group_id(request, group.pk)
                     messages.success(request, f'You joined "{group.name}".')

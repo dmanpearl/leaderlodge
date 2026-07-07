@@ -1,4 +1,3 @@
-import json
 from unittest import mock
 
 import pytest
@@ -11,13 +10,6 @@ from leaderlodge.core.geoip import (
     is_public_ip,
     lookup_ip,
 )
-
-
-@pytest.fixture(autouse=True)
-def clear_geo_cache():
-    lookup_ip.cache_clear()
-    yield
-    lookup_ip.cache_clear()
 
 
 def test_format_geo_label_city_country():

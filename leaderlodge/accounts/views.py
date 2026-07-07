@@ -95,14 +95,14 @@ def signup(request: HttpRequest) -> HttpResponse:
         from leaderlodge.accounts.models import AuthEvent
         from leaderlodge.core.admin_notifications import notify_admin_signup
 
-        record_auth_event(
+        signup_event = record_auth_event(
             event_type=AuthEvent.EventType.SIGNUP,
             request=request,
             user=user,
             email=user.email or "",
             source="invite_join" if invite is not None else "signup",
         )
-        notify_admin_signup(user=user)
+        notify_admin_signup(user=user, event=signup_event)
         try:
             send_welcome_email(request=request, user=user)
             record_verification_email_sent(user)
@@ -123,6 +123,7 @@ def signup(request: HttpRequest) -> HttpResponse:
                     user=user,
                     first_name=user.first_name,
                     last_name=user.last_name,
+                    request=request,
                 )
                 persist_group_id(request, invite.group_id)
                 messages.success(request, f'You joined "{invite.group.name}".')

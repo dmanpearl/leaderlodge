@@ -4,4 +4,6 @@ Group: {{ group.name }}
 User: {{ display_name }}
 Email: {{ email|default:"(none)" }}
 {% if roster_name %}Roster name: {{ roster_name }}
+{% endif %}{% if geo_location %}Location: {{ geo_location }}
+{% endif %}{% if geo_timezone %}Timezone: {{ geo_timezone }}
 {% endif %}

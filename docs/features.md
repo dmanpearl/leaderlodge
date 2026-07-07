@@ -188,7 +188,7 @@ individual leaderboard credit still applied
 - Auth event log recording signups, invites, password resets, email
   verifications, blocked bots, failed signups, and failed logins
 - Approximate location (city, region, country) resolved from IP address on
-  auth events and included in alert emails
+  auth events and included in signup, invite, and blocked bot notifications
 - One-click link from alert emails to the full event record in admin
 
 ## Deployment and Infrastructure
