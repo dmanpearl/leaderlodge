@@ -43,8 +43,12 @@ def test_last_recorded_location_name_returns_latest_for_user_and_game_type(
         game_type_code="dominos",
         played_on=timezone.localdate(),
         participants=[
-            ParticipantInput(player=players[0], score=30, result=Result.WIN, placement=0),
-            ParticipantInput(player=players[1], score=20, result=Result.PLAYED, placement=1),
+            ParticipantInput(
+                player=players[0], score=30, result=Result.WIN, placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=20, result=Result.PLAYED, placement=1
+            ),
         ],
         location=kitchen,
     )
@@ -54,8 +58,12 @@ def test_last_recorded_location_name_returns_latest_for_user_and_game_type(
         game_type_code="dominos",
         played_on=timezone.localdate(),
         participants=[
-            ParticipantInput(player=players[0], score=25, result=Result.WIN, placement=0),
-            ParticipantInput(player=players[1], score=15, result=Result.PLAYED, placement=1),
+            ParticipantInput(
+                player=players[0], score=25, result=Result.WIN, placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=15, result=Result.PLAYED, placement=1
+            ),
         ],
         location=clubhouse,
     )
@@ -65,8 +73,12 @@ def test_last_recorded_location_name_returns_latest_for_user_and_game_type(
         game_type_code="backgammon",
         played_on=timezone.localdate(),
         participants=[
-            ParticipantInput(player=players[0], score=5, result=Result.WIN, placement=0),
-            ParticipantInput(player=players[1], score=0, result=Result.PLAYED, placement=1),
+            ParticipantInput(
+                player=players[0], score=5, result=Result.WIN, placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=0, result=Result.PLAYED, placement=1
+            ),
         ],
         location=kitchen,
     )
@@ -86,8 +98,12 @@ def test_game_create_prepopulates_last_location(client, staff_user, group):
         game_type_code="dominos",
         played_on=timezone.localdate(),
         participants=[
-            ParticipantInput(player=players[0], score=30, result=Result.WIN, placement=0),
-            ParticipantInput(player=players[1], score=20, result=Result.PLAYED, placement=1),
+            ParticipantInput(
+                player=players[0], score=30, result=Result.WIN, placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=20, result=Result.PLAYED, placement=1
+            ),
         ],
         location=location,
     )
@@ -115,8 +131,12 @@ def test_game_reuse_preview_includes_last_location_name(client, staff_user, grou
         game_type_code="dominos",
         played_on=timezone.localdate(),
         participants=[
-            ParticipantInput(player=players[0], score=30, result=Result.WIN, placement=0),
-            ParticipantInput(player=players[1], score=20, result=Result.PLAYED, placement=1),
+            ParticipantInput(
+                player=players[0], score=30, result=Result.WIN, placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=20, result=Result.PLAYED, placement=1
+            ),
         ],
         location=location,
     )
@@ -129,6 +149,21 @@ def test_game_reuse_preview_includes_last_location_name(client, staff_user, grou
 
     assert response.status_code == 200
     assert response.json()["last_location_name"] == "Kitchen"
+
+
+@pytest.mark.django_db
+def test_location_field_disables_native_suggestions(client, staff_user, group):
+    client.force_login(staff_user)
+    response = client.get(
+        reverse("games:create"),
+        {"game_type_code": "dominos", "group": group.pk},
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert 'autocorrect="off"' in content
+    assert 'autocapitalize="off"' in content
+    assert 'spellcheck="false"' in content
 
 
 @pytest.mark.django_db

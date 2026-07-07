@@ -100,11 +100,11 @@
 - [x] 99ba443 AI: Log Ask questions and answers that users type in to any interface.
 - [x] 3bca1f7 Bug: Record Game: When entering this view, the location menu gets pre-expanded. It should not be opened unless clicked. We already fixed a similar bug in the Edit Game screen
 - [x] 8c8c0ca Honeypot bot signup detection: Provide additional bot provided information, such as first and last name, in the notification email and event log
-- [x] Feat: Feedback type should be defaulted into a value (https://leaderlodge.com/admin/feedback/feedback/4/change/)
+- [x] d73db49 Feat: Feedback type should be defaulted into a value (https://leaderlodge.com/admin/feedback/feedback/4/change/)
+- [x] Bug: Location type-ahead conflict (https://leaderlodge.com/admin/feedback/feedback/3/change/)
 
 ## Open Items
 
-- [ ] Bug: Location type-ahead conflict (https://leaderlodge.com/admin/feedback/feedback/3/change/)
 - [ ] Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
