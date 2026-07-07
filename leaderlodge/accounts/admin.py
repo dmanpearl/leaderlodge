@@ -20,7 +20,24 @@ class UserProfileInline(admin.StackedInline):
 
 class UserAdmin(BaseUserAdmin):
     inlines = [UserProfileInline]
-    list_display = BaseUserAdmin.list_display + ("email_verified_status",)
+    list_display = (
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+        "is_admin",
+        "is_staff_column",
+        "is_active",
+        "email_verified_status",
+    )
+
+    @admin.display(boolean=True, description="Admin")
+    def is_admin(self, obj):
+        return obj.is_superuser
+
+    @admin.display(boolean=True, description="Staff")
+    def is_staff_column(self, obj):
+        return obj.is_staff
 
     @admin.display(boolean=True, description="Email verified")
     def email_verified_status(self, obj):
