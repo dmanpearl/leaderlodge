@@ -70,6 +70,8 @@ def test_bot_blocked_records_event_and_emails_admin_link(client, site_settings):
         honeypot_post_data(
             {
                 "email": "bot@example.com",
+                "first_name": "Spam",
+                "last_name": "Bot",
                 "password1": "strong-pass-123",
                 "password2": "strong-pass-123",
                 HONEYPOT_FIELD: "http://spam.example",
@@ -80,11 +82,17 @@ def test_bot_blocked_records_event_and_emails_admin_link(client, site_settings):
     assert response.status_code == 200
     event = AuthEvent.objects.get(event_type=AuthEvent.EventType.SIGNUP_BLOCKED)
     assert event.reason == "honeypot_filled"
+    assert event.metadata == {
+        "first_name": "Spam",
+        "last_name": "Bot",
+        "trap_value": "http://spam.example",
+    }
     assert User.objects.filter(email="bot@example.com").count() == 0
     assert len(mail.outbox) == 1
     body = mail.outbox[0].body
     change_path = reverse("admin:accounts_authevent_change", args=[event.pk])
     assert change_path in body
+    assert "First name: Spam" in body
 
 
 @pytest.mark.django_db

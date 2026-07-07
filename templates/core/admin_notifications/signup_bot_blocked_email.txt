@@ -3,7 +3,10 @@ A signup attempt was blocked on LeaderLodge (honeypot bot detection).
 Source: {{ source_label }}
 Reason: {{ reason_label }}
 Email attempted: {{ email|default:"(none)" }}
-IP address: {{ ip_address|default:"(unknown)" }}
+{% if first_name %}First name: {{ first_name }}
+{% endif %}{% if last_name %}Last name: {{ last_name }}
+{% endif %}{% if trap_value %}Honeypot trap value: {{ trap_value }}
+{% endif %}IP address: {{ ip_address|default:"(unknown)" }}
 User agent: {{ user_agent|default:"(unknown)" }}
 
 No account was created.

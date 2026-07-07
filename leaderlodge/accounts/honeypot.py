@@ -86,6 +86,21 @@ def signup_email_from_post(data: Any) -> str:
     return str(data.get("email", "")).strip().lower()
 
 
+def signup_bot_details_from_post(data: Any) -> dict[str, str]:
+    """Non-sensitive signup fields bots submitted (for alerts and auth-event-log)."""
+    if not hasattr(data, "get"):
+        return {}
+    details: dict[str, str] = {}
+    for key in ("first_name", "last_name"):
+        value = str(data.get(key, "")).strip()
+        if value:
+            details[key] = value[:150]
+    trap_value = str(data.get(HONEYPOT_FIELD, "")).strip()
+    if trap_value:
+        details["trap_value"] = trap_value[:200]
+    return details
+
+
 def handle_signup_honeypot(
     request: HttpRequest,
     *,
@@ -103,12 +118,14 @@ def handle_signup_honeypot(
     from leaderlodge.core.admin_notifications import notify_admin_signup_bot_blocked
 
     email = signup_email_from_post(post_data)
+    bot_details = signup_bot_details_from_post(post_data)
     event = record_auth_event(
         event_type=AuthEvent.EventType.SIGNUP_BLOCKED,
         request=request,
         email=email,
         source=source,
         reason=reason,
+        metadata=bot_details,
     )
     notify_admin_signup_bot_blocked(
         request=request,
@@ -116,6 +133,9 @@ def handle_signup_honeypot(
         reason=reason,
         email=email,
         event=event,
+        first_name=bot_details.get("first_name", ""),
+        last_name=bot_details.get("last_name", ""),
+        trap_value=bot_details.get("trap_value", ""),
     )
     form.add_error(None, GENERIC_SIGNUP_ERROR)
     return True

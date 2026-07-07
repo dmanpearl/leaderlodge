@@ -53,6 +53,8 @@ def test_signup_blocks_honeypot_and_notifies_admin(client, site_settings):
         honeypot_post_data(
             {
                 "email": "bot@example.com",
+                "first_name": "Spam",
+                "last_name": "Bot",
                 "password1": "strong-pass-123",
                 "password2": "strong-pass-123",
                 HONEYPOT_FIELD: "http://spam.example",
@@ -64,7 +66,11 @@ def test_signup_blocks_honeypot_and_notifies_admin(client, site_settings):
     assert "Unable to create your account" in response.content.decode()
     assert User.objects.filter(email="bot@example.com").count() == 0
     assert len(mail.outbox) == 1
+    body = mail.outbox[0].body
     assert "signup blocked" in mail.outbox[0].subject.lower()
+    assert "First name: Spam" in body
+    assert "Last name: Bot" in body
+    assert "Honeypot trap value: http://spam.example" in body
 
 
 @pytest.mark.django_db
