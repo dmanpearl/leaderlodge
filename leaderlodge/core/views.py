@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from django.contrib.auth.views import redirect_to_login
 from django.db.models import QuerySet
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
 
@@ -215,3 +216,20 @@ def about(request):
 
 def about_insights(request):
     return render(request, "core/about_insights.html")
+
+
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin/",
+        "Disallow: /accounts/",
+        "Disallow: /groups/",
+        "Disallow: /games/",
+        "Disallow: /leaderboards/",
+        "Disallow: /insights/",
+        "Disallow: /feedback/",
+        "",
+        "Sitemap: https://leaderlodge.com/sitemap.xml",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")

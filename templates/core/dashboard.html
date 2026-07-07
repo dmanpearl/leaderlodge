@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% load display_names static %}
 
-{% block title %}{{ home_page_title }}{% endblock %}
+{% block title %}{{ home_page_title }} | LeaderLodge{% endblock %}
+{% block og_title %}{{ home_page_title }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />

@@ -2,6 +2,39 @@
 {% load static %}
 
 {% block title %}About | LeaderLodge{% endblock %}
+{% block meta_description %}Track scores and leaderboards for Dominos, Backgammon, Mah Jongg, Progressive Rummy, and Pickleball. LeaderLodge keeps your group's rankings, history, and AI insights in one place.{% endblock %}
+{% block og_title %}About LeaderLodge - Game Score Tracker and Leaderboards{% endblock %}
+{% block og_description %}Track scores and leaderboards for Dominos, Backgammon, Mah Jongg, Progressive Rummy, and Pickleball. LeaderLodge keeps your group's rankings, history, and AI insights in one place.{% endblock %}
+{% block twitter_title %}About LeaderLodge - Game Score Tracker and Leaderboards{% endblock %}
+{% block twitter_description %}Track scores and leaderboards for Dominos, Backgammon, Mah Jongg, Progressive Rummy, and Pickleball. LeaderLodge keeps your group's rankings, history, and AI insights in one place.{% endblock %}
+{% block structured_data %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "LeaderLodge",
+    "url": "https://leaderlodge.com",
+    "description": "Record game results, track rankings, and ask AI about your group's stats.",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "featureList": [
+      "Dominos score tracking and leaderboards",
+      "Backgammon score tracking and leaderboards",
+      "Mah Jongg score tracking and leaderboards",
+      "Progressive Rummy score tracking and leaderboards",
+      "Pickleball score tracking and leaderboards",
+      "AI-powered game stat explanations",
+      "Hall of Fame history",
+      "Group and player management"
+    ]
+  }
+  </script>
+{% endblock structured_data %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/insights.css' %}" />

@@ -191,6 +191,16 @@ individual leaderboard credit still applied
   auth events and included in signup, invite, and blocked bot notifications
 - One-click link from alert emails to the full event record in admin
 
+## Search Engine Optimization (SEO)
+
+- `robots.txt` instructs crawlers to index public pages and skip auth-gated paths
+- XML sitemap at `/sitemap.xml` covering home, About, and About AI Insights
+- Canonical URL tag on every page strips query parameters to prevent duplicate indexing
+- Open Graph and Twitter Card meta tags on every page, with per-page override blocks
+- Per-page meta descriptions on the About and AI Insights pages, naming all 5 supported games
+- JSON-LD structured data (`WebApplication` schema) in the base template, extended
+  to a richer `SoftwareApplication` schema with game-specific feature list on the About page
+
 ## Deployment and Infrastructure
 
 - Django 5.0+ on Railway (auto-deploy from `dev` branch)

@@ -102,7 +102,7 @@
 - [x] 8c8c0ca Honeypot bot signup detection: Provide additional bot provided information, such as first and last name, in the notification email and event log
 - [x] d73db49 Feat: Feedback type should be defaulted into a value (https://leaderlodge.com/admin/feedback/feedback/4/change/)
 - [x] f8b3cbd Bug: Location type-ahead conflict (https://leaderlodge.com/admin/feedback/feedback/3/change/)
-- [x] 9da64cc Auth Events should be location aware based on IP address or other available information. Location information should be in notifications and logs
+- [x] 9da64cc, 4a17e25 Auth Events should be location aware based on IP address or other available information. Location information should be in notifications and logs
 
 ## Open Items
 
