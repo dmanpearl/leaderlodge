@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/dmanpearl/pixelmonks/leaderlodge/leaderlodge/*/management/commands -name \"*.py\" -type f)",
+      "Bash(npx prettier *)"
+    ]
+  }
+}
