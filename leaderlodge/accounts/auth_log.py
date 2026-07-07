@@ -69,16 +69,27 @@ def record_auth_event(
 ) -> AuthEvent | None:
     """Persist one auth-event-log row. Never raises; logging must not break auth."""
     try:
+        from leaderlodge.core.geoip import lookup_ip
+
+        ip_address = client_ip(request) if request is not None else ""
+        geo = lookup_ip(ip_address) if ip_address else lookup_ip("")
+        event_metadata = dict(metadata or {})
+        geo_extra = geo.extras()
+        if geo_extra:
+            event_metadata = {**event_metadata, "geo": geo_extra}
         return AuthEvent.objects.create(
             event_type=event_type,
             outcome=outcome or _default_outcome(event_type),
             user=_resolve_user(user),
             email=(email or "").strip().lower(),
-            ip_address=client_ip(request) if request is not None else "",
+            ip_address=ip_address,
+            geo_city=geo.city,
+            geo_region=geo.region,
+            geo_country=geo.country,
             user_agent=_user_agent(request),
             source=source,
             reason=reason,
-            metadata=metadata or {},
+            metadata=event_metadata,
         )
     except Exception:
         logger.exception("Failed to record auth event %s", event_type)

@@ -87,6 +87,9 @@ class AuthEvent(models.Model):
         help_text="Email attempted or affected, kept even when no user exists.",
     )
     ip_address = models.CharField(max_length=64, blank=True, default="")
+    geo_city = models.CharField(max_length=100, blank=True, default="")
+    geo_region = models.CharField(max_length=100, blank=True, default="")
+    geo_country = models.CharField(max_length=100, blank=True, default="")
     user_agent = models.CharField(max_length=400, blank=True, default="")
     source = models.CharField(
         max_length=40,
@@ -114,6 +117,12 @@ class AuthEvent(models.Model):
     def __str__(self) -> str:
         who = self.email or (self.user.username if self.user else "(unknown)")
         return f"{self.get_event_type_display()}: {who}"
+
+    @property
+    def geo_label(self) -> str:
+        from leaderlodge.core.geoip import format_geo_label
+
+        return format_geo_label(self.geo_city, self.geo_region, self.geo_country)
 
 
 @receiver(post_save, sender=User)

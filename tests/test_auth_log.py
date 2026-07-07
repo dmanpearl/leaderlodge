@@ -1,4 +1,5 @@
 import re
+from unittest import mock
 
 import pytest
 from django.contrib.auth.models import User
@@ -13,6 +14,7 @@ from leaderlodge.accounts.auth_log import record_auth_event
 from leaderlodge.accounts.honeypot import HONEYPOT_FIELD, honeypot_post_data
 from leaderlodge.accounts.models import AuthEvent
 from leaderlodge.core.admin_notification_registry import DEFAULT_NOTIFICATIONS
+from leaderlodge.core.geoip import GeoLookup
 from leaderlodge.core.models import SiteSettings
 from leaderlodge.groups.invites import (
     accept_group_invite,
@@ -64,7 +66,17 @@ def test_signup_records_auth_event(client):
 
 @pytest.mark.django_db
 @override_settings(HONEYPOT_ENABLED=True)
-def test_bot_blocked_records_event_and_emails_admin_link(client, site_settings):
+@mock.patch("leaderlodge.core.geoip._lookup_ip_http")
+def test_bot_blocked_records_event_and_emails_admin_link(
+    mock_lookup, client, site_settings
+):
+    mock_lookup.return_value = GeoLookup(
+        city="Istanbul",
+        region="Istanbul",
+        country="Turkey",
+        timezone="Europe/Istanbul",
+        isp="Example ISP",
+    )
     response = client.post(
         reverse("accounts:signup"),
         honeypot_post_data(
@@ -77,15 +89,21 @@ def test_bot_blocked_records_event_and_emails_admin_link(client, site_settings):
                 HONEYPOT_FIELD: "http://spam.example",
             }
         ),
+        REMOTE_ADDR="31.40.204.182",
     )
 
     assert response.status_code == 200
     event = AuthEvent.objects.get(event_type=AuthEvent.EventType.SIGNUP_BLOCKED)
     assert event.reason == "honeypot_filled"
+    assert event.geo_label == "Istanbul, Turkey"
     assert event.metadata == {
         "first_name": "Spam",
         "last_name": "Bot",
         "trap_value": "http://spam.example",
+        "geo": {
+            "timezone": "Europe/Istanbul",
+            "isp": "Example ISP",
+        },
     }
     assert User.objects.filter(email="bot@example.com").count() == 0
     assert len(mail.outbox) == 1
@@ -93,6 +111,9 @@ def test_bot_blocked_records_event_and_emails_admin_link(client, site_settings):
     change_path = reverse("admin:accounts_authevent_change", args=[event.pk])
     assert change_path in body
     assert "First name: Spam" in body
+    assert "Location: Istanbul, Turkey" in body
+    assert "Timezone: Europe/Istanbul" in body
+    assert "ISP: Example ISP" in body
 
 
 @pytest.mark.django_db

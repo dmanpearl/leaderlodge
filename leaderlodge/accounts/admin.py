@@ -108,6 +108,7 @@ class AuthEventAdmin(admin.ModelAdmin):
         "user",
         "email",
         "ip_address",
+        "geo_label_display",
         "source",
         "reason",
     )
@@ -120,6 +121,9 @@ class AuthEventAdmin(admin.ModelAdmin):
     search_fields = (
         "email",
         "ip_address",
+        "geo_city",
+        "geo_region",
+        "geo_country",
         "reason",
         "user__username",
         "user__email",
@@ -131,12 +135,19 @@ class AuthEventAdmin(admin.ModelAdmin):
         "user",
         "email",
         "ip_address",
+        "geo_city",
+        "geo_region",
+        "geo_country",
         "user_agent",
         "source",
         "reason",
         "metadata",
     )
     date_hierarchy = "created_at"
+
+    @admin.display(description="Location")
+    def geo_label_display(self, obj: AuthEvent) -> str:
+        return obj.geo_label
 
     def has_add_permission(self, request) -> bool:
         return False

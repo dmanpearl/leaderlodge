@@ -219,6 +219,13 @@ HONEYPOT_ENABLED = os.environ.get("HONEYPOT_ENABLED", "true").lower() in (
     "yes",
 )
 
+# Resolve auth-event IP addresses to city/region/country for logs and alerts.
+GEOIP_ENABLED = os.environ.get("GEOIP_ENABLED", "true").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL",
     "LeaderLodge <noreply@leaderlodge.com>",

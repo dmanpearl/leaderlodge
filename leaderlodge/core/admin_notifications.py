@@ -215,10 +215,20 @@ def notify_admin_signup_bot_blocked(
 ) -> bool:
     from leaderlodge.accounts.auth_log import admin_event_url
     from leaderlodge.accounts.honeypot import client_ip
+    from leaderlodge.core.geoip import lookup_ip
 
     user_agent = (request.META.get("HTTP_USER_AGENT") or "").strip()
     if len(user_agent) > 300:
         user_agent = f"{user_agent[:297]}..."
+    geo_location = (
+        event.geo_label if event is not None else lookup_ip(client_ip(request)).label
+    )
+    geo_timezone = ""
+    geo_isp = ""
+    if event is not None:
+        geo_extra = (event.metadata or {}).get("geo") or {}
+        geo_timezone = str(geo_extra.get("timezone", "")).strip()
+        geo_isp = str(geo_extra.get("isp", "")).strip()
     return notify_admin(
         kind="signup_bot_blocked",
         context={
@@ -229,6 +239,9 @@ def notify_admin_signup_bot_blocked(
             "last_name": last_name,
             "trap_value": trap_value,
             "ip_address": client_ip(request),
+            "geo_location": geo_location,
+            "geo_timezone": geo_timezone,
+            "geo_isp": geo_isp,
             "user_agent": user_agent,
             "admin_url": admin_event_url(request, event),
         },

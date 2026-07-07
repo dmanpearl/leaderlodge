@@ -6,6 +6,9 @@ Email attempted: {{ email|default:"(none)" }}
 {% if first_name %}First name: {{ first_name }}
 {% endif %}{% if last_name %}Last name: {{ last_name }}
 {% endif %}{% if trap_value %}Honeypot trap value: {{ trap_value }}
+{% endif %}{% if geo_location %}Location: {{ geo_location }}
+{% endif %}{% if geo_timezone %}Timezone: {{ geo_timezone }}
+{% endif %}{% if geo_isp %}ISP: {{ geo_isp }}
 {% endif %}IP address: {{ ip_address|default:"(unknown)" }}
 User agent: {{ user_agent|default:"(unknown)" }}
 
