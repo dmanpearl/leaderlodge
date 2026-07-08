@@ -145,3 +145,37 @@ class GroupPlayerForm(forms.ModelForm):
         ):
             raise forms.ValidationError("That name is already on the roster.")
         return name
+
+
+class CombinePlayersForm(forms.Form):
+    source = forms.ModelChoiceField(
+        label="Merge away and delete",
+        queryset=GroupPlayer.objects.none(),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, group=None, keeper=None, **kwargs):
+        self.group = group
+        self.keeper = keeper
+        super().__init__(*args, **kwargs)
+        if group is None or keeper is None:
+            return
+        from leaderlodge.groups.player_combine import combinable_source_players
+
+        self.fields["source"].queryset = combinable_source_players(
+            group=group,
+            keeper=keeper,
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        source = cleaned.get("source")
+        if source is None or self.keeper is None:
+            return cleaned
+        from leaderlodge.groups.player_combine import validate_combine_players
+
+        try:
+            validate_combine_players(keeper=self.keeper, source=source)
+        except ValueError as exc:
+            raise forms.ValidationError(str(exc)) from exc
+        return cleaned

@@ -17,6 +17,11 @@ urlpatterns = [
         views.player_remove,
         name="player_remove",
     ),
+    path(
+        "<int:pk>/players/<int:player_pk>/combine/",
+        views.player_combine,
+        name="player_combine",
+    ),
     path("<int:pk>/members/add/", views.invite_send, name="invite_send"),
     path(
         "<int:pk>/players/<int:player_pk>/invite/",

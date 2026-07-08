@@ -1,9 +1,10 @@
-{% if row.can_invite or row.show_remove %}
-  <div class="dropdown">
+{% if row.can_invite or row.can_combine or row.remove_url_name or row.show_remove %}
+  <div class="dropdown position-static">
     <button
       type="button"
       class="btn btn-sm btn-outline-secondary"
       data-bs-toggle="dropdown"
+      data-bs-popper-config='{"strategy":"fixed"}'
       aria-expanded="false"
       title="Actions"
       aria-label="Actions for {{ player.display_label }}"
@@ -30,9 +31,13 @@
           <form
             method="post"
             action="{% url row.remove_url_name group.pk row.remove_target_pk %}"
+            class="m-0"
           >
             {% csrf_token %}
-            <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2">
+            <button
+              type="submit"
+              class="dropdown-item text-danger d-flex align-items-center gap-2 w-100"
+            >
               <i class="bi bi-person-x" aria-hidden="true"></i>
               Remove from Group
             </button>
@@ -47,6 +52,17 @@
             <i class="bi bi-person-x" aria-hidden="true"></i>
             Remove from Group
           </span>
+        </li>
+      {% endif %}
+      {% if row.can_combine %}
+        <li>
+          <a
+            class="dropdown-item d-flex align-items-center gap-2"
+            href="{% url 'groups:player_combine' group.pk player.pk %}"
+          >
+            <i class="bi bi-people" aria-hidden="true"></i>
+            Combine
+          </a>
         </li>
       {% endif %}
     </ul>

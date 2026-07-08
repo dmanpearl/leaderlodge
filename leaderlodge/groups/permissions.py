@@ -134,6 +134,22 @@ def can_remove_roster_player(
     return state["can_remove"] and state["remove_url_name"] == "groups:player_remove"
 
 
+def can_combine_players(
+    user: AbstractBaseUser | None,
+    group: Group,
+) -> bool:
+    if user is None or not user.is_authenticated:
+        return False
+    if group.is_demo:
+        return bool(user.is_staff or user.is_superuser)
+    if user.is_staff or user.is_superuser:
+        from leaderlodge.groups.services import user_is_member
+
+        return user_is_member(user, group)
+    membership = get_membership(user, group)
+    return membership is not None and membership.role == Role.OWNER
+
+
 def can_invite_roster_player(
     actor: GroupMembership | None,
     player: GroupPlayer,

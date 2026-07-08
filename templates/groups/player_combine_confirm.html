@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm combine | {{ group.name }} | LeaderLodge{% endblock %}
+
+{% block content %}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'groups:list' %}">Groups</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'groups:detail' group.pk %}">{{ group.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Confirm combine</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card border-warning">
+        <div class="card-body">
+          <h1 class="h4 mb-3">Confirm player merge</h1>
+          <p>
+            <strong>{{ source.display_label }}</strong> will be merged into
+            <strong>{{ keeper.display_label }}</strong> and then removed from the roster.
+          </p>
+          <ul class="mb-4">
+            <li>{{ preview.games_moved }} game result(s) will move to {{ keeper.display_label }}</li>
+            {% if preview.games_dropped %}
+              <li>{{ preview.games_dropped }} duplicate game result(s) will be dropped</li>
+            {% endif %}
+            {% if preview.invites_moved %}
+              <li>{{ preview.invites_moved }} pending invite(s) will move</li>
+            {% endif %}
+            {% if preview.team_links_moved %}
+              <li>{{ preview.team_links_moved }} team membership link(s) will move</li>
+            {% endif %}
+            {% if preview.insight_logs_moved %}
+              <li>{{ preview.insight_logs_moved }} AI insight log(s) will move</li>
+            {% endif %}
+            {% if source.linked_user_id and not keeper.linked_user_id %}
+              <li>Linked account {{ source.linked_user.username }} will move to {{ keeper.display_label }}</li>
+            {% endif %}
+          </ul>
+          <p class="text-muted mb-4">This cannot be undone.</p>
+          <form method="post" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="keeper" value="{{ keeper.pk }}">
+            <input type="hidden" name="source" value="{{ source.pk }}">
+            <input type="hidden" name="confirm" value="yes">
+            <button type="submit" class="btn btn-danger">Combine players</button>
+            <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

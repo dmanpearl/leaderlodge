@@ -70,8 +70,8 @@
                 <th scope="col">User</th>
                 <th scope="col">Role</th>
                 <th scope="col" class="group-members-joined-col">Joined</th>
-                {% if can_manage_members %}
-                  <th scope="col"><span class="visually-hidden">Actions</span></th>
+                {% if show_member_actions %}
+                  <th scope="col" class="group-list-actions-col"><span class="visually-hidden">Actions</span></th>
                 {% endif %}
               </tr>
             </thead>
@@ -107,20 +107,9 @@
                     {% endif %}
                   </td>
                   <td class="group-members-joined-col">{{ membership.joined_at|date:table_date_format }}</td>
-                  {% if can_manage_members %}
-                    <td class="text-end">
-                      {% if row.can_remove %}
-                        <form
-                          method="post"
-                          action="{% url 'groups:member_remove' group.pk membership.pk %}"
-                          class="d-inline"
-                        >
-                          {% csrf_token %}
-                          <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from Group" aria-label="Remove from Group {{ membership.user|user_display_name }}">
-                            <i class="bi bi-person-x" aria-hidden="true"></i>
-                          </button>
-                        </form>
-                      {% endif %}
+                  {% if show_member_actions %}
+                    <td class="text-end group-list-actions-col">
+                      {% include "groups/includes/member_actions.html" with row=row membership=membership %}
                     </td>
                   {% endif %}
                 </tr>
@@ -309,8 +298,8 @@
                     >%</a>
                   </th>
                 {% endif %}
-                {% if can_manage_members %}
-                  <th scope="col"><span class="visually-hidden">Actions</span></th>
+                {% if show_roster_actions %}
+                  <th scope="col" class="group-list-actions-col"><span class="visually-hidden">Actions</span></th>
                 {% endif %}
               </tr>
             </thead>
@@ -343,8 +332,8 @@
                     <td>{{ standing.losses|floatformat:-1 }}</td>
                     <td>{% if standing.games_played %}{{ standing.loss_pct|floatformat:0 }}%{% else %}&mdash;{% endif %}</td>
                   {% endif %}
-                  {% if can_manage_members %}
-                    <td class="text-end">
+                  {% if show_roster_actions %}
+                    <td class="text-end group-list-actions-col">
                       {% include "groups/includes/roster_player_actions.html" with row=row player=standing.player %}
                     </td>
                   {% endif %}
@@ -360,8 +349,8 @@
             <thead>
               <tr>
                 <th scope="col">Name</th>
-                {% if can_manage_members %}
-                  <th scope="col"><span class="visually-hidden">Actions</span></th>
+                {% if show_roster_actions %}
+                  <th scope="col" class="group-list-actions-col"><span class="visually-hidden">Actions</span></th>
                 {% endif %}
               </tr>
             </thead>
@@ -378,8 +367,8 @@
                       </span>
                     {% endif %}
                   </td>
-                  {% if can_manage_members %}
-                    <td class="text-end">
+                  {% if show_roster_actions %}
+                    <td class="text-end group-list-actions-col">
                       {% include "groups/includes/roster_player_actions.html" with row=row player=row.player %}
                     </td>
                   {% endif %}

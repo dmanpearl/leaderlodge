@@ -65,6 +65,7 @@ and leaderboards for social games played by groups of people.
 - Membership roles: Owner, Editor, Member
 - Public demo mode (read-only) or private group visibility
 - Bulk roster view with active/inactive status
+- Combine two roster players in the same group (owners and staff); not allowed if they have played in the same game
 - Hide individual players from game stats
 - Team support: pairs of players appear as a combined roster entry with
 individual leaderboard credit still applied

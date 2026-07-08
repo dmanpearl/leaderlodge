@@ -1,0 +1,47 @@
+{% load display_names %}
+{% if row.can_remove or row.can_combine %}
+  <div class="dropdown position-static">
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-secondary"
+      data-bs-toggle="dropdown"
+      data-bs-popper-config='{"strategy":"fixed"}'
+      aria-expanded="false"
+      title="Actions"
+      aria-label="Actions for {{ membership.user|user_display_name }}"
+    >
+      <i class="bi bi-three-dots" aria-hidden="true"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      {% if row.can_remove %}
+        <li>
+          <form
+            method="post"
+            action="{% url 'groups:member_remove' group.pk membership.pk %}"
+            class="m-0"
+          >
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="dropdown-item text-danger d-flex align-items-center gap-2 w-100"
+            >
+              <i class="bi bi-person-x" aria-hidden="true"></i>
+              Remove from Group
+            </button>
+          </form>
+        </li>
+      {% endif %}
+      {% if row.can_combine and row.group_player %}
+        <li>
+          <a
+            class="dropdown-item d-flex align-items-center gap-2"
+            href="{% url 'groups:player_combine' group.pk row.group_player.pk %}"
+          >
+            <i class="bi bi-people" aria-hidden="true"></i>
+            Combine
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </div>
+{% endif %}

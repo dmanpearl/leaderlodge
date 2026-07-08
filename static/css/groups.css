@@ -1,6 +1,28 @@
 .group-detail-page {
   max-width: 100%;
-  overflow-x: clip;
+}
+
+.group-list-actions-col {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.group-list-actions-col .dropdown-menu {
+  z-index: 1080;
+}
+
+.group-list-actions-col .dropdown-menu .dropdown-item {
+  color: var(--bs-dropdown-link-color);
+}
+
+.group-list-actions-col .dropdown-menu .dropdown-item.text-danger {
+  color: var(--bs-danger);
+}
+
+.group-list-actions-col .dropdown-menu form .dropdown-item,
+.group-list-actions-col .dropdown-item[type="submit"] {
+  width: 100%;
+  text-align: inherit;
 }
 
 .group-detail-page .card-body > .row {

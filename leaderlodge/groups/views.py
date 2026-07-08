@@ -16,6 +16,7 @@ from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.accounts.group_selection import persist_group_id
 from leaderlodge.groups.forms import (
+    CombinePlayersForm,
     GroupForm,
     GroupInviteEmailForm,
     GuestInviteEmailForm,
@@ -37,6 +38,7 @@ from leaderlodge.groups.locations import locations_for_group
 from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
 from leaderlodge.groups.player_search import search_group_players
 from leaderlodge.groups.permissions import (
+    can_combine_players,
     can_invite_roster_player,
     can_manage_members,
     can_remove_membership,
@@ -45,6 +47,7 @@ from leaderlodge.groups.permissions import (
     role_choice_options,
     roster_remove_state,
 )
+from leaderlodge.groups.player_combine import combine_players, preview_combine_players
 from leaderlodge.groups.services import (
     add_guest_player,
     can_manage_group_members,
@@ -82,26 +85,37 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
     )
     actor_membership = get_membership(request.user, group)
     can_manage_members = can_manage_group_members(request.user, group)
+    can_combine = can_combine_players(request.user, group)
+    show_member_actions = can_manage_members or can_combine
+    show_roster_actions = can_manage_members or can_combine
+    players_by_user_id = {
+        player.linked_user_id: player
+        for player in group.players.filter(
+            is_active=True,
+            linked_user_id__isnull=False,
+        )
+    }
     member_rows = []
-    if can_manage_members and actor_membership is not None:
-        for membership in memberships:
+    for membership in memberships:
+        group_player = players_by_user_id.get(membership.user_id)
+        can_combine_member = (
+            can_combine and group_player is not None and not group_player.is_team
+        )
+        if can_manage_members and actor_membership is not None:
             choices = role_choice_options(actor_membership, membership)
-            member_rows.append(
-                {
-                    "membership": membership,
-                    "role_choices": choices,
-                    "can_remove": can_remove_membership(actor_membership, membership),
-                }
-            )
-    else:
-        member_rows = [
+            can_remove = can_remove_membership(actor_membership, membership)
+        else:
+            choices = []
+            can_remove = False
+        member_rows.append(
             {
                 "membership": membership,
-                "role_choices": [],
-                "can_remove": False,
+                "role_choices": choices,
+                "can_remove": can_remove,
+                "can_combine": can_combine_member,
+                "group_player": group_player,
             }
-            for membership in memberships
-        ]
+        )
     game_type_codes = _game_type_codes_for_group(group)
     if game_type_codes:
         selected_game_type_code = resolve_game_type_code(
@@ -160,6 +174,7 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
                     "can_invite": can_invite_roster_player(
                         actor_membership, row.player, group
                     ),
+                    "can_combine": can_combine and not row.player.is_team,
                     **remove_state,
                 }
             )
@@ -174,6 +189,7 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
                     "can_invite": can_invite_roster_player(
                         actor_membership, player, group
                     ),
+                    "can_combine": can_combine and not player.is_team,
                     **remove_state,
                 }
             )
@@ -197,6 +213,9 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         "group": group,
         "member_rows": member_rows,
         "can_manage_members": can_manage_members,
+        "can_combine_players": can_combine,
+        "show_member_actions": show_member_actions,
+        "show_roster_actions": show_roster_actions,
         "pending_invites": (
             list(pending_invites_for_group(group)) if can_manage_members else []
         ),
@@ -660,3 +679,69 @@ def player_remove(request: HttpRequest, pk: int, player_pk: int) -> HttpResponse
         raise Http404 from None
     messages.success(request, f"Removed {name} from the roster.")
     return redirect("groups:detail", pk=group.pk)
+
+
+@login_required
+def player_combine(request: HttpRequest, pk: int, player_pk: int) -> HttpResponse:
+    group = get_object_or_404(Group, pk=pk)
+    keeper = get_object_or_404(
+        GroupPlayer.objects.select_related("linked_user"),
+        pk=player_pk,
+        group=group,
+        is_active=True,
+        is_team=False,
+    )
+    if not can_combine_players(request.user, group):
+        raise Http404
+
+    cancel_url = reverse("groups:detail", kwargs={"pk": group.pk})
+
+    if request.method == "POST" and request.POST.get("confirm") == "yes":
+        source = get_object_or_404(
+            GroupPlayer,
+            pk=int(request.POST.get("source", "0")),
+            group=group,
+            is_active=True,
+            is_team=False,
+        )
+        try:
+            preview = combine_players(keeper=keeper, source=source)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect(cancel_url)
+        messages.success(
+            request,
+            f'Combined "{preview.source.display_label}" into '
+            f'"{preview.keeper.display_label}".',
+        )
+        return redirect(cancel_url)
+
+    if request.method == "POST":
+        form = CombinePlayersForm(request.POST, group=group, keeper=keeper)
+        if form.is_valid():
+            source = form.cleaned_data["source"]
+            preview = preview_combine_players(keeper=keeper, source=source)
+            return render(
+                request,
+                "groups/player_combine_confirm.html",
+                {
+                    "group": group,
+                    "source": source,
+                    "keeper": keeper,
+                    "preview": preview,
+                    "cancel_url": cancel_url,
+                },
+            )
+    else:
+        form = CombinePlayersForm(group=group, keeper=keeper)
+
+    return render(
+        request,
+        "groups/player_combine.html",
+        {
+            "group": group,
+            "keeper": keeper,
+            "form": form,
+            "cancel_url": cancel_url,
+        },
+    )

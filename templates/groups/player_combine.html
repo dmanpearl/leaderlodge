@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Combine players | {{ group.name }} | LeaderLodge{% endblock %}
+
+{% block content %}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'groups:list' %}">Groups</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'groups:detail' group.pk %}">{{ group.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Combine players</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card">
+        <div class="card-body">
+          <h1 class="h4 mb-3">Combine players</h1>
+          <p class="text-muted">
+            Merge another roster player into <strong>{{ keeper.display_label }}</strong>.
+            Game history, invites, and linked data move to the player you keep.
+            The merged player will be deleted.
+          </p>
+          <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <div class="mb-3">
+              <div class="form-label">Keep this player</div>
+              <div class="px-3 py-2 bg-light rounded border">
+                {{ keeper.display_label }}
+                {% if keeper.linked_user %}
+                  <span class="text-muted small">({{ keeper.linked_user.username }})</span>
+                {% else %}
+                  <span class="badge text-bg-secondary ms-1" title="Guest">
+                    <span class="d-none d-md-inline">Guest</span><span class="d-md-none">G</span>
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="{{ form.source.id_for_label }}" class="form-label">
+                {{ form.source.label }}
+              </label>
+              {{ form.source }}
+              {% if form.source.errors %}
+                <div class="invalid-feedback d-block">{{ form.source.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">Review merge</button>
+              <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
