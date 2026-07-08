@@ -103,12 +103,13 @@
 - [x] d73db49 Feat: Feedback type should be defaulted into a value (https://leaderlodge.com/admin/feedback/feedback/4/change/)
 - [x] f8b3cbd Bug: Location type-ahead conflict (https://leaderlodge.com/admin/feedback/feedback/3/change/)
 - [x] 9da64cc, 4a17e25 Auth Events should be location aware based on IP address or other available information. Location information should be in notifications and logs
-- [x] cc386d3 Players: Create a tool to combine 2 players into one player. Fail if not already in same Group. Fail if both players have a 'linked user'. Merge all data including games, groups, linked user into one of the players and delete the other player. Provide a confirmation screen. Tool is available to Staff. Tool is available to Group owner for members of owned Group. UX is accessible from Group Detail view via '...' context menu: 'Combine'.
+- [x] 02bf369 Players: Create a tool to combine 2 players into one player. Fail if not already in same Group. Fail if both players have a 'linked user'. Merge all data including games, groups, linked user into one of the players and delete the other player. Provide a confirmation screen. Tool is available to Staff. Tool is available to Group owner for members of owned Group. UX is accessible from Group Detail view via '...' context menu: 'Combine'.
+- [x] Display name: When displaying <first-name> <last-initial> do not end with a dot/period
 
 ## Open Items
 
-- [ ] Display name: When displaying <first-name> <last-initial> do not end with a dot/period. Before implementing, do a study to see if this might be a performance hit to the system, and abort if cumbersome
-- [ ] Display name: When two players have the same <first-name> <last-initial>, dispaly with 2 characters of their last name, both capitalized. Max 3 characters. If still identical, look for change at end of suffix to use, like Jr, Sr, II
+- [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
+- [ ] Display name: When two players have the same <first-name> <last-initial>, dispaly with 2 characters of their last name, both capitalized. Max 3 characters. If still identical, look for change at end of suffix to use, like Jr, Sr, II. Before implementing, do a study to see if this might be a performance hit to the system, abort if complex code or time consuming runtime
 - [ ] Groups Detail View > Members > indicate verified members with green check similar to Accounts menu
 - [ ] Group Detail View > Members > Make the member name into a link to the Player Detail view
 - [ ] Group Detail View > Members > Invite Member > Name: Use type-ahead and menu pop-up to try to select from existing Guests, but also allow the user to enter a new Name. Make sure inviter knows they are inviting an existing Guest and has the option to type a new name. If we do invite with a new Name, do allow the invite to associate with an existing Guest when accepting the invitation.
