@@ -213,7 +213,7 @@ _SIGNUP_BOT_SOURCE_LABELS = {
 }
 
 _SIGNUP_BOT_REASON_LABELS = {
-    "honeypot_filled": "Honeypot field trap",
+    "honeypot_filled": "Honeypot triggered",
     "submitted_too_fast": "Form submitted too quickly",
     "missing_timestamp": "Missing form timestamp",
 }
