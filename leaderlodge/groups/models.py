@@ -137,6 +137,9 @@ class GroupPlayer(models.Model):
 
     @property
     def display_label(self) -> str:
+        override = getattr(self, "_label_override", None)
+        if override is not None:
+            return override
         if self.is_team:
             return self.display_name
         if self.linked_user_id:

@@ -120,6 +120,7 @@ def _leader_cell(
     game_type_code: str,
     period: LeaderboardPeriod,
     player_type: str = "",
+    label_map: dict[int, str] | None = None,
 ) -> HallOfFameCell:
     rankings = get_player_rankings(
         group,
@@ -137,6 +138,11 @@ def _leader_cell(
         )
 
     leader = rankings[0]
+    player_label = (
+        label_map.get(leader.player.pk, leader.player.display_label)
+        if label_map
+        else leader.player.display_label
+    )
     detail_query = ""
     if leader.player.pk:
         detail_query = build_leaderboard_query(
@@ -146,7 +152,7 @@ def _leader_cell(
             extra={"player": str(leader.player.pk)},
         )
     return HallOfFameCell(
-        player_label=leader.player.display_label,
+        player_label=player_label,
         player_id=leader.player.pk,
         rank_score=leader.rank_score,
         game_type_code=game_type_code,
@@ -159,6 +165,7 @@ def build_hall_of_fame_grid(
     *,
     granularity: str,
     player_type: str = "",
+    label_map: dict[int, str] | None = None,
 ) -> HallOfFameGrid:
     codes = _game_type_codes_for_group(group)
     columns = tuple(
@@ -173,6 +180,7 @@ def build_hall_of_fame_grid(
                 game_type_code=column.code,
                 period=period,
                 player_type=player_type,
+                label_map=label_map,
             )
             for column in columns
         )

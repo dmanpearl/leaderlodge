@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils.dateparse import parse_date
 
 from leaderlodge.core.decorators import demo_or_login_required
+from leaderlodge.groups.names import apply_label_overrides, disambiguate_labels
 from leaderlodge.games.forms import (
     GameRecordForm,
     GameEditForm,
@@ -450,6 +451,17 @@ def game_list(request: HttpRequest) -> HttpResponse:
     page = paginator.get_page(request.GET.get("page"))
     games = list(page.object_list)
     player_columns, game_rows = build_game_list_table(games)
+
+    all_player_instances = (
+        list(player_columns)
+        + list(players)
+        + [ps.player for ps in (list_stats.players if list_stats else [])]
+    )
+    unique_by_pk = {p.pk: p for p in all_player_instances}
+    game_list_label_map = disambiguate_labels(list(unique_by_pk.values()))
+    for p in all_player_instances:
+        p._label_override = game_list_label_map.get(p.pk, p.display_label)
+
     stats_player_count = len(list_stats.players) if list_stats else 0
     list_density = resolve_game_list_density(
         table_player_count=len(player_columns),
@@ -744,6 +756,7 @@ def game_matchup(request: HttpRequest) -> HttpResponse:
         raise Http404
 
     matchup = build_matchup_view(game)
+    apply_label_overrides([col.player for col in matchup.players])
     insights_enabled = insights_ui_enabled()
     return render(
         request,
@@ -765,14 +778,15 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     game = get_object_or_404(
         Game.objects.select_related(
             "group", "recorded_by", "location"
-        ).prefetch_related("participant_results__player"),
+        ).prefetch_related("participant_results__player__linked_user"),
         pk=pk,
     )
     if not can_view_group(request.user, game.group):
         raise Http404
 
     game_type = get_game_type(game.game_type_code)
-    results = game.participant_results.order_by("placement", "pk")
+    results = list(game.participant_results.order_by("placement", "pk"))
+    apply_label_overrides([r.player for r in results])
 
     return render(
         request,

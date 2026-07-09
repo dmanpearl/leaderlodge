@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.display import winner_labels_for_games
+from leaderlodge.groups.names import apply_label_overrides
 from leaderlodge.games.game_type_icons import game_type_icon_image
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
@@ -91,6 +92,7 @@ def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboa
             continue
 
         combined.sort(key=_dashboard_ranking_sort_key)
+        apply_label_overrides([r.player for r in combined])
         top = combined[:5]
 
         if composite:

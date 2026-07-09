@@ -4,6 +4,8 @@ from django.http import HttpRequest, HttpResponse, HttpResponseNotFound
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+from leaderlodge.groups.names import apply_label_overrides, disambiguate_labels
+
 from leaderlodge.accounts.game_selection import (
     all_game_type_codes,
     resolve_game_type_code,
@@ -240,6 +242,8 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             game_size=selected_game_size,
             player_type=player_type,
         )
+        if rankings:
+            apply_label_overrides([r.player for r in rankings])
 
     game_type_options = _leaderboard_game_type_options(played_game_type_codes)
     selected_game_type_has_games = bool(
@@ -373,10 +377,18 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
     grid = None
     filter_summary = ""
     if selected_group:
+        hof_label_map = disambiguate_labels(
+            list(
+                selected_group.players.filter(is_active=True).select_related(
+                    "linked_user"
+                )
+            )
+        )
         grid = build_hall_of_fame_grid(
             selected_group,
             granularity=granularity,
             player_type=player_type,
+            label_map=hof_label_map,
         )
         filter_summary = hall_of_fame_filter_summary(
             group_name=selected_group.name,
@@ -459,6 +471,15 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     )
     if detail is None:
         return HttpResponseNotFound()
+
+    all_group_players = list(
+        selected_group.players.filter(is_active=True).select_related("linked_user")
+    )
+    rank_detail_label_map = disambiguate_labels(all_group_players)
+    player._label_override = rank_detail_label_map.get(player.pk, player.display_label)
+    detail.ranking.player._label_override = rank_detail_label_map.get(
+        detail.ranking.player.pk, detail.ranking.player.display_label
+    )
 
     game_type = get_game_type(game_type_code)
     leaderboard_url = (
