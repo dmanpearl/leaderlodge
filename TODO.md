@@ -106,7 +106,8 @@
 - [x] 02bf369 Players: Create a tool to combine 2 players into one player. Fail if not already in same Group. Fail if both players have a 'linked user'. Merge all data including games, groups, linked user into one of the players and delete the other player. Provide a confirmation screen. Tool is available to Staff. Tool is available to Group owner for members of owned Group. UX is accessible from Group Detail view via '...' context menu: 'Combine'.
 - [x] 024fe2d Display name: When displaying <first-name> <last-initial> do not end with a dot/period (remove trailing dot)
 - [x] e8c4caa Disambiguate player display name: When players have the same <first-name> <last-initial>, display with up to 3 uppercase characters of their non-matching last name. If still identical, look for change at end or suffix , like Jr, Sr, II. If <first-name> is unique in group players of this game, omit <last-initial>
-- [x] Groups Detail View > Members > indicate email verified members with green check similar to Accounts menu
+- [x] 7149521 Groups Detail View > Members > indicate email verified members with green check similar to Accounts menu
+- [x] Bug: AI does not understand the word 'today' as a date (feedback 7)
 
 ## Open Items
 
@@ -118,7 +119,6 @@
 - [ ] Game Detail View: Add button 'Invite with email' (if guest) as the far right column similar to context item in Group Detail view ('...' context menu not currently required because there is only one action)
 - [ ] Feat: Edit Game > Need ability to delete a player from a game (low priority, also speaks to add, channge)
 - [ ] Feat: UI tool to combine guests (Example: Char and Charlene)
-- [ ] Bug: AI does not understand the word today as a date (feedback 7)
 - [ ] Bug: AI reports a player is ranked higher than his tied competitor (feedback 6)
 - [ ] Feat: Admin View > Feedback > Triage > Status > Add item: 'Deferred'
 - [ ] Group View > Player Roster > Row behavior: Move player detail link from player name to '...' context menu.

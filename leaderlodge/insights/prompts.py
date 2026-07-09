@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date
 from typing import Any
 
-PROMPT_VERSION = 29
+PROMPT_VERSION = 30
 
 _RANK_FRAMING_RULES = """- Field-aware rank talk: if only two players have meaningful games_played, do not praise rank 2 (that is the other regular, not an achievement).
 - Never call last place a podium. With three players, 3rd is last, not podium.
@@ -33,6 +34,12 @@ _ASK_TEAM_RULES = """- When the user asks about teams, partners, pairings, duos,
 - Never recommend teams based on player names, gender, personality, or stereotypes. Name-based boy/girl grouping rules apply only when the user explicitly asks for that grouping.
 - Individual rankings from query_team_pairings or query_leaderboard are supporting context only; they do not replace stats for playing together as a duo.
 - If observed_duo_teams is empty or a pair has zero games together, say data is limited. Do not invent chemistry or compatibility."""
+
+_ASK_DATE_RULES = """- Today's date is provided in the scope as "Today's date". Always resolve relative date words before calling any tool: "today" maps to start_date=end_date=today's date; "yesterday" maps to today minus one day; "this week" maps to a 7-day window ending today.
+- When the user says "today" or any other relative date, call query_date_range_leaderboard with the computed YYYY-MM-DD dates. Do not use query_leaderboard or period filters as a substitute for a date-specific question."""
+
+_ASK_GAME_TYPE_RULES = """- Common game name variants: "Mahjong", "Mah-Jongg", "Mah Jongg", "MahJongg" all map to game_type_code="mahjongg"; "Rummy", "Progressive Rummy" map to "progressiverummy"; "Backgammon" maps to "backgammon"; "Dominos", "Dominoes" map to "dominos"; "Pickleball" maps to "pickleball".
+- When the user names a game that is not the default, map it to a code using the list above. If you are still unsure, call list_game_types to see available codes for this group before answering."""
 
 _ASK_COMPARISON_RULES = """- When comparing two players, you MUST include each player's overall rank and rank_score for the game type and period in scope. Overall standing is the most important comparison: state it first (who ranks higher, each player's rank number, and rank_score). Higher rank_score is always better; lower rank number (1 is best) is better.
 - Call query_player_detail for each player when rank is not already in tool results. query_head_to_head covers shared-table stats only; it does not replace overall rank unless player rows already include rank and rank_score.
@@ -102,6 +109,8 @@ The user asks a natural-language question about their group stats. You have tool
 Rules:
 - Call one or more tools when you need computed stats. Do not guess ranks, counts, or trends.
 - Use ONLY facts returned by tools for game statistics. Do not invent games, players, or numbers.
+{_ASK_DATE_RULES}
+{_ASK_GAME_TYPE_RULES}
 {_ASK_ROSTER_INTERPRETATION_RULES}
 {_ASK_SCORE_DIRECTION_RULES}
 {_ASK_TEAM_RULES}
@@ -325,7 +334,7 @@ def render_ask_user_message(
     if not custom:
         raise ValueError("A question is required.")
 
-    scope_lines = [f"Group: {group_name}"]
+    scope_lines = [f"Group: {group_name}", f"Today's date: {date.today().isoformat()}"]
     if game_type_code:
         game_type = get_game_type(game_type_code)
         direction = score_direction_label(game_type_code)
