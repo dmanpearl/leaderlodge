@@ -54,6 +54,7 @@ from leaderlodge.games.score_changes import apply_game_edits, user_can_edit_game
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
     can_edit_group,
+    can_manage_group_members,
     can_view_group,
     get_demo_group,
     single_user_group,
@@ -71,6 +72,7 @@ from leaderlodge.accounts.group_selection import (
 )
 from leaderlodge.groups.locations import locations_for_group, resolve_game_location
 from leaderlodge.groups.teams import PLAYER_TYPE_CHOICES, normalize_player_type
+from leaderlodge.accounts.email_verification import is_email_verified
 
 GAMES_PER_PAGE = 25
 
@@ -778,7 +780,9 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     game = get_object_or_404(
         Game.objects.select_related(
             "group", "recorded_by", "location"
-        ).prefetch_related("participant_results__player__linked_user"),
+        ).prefetch_related(
+            "participant_results__player__linked_user__profile",
+        ),
         pk=pk,
     )
     if not can_view_group(request.user, game.group):
@@ -787,6 +791,19 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     game_type = get_game_type(game.game_type_code)
     results = list(game.participant_results.order_by("placement", "pk"))
     apply_label_overrides([r.player for r in results])
+    can_invite_guests = can_manage_group_members(request.user, game.group)
+    result_rows = [
+        {
+            "result": r,
+            "is_guest": r.player.linked_user is None,
+            "email_verified": (
+                is_email_verified(r.player.linked_user)
+                if r.player.linked_user is not None
+                else False
+            ),
+        }
+        for r in results
+    ]
 
     return render(
         request,
@@ -795,13 +812,14 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "game": game,
             "game_type": game_type,
             "game_type_icon_url": game_type_icon_url(game.game_type_code),
-            "results": results,
+            "result_rows": result_rows,
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
             "insights_enabled": insights_ui_enabled(),
             "insight_models": tuple(MODEL_REGISTRY.values()),
             "selected_insight_model": preferred_insight_model_id(request),
             "can_edit_game": user_can_edit_game(request.user, game),
+            "can_invite_guests": can_invite_guests,
         },
     )
 

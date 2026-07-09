@@ -4,7 +4,8 @@
       "Bash(find /Users/dmanpearl/pixelmonks/leaderlodge/leaderlodge/*/management/commands -name \"*.py\" -type f)",
       "Bash(npx prettier *)",
       "Bash(black *)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

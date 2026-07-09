@@ -63,21 +63,54 @@
             <th scope="col">Player</th>
             <th scope="col">Score</th>
             <th scope="col">Result</th>
+            {% if can_invite_guests %}
+              <th scope="col" class="group-list-actions-col"><span class="visually-hidden">Actions</span></th>
+            {% endif %}
           </tr>
         </thead>
         <tbody>
-          {% for result in results %}
+          {% for row in result_rows %}
+            {% with result=row.result %}
             <tr>
               <td>
-                <a href="{% url 'leaderboards:detail' %}?group={{ game.group.pk }}&amp;game_type_code={{ game.game_type_code }}&amp;player={{ result.player.pk }}">
-                  {{ result.player.display_label }}
-                </a>
+                <span class="account-name-with-badge account-name-with-badge--table">
+                  <a href="{% url 'leaderboards:detail' %}?group={{ game.group.pk }}&amp;game_type_code={{ game.game_type_code }}&amp;player={{ result.player.pk }}">
+                    {{ result.player.display_label }}
+                  </a>
+                  {% if result.player.linked_user %}
+                    <span class="text-muted small">({{ result.player.linked_user.username }})</span>
+                  {% endif %}
+                  {% if row.email_verified %}
+                    <span class="account-verified-badge" title="Email verified">
+                      <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                      <span class="visually-hidden">Email verified</span>
+                    </span>
+                  {% endif %}
+                </span>
               </td>
               <td>{{ result.score }}</td>
               <td>
                 {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}
               </td>
+              {% if can_invite_guests %}
+                <td class="text-end group-list-actions-col">
+                  {% if row.is_guest %}
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      data-roster-invite
+                      data-player-name="{{ result.player.display_label }}"
+                      data-invite-url="{% url 'groups:player_invite' game.group.pk result.player.pk %}"
+                      title="Invite with email"
+                      aria-label="Invite {{ result.player.display_label }} with email"
+                    >
+                      <i class="bi bi-envelope" aria-hidden="true"></i>
+                    </button>
+                  {% endif %}
+                </td>
+              {% endif %}
             </tr>
+            {% endwith %}
           {% endfor %}
         </tbody>
       </table>
@@ -89,12 +122,80 @@
     <a href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&game_type_code={{ game.game_type_code }}" class="btn btn-outline-primary">Leaderboard</a>
     <a href="{% url 'games:matchup' %}?game={{ game.pk }}" class="btn btn-outline-secondary">Matchup</a>
   </div>
+
+  {% if can_invite_guests %}
+    <div
+      class="modal fade"
+      id="roster-invite-modal"
+      tabindex="-1"
+      aria-labelledby="roster-invite-modal-label"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="post" id="roster-invite-form">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h2 class="modal-title h5" id="roster-invite-modal-label">Invite player</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-3">
+                Send an email invitation for <strong id="roster-invite-player-name"></strong>.
+              </p>
+              <label for="roster-invite-email" class="form-label">Email</label>
+              <input
+                type="email"
+                name="email"
+                id="roster-invite-email"
+                class="form-control"
+                placeholder="Email address"
+                autocomplete="email"
+                required
+              />
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Send invite</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
   {% if insights_enabled %}
     {% include "includes/matchup_insights_panel.html" with panel_id="game-detail-insights-panel" %}
   {% endif %}
 {% endblock %}
 
 {% block extra_js %}
+  {% if can_invite_guests %}
+    <script>
+      (function () {
+        const rosterInviteModal = document.getElementById("roster-invite-modal");
+        if (rosterInviteModal) {
+          const rosterInviteForm = document.getElementById("roster-invite-form");
+          const rosterInviteEmail = document.getElementById("roster-invite-email");
+          const rosterInvitePlayerName = document.getElementById("roster-invite-player-name");
+          const modal = bootstrap.Modal.getOrCreateInstance(rosterInviteModal);
+
+          document.querySelectorAll("[data-roster-invite]").forEach((button) => {
+            button.addEventListener("click", () => {
+              rosterInviteForm.action = button.dataset.inviteUrl;
+              rosterInvitePlayerName.textContent = button.dataset.playerName;
+              rosterInviteEmail.value = "";
+              modal.show();
+            });
+          });
+
+          rosterInviteModal.addEventListener("shown.bs.modal", () => {
+            rosterInviteEmail.focus();
+          });
+        }
+      })();
+    </script>
+  {% endif %}
   {% if insights_enabled %}
     {% include "includes/insights_result_script.html" %}
     {% include "includes/insights_debug_script.html" %}
