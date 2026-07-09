@@ -841,6 +841,15 @@ def _assign_ranks(
         key=lambda row: rank_score_sort_key(row, low_wins=low_wins),
     )
     ranked: list[PlayerRanking] = []
-    for index, row in enumerate(ordered, start=1):
-        ranked.append(replace(row, rank=index))
+    current_rank = 1
+    for i, row in enumerate(ordered):
+        if i > 0:
+            prev = ordered[i - 1]
+            # Advance rank only when the rank-determining fields differ.
+            # display_label is a tiebreaker for stable ordering only.
+            prev_key = rank_score_sort_key(prev, low_wins=low_wins)[:3]
+            curr_key = rank_score_sort_key(row, low_wins=low_wins)[:3]
+            if curr_key != prev_key:
+                current_rank = i + 1
+        ranked.append(replace(row, rank=current_rank))
     return ranked

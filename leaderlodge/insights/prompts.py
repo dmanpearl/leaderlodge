@@ -47,7 +47,8 @@ _ASK_COMPARISON_RULES = """- When comparing two players, you MUST include each p
 - For wins, losses, and ties, cite wins_display, losses_display, and ties_display from tool results exactly as written (e.g. 81 (25.1%)). Do not rephrase as "X wins with a win percentage of Y".
 - For total_points or scoring comparisons, cite total_points_display or avg_points_display exactly (e.g. 404.4/game). Compare average points per game, not raw totals alone.
 - wins_display_alt, losses_display_alt, and ties_display_alt use pct% (count of total) if you prefer that form instead.
-- If both players have the same games_played, raw win, loss, or tie counts are comparable without percentages."""
+- If both players have the same games_played, raw win, loss, or tie counts are comparable without percentages.
+- When two players share the same rank number in tool results, they are tied in overall standing. Do not declare either player the leader or ranked higher; state explicitly that they are tied at that rank."""
 
 _NUMERIC_RULES = """- For comparisons (more/less, most, highest, best rank): use `computed_rankings` when present. Do not infer order by comparing raw numbers yourself.
 - Only call a player "most" or "highest" if they are rank 1 in the matching `computed_rankings` list.
