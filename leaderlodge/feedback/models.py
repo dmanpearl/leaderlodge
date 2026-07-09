@@ -20,6 +20,7 @@ class Feedback(models.Model):
         RESOLVED = "resolved", "Resolved"
         CLOSED = "closed", "Closed"
         WONT_FIX = "wont_fix", "Won't fix"
+        DEFERRED = "deferred", "Deferred"
 
     class Priority(models.TextChoices):
         LOW = "low", "Low"
