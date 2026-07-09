@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from leaderlodge.accounts.email_verification import (
+    is_email_verified,
     record_verification_email_sent,
     send_welcome_email,
 )
@@ -81,7 +82,9 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
 
 def _group_detail_context(group: Group, request: HttpRequest) -> dict:
     memberships = list(
-        group.memberships.select_related("user").order_by("user__username")
+        group.memberships.select_related("user", "user__profile").order_by(
+            "user__username"
+        )
     )
     actor_membership = get_membership(request.user, group)
     can_manage_members = can_manage_group_members(request.user, group)
@@ -95,6 +98,7 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
             linked_user_id__isnull=False,
         )
     }
+    verified_user_pks = {m.user_id for m in memberships if is_email_verified(m.user)}
     member_rows = []
     for membership in memberships:
         group_player = players_by_user_id.get(membership.user_id)
@@ -114,6 +118,7 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
                 "can_remove": can_remove,
                 "can_combine": can_combine_member,
                 "group_player": group_player,
+                "email_verified": membership.user_id in verified_user_pks,
             }
         )
     game_type_codes = _game_type_codes_for_group(group)
@@ -175,6 +180,11 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
                         actor_membership, row.player, group
                     ),
                     "can_combine": can_combine and not row.player.is_team,
+                    "email_verified": (
+                        row.player.linked_user_id in verified_user_pks
+                        if row.player.linked_user_id
+                        else False
+                    ),
                     **remove_state,
                 }
             )
@@ -190,6 +200,11 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
                         actor_membership, player, group
                     ),
                     "can_combine": can_combine and not player.is_team,
+                    "email_verified": (
+                        player.linked_user_id in verified_user_pks
+                        if player.linked_user_id
+                        else False
+                    ),
                     **remove_state,
                 }
             )

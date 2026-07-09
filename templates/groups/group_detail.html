@@ -80,7 +80,15 @@
                 {% with membership=row.membership %}
                 <tr>
                   <td>
-                    {% include "includes/user_name_display.html" with user=membership.user %}
+                    <span class="account-name-with-badge account-name-with-badge--table">
+                      {% include "includes/user_name_display.html" with user=membership.user %}
+                      {% if row.email_verified %}
+                        <span class="account-verified-badge" title="Email verified">
+                          <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                          <span class="visually-hidden">Email verified</span>
+                        </span>
+                      {% endif %}
+                    </span>
                   </td>
                   <td>
                     {% if row.role_choices|length > 1 %}
@@ -309,20 +317,28 @@
                 <tr>
                   <td>{% if standing.rank %}{{ standing.rank }}{% else %}&mdash;{% endif %}</td>
                   <td>
-                    {% if standing.games_played and player_detail_query %}
-                      <a href="{% url 'leaderboards:detail' %}?{{ player_detail_query }}&amp;player={{ standing.player.pk }}">
+                    <span class="account-name-with-badge account-name-with-badge--table">
+                      {% if standing.games_played and player_detail_query %}
+                        <a href="{% url 'leaderboards:detail' %}?{{ player_detail_query }}&amp;player={{ standing.player.pk }}">
+                          {{ standing.player.display_label }}
+                        </a>
+                      {% else %}
                         {{ standing.player.display_label }}
-                      </a>
-                    {% else %}
-                      {{ standing.player.display_label }}
-                    {% endif %}
-                    {% if standing.player.linked_user %}
-                      <span class="text-muted small">({{ standing.player.linked_user.username }})</span>
-                    {% else %}
-                      <span class="badge text-bg-secondary ms-1" title="Guest">
-                        <span class="d-none d-md-inline">Guest</span><span class="d-md-none">G</span>
-                      </span>
-                    {% endif %}
+                      {% endif %}
+                      {% if standing.player.linked_user %}
+                        <span class="text-muted small">({{ standing.player.linked_user.username }})</span>
+                      {% else %}
+                        <span class="badge text-bg-secondary ms-1" title="Guest">
+                          <span class="d-none d-md-inline">Guest</span><span class="d-md-none">G</span>
+                        </span>
+                      {% endif %}
+                      {% if row.email_verified %}
+                        <span class="account-verified-badge" title="Email verified">
+                          <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                          <span class="visually-hidden">Email verified</span>
+                        </span>
+                      {% endif %}
+                    </span>
                   </td>
                   <td>{{ standing.rank_score|floatformat:1 }}</td>
                   <td>{{ standing.games_played|floatformat:-1 }}</td>
@@ -358,14 +374,22 @@
               {% for row in roster_players %}
                 <tr>
                   <td>
-                    {{ row.player.display_label }}
-                    {% if row.player.linked_user %}
-                      <span class="text-muted small">({{ row.player.linked_user.username }})</span>
-                    {% else %}
-                      <span class="badge text-bg-secondary ms-1" title="Guest">
-                        <span class="d-none d-md-inline">Guest</span><span class="d-md-none">G</span>
-                      </span>
-                    {% endif %}
+                    <span class="account-name-with-badge account-name-with-badge--table">
+                      {{ row.player.display_label }}
+                      {% if row.player.linked_user %}
+                        <span class="text-muted small">({{ row.player.linked_user.username }})</span>
+                      {% else %}
+                        <span class="badge text-bg-secondary ms-1" title="Guest">
+                          <span class="d-none d-md-inline">Guest</span><span class="d-md-none">G</span>
+                        </span>
+                      {% endif %}
+                      {% if row.email_verified %}
+                        <span class="account-verified-badge" title="Email verified">
+                          <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                          <span class="visually-hidden">Email verified</span>
+                        </span>
+                      {% endif %}
+                    </span>
                   </td>
                   {% if show_roster_actions %}
                     <td class="text-end group-list-actions-col">

@@ -156,6 +156,17 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
   border-radius: 50%;
 }
 
+.account-name-with-badge--table {
+  padding-right: 0;
+}
+
+.account-name-with-badge--table .account-verified-badge {
+  position: static;
+  font-size: 0.85em;
+  color: #198754;
+  vertical-align: text-bottom;
+}
+
 .dropdown-menu .navbar-menu-icon {
   color: var(--bs-body-color);
 }
