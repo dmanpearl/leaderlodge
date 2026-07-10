@@ -110,7 +110,8 @@
 - [x] ceb8e1e Bug: AI does not understand the word 'today' as a date (feedback 7)
 - [x] f20ddb2 Bug: AI reports a player is ranked higher than his tied competitor (feedback 6)
 - [x] 51d0fb5 Feat: Admin View > Feedback > Triage > Status > Add item: 'Deferred'
-- [x] Game Detail View: Add button 'Invite with email' (if guest) as the far right column similar to context item in Group Detail view ('...' context menu not currently required because there is only one action)
+- [x] 0cb653e Game Detail View: Add button 'Invite with email' (if guest) as the far right column similar to context item in Group Detail view ('...' context menu not currently required because there is only one action)
+- [x] Group Detail View > Members > Invite Member > Name: Use type-ahead and menu pop-up to try to select from existing Guests, but also allow the user to enter a new Name. Make sure inviter knows they are inviting an existing Guest and has the option to type a new name. If we do invite with a new Name, do allow the invite to associate with an existing Guest when accepting the invitation.
 
 ## Open Items
 
@@ -118,9 +119,7 @@
 - [ ] Location: Method for combining locations
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Group Detail View > Members > Make the member name into a link to the Player Detail view
-- [ ] Group Detail View > Members > Invite Member > Name: Use type-ahead and menu pop-up to try to select from existing Guests, but also allow the user to enter a new Name. Make sure inviter knows they are inviting an existing Guest and has the option to type a new name. If we do invite with a new Name, do allow the invite to associate with an existing Guest when accepting the invitation.
 - [ ] Feat: Edit Game > Need ability to delete a player from a game (low priority, also speaks to add, change)
-- [ ] Group View > Player Roster > Row behavior: Move player detail link from player name to '...' context menu.
 - [ ] Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)

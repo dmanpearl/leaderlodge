@@ -131,6 +131,9 @@
       {% endif %}
 
       {% if can_manage_members and not is_guest_demo %}
+      {% if invite_guests %}
+        {{ invite_guests|json_script:"invite-guests-data" }}
+      {% endif %}
       <div class="row row-cols-1 row-cols-lg-2 g-3 mx-0 mb-3">
         <div class="col">
           <div class="fw-semibold mb-2">Invite member</div>
@@ -140,6 +143,7 @@
             class="group-detail-actions d-flex flex-column flex-md-row gap-2 align-items-stretch align-items-md-end"
           >
             {% csrf_token %}
+            {{ invite_form.guest_player_id }}
             <div class="group-detail-form-fields flex-grow-1 d-flex flex-column flex-md-row gap-2">
               {{ invite_form.email.as_widget }}
               {{ invite_form.player_name.as_widget }}
@@ -510,4 +514,7 @@
       }
     })();
   </script>
+  {% if invite_guests %}
+    <script src="{% static 'js/invite_name_combobox.js' %}"></script>
+  {% endif %}
 {% endblock %}

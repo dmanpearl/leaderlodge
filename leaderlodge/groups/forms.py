@@ -40,10 +40,15 @@ class GroupInviteEmailForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "Name",
+                "placeholder": "Type or choose guest name",
                 "id": "invite-player-name",
+                "autocomplete": "off",
             }
         ),
+    )
+    guest_player_id = forms.IntegerField(
+        required=False,
+        widget=forms.HiddenInput(attrs={"id": "invite-guest-player-id"}),
     )
 
     def __init__(self, *args, group=None, **kwargs):
@@ -62,6 +67,25 @@ class GroupInviteEmailForm(forms.Form):
         if self.group and pending_invite_for_email(self.group, email) is not None:
             raise forms.ValidationError("An invite is already pending for that email.")
         return email
+
+    def clean(self):
+        cleaned = super().clean()
+        gp_id = cleaned.get("guest_player_id")
+        if gp_id is not None and self.group is not None:
+            try:
+                player = GroupPlayer.objects.get(
+                    pk=gp_id,
+                    group=self.group,
+                    is_active=True,
+                    linked_user__isnull=True,
+                )
+                cleaned["guest_player"] = player
+            except GroupPlayer.DoesNotExist:
+                self.add_error("player_name", "That guest was not found on the roster.")
+                cleaned["guest_player"] = None
+        else:
+            cleaned["guest_player"] = None
+        return cleaned
 
 
 class GuestInviteEmailForm(forms.Form):

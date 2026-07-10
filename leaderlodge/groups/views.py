@@ -224,6 +224,19 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         else ""
     )
 
+    invite_guests = (
+        list(
+            group.players.filter(
+                is_active=True,
+                linked_user__isnull=True,
+                is_team=False,
+            )
+            .values("pk", "display_name")
+            .order_by("display_name")
+        )
+        if can_manage_members
+        else []
+    )
     return {
         "group": group,
         "member_rows": member_rows,
@@ -234,6 +247,9 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         "pending_invites": (
             list(pending_invites_for_group(group)) if can_manage_members else []
         ),
+        "invite_guests": [
+            {"id": g["pk"], "name": g["display_name"]} for g in invite_guests
+        ],
         "invite_form": GroupInviteEmailForm(group=group),
         "standings": standings,
         "standings_rows": standings_rows,
@@ -396,20 +412,30 @@ def invite_send(request: HttpRequest, pk: int) -> HttpResponse:
 
     form = GroupInviteEmailForm(request.POST, group=group)
     if form.is_valid():
+        guest_player = form.cleaned_data.get("guest_player")
         try:
-            invite = create_email_invite(
-                group=group,
-                email=form.cleaned_data["email"],
-                invited_by=request.user,
-                player_name=form.cleaned_data.get("player_name", ""),
-            )
+            if guest_player is not None:
+                invite = create_email_invite_for_guest(
+                    group=group,
+                    guest_player=guest_player,
+                    email=form.cleaned_data["email"],
+                    invited_by=request.user,
+                )
+                success_msg = f"Invitation sent to {invite.email} for {guest_player.display_name}."
+            else:
+                invite = create_email_invite(
+                    group=group,
+                    email=form.cleaned_data["email"],
+                    invited_by=request.user,
+                    player_name=form.cleaned_data.get("player_name", ""),
+                )
+                success_msg = (
+                    f"Invitation sent to {invite.email}. "
+                    f"They were added to the roster as a guest until they accept."
+                )
             try:
                 send_invite_email(request=request, invite=invite)
-                messages.success(
-                    request,
-                    f"Invitation sent to {invite.email}. "
-                    f"They were added to the roster as a guest until they accept.",
-                )
+                messages.success(request, success_msg)
             except Exception:
                 messages.warning(
                     request,
