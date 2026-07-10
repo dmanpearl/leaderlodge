@@ -116,10 +116,12 @@
 - [x] 2c6419a Feat: Edit Game > Need ability to delete a player from a game
 - [x] cd40106 Mobile > Filters: inline label and field on mobile for game, leaderboard, hall-of-fame, ask-the-lodge, and record-game
 - [x] 545ca9b Ask the Lodge Examples: Make headings spin-down collapsable. Supported open by default. Partial or Unreliable and Not Supported collapsed by default
-- [x] Groups: Add location management page with rename and combine
+- [x] f88861c Groups: Add location management page with rename and combine
+- [x] Location View: Add 'Date' column for most recent date played.
 
 ## Open Items
 
+- [ ] Location View: Add Asc/Dsc Sort controls for Date, Name, Count fields. Save persistently in user preferences.
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

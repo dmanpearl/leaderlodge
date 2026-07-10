@@ -31,6 +31,7 @@
               <th scope="col">Name</th>
               <th scope="col">Games</th>
               <th scope="col">Count</th>
+              <th scope="col">Last played</th>
               <th scope="col" class="group-list-actions-col">
                 <span class="visually-hidden">Actions</span>
               </th>
@@ -48,6 +49,9 @@
                   >{% endfor %}
                 </td>
                 <td>{{ row.game_count }}</td>
+                <td class="text-nowrap">
+                  {% if row.last_played %}{{ row.last_played|date:"M j, Y" }}{% else %}-{% endif %}
+                </td>
                 <td class="group-list-actions-col">
                   <div class="dropdown position-static">
                     <button

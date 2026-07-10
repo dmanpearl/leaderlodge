@@ -792,7 +792,7 @@ def player_combine(request: HttpRequest, pk: int, player_pk: int) -> HttpRespons
 
 @login_required
 def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
-    from django.db.models import Count
+    from django.db.models import Count, Max
 
     from leaderlodge.games.models import Game
     from leaderlodge.games.registry import GAME_TYPES
@@ -806,9 +806,10 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
         raise Http404
 
     library = ensure_group_location_library(group)
-    locations_qs = library.locations.annotate(game_count=Count("games")).order_by(
-        "name"
-    )
+    locations_qs = library.locations.annotate(
+        game_count=Count("games"),
+        last_played=Max("games__played_on"),
+    ).order_by("name")
 
     game_type_map: dict[int, list[str]] = {}
     for row in (
@@ -835,6 +836,7 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
             {
                 "location": loc,
                 "game_count": loc.game_count,
+                "last_played": loc.last_played,
                 "game_pills": game_pills,
             }
         )
