@@ -2,6 +2,15 @@
   max-width: 100%;
 }
 
+.location-game-pill {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color, #6c757d);
+  background-color: var(--bs-secondary-bg, #e9ecef);
+  margin-right: 0.2rem;
+  cursor: default;
+}
+
 .group-list-actions-col {
   width: 1%;
   white-space: nowrap;

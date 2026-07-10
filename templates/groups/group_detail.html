@@ -30,6 +30,11 @@
       <a href="{% url 'leaderboards:index' %}?group={{ group.pk }}{% if selected_game_type_code %}&amp;game_type_code={{ selected_game_type_code }}{% endif %}{% if selected_period.year %}&amp;year={{ selected_period.year }}{% endif %}{% if selected_period.month %}&amp;month={{ selected_period.month }}{% endif %}" class="btn btn-outline-primary btn-sm">
         Leaderboard
       </a>
+      {% if can_manage_members and not is_guest_demo %}
+        <a href="{% url 'groups:location_manage' group.pk %}" class="btn btn-outline-secondary btn-sm">
+          Locations
+        </a>
+      {% endif %}
       {% if is_guest_demo %}
         <button
           type="button"

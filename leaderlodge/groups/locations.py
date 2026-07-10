@@ -3,6 +3,7 @@ import unicodedata
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from leaderlodge.groups.models import Group, Location, LocationLibrary
 
@@ -14,9 +15,7 @@ AMBIGUITY_SCORE_GAP = 5
 
 def fold_accents(name: str) -> str:
     decomposed = unicodedata.normalize("NFD", name)
-    return "".join(
-        char for char in decomposed if unicodedata.category(char) != "Mn"
-    )
+    return "".join(char for char in decomposed if unicodedata.category(char) != "Mn")
 
 
 def normalize_location_name(name: str) -> str:
@@ -53,7 +52,10 @@ def score_location_match(query_normalized: str, candidate_normalized: str) -> in
 
     query_index = 0
     for char in candidate_normalized:
-        if query_index < len(query_normalized) and char == query_normalized[query_index]:
+        if (
+            query_index < len(query_normalized)
+            and char == query_normalized[query_index]
+        ):
             query_index += 1
     if query_index == len(query_normalized):
         if len(query_normalized) < len(candidate_normalized):
@@ -172,3 +174,50 @@ def location_libraries_for_user(user: AbstractBaseUser):
 def locations_for_group(group: Group):
     library = ensure_group_location_library(group)
     return library.locations.order_by("name")
+
+
+GAME_CODE_SHORT = {
+    "dominos": "DO",
+    "progressiverummy": "PR",
+    "backgammon": "BG",
+    "mahjongg": "MJ",
+    "pickleball": "PB",
+}
+
+
+def rename_location(*, location: Location, new_name: str) -> Location:
+    cleaned = new_name.strip()
+    normalized = normalize_location_name(cleaned)
+    if not normalized:
+        raise ValidationError("Location name cannot be empty.")
+    collision = (
+        Location.objects.filter(
+            library=location.library,
+            normalized_name=normalized,
+        )
+        .exclude(pk=location.pk)
+        .first()
+    )
+    if collision is not None:
+        raise ValidationError(
+            f'"{collision.name}" already exists. Use Combine instead.'
+        )
+    location.name = cleaned
+    location.normalized_name = normalized
+    location.save(update_fields=["name", "normalized_name"])
+    return location
+
+
+@transaction.atomic
+def combine_locations(*, keeper: Location, source: Location) -> int:
+    if keeper.pk == source.pk:
+        raise ValidationError("Choose two different locations to combine.")
+    if keeper.library_id != source.library_id:
+        raise ValidationError("Locations must belong to the same group.")
+    from leaderlodge.games.models import Game
+
+    keeper = Location.objects.select_for_update().get(pk=keeper.pk)
+    source = Location.objects.select_for_update().get(pk=source.pk)
+    count = Game.objects.filter(location=source).update(location=keeper)
+    source.delete()
+    return count

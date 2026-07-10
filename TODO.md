@@ -115,12 +115,11 @@
 - [x] add9674 Group Detail View > Members > Make the member name into a link to the Player Detail view
 - [x] 2c6419a Feat: Edit Game > Need ability to delete a player from a game
 - [x] cd40106 Mobile > Filters: inline label and field on mobile for game, leaderboard, hall-of-fame, ask-the-lodge, and record-game
-- [x] Ask the Lodge Examples: Make headings spin-down collapsable. Supported open by default. Partial or Unreliable and Not Supported collapsed by default
+- [x] 545ca9b Ask the Lodge Examples: Make headings spin-down collapsable. Supported open by default. Partial or Unreliable and Not Supported collapsed by default
+- [x] Groups: Add location management page with rename and combine
 
 ## Open Items
 
-- [ ] Location: Method for editing location text
-- [ ] Location: Method for combining locations
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

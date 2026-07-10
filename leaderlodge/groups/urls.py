@@ -10,6 +10,21 @@ urlpatterns = [
     path("<int:pk>/", views.group_detail, name="detail"),
     path("<int:pk>/edit/", views.group_edit, name="edit"),
     path("<int:pk>/locations/", views.group_locations, name="locations"),
+    path(
+        "<int:pk>/locations/manage/",
+        views.location_manage,
+        name="location_manage",
+    ),
+    path(
+        "<int:pk>/locations/<int:loc_pk>/rename/",
+        views.location_rename,
+        name="location_rename",
+    ),
+    path(
+        "<int:pk>/locations/<int:loc_pk>/combine/",
+        views.location_combine,
+        name="location_combine",
+    ),
     path("<int:pk>/players/search/", views.group_players_search, name="players_search"),
     path("<int:pk>/players/add/", views.player_add, name="player_add"),
     path(

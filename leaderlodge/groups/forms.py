@@ -203,3 +203,61 @@ class CombinePlayersForm(forms.Form):
         except ValueError as exc:
             raise forms.ValidationError(str(exc)) from exc
         return cleaned
+
+
+class LocationRenameForm(forms.Form):
+    name = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+
+    def __init__(self, *args, location=None, **kwargs):
+        self.location = location
+        super().__init__(*args, **kwargs)
+        if location:
+            self.fields["name"].initial = location.name
+
+    def clean_name(self):
+        from leaderlodge.groups.locations import normalize_location_name
+        from leaderlodge.groups.models import Location
+
+        name = self.cleaned_data["name"].strip()
+        if not name:
+            raise forms.ValidationError("Name is required.")
+        if self.location:
+            normalized = normalize_location_name(name)
+            collision = (
+                Location.objects.filter(
+                    library=self.location.library,
+                    normalized_name=normalized,
+                )
+                .exclude(pk=self.location.pk)
+                .first()
+            )
+            if collision:
+                raise forms.ValidationError(
+                    f'"{collision.name}" already exists. Use Combine instead.'
+                )
+        return name
+
+
+class LocationCombineForm(forms.Form):
+    source = forms.ModelChoiceField(
+        label="Merge away and delete",
+        queryset=None,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, keeper=None, **kwargs):
+        self.keeper = keeper
+        super().__init__(*args, **kwargs)
+        from leaderlodge.groups.models import Location
+
+        if keeper is not None:
+            self.fields["source"].queryset = (
+                Location.objects.filter(library=keeper.library)
+                .exclude(pk=keeper.pk)
+                .order_by("name")
+            )
+        else:
+            self.fields["source"].queryset = Location.objects.none()

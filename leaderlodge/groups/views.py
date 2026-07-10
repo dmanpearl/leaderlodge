@@ -23,6 +23,8 @@ from leaderlodge.groups.forms import (
     GuestInviteEmailForm,
     InviteAcceptForm,
     GroupPlayerForm,
+    LocationRenameForm,
+    LocationCombineForm,
 )
 from leaderlodge.groups.invites import (
     accept_group_invite,
@@ -36,7 +38,7 @@ from leaderlodge.groups.invites import (
     send_invite_email,
 )
 from leaderlodge.groups.locations import locations_for_group
-from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
+from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer, Location
 from leaderlodge.groups.player_search import search_group_players
 from leaderlodge.groups.permissions import (
     can_combine_players,
@@ -786,3 +788,125 @@ def player_combine(request: HttpRequest, pk: int, player_pk: int) -> HttpRespons
             "cancel_url": cancel_url,
         },
     )
+
+
+@login_required
+def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
+    from django.db.models import Count
+
+    from leaderlodge.games.models import Game
+    from leaderlodge.games.registry import GAME_TYPES
+    from leaderlodge.groups.locations import (
+        GAME_CODE_SHORT,
+        ensure_group_location_library,
+    )
+
+    group = get_object_or_404(Group, pk=pk)
+    if not can_manage_group_members(request.user, group):
+        raise Http404
+
+    library = ensure_group_location_library(group)
+    locations_qs = library.locations.annotate(game_count=Count("games")).order_by(
+        "name"
+    )
+
+    game_type_map: dict[int, list[str]] = {}
+    for row in (
+        Game.objects.filter(location__library=library)
+        .values("location_id", "game_type_code")
+        .distinct()
+    ):
+        game_type_map.setdefault(row["location_id"], []).append(row["game_type_code"])
+
+    location_rows = []
+    location_data = []
+    for loc in locations_qs:
+        seen_codes: set[str] = set()
+        game_pills = []
+        for c in sorted(game_type_map.get(loc.pk, [])):
+            short = GAME_CODE_SHORT.get(c, c[:2].upper())
+            if short in seen_codes:
+                continue
+            seen_codes.add(short)
+            full_name = GAME_TYPES[c].name if c in GAME_TYPES else c
+            game_pills.append({"code": short, "name": full_name})
+        game_pills.sort(key=lambda p: p["code"])
+        location_rows.append(
+            {
+                "location": loc,
+                "game_count": loc.game_count,
+                "game_pills": game_pills,
+            }
+        )
+        location_data.append({"pk": loc.pk, "name": loc.name})
+
+    return render(
+        request,
+        "groups/location_list.html",
+        {
+            "group": group,
+            "location_rows": location_rows,
+            "location_data": location_data,
+        },
+    )
+
+
+@login_required
+def location_rename(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
+    from leaderlodge.groups.locations import (
+        ensure_group_location_library,
+        rename_location,
+    )
+
+    group = get_object_or_404(Group, pk=pk)
+    if not can_manage_group_members(request.user, group):
+        raise Http404
+    if request.method != "POST":
+        return redirect("groups:location_manage", pk=group.pk)
+
+    library = ensure_group_location_library(group)
+    location = get_object_or_404(Location, pk=loc_pk, library=library)
+    form = LocationRenameForm(request.POST, location=location)
+    if form.is_valid():
+        try:
+            rename_location(location=location, new_name=form.cleaned_data["name"])
+            messages.success(request, f'Location renamed to "{location.name}".')
+        except Exception as exc:
+            messages.error(request, str(exc))
+    else:
+        errors = form.errors.get("name", form.non_field_errors())
+        if errors:
+            messages.error(request, errors[0])
+    return redirect("groups:location_manage", pk=group.pk)
+
+
+@login_required
+def location_combine(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
+    from leaderlodge.groups.locations import (
+        combine_locations,
+        ensure_group_location_library,
+    )
+
+    group = get_object_or_404(Group, pk=pk)
+    if not can_manage_group_members(request.user, group):
+        raise Http404
+    if request.method != "POST":
+        return redirect("groups:location_manage", pk=group.pk)
+
+    library = ensure_group_location_library(group)
+    keeper = get_object_or_404(Location, pk=loc_pk, library=library)
+    form = LocationCombineForm(request.POST, keeper=keeper)
+    if form.is_valid():
+        source = form.cleaned_data["source"]
+        try:
+            count = combine_locations(keeper=keeper, source=source)
+            messages.success(
+                request,
+                f'Merged "{source.name}" into "{keeper.name}" '
+                f'({count} game{"s" if count != 1 else ""} updated).',
+            )
+        except Exception as exc:
+            messages.error(request, str(exc))
+    else:
+        messages.error(request, "Could not combine locations.")
+    return redirect("groups:location_manage", pk=group.pk)
