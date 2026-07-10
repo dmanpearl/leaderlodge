@@ -114,11 +114,11 @@
 - [x] 2f6d188 Group Detail View > Members > Invite Member > Name: Use type-ahead and menu pop-up to try to select from existing Guests, but also allow the user to enter a new Name. Make sure inviter knows they are inviting an existing Guest and has the option to type a new name. If we do invite with a new Name, do allow the invite to associate with an existing Guest when accepting the invitation.
 - [x] add9674 Group Detail View > Members > Make the member name into a link to the Player Detail view
 - [x] 2c6419a Feat: Edit Game > Need ability to delete a player from a game
-- [x] Mobile > Filters: inline label and field on mobile for game, leaderboard, hall-of-fame, ask-the-lodge, and record-game
+- [x] cd40106 Mobile > Filters: inline label and field on mobile for game, leaderboard, hall-of-fame, ask-the-lodge, and record-game
+- [x] Ask the Lodge Examples: Make headings spin-down collapsable. Supported open by default. Partial or Unreliable and Not Supported collapsed by default
 
 ## Open Items
 
-- [ ] Ask the Lodge Examples: Make headings spin-down collapsable. Supported open by default. Partial or Unreliable and Not Supported collapsed by default
 - [ ] Location: Method for editing location text
 - [ ] Location: Method for combining locations
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)

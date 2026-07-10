@@ -24,33 +24,52 @@
   {% for section in examples_sections %}
     <div class="card mb-3 ask-examples-section">
       <div class="card-header py-2">
-        <h2 class="h6 mb-0">{{ section.label }}</h2>
+        <h2 class="h6 mb-0">
+          <button
+            class="btn btn-link text-body text-decoration-none p-0 d-flex align-items-center gap-2 w-100 text-start ask-examples-toggle{% if not section.open %} collapsed{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#ask-examples-body-{{ forloop.counter }}"
+            aria-expanded="{{ section.open|yesno:'true,false' }}"
+            aria-controls="ask-examples-body-{{ forloop.counter }}"
+          >
+            <i class="bi bi-chevron-down ask-examples-chevron" aria-hidden="true"></i>
+            {{ section.label }}
+          </button>
+        </h2>
       </div>
-      <div class="ask-examples-table-wrap">
-        <table class="table table-sm table-hover mb-0 ask-examples-table">
-          <thead>
-            <tr>
-              <th scope="col" class="ask-examples-col-category">Category</th>
-              <th scope="col" class="ask-examples-col-question">Example questions</th>
-              <th scope="col" class="ask-examples-col-more"><span class="visually-hidden">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in section.examples %}
+      <div
+        id="ask-examples-body-{{ forloop.counter }}"
+        class="collapse{% if section.open %} show{% endif %}"
+      >
+        <div class="ask-examples-table-wrap">
+          <table class="table table-sm table-hover mb-0 ask-examples-table">
+            <thead>
               <tr>
-                <th scope="row" class="ask-examples-col-category">{{ row.example.category }}</th>
-                <td class="ask-examples-col-question text-muted">
-                  {% for question in row.example.questions %}
-                    {% if not forloop.first %}<br />{% endif %}{{ question }}
-                  {% endfor %}
-                </td>
-                <td class="ask-examples-col-more text-end">
-                  {% include "insights/includes/ask_example_actions.html" with example=row.example try_it_url=row.try_it_url %}
-                </td>
+                <th scope="col" class="ask-examples-col-category">Category</th>
+                <th scope="col" class="ask-examples-col-question">Example questions</th>
+                <th scope="col" class="ask-examples-col-more">
+                  <span class="visually-hidden">Actions</span>
+                </th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {% for row in section.examples %}
+                <tr>
+                  <th scope="row" class="ask-examples-col-category">{{ row.example.category }}</th>
+                  <td class="ask-examples-col-question text-muted">
+                    {% for question in row.example.questions %}
+                      {% if not forloop.first %}<br />{% endif %}{{ question }}
+                    {% endfor %}
+                  </td>
+                  <td class="ask-examples-col-more text-end">
+                    {% include "insights/includes/ask_example_actions.html" with example=row.example try_it_url=row.try_it_url %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   {% endfor %}

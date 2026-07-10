@@ -781,6 +781,7 @@ def ask_examples_page(request: HttpRequest) -> HttpResponse:
     examples_sections = [
         {
             "label": "Supported",
+            "open": True,
             "examples": _ask_example_rows(
                 examples_by_reliability["supported"],
                 try_it_urls,
@@ -788,6 +789,7 @@ def ask_examples_page(request: HttpRequest) -> HttpResponse:
         },
         {
             "label": "Partial or unreliable",
+            "open": False,
             "examples": _ask_example_rows(
                 examples_by_reliability["partial"],
                 try_it_urls,
@@ -795,6 +797,7 @@ def ask_examples_page(request: HttpRequest) -> HttpResponse:
         },
         {
             "label": "Not supported",
+            "open": False,
             "examples": _ask_example_rows(
                 examples_by_reliability["not_supported"],
                 try_it_urls,
