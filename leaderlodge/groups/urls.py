@@ -25,6 +25,11 @@ urlpatterns = [
         views.location_combine,
         name="location_combine",
     ),
+    path(
+        "<int:pk>/locations/<int:loc_pk>/delete/",
+        views.location_delete,
+        name="location_delete",
+    ),
     path("<int:pk>/players/search/", views.group_players_search, name="players_search"),
     path("<int:pk>/players/add/", views.player_add, name="player_add"),
     path(

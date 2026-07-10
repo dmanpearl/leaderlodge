@@ -118,7 +118,8 @@
 - [x] 545ca9b Ask the Lodge Examples: Make headings spin-down collapsable. Supported open by default. Partial or Unreliable and Not Supported collapsed by default
 - [x] f88861c Groups: Add location management page with rename and combine
 - [x] 1ecfcd5 Location View: Add 'Date' column for most recent date played.
-- [x] Location View: Add Asc/Dsc Sort controls for Date, Name, Count fields. Save persistently in user preferences.
+- [x] 91331e3 Location View: Add Asc/Dsc Sort controls for Date, Name, Count fields. Save persistently in user preferences.
+- [x] Location View: If a location has zero games played, add a delete item to the context menu
 
 ## Open Items
 

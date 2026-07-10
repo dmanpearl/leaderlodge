@@ -124,6 +124,24 @@
                           </button>
                         </li>
                       {% endif %}
+                      {% if row.game_count == 0 %}
+                        <li>
+                          <form
+                            method="post"
+                            action="{% url 'groups:location_delete' group.pk row.location.pk %}"
+                            class="m-0"
+                          >
+                            {% csrf_token %}
+                            <button
+                              type="submit"
+                              class="dropdown-item text-danger d-flex align-items-center gap-2 w-100"
+                            >
+                              <i class="bi bi-trash" aria-hidden="true"></i>
+                              Delete
+                            </button>
+                          </form>
+                        </li>
+                      {% endif %}
                     </ul>
                   </div>
                 </td>

@@ -948,3 +948,25 @@ def location_combine(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse
     else:
         messages.error(request, "Could not combine locations.")
     return redirect("groups:location_manage", pk=group.pk)
+
+
+@login_required
+def location_delete(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
+    from leaderlodge.groups.locations import ensure_group_location_library
+
+    group = get_object_or_404(Group, pk=pk)
+    if not can_manage_group_members(request.user, group):
+        raise Http404
+    if request.method != "POST":
+        return redirect("groups:location_manage", pk=group.pk)
+
+    library = ensure_group_location_library(group)
+    location = get_object_or_404(Location, pk=loc_pk, library=library)
+    if location.games.exists():
+        messages.error(request, f'"{location.name}" has games and cannot be deleted.')
+        return redirect("groups:location_manage", pk=group.pk)
+
+    name = location.name
+    location.delete()
+    messages.success(request, f'Deleted "{name}".')
+    return redirect("groups:location_manage", pk=group.pk)
