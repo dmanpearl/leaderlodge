@@ -81,7 +81,11 @@
                 <tr>
                   <td>
                     <span class="account-name-with-badge account-name-with-badge--table">
-                      {% include "includes/user_name_display.html" with user=membership.user %}
+                      {% if row.group_player and player_detail_query %}
+                        <a href="{% url 'leaderboards:detail' %}?{{ player_detail_query }}&amp;player={{ row.group_player.pk }}">{% include "includes/user_name_display.html" with user=membership.user %}</a>
+                      {% else %}
+                        {% include "includes/user_name_display.html" with user=membership.user %}
+                      {% endif %}
                       {% if row.email_verified %}
                         <span class="account-verified-badge" title="Email verified">
                           <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
