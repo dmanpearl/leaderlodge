@@ -794,6 +794,7 @@ def player_combine(request: HttpRequest, pk: int, player_pk: int) -> HttpRespons
 def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
     from django.db.models import Count, Max
 
+    from leaderlodge.accounts.ui_settings import get_ui_settings, set_ui_settings
     from leaderlodge.games.models import Game
     from leaderlodge.games.registry import GAME_TYPES
     from leaderlodge.groups.locations import (
@@ -805,11 +806,44 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
     if not can_manage_group_members(request.user, group):
         raise Http404
 
+    valid_fields = {"name", "count", "date"}
+    valid_dirs = {"asc", "desc"}
+    prefs = get_ui_settings(request.user, "location_list")
+
+    if "sort" in request.GET or "dir" in request.GET:
+        sort_field = request.GET.get("sort", prefs.get("sort_field", "name"))
+        sort_dir = request.GET.get("dir", prefs.get("sort_dir", "asc"))
+        if sort_field not in valid_fields:
+            sort_field = "name"
+        if sort_dir not in valid_dirs:
+            sort_dir = "asc"
+        set_ui_settings(
+            request.user,
+            "location_list",
+            {"sort_field": sort_field, "sort_dir": sort_dir},
+        )
+    else:
+        sort_field = prefs.get("sort_field", "name")
+        sort_dir = prefs.get("sort_dir", "asc")
+        if sort_field not in valid_fields:
+            sort_field = "name"
+        if sort_dir not in valid_dirs:
+            sort_dir = "asc"
+
+    _sort_map = {
+        "name": "name",
+        "count": "game_count",
+        "date": "last_played",
+    }
+    orm_field = _sort_map[sort_field]
+    if sort_dir == "desc":
+        orm_field = f"-{orm_field}"
+
     library = ensure_group_location_library(group)
     locations_qs = library.locations.annotate(
         game_count=Count("games"),
         last_played=Max("games__played_on"),
-    ).order_by("name")
+    ).order_by(orm_field, "name")
 
     game_type_map: dict[int, list[str]] = {}
     for row in (
@@ -849,6 +883,8 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
             "group": group,
             "location_rows": location_rows,
             "location_data": location_data,
+            "sort_field": sort_field,
+            "sort_dir": sort_dir,
         },
     )
 

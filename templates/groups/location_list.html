@@ -28,10 +28,40 @@
         <table class="table table-striped table-sm mb-0">
           <thead>
             <tr>
-              <th scope="col">Name</th>
+              <th scope="col">
+                {% if sort_field == "name" %}
+                  {% if sort_dir == "asc" %}
+                    <a href="?sort=name&amp;dir=desc" class="location-sort-link location-sort-link--active">Name <i class="bi bi-caret-up-fill" aria-hidden="true"></i></a>
+                  {% else %}
+                    <a href="?sort=name&amp;dir=asc" class="location-sort-link location-sort-link--active">Name <i class="bi bi-caret-down-fill" aria-hidden="true"></i></a>
+                  {% endif %}
+                {% else %}
+                  <a href="?sort=name&amp;dir=asc" class="location-sort-link">Name</a>
+                {% endif %}
+              </th>
               <th scope="col">Games</th>
-              <th scope="col">Count</th>
-              <th scope="col">Last played</th>
+              <th scope="col">
+                {% if sort_field == "count" %}
+                  {% if sort_dir == "asc" %}
+                    <a href="?sort=count&amp;dir=desc" class="location-sort-link location-sort-link--active">Count <i class="bi bi-caret-up-fill" aria-hidden="true"></i></a>
+                  {% else %}
+                    <a href="?sort=count&amp;dir=asc" class="location-sort-link location-sort-link--active">Count <i class="bi bi-caret-down-fill" aria-hidden="true"></i></a>
+                  {% endif %}
+                {% else %}
+                  <a href="?sort=count&amp;dir=desc" class="location-sort-link">Count</a>
+                {% endif %}
+              </th>
+              <th scope="col">
+                {% if sort_field == "date" %}
+                  {% if sort_dir == "asc" %}
+                    <a href="?sort=date&amp;dir=desc" class="location-sort-link location-sort-link--active">Last played <i class="bi bi-caret-up-fill" aria-hidden="true"></i></a>
+                  {% else %}
+                    <a href="?sort=date&amp;dir=asc" class="location-sort-link location-sort-link--active">Last played <i class="bi bi-caret-down-fill" aria-hidden="true"></i></a>
+                  {% endif %}
+                {% else %}
+                  <a href="?sort=date&amp;dir=desc" class="location-sort-link">Last played</a>
+                {% endif %}
+              </th>
               <th scope="col" class="group-list-actions-col">
                 <span class="visually-hidden">Actions</span>
               </th>

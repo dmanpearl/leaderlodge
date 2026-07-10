@@ -2,6 +2,21 @@
   max-width: 100%;
 }
 
+.location-sort-link {
+  color: var(--bs-body-color);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.location-sort-link:hover {
+  text-decoration: underline;
+}
+
+.location-sort-link--active {
+  color: var(--bs-body-color);
+  font-weight: 600;
+}
+
 .location-game-pill {
   font-size: 0.7rem;
   font-weight: 500;
