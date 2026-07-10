@@ -136,6 +136,8 @@ class GameScoreChangeLog(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-pk"]
+        verbose_name = "game edit log"
+        verbose_name_plural = "game edit logs"
 
     def __str__(self) -> str:
         return f"Game {self.game_id} change by {self.changed_by}"
