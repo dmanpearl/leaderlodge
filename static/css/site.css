@@ -273,11 +273,71 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     --bs-table-cell-padding-x: 0.35rem;
     font-size: 0.75rem;
   }
+
+  #game-list-filters .col-12,
+  #leaderboard-filters .col-12,
+  #hall-of-fame-filters-form .col-12,
+  #ask-lodge-filters .col-12 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  #game-list-filters .col-12 .form-label,
+  #leaderboard-filters .col-12 .form-label,
+  #hall-of-fame-filters-form .col-12 .form-label,
+  #ask-lodge-filters .col-12 .form-label {
+    flex-shrink: 0;
+    min-width: 6.5rem;
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  #game-list-filters .col-12 .form-select,
+  #game-list-filters .col-12 .btn-group,
+  #leaderboard-filters .col-12 .form-select,
+  #leaderboard-filters .col-12 .btn-group,
+  #leaderboard-filters .col-12 .leaderboard-game-type-wrap,
+  #hall-of-fame-filters-form .col-12 .form-select,
+  #hall-of-fame-filters-form .col-12 .btn-group,
+  #ask-lodge-filters .col-12 .form-select,
+  #ask-lodge-filters .col-12 .btn-group {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
 }
 
 @media (max-width: 767.98px) {
   .user-name-username-suffix {
     display: none;
+  }
+
+  #game-setup-form .row > .col-12.col-md-4 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  #game-setup-form .row > .col-12.col-md-4 .form-label {
+    flex-shrink: 0;
+    min-width: 6.5rem;
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  #game-setup-form .row > .col-12.col-md-4 .form-select,
+  #game-setup-form .row > .col-12.col-md-4 .form-control,
+  #game-setup-form .row > .col-12.col-md-4 .game-setup-game-type-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+  }
+
+  #game-setup-form .row > .col-12.col-md-4 .invalid-feedback {
+    flex: 0 0 100%;
+    margin-top: 0;
   }
 }
 
