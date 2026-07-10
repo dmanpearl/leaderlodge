@@ -112,10 +112,11 @@
 - [x] 51d0fb5 Feat: Admin View > Feedback > Triage > Status > Add item: 'Deferred'
 - [x] 0cb653e Game Detail View: Add button 'Invite with email' (if guest) as the far right column similar to context item in Group Detail view ('...' context menu not currently required because there is only one action)
 - [x] 2f6d188 Group Detail View > Members > Invite Member > Name: Use type-ahead and menu pop-up to try to select from existing Guests, but also allow the user to enter a new Name. Make sure inviter knows they are inviting an existing Guest and has the option to type a new name. If we do invite with a new Name, do allow the invite to associate with an existing Guest when accepting the invitation.
-- [x] Group Detail View > Members > Make the member name into a link to the Player Detail view
+- [x] add9674 Group Detail View > Members > Make the member name into a link to the Player Detail view
 
 ## Open Items
 
+- [ ] Games View > Mobile > Filters: Make item label and field side by side in one row
 - [ ] Location: Method for editing location text
 - [ ] Location: Method for combining locations
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)

@@ -24,6 +24,7 @@ class RecalculateSummary:
     double_weight_changed: bool
     location_changed: bool = False
     date_changed: bool = False
+    participants_removed: int = 0
 
     @property
     def logs(self) -> list[GameScoreChangeLog]:
@@ -216,6 +217,7 @@ def apply_game_edits(
     user: AbstractBaseUser,
     notes: str,
     score_updates: dict[int, int] | None = None,
+    participant_removals: set[int] | None = None,
     new_location: Location | None | object = _UNCHANGED,
     new_played_on: date | object = _UNCHANGED,
     dry_run: bool = False,
@@ -225,21 +227,34 @@ def apply_game_edits(
         raise ValidationError("You do not have permission to edit this game.")
 
     updates = score_updates or {}
+    removals = set(participant_removals or [])
     location_changed = new_location is not _UNCHANGED and game.location != new_location
     date_changed = new_played_on is not _UNCHANGED and game.played_on != new_played_on
 
-    if not updates and not location_changed and not date_changed:
+    if not updates and not removals and not location_changed and not date_changed:
         raise ValidationError(
             "Change at least one score, the date, or the location before saving."
         )
 
     old_snapshot = _game_snapshot(game)
+    participants_removed = 0
+
+    if removals:
+        deleted, _ = GameParticipantResult.objects.filter(
+            pk__in=removals, game=game
+        ).delete()
+        participants_removed = deleted
+        game.player_count = game.participant_results.count()
+        game.save(update_fields=["player_count"])
+        if "_prefetched_objects_cache" in game.__dict__:
+            del game.__dict__["_prefetched_objects_cache"]
+
     participants_updated = 0
     double_weight_changed = False
     rows: list[dict] | None = None
     new_double_weight = game.double_weight
 
-    if updates:
+    if updates or removals:
         rows, new_double_weight, participants_updated, double_weight_changed = (
             _compute_participant_updates(game, score_updates=updates)
         )
@@ -274,9 +289,10 @@ def apply_game_edits(
             double_weight_changed=double_weight_changed,
             location_changed=location_changed,
             date_changed=date_changed,
+            participants_removed=participants_removed,
         )
 
-    if updates:
+    if updates or removals:
         _save_participant_updates(
             game,
             rows=rows,
@@ -303,6 +319,7 @@ def apply_game_edits(
         double_weight_changed=double_weight_changed,
         location_changed=location_changed,
         date_changed=date_changed,
+        participants_removed=participants_removed,
     )
 
 

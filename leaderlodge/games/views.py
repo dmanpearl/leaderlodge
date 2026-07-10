@@ -838,6 +838,9 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
         raise Http404
 
     game_type = get_game_type(game.game_type_code)
+    results = list(
+        game.participant_results.select_related("player").order_by("placement", "pk")
+    )
     if request.method == "POST":
         form = GameEditForm(request.POST, game=game)
         if form.is_valid():
@@ -847,6 +850,7 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
                     user=request.user,
                     notes=form.cleaned_data["notes"],
                     score_updates=form.score_updates(),
+                    participant_removals=form.participant_removals(),
                     new_location=form.resolved_location(),
                     new_played_on=form.cleaned_data["played_on"],
                 )
@@ -860,6 +864,15 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         form = GameEditForm(game=game)
 
+    participant_form_rows = [
+        {
+            "result": r,
+            "score_field": form[f"score_{r.pk}"],
+            "remove_field": form[f"remove_{r.pk}"],
+        }
+        for r in results
+    ]
+
     return render(
         request,
         "games/game_edit.html",
@@ -868,7 +881,8 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "game_type": game_type,
             "game_type_icon_url": game_type_icon_url(game.game_type_code),
             "form": form,
-            "results": game.participant_results.order_by("placement", "pk"),
+            "results": results,
+            "participant_form_rows": participant_form_rows,
             "is_double": game.double_weight == 2,
         },
     )

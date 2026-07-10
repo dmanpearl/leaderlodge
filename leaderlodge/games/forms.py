@@ -186,7 +186,14 @@ class GameEditForm(forms.Form):
             self.fields[f"score_{participant.pk}"] = forms.IntegerField(
                 label=participant.player.display_label,
                 initial=participant.score,
-                widget=forms.NumberInput(attrs={"class": "form-control"}),
+                required=False,
+                widget=forms.NumberInput(
+                    attrs={"class": "form-control game-edit-score-input"}
+                ),
+            )
+            self.fields[f"remove_{participant.pk}"] = forms.CharField(
+                required=False,
+                widget=forms.HiddenInput(attrs={"class": "game-edit-remove-input"}),
             )
 
     def clean_notes(self):
@@ -217,14 +224,25 @@ class GameEditForm(forms.Form):
             return False
         return self.cleaned_data["played_on"] != self.game.played_on
 
+    def participant_removals(self) -> set[int]:
+        if self.game is None:
+            return set()
+        removals: set[int] = set()
+        for participant in self.game.participant_results.order_by("pk"):
+            if self.cleaned_data.get(f"remove_{participant.pk}"):
+                removals.add(participant.pk)
+        return removals
+
     def score_updates(self) -> dict[int, int]:
         if self.game is None:
             return {}
+        removals = self.participant_removals()
         updates: dict[int, int] = {}
         for participant in self.game.participant_results.order_by("pk"):
-            field_name = f"score_{participant.pk}"
-            new_score = self.cleaned_data[field_name]
-            if new_score != participant.score:
+            if participant.pk in removals:
+                continue
+            new_score = self.cleaned_data.get(f"score_{participant.pk}")
+            if new_score is not None and new_score != participant.score:
                 updates[participant.player_id] = new_score
         return updates
 
@@ -232,8 +250,18 @@ class GameEditForm(forms.Form):
         cleaned = super().clean()
         if self.errors:
             return cleaned
+        removals = self.participant_removals()
+        if removals and self.game is not None:
+            remaining = self.game.participant_results.count() - len(removals)
+            if not player_count_is_valid(remaining, self.game.game_type_code):
+                game_type = get_game_type(self.game.game_type_code)
+                raise ValidationError(
+                    f"Cannot remove that player - {game_type.name} requires "
+                    f"{game_type.min_players} to {game_type.max_players} players."
+                )
         if (
             not self.score_updates()
+            and not removals
             and not self.location_changed()
             and not self.played_on_changed()
         ):

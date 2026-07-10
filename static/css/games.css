@@ -531,3 +531,12 @@
   column-gap: 0.5rem;
   row-gap: 0.5rem;
 }
+
+.game-edit-player-row--removed label {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.game-edit-player-row--removed .game-edit-score-input {
+  opacity: 0.35;
+}
