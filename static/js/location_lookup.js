@@ -158,9 +158,7 @@
 
     items.forEach((item, i) => {
       const li = document.createElement("li");
-      li.className =
-        "location-lookup-option" +
-        (item.isCity ? " location-lookup-option--city" : "");
+      li.className = "location-lookup-option";
       li.setAttribute("role", "option");
       li.setAttribute("tabindex", "0");
 

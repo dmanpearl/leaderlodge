@@ -128,10 +128,11 @@
 - [x] 0e566cf Record game: If there is only one group avaiable, do not show '-----' option. Pre-select that single group.
 - [x] 38140e8 Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
 - [x] f897397 Bug: CRSF error on refresh
-- [x] Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
+- [x] 45c21d0 Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 
 ## Open Items
 
+- [ ] Game location: Save Additional Game location information including lat-lon to support eventual map display showing pins for game locations. Users will also eventually be allowed to place a pin in a map to represent their game play location
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)

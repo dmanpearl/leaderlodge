@@ -130,13 +130,6 @@
   outline: none;
 }
 
-.location-lookup-option--city {
-  font-style: italic;
-  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
-  margin-bottom: 0.25rem;
-  padding-bottom: 0.5rem;
-}
-
 .location-lookup-name {
   display: block;
 }
