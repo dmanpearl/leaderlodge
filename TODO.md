@@ -127,10 +127,10 @@
 - [x] 8c9660c Game change email notification text should include before and after snapshots and navigable links to game and admin views (https://leaderlodge.com/admin/feedback/feedback/10/change/)
 - [x] 0e566cf Record game: If there is only one group avaiable, do not show '-----' option. Pre-select that single group.
 - [x] 38140e8 Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
+- [x] Bug: CRSF error on refresh
 
 ## Open Items
 
-- [ ] Bug: CRSF error on refresh
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

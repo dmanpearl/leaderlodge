@@ -61,6 +61,12 @@
     }
   });
 
+  /* Some iOS browsers fire focus but not visibilitychange on app resume */
+  window.addEventListener("focus", function () {
+    syncCsrfFromCookie();
+    scheduleCsrfRefresh();
+  });
+
   window.addEventListener("pageshow", function (event) {
     syncCsrfFromCookie();
     if (event.persisted) {
@@ -83,7 +89,30 @@
       if (!form.querySelector('input[name="csrfmiddlewaretoken"]')) {
         return;
       }
-      syncCsrfFromCookie(form);
+      var token = getCsrfTokenFromCookie();
+      if (token) {
+        updateCsrfInputs(token, form);
+        return;
+      }
+      /* Cookie is absent - block submission, fetch a fresh token, then retry */
+      var url = document.body.dataset.csrfRefreshUrl;
+      if (!url) {
+        return;
+      }
+      event.preventDefault();
+      fetch(url, { credentials: "same-origin" })
+        .then(function (response) {
+          return response.ok ? response.json() : null;
+        })
+        .then(function (data) {
+          if (data && data.csrfToken) {
+            updateCsrfInputs(data.csrfToken);
+          }
+          form.submit();
+        })
+        .catch(function () {
+          form.submit();
+        });
     },
     true,
   );
