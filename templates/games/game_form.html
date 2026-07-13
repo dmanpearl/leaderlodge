@@ -170,12 +170,12 @@
           {{ roster|json_script:"game-roster-data" }}
 
           <div class="table-responsive">
-            <table class="table table-striped align-middle mb-0">
+            <table class="table table-striped align-middle mb-0 game-record-table">
               <thead>
                 <tr>
                   <th scope="col">Player</th>
-                  <th scope="col">Score</th>
-                  <th scope="col">Result</th>
+                  <th scope="col" class="game-record-col--score">Score</th>
+                  <th scope="col" class="game-record-col--result">Result</th>
                 </tr>
               </thead>
               <tbody data-participant-rows>

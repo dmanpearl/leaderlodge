@@ -532,6 +532,23 @@
   row-gap: 0.5rem;
 }
 
+.game-record-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.game-record-table .game-record-col--score {
+  width: 7rem;
+}
+
+.game-record-table .game-record-col--result {
+  width: 5rem;
+}
+
+.game-record-table .participant-label {
+  width: 100%;
+}
+
 .game-edit-player-row--removed label {
   text-decoration: line-through;
   opacity: 0.5;
