@@ -126,7 +126,7 @@
 - [x] db7dffd, 1cd8072 Record Game View: Player Table alignment. All columns should be the same width. Currently, some players are more narrow than others, causing the 'Add Teamate' button to be different horizontal alignment than the others
 - [x] 8c9660c Game change email notification text should include before and after snapshots and navigable links to game and admin views (https://leaderlodge.com/admin/feedback/feedback/10/change/)
 - [x] 0e566cf Record game: If there is only one group avaiable, do not show '-----' option. Pre-select that single group.
-- [x] Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
+- [x] 38140e8 Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
 
 ## Open Items
 
