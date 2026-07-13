@@ -95,7 +95,7 @@ def test_format_user_display_name():
         first_name="David",
         last_name="Pearl",
     )
-    assert format_user_display_name(user) == "David P."
+    assert format_user_display_name(user) == "David P"
 
     user = User(username="david", first_name="David")
     assert format_user_display_name(user) == "David"

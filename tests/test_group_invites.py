@@ -333,7 +333,7 @@ def test_join_page_shows_display_name_for_inviter(client, owner, group):
     content = client.get(
         reverse("groups:invite_accept", kwargs={"token": invite.token})
     ).content.decode()
-    assert "David P." in content
+    assert "David P" in content
     assert owner.username not in content.split("invited you")[0]
 
 

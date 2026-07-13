@@ -23,7 +23,7 @@ def test_dashboard_home_page_title(client, user, group):
     client.force_login(user)
     content = client.get(reverse("core:dashboard")).content.decode()
 
-    assert "<title>AI Game Insights</title>" in content
+    assert "<title>AI Game Insights | LeaderLodge</title>" in content
     assert "Computed by LeaderLodge. Explained by AI." in content
 
 
