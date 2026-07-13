@@ -43,7 +43,9 @@ def test_save_game_redirects_to_game_detail(client, user, group):
 
     assert response.status_code == 302
     game = Game.objects.get(group=group)
-    assert response["Location"] == reverse("games:detail", kwargs={"pk": game.pk})
+    assert response["Location"] == (
+        reverse("games:detail", kwargs={"pk": game.pk}) + "?record_again=1"
+    )
 
 
 @pytest.mark.django_db

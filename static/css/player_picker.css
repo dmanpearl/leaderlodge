@@ -54,72 +54,81 @@
   min-width: 0;
 }
 
-.game-record-footer {
-  display: grid;
-  grid-template-columns: minmax(0, 28rem) max-content;
-  grid-template-rows: auto auto;
+.game-record-picker-panel {
+  margin-top: 0;
+}
+
+.game-record-add-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 0;
+  padding: 0.05rem 0.15rem;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bs-primary, #0d6efd);
+  font-size: 1.35rem;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.game-record-add-toggle:hover,
+.game-record-add-toggle:focus {
+  background: transparent;
+  color: var(--bs-primary, #0d6efd);
+  box-shadow: none;
+}
+
+.game-record-picker-panel.is-player-picker-collapsed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   column-gap: 1rem;
-  row-gap: 0.35rem;
-  align-items: end;
-  margin-top: 1.25rem;
+  /* Keep + tight to the table; Save gets its own offset below. */
+  margin-top: 0.1rem;
 }
 
-.game-record-footer-label {
-  grid-column: 1;
-  grid-row: 1;
-  margin-bottom: 0;
+.game-record-picker-panel.is-player-picker-collapsed .game-record-add-toggle {
+  display: inline-flex;
+  align-self: flex-start;
+  margin: 0;
 }
 
-.game-record-footer-field {
-  grid-column: 1;
-  grid-row: 2;
-  max-width: none;
+.game-record-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  column-gap: 1rem;
+  row-gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
-.game-record-footer-save {
+.game-record-picker-panel.is-player-picker-collapsed .game-record-footer {
   display: contents;
+  margin-top: 0;
 }
 
-.game-record-footer .game-record-save {
-  grid-column: 2;
-  grid-row: 2;
-  justify-self: start;
-}
-
-.game-record-footer .game-record-feedback {
-  grid-column: 2;
-  grid-row: 3;
-  justify-self: start;
-}
-
-@media (max-width: 767.98px) {
-  .game-record-footer {
-    grid-template-columns: 1fr;
-  }
-
-  .game-record-footer-label {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .game-record-footer-field {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .game-record-footer .game-record-save {
-    grid-column: 1;
-    grid-row: 3;
-  }
-
-  .game-record-footer .game-record-feedback {
-    grid-column: 1;
-    grid-row: 4;
-  }
+.game-record-picker-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.35rem;
+  flex: 1 1 16rem;
+  max-width: 36rem;
+  min-width: 0;
 }
 
 .game-record-save-col {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.game-record-picker-panel.is-player-picker-collapsed .game-record-save-col {
+  /* Match expanded footer gap from table (0.1rem panel + 0.65rem = 0.75rem). */
+  margin-top: 0.65rem;
 }
 
 .game-record-feedback {
@@ -137,19 +146,18 @@
 }
 
 .player-picker-cta-wrap {
-  flex: 1 1 14rem;
-  max-width: 28rem;
+  flex: 1 1 10rem;
+  min-width: 0;
+  max-width: none;
   margin-bottom: 0;
 }
 
-.game-record-footer-field.player-picker-cta-wrap {
-  flex: none;
-}
-
 .player-picker-cta-label {
+  flex: 0 0 auto;
   font-weight: 600;
   color: var(--bs-primary);
-  margin-bottom: 0.35rem;
+  margin-bottom: 0;
+  white-space: nowrap;
 }
 
 .player-picker-field.combobox-input-wrap {

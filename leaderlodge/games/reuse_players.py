@@ -1,4 +1,4 @@
-"""Load participants from the most recent game for a group and game type."""
+"""Load participants from a prior game for reuse on Record Game."""
 
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES
@@ -20,13 +20,9 @@ def most_recent_game(group: Group, game_type_code: str) -> Game | None:
     )
 
 
-def previous_game_participant_rows(group: Group, game_type_code: str) -> list[dict]:
-    """Sides from the latest game for this exact group and game type."""
+def participant_rows_from_game(game: Game) -> list[dict]:
+    """Sides from a specific game, ready for the Record Game roster form."""
     from leaderlodge.groups.teams import team_member_players
-
-    game = most_recent_game(group, game_type_code)
-    if game is None:
-        return []
 
     rows = []
     for result in (
@@ -73,6 +69,14 @@ def previous_game_participant_rows(group: Group, game_type_code: str) -> list[di
             }
         )
     return rows
+
+
+def previous_game_participant_rows(group: Group, game_type_code: str) -> list[dict]:
+    """Sides from the latest game for this exact group and game type."""
+    game = most_recent_game(group, game_type_code)
+    if game is None:
+        return []
+    return participant_rows_from_game(game)
 
 
 def reuse_players_summary(group: Group, game_type_code: str) -> dict:

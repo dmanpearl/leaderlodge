@@ -118,6 +118,15 @@
   </div>
 
   <div class="d-flex flex-wrap matchup-action-buttons mt-3">
+    {% if show_record_again %}
+      <a
+        href="{% url 'games:create' %}?reuse_from={{ game.pk }}"
+        class="btn btn-primary"
+        title="Record another game with the same players"
+      >
+        + Reuse Players
+      </a>
+    {% endif %}
     <a href="{% url 'games:list' %}?game_type={{ game.game_type_code }}&group={{ game.group.pk }}" class="btn btn-outline-secondary">Games</a>
     <a href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&game_type_code={{ game.game_type_code }}" class="btn btn-outline-primary">Leaderboard</a>
     <a href="{% url 'games:matchup' %}?game={{ game.pk }}" class="btn btn-outline-secondary">Matchup</a>

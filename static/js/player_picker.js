@@ -320,6 +320,15 @@
       window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
       this.teammateTargetRow = null;
+      this.panel = form.querySelector("[data-player-picker-panel]");
+      this.expandButton = form.querySelector("[data-player-picker-expand]");
+      this.collapseButton = form.querySelector("[data-player-picker-collapse]");
+      if (this.expandButton) {
+        this.expandButton.addEventListener("click", () => this.expandPicker());
+      }
+      if (this.collapseButton) {
+        this.collapseButton.addEventListener("click", () => this.collapsePicker());
+      }
       tbody.addEventListener("click", (event) => {
         const addTeammate = event.target.closest("[data-add-teammate]");
         if (addTeammate) {
@@ -341,6 +350,51 @@
           row.remove();
         }
       });
+    }
+
+    isPickerCollapsed() {
+      return Boolean(
+        this.panel && this.panel.classList.contains("is-player-picker-collapsed")
+      );
+    }
+
+    expandPicker({ focus = true } = {}) {
+      if (!this.panel) {
+        return;
+      }
+      this.panel.classList.remove("is-player-picker-collapsed");
+      const expanded = this.form.querySelector("[data-player-picker-expanded]");
+      if (expanded) {
+        expanded.hidden = false;
+      }
+      if (this.expandButton) {
+        this.expandButton.setAttribute("aria-expanded", "true");
+      }
+      if (this.collapseButton) {
+        this.collapseButton.setAttribute("aria-expanded", "true");
+      }
+      if (focus) {
+        this.input.focus();
+      }
+    }
+
+    collapsePicker() {
+      if (!this.panel) {
+        return;
+      }
+      this.close();
+      this.panel.classList.add("is-player-picker-collapsed");
+      const expanded = this.form.querySelector("[data-player-picker-expanded]");
+      if (expanded) {
+        expanded.hidden = true;
+      }
+      if (this.expandButton) {
+        this.expandButton.setAttribute("aria-expanded", "false");
+        this.expandButton.focus();
+      }
+      if (this.collapseButton) {
+        this.collapseButton.setAttribute("aria-expanded", "false");
+      }
     }
 
     existingRowKeys() {
@@ -560,7 +614,7 @@
       this.teammateTargetRow = row;
       this.setPickerLabelText(this.addTeammateLabelText);
       this.input.setAttribute("placeholder", "Type teammate name");
-      this.input.focus();
+      this.expandPicker({ focus: true });
     }
 
     clearTeammateTarget() {

@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from leaderlodge.core.decorators import demo_or_login_required
@@ -38,6 +39,7 @@ from leaderlodge.games.registry import (
 )
 from leaderlodge.games.last_location import last_recorded_location_name
 from leaderlodge.games.reuse_players import (
+    participant_rows_from_game,
     previous_game_participant_rows,
     reuse_players_summary,
 )
@@ -520,6 +522,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     participant_error = None
     post_for_rows = None
     reused_participant_rows = None
+    player_picker_start_collapsed = False
     game_type = None
 
     if request.method == "POST":
@@ -549,6 +552,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                         )
                     else:
                         show_roster = True
+                        player_picker_start_collapsed = True
                 else:
                     show_roster = True
                 if show_roster:
@@ -556,26 +560,60 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     persist_group_id(request, group.pk)
     else:
         initial = {}
-        if request.GET.get("group"):
-            initial["group"] = request.GET.get("group")
-        elif preferred_group_id(request):
-            initial["group"] = preferred_group_id(request)
-        elif request.user.is_authenticated:
-            single = _single_user_group(request.user)
-            if single:
-                initial["group"] = single.pk
-        elif not request.user.is_authenticated:
-            demo = get_demo_group()
-            if demo is not None:
-                initial["group"] = demo.pk
-        initial["game_type_code"] = resolve_game_type_code(
-            request,
-            requested=_requested_game_type_code(request),
-            available_codes=all_game_type_codes(),
-        )
+        reuse_from_pk = (request.GET.get("reuse_from") or "").strip()
+        source_game = None
+        if reuse_from_pk and request.user.is_authenticated:
+            source_game = (
+                Game.objects.filter(pk=reuse_from_pk)
+                .select_related("group", "location")
+                .prefetch_related(
+                    "participant_results__player__linked_user",
+                    "participant_results__player__team_members__member__linked_user",
+                )
+                .first()
+            )
+            if source_game is not None and can_edit_group(
+                request.user, source_game.group
+            ):
+                reused_participant_rows = participant_rows_from_game(source_game)
+                if reused_participant_rows:
+                    show_roster = True
+                    player_picker_start_collapsed = True
+                    initial["group"] = source_game.group_id
+                    initial["game_type_code"] = source_game.game_type_code
+                    initial["played_on"] = timezone.localdate()
+                    if source_game.location_id:
+                        initial["location_name"] = source_game.location.name
+                    persist_game_type_code(request, source_game.game_type_code)
+                    persist_group_id(request, source_game.group_id)
+                else:
+                    source_game = None
+            else:
+                source_game = None
+
+        if source_game is None:
+            if request.GET.get("group"):
+                initial["group"] = request.GET.get("group")
+            elif preferred_group_id(request):
+                initial["group"] = preferred_group_id(request)
+            elif request.user.is_authenticated:
+                single = _single_user_group(request.user)
+                if single:
+                    initial["group"] = single.pk
+            elif not request.user.is_authenticated:
+                demo = get_demo_group()
+                if demo is not None:
+                    initial["group"] = demo.pk
+            initial["game_type_code"] = resolve_game_type_code(
+                request,
+                requested=_requested_game_type_code(request),
+                available_codes=all_game_type_codes(),
+            )
         form = GameRecordForm(user=request.user, initial=initial)
 
     group = _resolve_group(request, form)
+    if group is None and form.initial.get("group"):
+        group = Group.objects.filter(pk=form.initial["group"]).first()
     if request.method == "POST" and group:
         action = request.POST.get("action")
         if action in ("load_roster", "reuse_roster", "save") and not can_edit_group(
@@ -593,8 +631,12 @@ def game_create(request: HttpRequest) -> HttpResponse:
         ):
             game_type_code = form.cleaned_data["game_type_code"]
         else:
-            game_type_code = request.POST.get("game_type_code")
-        game_type = get_game_type(game_type_code)
+            game_type_code = (
+                request.POST.get("game_type_code")
+                or form.initial.get("game_type_code")
+                or ""
+            )
+        game_type = get_game_type(game_type_code) if game_type_code else None
 
     roster = []
     participant_rows = []
@@ -657,7 +699,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 )
                 persist_group_id(request, group.pk)
                 messages.success(request, "Game recorded.")
-                return redirect("games:detail", pk=game.pk)
+                detail_url = reverse("games:detail", kwargs={"pk": game.pk})
+                return redirect(f"{detail_url}?record_again=1")
 
     played_on_value = ""
     played_on_display = ""
@@ -713,6 +756,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "default_participant_score": (
                 default_participant_score_value(game_type.code) if game_type else ""
             ),
+            "player_picker_start_collapsed": player_picker_start_collapsed,
         },
     )
 
@@ -792,6 +836,10 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     results = list(game.participant_results.order_by("placement", "pk"))
     apply_label_overrides([r.player for r in results])
     can_invite_guests = can_manage_group_members(request.user, game.group)
+    show_record_again = (
+        can_edit_group(request.user, game.group)
+        and request.GET.get("record_again") == "1"
+    )
     result_rows = [
         {
             "result": r,
@@ -820,6 +868,7 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "selected_insight_model": preferred_insight_model_id(request),
             "can_edit_game": user_can_edit_game(request.user, game),
             "can_invite_guests": can_invite_guests,
+            "show_record_again": show_record_again,
         },
     )
 

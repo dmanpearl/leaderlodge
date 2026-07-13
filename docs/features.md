@@ -14,6 +14,8 @@ and leaderboards for social games played by groups of people.
 - Fuzzy auto-complete for player name entry
 - Location tracking with fuzzy auto-complete and "last location used" pre-population
 - Reuse previous game's player roster with one click
+- Record another game with the same players from Game Detail after saving
+  (+ Reuse Players); Add player starts collapsed as a small + under the roster
 - Support for 2x (double) and 0.5x (half) game weighting
 - Automatic score-to-result and placement assignment based on game-type rules
 - Notes field per game
