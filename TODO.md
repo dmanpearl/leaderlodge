@@ -120,11 +120,12 @@
 - [x] 1ecfcd5 Location View: Add 'Date' column for most recent date played.
 - [x] 91331e3 Location View: Add Asc/Dsc Sort controls for Date, Name, Count fields. Save persistently in user preferences.
 - [x] b02f936 Location View: If a location has zero games played, add a delete item to the context menu
-- [x] Game detail screen needs an Again or Record Another button (https://leaderlodge.com/admin/feedback/feedback/8/change/)
+- [x] 8eb0044 Game detail screen needs an Again or Record Another button (https://leaderlodge.com/admin/feedback/feedback/8/change/)
+- [x] Record Game > Pickleball > Score type: label and field should be on same line.
 
 ## Open Items
 
-- [ ] Record Game > Pickleball > Score type: label and field should be on same line.
+- [ ] Record Game View: Player Table alignment. All columns should be the same width. Currently, some players are more narrow than others, causing the 'Add Teamate' button to be different horizontal alignment than the others
 - [ ] Record Game with Reuse Players: When entering the new game view via the 'Reuse Players' button, the 'Add Player' field is probably not needed. It should be hidden away or collapsed, but accessible if needed. I suggest replacing it with a "+" button in the reuse-players funnel. The "+" should be placed directly under the table of participants. Pressing "+" opens up the "Add Player" UX same as a normal Record Game screen.
 - [ ] Game change email notification text should include before and after snapshots and navigable links to game and admin views (https://leaderlodge.com/admin/feedback/feedback/10/change/)
 - [ ] Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
