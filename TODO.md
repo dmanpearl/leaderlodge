@@ -127,7 +127,7 @@
 - [x] 8c9660c Game change email notification text should include before and after snapshots and navigable links to game and admin views (https://leaderlodge.com/admin/feedback/feedback/10/change/)
 - [x] 0e566cf Record game: If there is only one group avaiable, do not show '-----' option. Pre-select that single group.
 - [x] 38140e8 Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
-- [x] Bug: CRSF error on refresh
+- [x] f897397 Bug: CRSF error on refresh
 
 ## Open Items
 
