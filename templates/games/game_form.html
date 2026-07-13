@@ -317,5 +317,8 @@
     {% if not is_guest_demo %}
       <script src="{% static 'js/game_setup_reuse.js' %}?v=3"></script>
     {% endif %}
+    {% if google_places_api_key %}
+      <script src="{% static 'js/location_lookup.js' %}"></script>
+    {% endif %}
   {% endif %}
 {% endblock %}

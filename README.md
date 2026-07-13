@@ -50,6 +50,7 @@ The project requires `DJANGO_SECRET_KEY`. **Never commit secrets to Git.**
 | `DJANGO_ALLOWED_HOST` | Optional | Extra hostname appended to `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` |
 | `DJANGO_TIME_ZONE` | Optional | IANA timezone for calendar dates (default: `America/Los_Angeles`) |
 | `DEMO_MODE_ENABLED` | Optional | Public read-only demo group browsing (default: `true`) |
+| `GOOGLE_PLACES_API_KEY` | Optional | Browser-restricted Google Places API key; enables the location Lookup button in game recording. See [docs/google-places.md](docs/google-places.md) |
 | `DEFAULT_FROM_EMAIL` | Production | Brevo from-address (e.g. `LeaderLodge <noreply@leaderlodge.com>`) |
 | `BREVO_API_KEY` | Production | Brevo API v3 key (`xkeysib-...`); uses HTTPS API (Railway blocks SMTP) |
 
@@ -132,6 +133,7 @@ Admin notification email (signup, invites, game edits, feedback): [Site settings
 - [Local development setup](docs/setup.md) — settings, tests, day-to-day commands, **previewing transactional email**
 - [Architecture](docs/architecture.md) — app layout, models, leaderboard design
 - [Importing game history](docs/importing.md) — seed spreadsheets, `import_games`, and `setup_demo`
+- [Google Places API](docs/google-places.md) — location lookup setup, billing, key restrictions, Railway deployment
 
 ## Git setup
 

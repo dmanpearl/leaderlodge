@@ -213,6 +213,10 @@ INSIGHTS_LIMITS_JSON = os.environ.get("INSIGHTS_LIMITS_JSON", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 GOOGLE_AI_API_KEY = os.environ.get("GOOGLE_AI_API_KEY", "")
 
+# Google Places API - browser-restricted key for location lookup in game recording.
+# See docs/google-places.md for setup. Leave blank to disable the Lookup button.
+GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
+
 # Signup honeypot (hidden field + minimum submit time). Set false to disable.
 HONEYPOT_ENABLED = os.environ.get("HONEYPOT_ENABLED", "true").lower() in (
     "true",

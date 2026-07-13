@@ -1,5 +1,19 @@
 {% if show_label|default:True %}
-  <label for="{{ field.id_for_label }}" class="form-label">{{ label|default:field.label }}</label>
+  <div class="d-flex align-items-center gap-2 mb-1">
+    <label for="{{ field.id_for_label }}" class="form-label mb-0">{{ label|default:field.label }}</label>
+    {% if google_places_api_key and not is_guest_demo %}
+      <button
+        type="button"
+        id="location-lookup-btn"
+        class="btn btn-sm btn-link p-0 location-lookup-btn"
+        data-api-key="{{ google_places_api_key }}"
+        aria-label="Find nearby locations"
+      >
+        <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+        <span class="location-lookup-btn-text">Lookup</span>
+      </button>
+    {% endif %}
+  </div>
 {% endif %}
 <div class="location-field" data-location-field>
   <div class="location-field-input-wrap combobox-input-wrap">

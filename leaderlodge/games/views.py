@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -757,6 +758,11 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 default_participant_score_value(game_type.code) if game_type else ""
             ),
             "player_picker_start_collapsed": player_picker_start_collapsed,
+            "google_places_api_key": (
+                getattr(settings, "GOOGLE_PLACES_API_KEY", "")
+                if request.user.is_authenticated
+                else ""
+            ),
         },
     )
 
