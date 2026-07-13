@@ -346,7 +346,7 @@
   padding: 0.5rem;
 }
 
-.game-list-density--compact .game-list-data-table > :not(caption) > * > * {
+.game-list-density--compact .game-list-data-table> :not(caption)>*>* {
   padding: 0.2rem 0.35rem;
 }
 
@@ -407,11 +407,11 @@
   padding: 0.25rem;
 }
 
-.game-list-density--dense .game-list-data-table > :not(caption) > * > * {
+.game-list-density--dense .game-list-data-table> :not(caption)>*>* {
   padding: 0.1rem 0.25rem;
 }
 
-.game-list-density--dense .game-list-stats-table > :not(caption) > * > * {
+.game-list-density--dense .game-list-stats-table> :not(caption)>*>* {
   padding: 0.08rem 0.2rem;
 }
 
@@ -532,17 +532,15 @@
   row-gap: 0.5rem;
 }
 
-.game-record-table {
-  table-layout: fixed;
-  width: 100%;
+.game-record-score-input {
+  min-width: 3rem;
+  max-width: 6rem;
 }
 
-.game-record-table .game-record-col--score {
-  width: 7rem;
-}
-
+.game-record-table .game-record-col--score,
 .game-record-table .game-record-col--result {
-  width: 5rem;
+  width: 1%;
+  white-space: nowrap;
 }
 
 .game-record-table .participant-label {

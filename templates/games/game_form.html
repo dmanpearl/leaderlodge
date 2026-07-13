@@ -209,7 +209,8 @@
                             class="btn btn-sm btn-outline-primary{% if row.teammate_player_id or row.teammate_guest_name %} d-none{% endif %}"
                             data-add-teammate
                           >
-                            Add Teammate
+                            <span class="d-none d-sm-inline">Add Teammate</span>
+                            <span class="d-sm-none">+ Teammate</span>
                           </button>
                           <button type="button" class="btn btn-sm btn-outline-secondary" data-remove-participant aria-label="Remove player">&times;</button>
                         </span>
@@ -232,7 +233,6 @@
                           value="{{ default_participant_score }}"
                           data-initial-score="{{ default_participant_score }}"
                         {% endif %}
-                        style="max-width: 6rem;"
                       />
                     </td>
                     <td data-result-cell></td>
