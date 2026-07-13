@@ -5,7 +5,8 @@
       "Bash(npx prettier *)",
       "Bash(black *)",
       "Bash(python *)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(pytest tests/test_feedback.py -v)"
     ]
   }
 }

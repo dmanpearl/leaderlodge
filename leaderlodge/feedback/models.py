@@ -44,7 +44,7 @@ class Feedback(models.Model):
         help_text='Empty means "All games". Otherwise a code from the game registry.',
     )
     title = models.CharField(max_length=200)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

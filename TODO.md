@@ -126,11 +126,11 @@
 - [x] db7dffd, 1cd8072 Record Game View: Player Table alignment. All columns should be the same width. Currently, some players are more narrow than others, causing the 'Add Teamate' button to be different horizontal alignment than the others
 - [x] 8c9660c Game change email notification text should include before and after snapshots and navigable links to game and admin views (https://leaderlodge.com/admin/feedback/feedback/10/change/)
 - [x] 0e566cf Record game: If there is only one group avaiable, do not show '-----' option. Pre-select that single group.
+- [x] Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
 
 ## Open Items
 
 - [ ] Bug: CRSF error on refresh
-- [ ] Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
