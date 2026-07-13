@@ -97,6 +97,13 @@
   pointer-events: none;
 }
 
+@media (max-width: 575.98px) {
+  .location-lookup-btn {
+    position: relative;
+    top: 1px;
+  }
+}
+
 .location-lookup-spinner {
   vertical-align: -0.125em;
 }
