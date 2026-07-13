@@ -135,10 +135,7 @@
       return `Too many scores entered (${current}; ${maxPlayers} max). Remove ${extra} ${noun}.`;
     }
     if (current < minPlayers) {
-      if (minPlayers === maxPlayers) {
-        return `Enter a score for each player (${current} of ${minPlayers}).`;
-      }
-      return `Enter a score for each player (${current} of ${minPlayers}-${maxPlayers}).`;
+      return "Enter a score for each player.";
     }
     return "";
   }

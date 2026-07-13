@@ -124,6 +124,7 @@
 .game-record-save-col {
   flex: 0 0 auto;
   margin-left: auto;
+  text-align: right;
 }
 
 .game-record-picker-panel.is-player-picker-collapsed .game-record-save-col {
