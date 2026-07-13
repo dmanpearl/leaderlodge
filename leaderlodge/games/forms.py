@@ -32,7 +32,12 @@ class GameRecordForm(forms.Form):
         from leaderlodge.groups.services import editable_groups, get_demo_group
 
         if user is not None and user.is_authenticated:
-            self.fields["group"].queryset = editable_groups(user).order_by("name")
+            qs = editable_groups(user).order_by("name")
+            self.fields["group"].queryset = qs
+            if qs.count() == 1:
+                self.fields["group"].empty_label = None
+                if not self.is_bound and not self.initial.get("group"):
+                    self.initial["group"] = qs.first()
         else:
             demo = get_demo_group()
             if demo is not None:
