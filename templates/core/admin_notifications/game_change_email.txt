@@ -6,6 +6,15 @@ Date played: {{ played_on }}
 Changed by: {{ changed_by_display }}
 Notes: {{ notes }}
 
-{% if game_url %}Game: {{ game_url }}
-{% endif %}{% if admin_url %}Admin: {{ admin_url }}
-{% endif %}
+--- Before ---
+Date: {{ old_snapshot.played_on }}
+Location: {{ old_snapshot.location.name|default:"(none)" }}
+{% for p in old_snapshot.participants %}  {{ p.display_name }}: {{ p.score }} ({{ p.result }})
+{% endfor %}
+--- After ---
+Date: {{ new_snapshot.played_on }}
+Location: {{ new_snapshot.location.name|default:"(none)" }}
+{% for p in new_snapshot.participants %}  {{ p.display_name }}: {{ p.score }} ({{ p.result }})
+{% endfor %}
+Game: {{ game_url }}
+Admin: {{ admin_url }}

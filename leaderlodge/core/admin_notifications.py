@@ -173,6 +173,13 @@ def notify_admin_game_change(*, log) -> bool:
     except Exception:
         game_type_label = game.game_type_code
 
+    from django.conf import settings
+
+    trusted_origins = getattr(settings, "CSRF_TRUSTED_ORIGINS", [])
+    site_url = trusted_origins[0].rstrip("/") if trusted_origins else ""
+    game_path = reverse("games:detail", kwargs={"pk": game.pk})
+    admin_path = reverse("admin:games_gamescorechangelog_change", args=[log.pk])
+
     return notify_admin(
         kind="game_change",
         context={
@@ -183,10 +190,10 @@ def notify_admin_game_change(*, log) -> bool:
             "played_on": game.played_on,
             "changed_by_display": format_user_display_name(changed_by),
             "notes": log.notes,
-            "game_url": reverse("games:detail", kwargs={"pk": game.pk}),
-            "admin_url": reverse(
-                "admin:games_gamescorechangelog_change", args=[log.pk]
-            ),
+            "game_url": f"{site_url}{game_path}",
+            "admin_url": f"{site_url}{admin_path}",
+            "old_snapshot": log.old_snapshot,
+            "new_snapshot": log.new_snapshot,
         },
     )
 
