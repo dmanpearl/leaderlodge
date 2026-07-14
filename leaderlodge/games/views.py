@@ -543,9 +543,22 @@ def game_create(request: HttpRequest) -> HttpResponse:
             else:
                 group, game_type_code = lookup
                 if action == "reuse_roster":
-                    reused_participant_rows = previous_game_participant_rows(
-                        group, game_type_code
-                    )
+                    reused_participant_rows = []
+                    reuse_game_id = (request.POST.get("reuse_game_id") or "").strip()
+                    if reuse_game_id.isdigit():
+                        source_game = Game.objects.filter(
+                            pk=int(reuse_game_id),
+                            group=group,
+                            game_type_code=game_type_code,
+                        ).first()
+                        if source_game is not None:
+                            reused_participant_rows = participant_rows_from_game(
+                                source_game
+                            )
+                    if not reused_participant_rows:
+                        reused_participant_rows = previous_game_participant_rows(
+                            group, game_type_code
+                        )
                     if not reused_participant_rows:
                         messages.info(
                             request,
@@ -777,6 +790,7 @@ def game_reuse_preview(request: HttpRequest) -> JsonResponse:
                 "available": False,
                 "summary": "",
                 "labels": [],
+                "options": [],
                 "last_location_name": "",
             }
         )

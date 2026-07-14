@@ -28,11 +28,13 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.25rem;
 }
 
-.reuse-players-summary {
-  font-size: 0.75rem;
-  line-height: 1.3;
-  max-width: 18rem;
+.reuse-players-menu {
+  max-width: min(24rem, 90vw);
+}
+
+.reuse-players-menu-item {
+  white-space: normal;
+  max-width: 24rem;
 }

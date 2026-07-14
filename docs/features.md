@@ -13,7 +13,8 @@ and leaderboards for social games played by groups of people.
 - Games support Users, Players (roster members), or Teams
 - Fuzzy auto-complete for player name entry
 - Location tracking with fuzzy auto-complete and "last location used" pre-population
-- Reuse previous game's player roster with one click
+- Reuse a recent game's player roster from a menu of up to 5 recent games
+  of the same type
 - Record another game with the same players from Game Detail after saving
   (+ Reuse Players); Add player starts collapsed as a small + under the roster
 - Support for 2x (double) and 0.5x (half) game weighting

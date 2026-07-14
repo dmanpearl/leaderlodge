@@ -9,8 +9,16 @@
   const gameSelect = form.querySelector('[name="game_type_code"]');
   const locationInput = form.querySelector('[name="location_name"]');
   const button = document.getElementById("reuse-players-btn");
-  const summary = document.getElementById("reuse-players-summary");
-  if (!previewUrl || !groupSelect || !gameSelect || !button || !summary) {
+  const menu = document.getElementById("reuse-players-menu");
+  const reuseGameIdInput = document.getElementById("reuse-game-id");
+  if (
+    !previewUrl ||
+    !groupSelect ||
+    !gameSelect ||
+    !button ||
+    !menu ||
+    !reuseGameIdInput
+  ) {
     return;
   }
 
@@ -19,7 +27,37 @@
 
   function clearReuseAction() {
     button.disabled = true;
-    summary.textContent = "";
+    menu.replaceChildren();
+    reuseGameIdInput.value = "";
+  }
+
+  function submitReuse(gameId) {
+    reuseGameIdInput.value = String(gameId);
+    const actionInput = document.createElement("input");
+    actionInput.type = "hidden";
+    actionInput.name = "action";
+    actionInput.value = "reuse_roster";
+    form.appendChild(actionInput);
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+    } else {
+      form.submit();
+    }
+  }
+
+  function renderOptions(options) {
+    menu.replaceChildren();
+    options.forEach((option) => {
+      const item = document.createElement("li");
+      const choice = document.createElement("button");
+      choice.type = "button";
+      choice.className = "dropdown-item reuse-players-menu-item";
+      choice.textContent = option.summary;
+      choice.title = option.summary;
+      choice.addEventListener("click", () => submitReuse(option.game_id));
+      item.appendChild(choice);
+      menu.appendChild(item);
+    });
   }
 
   async function updateReuseAction() {
@@ -46,8 +84,14 @@
       if (requestId !== fetchId) {
         return;
       }
-      button.disabled = !data.available;
-      summary.textContent = data.available ? data.summary : "";
+      const options = Array.isArray(data.options) ? data.options : [];
+      const available = Boolean(data.available) && options.length > 0;
+      button.disabled = !available;
+      if (available) {
+        renderOptions(options);
+      } else {
+        menu.replaceChildren();
+      }
       if (locationInput) {
         locationInput.value = data.last_location_name || "";
         locationInput.dispatchEvent(new Event("input", { bubbles: true }));

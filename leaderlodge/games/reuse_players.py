@@ -4,19 +4,34 @@ from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES
 from leaderlodge.groups.models import Group
 
+REUSE_PLAYERS_MAX_GAMES = 6
+# Cap history walk so prefetch+dedupe stays fast even with huge group history.
+REUSE_PLAYERS_MAX_SCAN = 40
+
 
 def most_recent_game(group: Group, game_type_code: str) -> Game | None:
     """Latest game for this exact group and game type, or None."""
-    if game_type_code not in GAME_TYPES:
-        return None
+    games = recent_games_for_reuse(group, game_type_code, limit=1)
+    return games[0] if games else None
 
-    return (
+
+def recent_games_for_reuse(
+    group: Group,
+    game_type_code: str,
+    *,
+    limit: int = REUSE_PLAYERS_MAX_GAMES,
+) -> list[Game]:
+    """Most recent games for this group and game type, newest first."""
+    if game_type_code not in GAME_TYPES or limit <= 0:
+        return []
+
+    return list(
         Game.objects.filter(
             group_id=group.pk,
             game_type_code=game_type_code,
-        )
-        .order_by("-played_on", "-created_at", "-pk")
-        .first()
+        ).order_by(
+            "-played_on", "-created_at", "-pk"
+        )[:limit]
     )
 
 
@@ -79,13 +94,85 @@ def previous_game_participant_rows(group: Group, game_type_code: str) -> list[di
     return participant_rows_from_game(game)
 
 
-def reuse_players_summary(group: Group, game_type_code: str) -> dict:
-    rows = previous_game_participant_rows(group, game_type_code)
+def reuse_option_from_game(game: Game) -> dict | None:
+    rows = participant_rows_from_game(game)
     if not rows:
-        return {"available": False, "summary": "", "labels": []}
+        return None
     labels = [row["display_label"] for row in rows]
     return {
-        "available": True,
+        "game_id": game.pk,
         "summary": ", ".join(labels),
         "labels": labels,
+        "lineup_key": _lineup_key(rows),
+    }
+
+
+def _lineup_key(rows: list[dict]) -> frozenset:
+    """Order-independent roster identity, including team pairings."""
+    sides: list[frozenset[int]] = []
+    for row in rows:
+        player_id = row.get("player_id")
+        if not player_id:
+            continue
+        member_ids = {int(player_id)}
+        teammate_id = row.get("teammate_player_id")
+        if teammate_id:
+            member_ids.add(int(teammate_id))
+        sides.append(frozenset(member_ids))
+    return frozenset(sides)
+
+
+def reuse_players_summary(
+    group: Group,
+    game_type_code: str,
+    *,
+    limit: int = REUSE_PLAYERS_MAX_GAMES,
+    scan_limit: int = REUSE_PLAYERS_MAX_SCAN,
+) -> dict:
+    options = []
+    seen_lineups: set[frozenset] = set()
+    if game_type_code not in GAME_TYPES or limit <= 0 or scan_limit <= 0:
+        return {
+            "available": False,
+            "summary": "",
+            "labels": [],
+            "options": [],
+        }
+
+    # Slice before prefetch_related so Django does not load the full history.
+    games = list(
+        Game.objects.filter(
+            group_id=group.pk,
+            game_type_code=game_type_code,
+        )
+        .order_by("-played_on", "-created_at", "-pk")[:scan_limit]
+        .prefetch_related(
+            "participant_results__player__linked_user",
+            "participant_results__player__team_members__member__linked_user",
+        )
+    )
+    for game in games:
+        if len(options) >= limit:
+            break
+        option = reuse_option_from_game(game)
+        if option is None:
+            continue
+        lineup_key = option.pop("lineup_key")
+        if lineup_key in seen_lineups:
+            continue
+        seen_lineups.add(lineup_key)
+        options.append(option)
+
+    if not options:
+        return {
+            "available": False,
+            "summary": "",
+            "labels": [],
+            "options": [],
+        }
+    return {
+        "available": True,
+        "summary": options[0]["summary"],
+        "labels": options[0]["labels"],
+        "options": options,
     }

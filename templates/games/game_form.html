@@ -96,24 +96,30 @@
                 Pick Players
               </button>
               <div class="reuse-players-action">
-                <button type="button" class="btn btn-outline-primary" disabled>Reuse Players</button>
+                <button type="button" class="btn btn-outline-primary" disabled>Reuse ></button>
               </div>
             {% else %}
               <button type="submit" name="action" value="load_roster" class="btn btn-primary">
                 Pick Players
               </button>
-              <div class="reuse-players-action">
+              <div class="dropdown reuse-players-action">
                 <button
-                  type="submit"
-                  name="action"
-                  value="reuse_roster"
+                  type="button"
                   id="reuse-players-btn"
                   class="btn btn-outline-primary"
+                  data-bs-toggle="dropdown"
+                  data-bs-display="static"
+                  aria-expanded="false"
                   disabled
                 >
-                  Reuse Players
+                  Reuse &gt;
                 </button>
-                <div id="reuse-players-summary" class="reuse-players-summary text-muted"></div>
+                <ul
+                  class="dropdown-menu reuse-players-menu"
+                  id="reuse-players-menu"
+                  aria-labelledby="reuse-players-btn"
+                ></ul>
+                <input type="hidden" name="reuse_game_id" id="reuse-game-id" value="" />
               </div>
             {% endif %}
           </div>
@@ -315,7 +321,7 @@
     <script src="{% static 'js/location_autocomplete.js' %}?v=8"></script>
     <script src="{% static 'js/game_setup.js' %}?v=1"></script>
     {% if not is_guest_demo %}
-      <script src="{% static 'js/game_setup_reuse.js' %}?v=3"></script>
+      <script src="{% static 'js/game_setup_reuse.js' %}?v=6"></script>
     {% endif %}
     {% if google_places_api_key %}
       <script src="{% static 'js/location_lookup.js' %}"></script>

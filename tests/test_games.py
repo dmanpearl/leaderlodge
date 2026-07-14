@@ -61,13 +61,16 @@ def _load_roster_post(group, *, game_type_code="dominos"):
     }
 
 
-def _reuse_roster_post(group, *, game_type_code="dominos"):
-    return {
+def _reuse_roster_post(group, *, game_type_code="dominos", reuse_game_id=None):
+    data = {
         "action": "reuse_roster",
         "group": str(group.pk),
         "game_type_code": game_type_code,
         "played_on": timezone.localdate().isoformat(),
     }
+    if reuse_game_id is not None:
+        data["reuse_game_id"] = str(reuse_game_id)
+    return data
 
 
 @pytest.mark.django_db
@@ -616,6 +619,49 @@ def test_reuse_roster_prefills_previous_players(client, user, group):
 
 
 @pytest.mark.django_db
+def test_reuse_roster_prefills_selected_older_game(client, user, group):
+    from datetime import date
+
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.groups.services import add_guest_player
+
+    add_guest_player(group=group, display_name="Alex")
+    players = list(group.players.order_by("pk")[:3])
+    client.force_login(user)
+    older = record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 1, 1),
+        participants=[
+            ParticipantInput(player=players[0], score=30, result="win", placement=0),
+            ParticipantInput(player=players[2], score=10, result="played", placement=1),
+        ],
+    )
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 2, 1),
+        participants=[
+            ParticipantInput(player=players[0], score=25, result="win", placement=0),
+            ParticipantInput(player=players[1], score=15, result="played", placement=1),
+        ],
+    )
+
+    response = client.post(
+        reverse("games:create"),
+        _reuse_roster_post(group, reuse_game_id=older.pk),
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert f'data-player-id="{players[0].pk}"' in content
+    assert f'data-player-id="{players[2].pk}"' in content
+    assert f'data-player-id="{players[1].pk}"' not in content
+    assert content.count('data-game-row') == 2
+
+
+@pytest.mark.django_db
 def test_reuse_roster_stays_on_setup_without_previous_game(client, user, group):
     client.force_login(user)
     response = client.post(reverse("games:create"), _reuse_roster_post(group))
@@ -712,7 +758,10 @@ def test_record_game_setup_honors_game_type_query_param(client, user, group):
 
     assert response.status_code == 200
     assert 'value="progressiverummy"' in content
-    assert "selected" in content.split('value="progressiverummy"', 1)[1].split("</option>", 1)[0]
+    assert (
+        "selected"
+        in content.split('value="progressiverummy"', 1)[1].split("</option>", 1)[0]
+    )
     assert 'value="dominos" selected' not in content.replace("\n", " ")
 
 
