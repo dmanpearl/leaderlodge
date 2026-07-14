@@ -99,7 +99,25 @@
       const { Place } = await google.maps.importLibrary("places");
       const { places } = await Place.searchNearby({
         fields: ["displayName", "addressComponents"],
-        locationRestriction: { center: { lat, lng }, radius: 800 },
+        locationRestriction: { center: { lat, lng }, radius: 600 },
+        includedTypes: [
+          "park",
+          "restaurant",
+          "cafe",
+          "community_center",
+          "shopping_mall",
+          "library",
+          "sports_complex",
+          "athletic_field",
+          "campground",
+          "rv_park",
+          "tourist_attraction",
+          "zoo",
+          "aquarium",
+          "museum",
+          "hospital",
+          "food_court",
+        ],
         maxResultCount: 8,
       });
       return places || [];
