@@ -292,6 +292,7 @@
       this.addPlayerLabelText = "Add player";
       this.addTeammateLabelText = "Add Teammate";
       this.pickerLabelTextEl = form.querySelector("[data-player-picker-label-text]");
+      this.pickerExpandedEl = form.querySelector("[data-player-picker-expanded]");
       this.suggestions = [];
       this.activeIndex = -1;
       this.isOpen = false;
@@ -613,6 +614,7 @@
     setTeammateTarget(row) {
       this.teammateTargetRow = row;
       this.setPickerLabelText(this.addTeammateLabelText);
+      this.pickerExpandedEl?.classList.add("player-picker-cta--teammate");
       this.input.setAttribute("placeholder", "Type teammate name");
       this.expandPicker({ focus: true });
     }
@@ -620,6 +622,7 @@
     clearTeammateTarget() {
       this.teammateTargetRow = null;
       this.setPickerLabelText(this.addPlayerLabelText);
+      this.pickerExpandedEl?.classList.remove("player-picker-cta--teammate");
       this.input.setAttribute("placeholder", "Type player name");
     }
 
