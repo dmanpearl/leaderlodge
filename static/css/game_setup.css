@@ -38,3 +38,7 @@
   white-space: normal;
   max-width: 24rem;
 }
+
+.reuse-players-menu > li + li {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}

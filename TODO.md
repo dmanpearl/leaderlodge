@@ -130,7 +130,7 @@
 - [x] f897397 Bug: CRSF error on refresh
 - [x] 45c21d0 Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [x] 5fa5e9a Record Game: 'Add Teammate' UI color differentiated from 'Add Player'. This means that after the user presses 'Add Teammate' (or '+ Teammate') and the 'Add Player' label changes to 'Add Teammate', also change the color of the add-player/teammate label and input field from primary blue to a secondary green (https://leaderlodge.com/admin/feedback/feedback/11/change/)
-- [x] Record Game: Reuse allows pick from multiple sets of players/teammates recent games instead of only the most recent (https://leaderlodge.com/admin/feedback/feedback/12/change/)
+- [x] 704cd8b Record Game: Reuse allows pick from multiple sets of players/teammates recent games instead of only the most recent (https://leaderlodge.com/admin/feedback/feedback/12/change/)
 
 ## Open Items
 
