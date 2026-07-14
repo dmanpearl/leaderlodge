@@ -1,36 +1,96 @@
-{% if period_year_options %}
+{% if period_year_options or period_preset_choices %}
   <div class="col-12 col-sm-6 col-lg-4 col-xl">
-    <label for="{{ year_select_id|default:'leaderboard-year' }}" class="form-label">Year</label>
+    <label for="{{ preset_select_id|default:'period-preset' }}" class="form-label">Quick range</label>
     <select
-      id="{{ year_select_id|default:'leaderboard-year' }}"
-      name="year"
+      id="{{ preset_select_id|default:'period-preset' }}"
+      name="period_preset"
       class="form-select"
-      onchange="this.form.submit()"
+      data-period-control="preset"
     >
-      <option value="">All years</option>
-      {% for year in period_year_options %}
-        <option value="{{ year }}" {% if selected_period.year == year %}selected{% endif %}>
-          {{ year }}
+      <option value="">None</option>
+      {% for code, label in period_preset_choices %}
+        <option
+          value="{{ code }}"
+          {% if selected_period.preset == code %}selected{% endif %}
+        >
+          {{ label }}
         </option>
       {% endfor %}
+      <option
+        value="custom"
+        {% if period_show_custom_dates and not selected_period.preset %}selected{% endif %}
+      >
+        Custom dates
+      </option>
     </select>
   </div>
-  {% if selected_period.year %}
+  {% if period_show_custom_dates %}
     <div class="col-12 col-sm-6 col-lg-4 col-xl">
-      <label for="{{ month_select_id|default:'leaderboard-month' }}" class="form-label">Month</label>
+      <label for="{{ start_date_id|default:'period-start-date' }}" class="form-label">From</label>
+      <input
+        type="date"
+        id="{{ start_date_id|default:'period-start-date' }}"
+        name="start_date"
+        class="form-control"
+        data-period-control="start-date"
+        value="{% if selected_period.start_date %}{{ selected_period.start_date|date:'Y-m-d' }}{% endif %}"
+      />
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4 col-xl">
+      <label for="{{ end_date_id|default:'period-end-date' }}" class="form-label">To</label>
+      <div class="input-group">
+        <input
+          type="date"
+          id="{{ end_date_id|default:'period-end-date' }}"
+          name="end_date"
+          class="form-control"
+          data-period-control="end-date"
+          value="{% if selected_period.end_date %}{{ selected_period.end_date|date:'Y-m-d' }}{% endif %}"
+        />
+        <button
+          type="submit"
+          class="btn btn-outline-secondary"
+          data-period-control="apply-dates"
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  {% endif %}
+  {% if period_year_options %}
+    <div class="col-12 col-sm-6 col-lg-4 col-xl">
+      <label for="{{ year_select_id|default:'leaderboard-year' }}" class="form-label">Year</label>
       <select
-        id="{{ month_select_id|default:'leaderboard-month' }}"
-        name="month"
+        id="{{ year_select_id|default:'leaderboard-year' }}"
+        name="year"
         class="form-select"
-        onchange="this.form.submit()"
+        data-period-control="year"
       >
-        <option value="">All months</option>
-        {% for month in period_month_options %}
-          <option value="{{ month.value }}" {% if selected_period.month == month.value %}selected{% endif %}>
-            {{ month.label }}
+        <option value="">All years</option>
+        {% for year in period_year_options %}
+          <option value="{{ year }}" {% if selected_period.year == year %}selected{% endif %}>
+            {{ year }}
           </option>
         {% endfor %}
       </select>
     </div>
+    {% if selected_period.year %}
+      <div class="col-12 col-sm-6 col-lg-4 col-xl">
+        <label for="{{ month_select_id|default:'leaderboard-month' }}" class="form-label">Month</label>
+        <select
+          id="{{ month_select_id|default:'leaderboard-month' }}"
+          name="month"
+          class="form-select"
+          data-period-control="month"
+        >
+          <option value="">All months</option>
+          {% for month in period_month_options %}
+            <option value="{{ month.value }}" {% if selected_period.month == month.value %}selected{% endif %}>
+              {{ month.label }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
   {% endif %}
 {% endif %}

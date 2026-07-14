@@ -131,12 +131,11 @@
 - [x] 45c21d0 Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
 - [x] 5fa5e9a Record Game: 'Add Teammate' UI color differentiated from 'Add Player'. This means that after the user presses 'Add Teammate' (or '+ Teammate') and the 'Add Player' label changes to 'Add Teammate', also change the color of the add-player/teammate label and input field from primary blue to a secondary green (https://leaderlodge.com/admin/feedback/feedback/11/change/)
 - [x] 704cd8b Record Game: Reuse allows pick from multiple sets of players/teammates recent games instead of only the most recent (https://leaderlodge.com/admin/feedback/feedback/12/change/)
-- [ ] Fine tune 'Locate' function to discover parks (ie city parks) and reduce radius from 800m to 600m
+- [x] 0f35103 Fine tune 'Locate' function to discover parks (ie city parks) and reduce radius from 800m to 600m
+- [x] Date filtering for Games and Leaderboards adds day granularity: Shared period presets + optional date range for Games and Leaderboards; Ask reuses the same resolver
 
 ## Open Items
 
-- [ ] Date filtering for Games and Leaderboards needs day granularity (eg. so we can see the games or leaderbords for yesterday, last weekend, or last week). Add to the ORM api for Ask AI support
-- [ ] Games View > Filters > Need same Year/Month selection options as Leaderboards
 - [ ] Game location: Save Additional Game location information including lat-lon to support eventual map display showing pins for game locations. Users will also eventually be allowed to place a pin in a map to represent their game play location
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

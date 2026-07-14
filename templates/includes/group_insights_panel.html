@@ -8,6 +8,9 @@
   data-insights-scope="{{ insight_scope }}"
   data-group-id="{{ selected_group.pk }}"
   {% if selected_game_type_code %}data-game-type-code="{{ selected_game_type_code }}"{% endif %}
+  {% if selected_period.preset %}data-period-preset="{{ selected_period.preset }}"{% endif %}
+  {% if selected_period.start_date %}data-start-date="{{ selected_period.start_date|date:'Y-m-d' }}"{% endif %}
+  {% if selected_period.end_date %}data-end-date="{{ selected_period.end_date|date:'Y-m-d' }}"{% endif %}
   {% if selected_period.year %}data-year="{{ selected_period.year }}"{% endif %}
   {% if selected_period.month %}data-month="{{ selected_period.month }}"{% endif %}
   {% if granularity %}data-granularity="{{ granularity }}"{% endif %}

@@ -35,8 +35,10 @@ _ASK_TEAM_RULES = """- When the user asks about teams, partners, pairings, duos,
 - Individual rankings from query_team_pairings or query_leaderboard are supporting context only; they do not replace stats for playing together as a duo.
 - If observed_duo_teams is empty or a pair has zero games together, say data is limited. Do not invent chemistry or compatibility."""
 
-_ASK_DATE_RULES = """- Today's date is provided in the scope as "Today's date". Always resolve relative date words before calling any tool: "today" maps to start_date=end_date=today's date; "yesterday" maps to today minus one day; "this week" maps to a 7-day window ending today.
-- When the user says "today" or any other relative date, call query_date_range_leaderboard with the computed YYYY-MM-DD dates. Do not use query_leaderboard or period filters as a substitute for a date-specific question."""
+_ASK_DATE_RULES = """- Today's date is provided in the scope as "Today's date".
+- For common relative spans, prefer query_date_range_leaderboard with period_preset: today, yesterday, last_7_days, last_weekend, or last_week. These match the Games and Leaderboards Quick range filters.
+- For other custom spans (for example "this week" as a 7-day window ending today, or arbitrary from/to), pass start_date and end_date as YYYY-MM-DD.
+- Do not use year/month period filters as a substitute for a day-level date question."""
 
 _ASK_GAME_TYPE_RULES = """- Common game name variants: "Mahjong", "Mah-Jongg", "Mah Jongg", "MahJongg" all map to game_type_code="mahjongg"; "Rummy", "Progressive Rummy" map to "progressiverummy"; "Backgammon" maps to "backgammon"; "Dominos", "Dominoes" map to "dominos"; "Pickleball" maps to "pickleball".
 - When the user names a game that is not the default, map it to a code using the list above. If you are still unsure, call list_game_types to see available codes for this group before answering."""

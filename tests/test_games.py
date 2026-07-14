@@ -370,6 +370,57 @@ def test_game_list_pagination(client, user, group, monkeypatch):
 
 
 @pytest.mark.django_db
+def test_game_list_filters_by_year_and_quick_range(client, user, group):
+    client.force_login(user)
+    players = list(group.players.order_by("pk")[:2])
+    from datetime import date
+
+    from leaderlodge.games.services import ParticipantInput, record_game
+
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2025, 12, 1),
+        participants=[
+            ParticipantInput(player=players[0], score=30, result="win", placement=0),
+            ParticipantInput(player=players[1], score=20, result="played", placement=1),
+        ],
+    )
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 6, 1),
+        participants=[
+            ParticipantInput(player=players[1], score=40, result="win", placement=0),
+            ParticipantInput(player=players[0], score=10, result="played", placement=1),
+        ],
+    )
+
+    year_response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos", "year": "2026"},
+    )
+    year_content = year_response.content.decode()
+    assert year_response.status_code == 200
+    assert 'name="period_preset"' in year_content
+    assert 'id="filter-year"' in year_content
+    assert year_content.count("game-list-row") == 1 or "Jun" in year_content
+
+    range_response = client.get(
+        reverse("games:list"),
+        {
+            "group": str(group.pk),
+            "game_type": "dominos",
+            "start_date": "2025-12-01",
+            "end_date": "2025-12-31",
+        },
+    )
+    assert range_response.status_code == 200
+    assert "Dec" in range_response.content.decode()
+
+
 def test_game_list_filters_by_group_and_game_type(client, user, group):
     other_group = create_group_with_owner(user=user, name="Other Club")
     add_guest_player(group=other_group, display_name="Pat")
@@ -658,7 +709,7 @@ def test_reuse_roster_prefills_selected_older_game(client, user, group):
     assert f'data-player-id="{players[0].pk}"' in content
     assert f'data-player-id="{players[2].pk}"' in content
     assert f'data-player-id="{players[1].pk}"' not in content
-    assert content.count('data-game-row') == 2
+    assert content.count("data-game-row") == 2
 
 
 @pytest.mark.django_db

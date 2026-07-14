@@ -11,6 +11,22 @@ _PERIOD_PROPERTIES = {
         "type": "integer",
         "description": "Optional calendar month (1-12). Requires year.",
     },
+    "period_preset": {
+        "type": "string",
+        "description": (
+            "Optional named range: today, yesterday, last_7_days, "
+            "last_weekend, or last_week. Same presets as the Games and "
+            "Leaderboards Quick range filter."
+        ),
+    },
+    "start_date": {
+        "type": "string",
+        "description": "Optional inclusive custom start date (YYYY-MM-DD).",
+    },
+    "end_date": {
+        "type": "string",
+        "description": "Optional inclusive custom end date (YYYY-MM-DD).",
+    },
     "all_time": {
         "type": "boolean",
         "description": (
@@ -290,13 +306,21 @@ ASK_TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "query_date_range_leaderboard",
             "description": (
-                "Leaderboard for games played between two dates (inclusive). "
-                "Use for custom weeks or date spans."
+                "Leaderboard for games played in a date span (inclusive). "
+                "Prefer period_preset for today, yesterday, last_7_days, "
+                "last_weekend, or last_week. Otherwise pass start_date and end_date."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "game_type_code": {"type": "string"},
+                    "period_preset": {
+                        "type": "string",
+                        "description": (
+                            "Named range: today, yesterday, last_7_days, "
+                            "last_weekend, or last_week."
+                        ),
+                    },
                     "start_date": {
                         "type": "string",
                         "description": "Inclusive start date (YYYY-MM-DD).",
@@ -308,7 +332,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     "game_size": {"type": "integer"},
                     "limit": {"type": "integer"},
                 },
-                "required": ["game_type_code", "start_date", "end_date"],
+                "required": ["game_type_code"],
             },
         },
     },

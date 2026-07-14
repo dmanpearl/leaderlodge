@@ -30,6 +30,12 @@ def period_to_log_json(period: LeaderboardPeriod | None) -> dict[str, Any]:
     if period is None or not period.is_filtered:
         return {"all_time": True}
     payload: dict[str, Any] = {"all_time": False}
+    if period.preset:
+        payload["period_preset"] = period.preset
+    if period.has_date_range:
+        assert period.start_date is not None and period.end_date is not None
+        payload["start_date"] = period.start_date.isoformat()
+        payload["end_date"] = period.end_date.isoformat()
     if period.year is not None:
         payload["year"] = period.year
     if period.month is not None:

@@ -61,12 +61,7 @@ from leaderlodge.groups.services import (
     user_is_member,
     visible_groups,
 )
-from leaderlodge.leaderboards.period import (
-    available_leaderboard_periods,
-    build_leaderboard_query,
-    month_label,
-    resolve_leaderboard_period,
-)
+from leaderlodge.leaderboards.period import build_leaderboard_query
 from leaderlodge.leaderboards.ranking import SORTABLE_COLUMNS
 from leaderlodge.leaderboards.service import get_group_roster_standings
 
@@ -133,25 +128,14 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
     else:
         selected_game_type_code = None
 
-    years, months_by_year = (
-        available_leaderboard_periods(group, selected_game_type_code)
-        if selected_game_type_code
-        else ([], {})
+    from leaderlodge.leaderboards.period import period_filter_context_from_request
+
+    period_ctx = period_filter_context_from_request(
+        request,
+        group=group if selected_game_type_code else None,
+        game_type_code=selected_game_type_code,
     )
-    selected_period = resolve_leaderboard_period(
-        raw_year=request.GET.get("year", "").strip(),
-        raw_month=request.GET.get("month", "").strip(),
-        available_years=years,
-        months_by_year=months_by_year,
-    )
-    period_month_options = [
-        {"value": month, "label": month_label(month)}
-        for month in (
-            months_by_year.get(selected_period.year, ())
-            if selected_period.year is not None
-            else ()
-        )
-    ]
+    selected_period = period_ctx["selected_period"]
 
     sort = request.GET.get("sort", "rank")
     if sort not in SORTABLE_COLUMNS:
@@ -265,9 +249,11 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         "filter_query": filter_query,
         "player_detail_query": player_detail_query,
         "selected_period": selected_period,
-        "period_year_options": years,
-        "period_month_options": period_month_options,
-        "period_label": selected_period.display_label(),
+        "period_year_options": period_ctx["period_year_options"],
+        "period_month_options": period_ctx["period_month_options"],
+        "period_preset_choices": period_ctx["period_preset_choices"],
+        "period_show_custom_dates": period_ctx["period_show_custom_dates"],
+        "period_label": period_ctx["period_label"],
         "player_form": GroupPlayerForm(group=group),
     }
 

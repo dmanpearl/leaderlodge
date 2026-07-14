@@ -27,7 +27,7 @@
       {% if can_manage_members and not is_guest_demo %}
         <a href="{% url 'groups:edit' group.pk %}" class="btn btn-outline-secondary btn-sm">Edit</a>
       {% endif %}
-      <a href="{% url 'leaderboards:index' %}?group={{ group.pk }}{% if selected_game_type_code %}&amp;game_type_code={{ selected_game_type_code }}{% endif %}{% if selected_period.year %}&amp;year={{ selected_period.year }}{% endif %}{% if selected_period.month %}&amp;month={{ selected_period.month }}{% endif %}" class="btn btn-outline-primary btn-sm">
+      <a href="{% url 'leaderboards:index' %}?group={{ group.pk }}{% if filter_query %}&amp;{{ filter_query }}{% endif %}" class="btn btn-outline-primary btn-sm">
         Leaderboard
       </a>
       {% if can_manage_members and not is_guest_demo %}
@@ -468,6 +468,7 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'js/period_filters.js' %}"></script>
   <script>
     (function () {
       const membersBody = document.getElementById("group-members-body");

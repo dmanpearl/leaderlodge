@@ -48,6 +48,9 @@ def resolve_player_insight_target(
     game_type_code: str,
     raw_year: str = "",
     raw_month: str = "",
+    raw_preset: str = "",
+    raw_start_date: str = "",
+    raw_end_date: str = "",
 ) -> tuple[Group, GroupPlayer, str, LeaderboardPeriod]:
     groups = list(visible_groups(user).order_by("name"))
     group_ids = {str(group.pk) for group in groups}
@@ -66,6 +69,9 @@ def resolve_player_insight_target(
     period = resolve_leaderboard_period(
         raw_year=raw_year.strip(),
         raw_month=raw_month.strip(),
+        raw_preset=raw_preset.strip(),
+        raw_start_date=raw_start_date.strip(),
+        raw_end_date=raw_end_date.strip(),
         available_years=years,
         months_by_year=months_by_year,
     )
@@ -81,6 +87,9 @@ def resolve_group_insight_target(
     game_type_code: str = "",
     raw_year: str = "",
     raw_month: str = "",
+    raw_preset: str = "",
+    raw_start_date: str = "",
+    raw_end_date: str = "",
     granularity: str = "",
 ) -> tuple[Group, str, LeaderboardPeriod | None, str | None]:
     from leaderlodge.insights.context.group import SCOPE_HALL_OF_FAME, SCOPE_LEADERBOARD
@@ -105,6 +114,9 @@ def resolve_group_insight_target(
         period = resolve_leaderboard_period(
             raw_year=raw_year.strip(),
             raw_month=raw_month.strip(),
+            raw_preset=raw_preset.strip(),
+            raw_start_date=raw_start_date.strip(),
+            raw_end_date=raw_end_date.strip(),
             available_years=years,
             months_by_year=months_by_year,
         )
@@ -136,6 +148,9 @@ def resolve_ask_target(
     game_type_code: str = "",
     raw_year: str = "",
     raw_month: str = "",
+    raw_preset: str = "",
+    raw_start_date: str = "",
+    raw_end_date: str = "",
 ) -> tuple[Group, str | None, LeaderboardPeriod]:
     groups = list(visible_groups(user).order_by("name"))
     group_ids = {str(group.pk) for group in groups}
@@ -162,6 +177,9 @@ def resolve_ask_target(
     period = resolve_leaderboard_period(
         raw_year=raw_year.strip(),
         raw_month=raw_month.strip(),
+        raw_preset=raw_preset.strip(),
+        raw_start_date=raw_start_date.strip(),
+        raw_end_date=raw_end_date.strip(),
         available_years=years,
         months_by_year=months_by_year,
     )

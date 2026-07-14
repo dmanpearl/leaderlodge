@@ -14,7 +14,7 @@
 | Row limit | 1 to 20 per tool (`ToolExecutor.MAX_LIMIT`) | "Everyone in the group" questions truncate |
 | Rankings | Python ORM only | The model never computes `rank_score`, placement counts, or trends |
 | Scope | One group per request | No cross-group comparisons |
-| Default period | Ask page filters (`year` / `month` on `POST /insights/ask/query/`) | When a tool omits `year` and `month`, the UI-selected period applies |
+| Default period | Ask page filters (`year` / `month` / `period_preset` / `start_date` / `end_date` on `POST /insights/ask/query/`) | When a tool omits period fields, the UI-selected period applies. Same resolver as Games and Leaderboards. |
 | All-time override | `all_time: true` on period-aware tools | Ignores the Ask page default period |
 | Player roster | Active players only, embedded in the user message | Inactive or historical players may not resolve |
 | Question player hints | Server resolves usernames and `vs` segments before the LLM runs | Lists `player_id` for each mention; executor binds queries even with quotes |
@@ -192,7 +192,8 @@ Returns `observed_duo_teams` (recorded two-player sides with `member_labels`, `r
 | Parameter | Required | Notes |
 | --------- | -------- | ----- |
 | `game_type_code` | Yes | |
-| `start_date`, `end_date` | Yes | Inclusive dates (`YYYY-MM-DD`) |
+| `period_preset` | No | `today`, `yesterday`, `last_7_days`, `last_weekend`, or `last_week` (same Quick range as Games / Leaderboards) |
+| `start_date`, `end_date` | No* | Inclusive dates (`YYYY-MM-DD`). Required together when `period_preset` is omitted |
 | `game_size` | No | |
 | `limit` | No | Default 10, max 20 |
 

@@ -391,6 +391,56 @@ def test_query_date_range_leaderboard_filters_games(user, group):
 
 
 @pytest.mark.django_db
+def test_query_date_range_leaderboard_accepts_period_preset(user, group):
+    from datetime import date
+
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.insights.tools.executor import ToolExecutor
+    from leaderlodge.insights.tools.scope import AskScope
+    from leaderlodge.leaderboards.period import LeaderboardPeriod
+
+    players = list(group.players.order_by("pk")[:2])
+    rows = [
+        {"player": players[0], "score": 35},
+        {"player": players[1], "score": 20},
+    ]
+    assign_results_from_scores(rows, "dominos")
+    participants = [
+        ParticipantInput(
+            player=row["player"],
+            score=row["score"],
+            result=row["result"],
+            placement=row["placement"],
+        )
+        for row in rows
+    ]
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date.today(),
+        participants=participants,
+    )
+
+    executor = ToolExecutor(
+        AskScope(
+            group=group,
+            period=LeaderboardPeriod.all_time(),
+            default_game_type_code="dominos",
+            available_game_type_codes=("dominos",),
+        )
+    )
+    result = executor.execute(
+        "query_date_range_leaderboard",
+        {"game_type_code": "dominos", "period_preset": "today"},
+    )
+    assert result["start_date"] == date.today().isoformat()
+    assert result["end_date"] == date.today().isoformat()
+    assert result["rankings"][0]["games_played"] == 1
+
+
+@pytest.mark.django_db
 def test_query_location_leaderboard_filters_by_venue(user, group):
     from datetime import date
 

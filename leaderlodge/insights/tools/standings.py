@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.registry import (
-    ScoreDirection,
     get_game_type,
     score_direction_label,
     scoring_interpretation_note,
@@ -14,14 +12,9 @@ from leaderlodge.insights.tools.rate_display import (
     add_avg_score_display_fields,
     add_outcome_display_fields,
 )
-from leaderlodge.leaderboards.period import (
-    LeaderboardPeriod,
-    filter_results_by_date_range,
-)
+from leaderlodge.leaderboards.period import LeaderboardPeriod
 from leaderlodge.leaderboards.ranking import compute_percentage
 from leaderlodge.leaderboards.service import (
-    _assign_ranks,
-    _standings_for_game_type,
     get_player_rank_detail,
     get_player_rankings,
 )
@@ -100,47 +93,25 @@ def query_date_range_leaderboard(
     game_type_code: str,
     start_date: date,
     end_date: date,
+    period_preset: str | None = None,
     game_size: int | None = None,
     limit: int = 10,
 ) -> dict:
-    game_type = get_game_type(game_type_code)
-    results_qs = GameParticipantResult.objects.filter(
-        game__group=group,
-        game__game_type_code=game_type_code,
-    )
-    if game_size is not None:
-        results_qs = results_qs.filter(game__player_count=game_size)
-    results_qs = filter_results_by_date_range(
-        results_qs,
+    period = LeaderboardPeriod(
         start_date=start_date,
         end_date=end_date,
+        preset=period_preset,
     )
-
-    # Any filtered period disables vesting; year is arbitrary here.
-    period = LeaderboardPeriod(year=start_date.year)
-    standings = _standings_for_game_type(
+    payload = query_leaderboard(
         group,
-        game_type_code,
+        game_type_code=game_type_code,
         period=period,
-        results_qs=results_qs,
+        game_size=game_size,
+        limit=limit,
     )
-    active = [row for row in standings if row.games_played > 0]
-    low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
-    rankings = _assign_ranks(active, low_wins=low_wins)
-
-    return {
-        "game_type_code": game_type_code,
-        "game_type_name": game_type.name,
-        "score_direction": score_direction_label(game_type_code),
-        "game_size": game_size,
-        "start_date": start_date.isoformat(),
-        "end_date": end_date.isoformat(),
-        "period": {
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-        },
-        "rankings": [_ranking_row(row) for row in rankings[:limit]],
-    }
+    payload["start_date"] = start_date.isoformat()
+    payload["end_date"] = end_date.isoformat()
+    return payload
 
 
 def query_player_detail(

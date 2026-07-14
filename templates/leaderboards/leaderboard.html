@@ -181,6 +181,7 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'js/period_filters.js' %}"></script>
   <script src="{% static 'js/leaderboard.js' %}"></script>
   <script>
     document.querySelectorAll(".leaderboard-row[data-href]").forEach((row) => {

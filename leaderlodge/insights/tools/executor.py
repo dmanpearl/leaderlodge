@@ -79,7 +79,16 @@ class ToolExecutor:
 
         raw_year = arguments.get("year")
         raw_month = arguments.get("month")
-        if raw_year is None and raw_month is None:
+        raw_preset = arguments.get("period_preset")
+        raw_start = arguments.get("start_date")
+        raw_end = arguments.get("end_date")
+        if (
+            raw_year is None
+            and raw_month is None
+            and raw_preset is None
+            and raw_start is None
+            and raw_end is None
+        ):
             return self.scope.period
 
         years, months_by_year = available_leaderboard_periods(
@@ -89,6 +98,9 @@ class ToolExecutor:
         return resolve_leaderboard_period(
             raw_year=str(raw_year or ""),
             raw_month=str(raw_month or ""),
+            raw_preset=str(raw_preset or ""),
+            raw_start_date=str(raw_start or ""),
+            raw_end_date=str(raw_end or ""),
             available_years=years,
             months_by_year=months_by_year,
         )
@@ -356,16 +368,34 @@ class ToolExecutor:
     def _query_date_range_leaderboard(
         self, arguments: dict[str, Any]
     ) -> dict[str, Any]:
+        from leaderlodge.leaderboards.period import (
+            PERIOD_PRESET_CODES,
+            dates_for_period_preset,
+        )
+
         game_type_code = self._resolve_game_type_code(arguments)
-        start_date = self._parse_iso_date(arguments.get("start_date"), "start_date")
-        end_date = self._parse_iso_date(arguments.get("end_date"), "end_date")
-        if start_date > end_date:
-            raise ToolExecutionError("start_date must be on or before end_date.")
+        preset = str(arguments.get("period_preset") or "").strip()
+        if preset:
+            if preset not in PERIOD_PRESET_CODES:
+                raise ToolExecutionError(
+                    "period_preset must be today, yesterday, last_7_days, "
+                    "last_weekend, or last_week."
+                )
+            bounds = dates_for_period_preset(preset)
+            if bounds is None:
+                raise ToolExecutionError("Invalid period_preset.")
+            start_date, end_date = bounds
+        else:
+            start_date = self._parse_iso_date(arguments.get("start_date"), "start_date")
+            end_date = self._parse_iso_date(arguments.get("end_date"), "end_date")
+            if start_date > end_date:
+                raise ToolExecutionError("start_date must be on or before end_date.")
         return query_date_range_leaderboard(
             self.scope.group,
             game_type_code=game_type_code,
             start_date=start_date,
             end_date=end_date,
+            period_preset=preset or None,
             game_size=self._resolve_game_size(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )

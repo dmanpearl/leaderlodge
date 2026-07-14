@@ -137,6 +137,15 @@
         payload.group_id = panel.dataset.groupId;
         payload.player_id = panel.dataset.playerId;
         payload.game_type_code = panel.dataset.gameTypeCode;
+        if (panel.dataset.periodPreset) {
+          payload.period_preset = panel.dataset.periodPreset;
+        }
+        if (panel.dataset.startDate) {
+          payload.start_date = panel.dataset.startDate;
+        }
+        if (panel.dataset.endDate) {
+          payload.end_date = panel.dataset.endDate;
+        }
         if (panel.dataset.year) {
           payload.year = panel.dataset.year;
         }
@@ -148,6 +157,15 @@
         payload.scope = panel.dataset.insightsScope;
         if (panel.dataset.gameTypeCode) {
           payload.game_type_code = panel.dataset.gameTypeCode;
+        }
+        if (panel.dataset.periodPreset) {
+          payload.period_preset = panel.dataset.periodPreset;
+        }
+        if (panel.dataset.startDate) {
+          payload.start_date = panel.dataset.startDate;
+        }
+        if (panel.dataset.endDate) {
+          payload.end_date = panel.dataset.endDate;
         }
         if (panel.dataset.year) {
           payload.year = panel.dataset.year;

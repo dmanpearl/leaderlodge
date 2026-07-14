@@ -92,13 +92,7 @@ from leaderlodge.insights.tools.players import (
     build_question_player_hints,
 )
 from leaderlodge.insights.tools.scope import AskScope
-from leaderlodge.leaderboards.period import (
-    LeaderboardPeriod,
-    available_leaderboard_periods,
-    leaderboard_filter_summary,
-    month_label,
-    resolve_leaderboard_period,
-)
+from leaderlodge.leaderboards.period import leaderboard_filter_summary
 
 
 def _configured_api_key(name: str) -> str:
@@ -260,6 +254,9 @@ def player_insight(request: HttpRequest) -> HttpResponse:
             game_type_code=game_type_code,
             raw_year=str(payload.get("year", "")),
             raw_month=str(payload.get("month", "")),
+            raw_preset=str(payload.get("period_preset", "")),
+            raw_start_date=str(payload.get("start_date", "")),
+            raw_end_date=str(payload.get("end_date", "")),
         )
     except InsightAccessError as exc:
         return json_response_with_log(
@@ -413,6 +410,9 @@ def group_insight(request: HttpRequest) -> HttpResponse:
                 game_type_code=game_type_code,
                 raw_year=str(payload.get("year", "")),
                 raw_month=str(payload.get("month", "")),
+                raw_preset=str(payload.get("period_preset", "")),
+                raw_start_date=str(payload.get("start_date", "")),
+                raw_end_date=str(payload.get("end_date", "")),
                 granularity=granularity,
             )
         )
@@ -648,35 +648,13 @@ def _period_context_for_group(
     game_type_code: str | None,
     request: HttpRequest,
 ) -> dict[str, Any]:
-    if group is None or not game_type_code:
-        return {
-            "selected_period": LeaderboardPeriod.all_time(),
-            "period_year_options": [],
-            "period_month_options": [],
-            "period_label": "",
-        }
+    from leaderlodge.leaderboards.period import period_filter_context_from_request
 
-    years, months_by_year = available_leaderboard_periods(group, game_type_code)
-    selected_period = resolve_leaderboard_period(
-        raw_year=request.GET.get("year", "").strip(),
-        raw_month=request.GET.get("month", "").strip(),
-        available_years=years,
-        months_by_year=months_by_year,
+    return period_filter_context_from_request(
+        request,
+        group=group,
+        game_type_code=game_type_code,
     )
-    month_options = [
-        {"value": month, "label": month_label(month)}
-        for month in (
-            months_by_year.get(selected_period.year, ())
-            if selected_period.year is not None
-            else ()
-        )
-    ]
-    return {
-        "selected_period": selected_period,
-        "period_year_options": years,
-        "period_month_options": month_options,
-        "period_label": selected_period.display_label(),
-    }
 
 
 def _ask_meta(result: AskResult) -> dict[str, Any]:
@@ -888,6 +866,9 @@ def ask_query(request: HttpRequest) -> HttpResponse:
             game_type_code=str(payload.get("game_type_code", "")).strip(),
             raw_year=str(payload.get("year", "")),
             raw_month=str(payload.get("month", "")),
+            raw_preset=str(payload.get("period_preset", "")),
+            raw_start_date=str(payload.get("start_date", "")),
+            raw_end_date=str(payload.get("end_date", "")),
         )
     except InsightAccessError as exc:
         return json_response_with_log(

@@ -98,6 +98,9 @@
       data-ask-url="{% url 'insights:ask_query' %}"
       data-group-id="{{ selected_group.pk }}"
       data-game-type-code="{{ selected_game_type_code }}"
+      {% if selected_period.preset %}data-period-preset="{{ selected_period.preset }}"{% endif %}
+      {% if selected_period.start_date %}data-start-date="{{ selected_period.start_date|date:'Y-m-d' }}"{% endif %}
+      {% if selected_period.end_date %}data-end-date="{{ selected_period.end_date|date:'Y-m-d' }}"{% endif %}
       {% if selected_period.year %}data-year="{{ selected_period.year }}"{% endif %}
       {% if selected_period.month %}data-month="{{ selected_period.month }}"{% endif %}
     >
@@ -153,6 +156,7 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'js/period_filters.js' %}"></script>
   <script src="{% static 'js/ask_lodge_filters.js' %}"></script>
   {% if selected_group and game_type_options %}
     {% include "includes/insights_result_script.html" %}

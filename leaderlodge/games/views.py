@@ -94,6 +94,11 @@ def _game_list_params(request: HttpRequest) -> dict:
         "player_type": normalize_player_type(request.GET.get("player_type", "")),
         "location": request.GET.get("location", "").strip(),
         "game_size": request.GET.get("game_size", "").strip(),
+        "year": request.GET.get("year", "").strip(),
+        "month": request.GET.get("month", "").strip(),
+        "period_preset": request.GET.get("period_preset", "").strip(),
+        "start_date": request.GET.get("start_date", "").strip(),
+        "end_date": request.GET.get("end_date", "").strip(),
         "sort": sort,
     }
 
@@ -127,6 +132,11 @@ def _resolve_game_list_params(
         "player_type": params.get("player_type", ""),
         "location": params["location"],
         "game_size": params["game_size"],
+        "year": params.get("year", ""),
+        "month": params.get("month", ""),
+        "period_preset": params.get("period_preset", ""),
+        "start_date": params.get("start_date", ""),
+        "end_date": params.get("end_date", ""),
         "sort": params["sort"],
     }
     return resolved
@@ -150,7 +160,66 @@ def _games_queryset_for_filter_choices(user, params: dict[str, str]):
     return games_qs
 
 
-def _filtered_games_queryset(user, params: dict[str, str]):
+def _game_list_period(params: dict[str, str], groups):
+    from leaderlodge.leaderboards.period import (
+        LeaderboardPeriod,
+        PERIOD_PRESET_CHOICES,
+        period_filter_context,
+    )
+
+    if (
+        not params.get("group", "").isdigit()
+        or params.get("game_type") not in GAME_TYPES
+    ):
+        empty = LeaderboardPeriod.all_time()
+        return empty, {
+            "selected_period": empty,
+            "period_year_options": [],
+            "period_month_options": [],
+            "period_preset_choices": PERIOD_PRESET_CHOICES,
+            "period_show_custom_dates": (
+                (params.get("period_preset") or "") == "custom"
+            ),
+            "period_label": "",
+        }
+
+    group = next(
+        (item for item in groups if str(item.pk) == params["group"]),
+        None,
+    )
+    if group is None:
+        group = Group.objects.filter(pk=int(params["group"])).first()
+    period_ctx = period_filter_context(
+        group=group,
+        game_type_code=params["game_type"],
+        raw_year=params.get("year", ""),
+        raw_month=params.get("month", ""),
+        raw_preset=params.get("period_preset", ""),
+        raw_start_date=params.get("start_date", ""),
+        raw_end_date=params.get("end_date", ""),
+    )
+    return period_ctx["selected_period"], period_ctx
+
+
+def _apply_period_params(params: dict[str, str], period) -> dict[str, str]:
+    updated = dict(params)
+    for key in ("year", "month", "period_preset", "start_date", "end_date"):
+        updated[key] = ""
+    updated.update(period.query_params())
+    # Keep custom UI open when user chose custom but has not applied dates yet.
+    if params.get("period_preset") == "custom" and not period.is_filtered:
+        updated["period_preset"] = "custom"
+    return updated
+
+
+def _filtered_games_queryset(user, params: dict[str, str], period=None):
+    from leaderlodge.leaderboards.period import (
+        LeaderboardPeriod,
+        filter_results_by_period,
+        resolve_leaderboard_period_from_mapping,
+        available_leaderboard_periods,
+    )
+
     games_qs = _games_queryset_for_filter_choices(user, params).select_related(
         "group", "recorded_by", "location"
     )
@@ -186,6 +255,23 @@ def _filtered_games_queryset(user, params: dict[str, str]):
         ).distinct()
     if params.get("game_size", "").isdigit():
         games_qs = games_qs.filter(player_count=int(params["game_size"]))
+
+    if period is None:
+        years: list[int] = []
+        months_by_year: dict[int, tuple[int, ...]] = {}
+        if params.get("group", "").isdigit() and params["game_type"] in GAME_TYPES:
+            group = Group.objects.filter(pk=int(params["group"])).first()
+            if group is not None:
+                years, months_by_year = available_leaderboard_periods(
+                    group, params["game_type"]
+                )
+        period = resolve_leaderboard_period_from_mapping(
+            params,
+            available_years=years,
+            months_by_year=months_by_year,
+        )
+    if isinstance(period, LeaderboardPeriod) and period.is_filtered:
+        games_qs = filter_results_by_period(games_qs, period, game_prefix="")
 
     if params["sort"] == "asc":
         return games_qs.order_by("played_on", "created_at")
@@ -252,7 +338,18 @@ def _game_list_filter_query(params: dict[str, str]) -> str:
 def _game_list_has_filters(params: dict[str, str]) -> bool:
     return any(
         params[key]
-        for key in ("group", "player", "player_type", "location", "game_size")
+        for key in (
+            "group",
+            "player",
+            "player_type",
+            "location",
+            "game_size",
+            "year",
+            "month",
+            "period_preset",
+            "start_date",
+            "end_date",
+        )
         if key != "player_type" or params[key]
     )
 
@@ -295,6 +392,9 @@ def _game_list_filter_summary(
 
     if params["game_size"].isdigit():
         labels.append(game_size_filter_label(int(params["game_size"])))
+
+    if params.get("period_label"):
+        labels.append(params["period_label"])
 
     return ", ".join(labels)
 
@@ -441,11 +541,14 @@ def game_list(request: HttpRequest) -> HttpResponse:
         return redirect(url)
 
     params = resolved_params
+    groups = list(groups)
+    selected_period, period_ctx = _game_list_period(params, groups)
+    params = _apply_period_params(params, selected_period)
     locations = _location_choices_for_game_list(request.user, params)
     players = _player_choices_for_game_list(request.user, params)
     game_size_options = _game_size_choices_for_game_list(request.user, params)
     params = _sanitize_game_list_params(params, locations, players, game_size_options)
-    games_qs = _filtered_games_queryset(request.user, params)
+    games_qs = _filtered_games_queryset(request.user, params, period=selected_period)
     selected_game_type = get_game_type(params["game_type"])
     list_stats = build_game_list_stats(
         games_qs=games_qs,
@@ -475,6 +578,8 @@ def game_list(request: HttpRequest) -> HttpResponse:
 
     groups = visible_groups(request.user).order_by("name")
     has_any_games = Game.objects.filter(group__in=groups).exists()
+    summary_params = dict(params)
+    summary_params["period_label"] = period_ctx.get("period_label", "")
 
     return render(
         request,
@@ -490,7 +595,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
             "filter_query": _game_list_filter_query(params),
             "has_filters": _game_list_has_filters(params),
             "filter_summary": _game_list_filter_summary(
-                params=params,
+                params=summary_params,
                 groups=groups,
                 players=players,
                 locations=locations,
@@ -513,6 +618,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
                 game_type_code=params["game_type"],
             ),
             "show_location_column": not params["location"],
+            **period_ctx,
         },
     )
 

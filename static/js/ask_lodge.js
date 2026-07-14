@@ -106,6 +106,15 @@
       model: modelSelect ? modelSelect.value : "",
       refresh: isRegenerate,
     };
+    if (panel.dataset.periodPreset) {
+      payload.period_preset = panel.dataset.periodPreset;
+    }
+    if (panel.dataset.startDate) {
+      payload.start_date = panel.dataset.startDate;
+    }
+    if (panel.dataset.endDate) {
+      payload.end_date = panel.dataset.endDate;
+    }
     if (panel.dataset.year) {
       payload.year = panel.dataset.year;
     }

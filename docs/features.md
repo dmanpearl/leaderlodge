@@ -44,7 +44,7 @@ and leaderboards for social games played by groups of people.
   player count, placement distance, game weight, and score magnitude
 - Vesting system: ranks stabilize after a minimum number of games played,
   damping early outlier performance
-- Filtering by period: all time, by year, or by specific month
+- Filtering by period: all time, year, month, quick ranges (today, yesterday, last 7 days, last weekend, last week), or custom from/to dates (same filters on Games list and Ask)
 - Top-5 preview cards on the dashboard
 - Rank detail page showing a full breakdown (wins, losses, ties, points, games played)
 

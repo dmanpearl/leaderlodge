@@ -8,8 +8,14 @@ from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.leaderboards.period import (
+    PERIOD_PRESET_LAST_7_DAYS,
+    PERIOD_PRESET_LAST_WEEK,
+    PERIOD_PRESET_LAST_WEEKEND,
+    PERIOD_PRESET_TODAY,
+    PERIOD_PRESET_YESTERDAY,
     LeaderboardPeriod,
     available_leaderboard_periods,
+    dates_for_period_preset,
     resolve_leaderboard_period,
 )
 from leaderlodge.leaderboards.service import get_player_rankings
@@ -90,6 +96,100 @@ def test_resolve_leaderboard_period_ignores_month_without_year():
         months_by_year={2026: (6, 5)},
     )
     assert period == LeaderboardPeriod.all_time()
+
+
+def test_dates_for_period_presets_use_today():
+    today = date(2026, 7, 15)  # Wednesday
+    assert dates_for_period_preset(PERIOD_PRESET_TODAY, today=today) == (
+        today,
+        today,
+    )
+    assert dates_for_period_preset(PERIOD_PRESET_YESTERDAY, today=today) == (
+        date(2026, 7, 14),
+        date(2026, 7, 14),
+    )
+    assert dates_for_period_preset(PERIOD_PRESET_LAST_7_DAYS, today=today) == (
+        date(2026, 7, 9),
+        today,
+    )
+    assert dates_for_period_preset(PERIOD_PRESET_LAST_WEEKEND, today=today) == (
+        date(2026, 7, 11),
+        date(2026, 7, 12),
+    )
+    assert dates_for_period_preset(PERIOD_PRESET_LAST_WEEK, today=today) == (
+        date(2026, 7, 6),
+        date(2026, 7, 12),
+    )
+
+
+def test_resolve_leaderboard_period_prefers_preset_over_year():
+    period = resolve_leaderboard_period(
+        raw_year="2026",
+        raw_month="6",
+        raw_preset=PERIOD_PRESET_YESTERDAY,
+        available_years=[2026],
+        months_by_year={2026: (6, 5)},
+        today=date(2026, 7, 15),
+    )
+    assert period.preset == PERIOD_PRESET_YESTERDAY
+    assert period.start_date == date(2026, 7, 14)
+    assert period.end_date == date(2026, 7, 14)
+    assert period.year is None
+
+
+def test_resolve_leaderboard_period_custom_date_range():
+    period = resolve_leaderboard_period(
+        raw_start_date="2026-07-01",
+        raw_end_date="2026-07-03",
+        available_years=[2026],
+        months_by_year={2026: (7,)},
+    )
+    assert period.has_date_range
+    assert period.display_label() == "Jul 1, 2026 to Jul 3, 2026"
+    assert period.query_params() == {
+        "start_date": "2026-07-01",
+        "end_date": "2026-07-03",
+    }
+
+
+@pytest.mark.django_db
+def test_get_player_rankings_filters_by_date_range(user, group):
+    _record_dominos_game(group, user, played_on=date(2026, 7, 1))
+    _record_dominos_game(
+        group, user, played_on=date(2026, 7, 10), winner_idx=1, loser_idx=0
+    )
+
+    july_first = get_player_rankings(
+        group,
+        game_type_code="dominos",
+        period=LeaderboardPeriod(
+            start_date=date(2026, 7, 1),
+            end_date=date(2026, 7, 1),
+        ),
+    )
+    assert len(july_first) == 2
+    assert july_first[0].games_played == 1
+    assert july_first[0].wins == 1
+
+
+@pytest.mark.django_db
+def test_leaderboard_index_shows_quick_range_filter(client, user, group):
+    client.force_login(user)
+    _record_dominos_game(group, user, played_on=date(2026, 3, 1))
+
+    response = client.get(
+        reverse("leaderboards:index"),
+        {
+            "group": str(group.pk),
+            "game_type_code": "dominos",
+            "period_preset": "yesterday",
+        },
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert 'name="period_preset"' in content
+    assert "Yesterday" in content
+    assert "Quick range" in content
 
 
 @pytest.mark.django_db

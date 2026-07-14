@@ -40,7 +40,7 @@ def test_save_game_detail_shows_record_again(client, user, group):
     detail = client.get(response["Location"])
     content = detail.content.decode()
     assert detail.status_code == 200
-    assert "+ Reuse Players" in content
+    assert "Reuse Players" in content
     assert f"/games/new/?reuse_from={game.pk}" in content
 
 
@@ -53,7 +53,7 @@ def test_record_again_hidden_without_query_param(client, user, group):
     content = client.get(
         reverse("games:detail", kwargs={"pk": game.pk})
     ).content.decode()
-    assert "+ Reuse Players" not in content
+    assert "Reuse Players" not in content
 
 
 @pytest.mark.django_db
@@ -65,8 +65,8 @@ def test_record_again_visible_with_query_param_on_refresh(client, user, group):
 
     first = client.get(detail_url)
     second = client.get(detail_url)
-    assert "+ Reuse Players" in first.content.decode()
-    assert "+ Reuse Players" in second.content.decode()
+    assert "Reuse Players" in first.content.decode()
+    assert "Reuse Players" in second.content.decode()
 
 
 @pytest.mark.django_db

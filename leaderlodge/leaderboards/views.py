@@ -20,11 +20,8 @@ from leaderlodge.groups.models import Group
 from leaderlodge.groups.services import visible_groups
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
-    available_leaderboard_periods,
     build_leaderboard_query,
     leaderboard_filter_summary,
-    month_label,
-    resolve_leaderboard_period,
 )
 from leaderlodge.leaderboards.hall_of_fame import (
     GRANULARITY_MONTH,
@@ -144,33 +141,13 @@ def _period_context(
     game_type_code: str | None,
     request: HttpRequest,
 ) -> dict:
-    if group is None or not game_type_code:
-        return {
-            "selected_period": LeaderboardPeriod.all_time(),
-            "period_year_options": [],
-            "period_month_options": [],
-        }
+    from leaderlodge.leaderboards.period import period_filter_context_from_request
 
-    years, months_by_year = available_leaderboard_periods(group, game_type_code)
-    selected_period = resolve_leaderboard_period(
-        raw_year=request.GET.get("year", "").strip(),
-        raw_month=request.GET.get("month", "").strip(),
-        available_years=years,
-        months_by_year=months_by_year,
+    return period_filter_context_from_request(
+        request,
+        group=group,
+        game_type_code=game_type_code,
     )
-    month_options = [
-        {"value": month, "label": month_label(month)}
-        for month in (
-            months_by_year.get(selected_period.year, ())
-            if selected_period.year is not None
-            else ()
-        )
-    ]
-    return {
-        "selected_period": selected_period,
-        "period_year_options": years,
-        "period_month_options": month_options,
-    }
 
 
 def _insights_template_context(request: HttpRequest) -> dict:

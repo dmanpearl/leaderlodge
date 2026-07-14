@@ -102,8 +102,9 @@
           </select>
         </div>
         {% include "includes/game_size_filter.html" with select_id="filter-game-size" select_class="game-list-filter-select" %}
+        {% include "includes/leaderboard_period_filters.html" with year_select_id="filter-year" month_select_id="filter-month" preset_select_id="filter-period-preset" start_date_id="filter-start-date" end_date_id="filter-end-date" %}
         <div class="col-12 col-sm-6 col-lg-4 col-xl">
-          <label for="filter-sort" class="form-label">Date</label>
+          <label for="filter-sort" class="form-label">Sort</label>
           <select id="filter-sort" name="sort" class="form-select game-list-filter-select" onchange="this.form.submit()">
             <option value="desc" {% if params.sort == "desc" %}selected{% endif %}>Newest first</option>
             <option value="asc" {% if params.sort == "asc" %}selected{% endif %}>Oldest first</option>
@@ -352,5 +353,6 @@
 {% endblock %}
 
 {% block extra_js %}
+  <script src="{% static 'js/period_filters.js' %}"></script>
   <script src="{% static 'js/game_list.js' %}"></script>
 {% endblock %}
