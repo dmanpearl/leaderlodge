@@ -331,7 +331,7 @@
 {% block extra_js %}
   {% if google_places_api_key %}
     <script src="{% static 'js/location_map.js' %}?v=2"></script>
-    <script src="{% static 'js/location_set_place.js' %}?v=2"></script>
+    <script src="{% static 'js/location_set_place.js' %}?v=3"></script>
   {% endif %}
   <script>
     (function () {
@@ -345,6 +345,44 @@
           .replace(/\p{M}/gu, "")
           .trim()
           .toLowerCase();
+      }
+
+      function pagePath() {
+        return window.location.pathname + window.location.search;
+      }
+
+      function saveScrollForRestore() {
+        try {
+          window.sessionStorage.setItem(
+            "leaderlodge.restoreScroll",
+            JSON.stringify({
+              path: pagePath(),
+              y: window.scrollY || window.pageYOffset || 0,
+            })
+          );
+        } catch (_err) {
+          /* ignore quota / private mode */
+        }
+      }
+
+      function restoreScrollIfNeeded() {
+        try {
+          var raw = window.sessionStorage.getItem("leaderlodge.restoreScroll");
+          if (!raw) return;
+          var data = JSON.parse(raw);
+          window.sessionStorage.removeItem("leaderlodge.restoreScroll");
+          if (!data || data.path !== pagePath()) return;
+          var y = Number(data.y);
+          if (!Number.isFinite(y) || y < 0) return;
+          // After search filter / layout; one frame is often too early.
+          window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(function () {
+              window.scrollTo(0, y);
+            });
+          });
+        } catch (_err) {
+          /* ignore */
+        }
       }
 
       var searchInput = document.getElementById("location-list-search");
@@ -392,6 +430,22 @@
         searchInput.addEventListener("input", filterLocationRows);
         filterLocationRows();
       }
+
+      // Rename / Combine / Delete POST back to this list; Map Assign uses
+      // location_set_place.js which also writes leaderlodge.restoreScroll.
+      document
+        .querySelectorAll("#location-rename-form, #location-combine-form")
+        .forEach(function (form) {
+          form.addEventListener("submit", saveScrollForRestore);
+        });
+      document.querySelectorAll("form[method='post']").forEach(function (form) {
+        var action = form.getAttribute("action") || "";
+        if (action.indexOf("/delete/") !== -1) {
+          form.addEventListener("submit", saveScrollForRestore);
+        }
+      });
+
+      restoreScrollIfNeeded();
 
       var renameModal = new bootstrap.Modal(
         document.getElementById("location-rename-modal")

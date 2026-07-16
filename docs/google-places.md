@@ -175,6 +175,40 @@ Server endpoint: `POST /groups/<group_id>/locations/<location_id>/set-place/`
 
 ---
 
+## Interactive CLI backfill (optional)
+
+For cleaning hundreds of historical names, use an interactive management
+command that mirrors **Map > Search > Assign**, with accept/reject per row:
+
+```bash
+python manage.py backfill_location_places \
+  --group manpearl \
+  --skip-file /tmp/manpearl_place_skips.json \
+  --limit 40
+```
+
+Prompts for each ungeocoded location:
+
+| Input | Action |
+|-------|--------|
+| `1` .. `N` | Assign that Places result; **keep** the informal location name |
+| `1a` .. `Na` | Assign and **adopt** the Google place display name |
+| `/Cafe 50s Venice` | Re-search with a better query |
+| `s` | Skip and remember in `--skip-file` (resume later) |
+| `n` | Skip once (not remembered) |
+| `q` | Quit |
+
+Requires `GOOGLE_PLACES_SERVER_API_KEY`: a **server** Places key (IP-restricted
+or unrestricted). The browser-restricted `GOOGLE_PLACES_API_KEY` usually
+returns `REQUEST_DENIED` from `manage.py` because of HTTP referrer rules.
+
+Successful assigns set `geocode_source=backfill_confirmed`.
+
+Add `--dry-run` to practice without writing. Add `--include-geocoded` to
+revisit rows that already have pins.
+
+---
+
 ## Troubleshooting
 
 **Button appears but lookup fails with "Location lookup failed."**

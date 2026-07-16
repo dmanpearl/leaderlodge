@@ -216,6 +216,9 @@ GOOGLE_AI_API_KEY = os.environ.get("GOOGLE_AI_API_KEY", "")
 # Google Places API - browser-restricted key for location lookup in game recording.
 # See docs/google-places.md for setup. Leave blank to disable the Lookup button.
 GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", "")
+# Server/CLI key for interactive place backfill (IP-restricted or unrestricted).
+# Do not reuse the browser referrer-restricted key for manage.py commands.
+GOOGLE_PLACES_SERVER_API_KEY = os.environ.get("GOOGLE_PLACES_SERVER_API_KEY", "")
 
 # Signup honeypot (hidden field + minimum submit time). Set false to disable.
 HONEYPOT_ENABLED = os.environ.get("HONEYPOT_ENABLED", "true").lower() in (

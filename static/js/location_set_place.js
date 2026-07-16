@@ -26,6 +26,17 @@
     // Prefer GET navigation over reload(): if Edit game was a failed POST
     // response, reload() would re-POST and show "change at least one…".
     const url = window.location.pathname + window.location.search;
+    try {
+      window.sessionStorage.setItem(
+        "leaderlodge.restoreScroll",
+        JSON.stringify({
+          path: url,
+          y: window.scrollY || window.pageYOffset || 0,
+        }),
+      );
+    } catch (_err) {
+      /* ignore quota / private mode */
+    }
     window.location.assign(url);
   }
 

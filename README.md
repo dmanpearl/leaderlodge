@@ -51,6 +51,7 @@ The project requires `DJANGO_SECRET_KEY`. **Never commit secrets to Git.**
 | `DJANGO_TIME_ZONE` | Optional | IANA timezone for calendar dates (default: `America/Los_Angeles`) |
 | `DEMO_MODE_ENABLED` | Optional | Public read-only demo group browsing (default: `true`) |
 | `GOOGLE_PLACES_API_KEY` | Optional | Browser-restricted Google Places API key; enables the location Lookup button in game recording. See [docs/google-places.md](docs/google-places.md) |
+| `GOOGLE_PLACES_SERVER_API_KEY` | Optional | Server Places key for interactive `backfill_location_places` CLI. See [docs/google-places.md](docs/google-places.md) |
 | `DEFAULT_FROM_EMAIL` | Production | Brevo from-address (e.g. `LeaderLodge <noreply@leaderlodge.com>`) |
 | `BREVO_API_KEY` | Production | Brevo API v3 key (`xkeysib-...`); uses HTTPS API (Railway blocks SMTP) |
 

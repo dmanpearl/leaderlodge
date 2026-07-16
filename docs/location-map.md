@@ -341,17 +341,18 @@ your current position; search if you are away from the venue").
 
 ## Location library tools
 
-### Why not bulk backfill?
+### Why not fully automated bulk backfill?
 
 Most historical locations are informal names ("Sally's House",
 "Home - Island", vague restaurant labels, sometimes with a state code).
 Automated Places text search on those names returns multiple low-confidence
-matches. A management command or staff batch backfill would spend API
-calls and still produce wrong pins.
+matches. A hands-off management command or staff batch backfill would spend
+API calls and still produce wrong pins.
 
-**Decision:** no `geocode_locations` CLI and no Admin batch backfill.
-Coverage for existing rows comes from **smart in-app tools** that keep a
-human in the loop.
+**Decision:** no unattended auto-assign. Coverage for existing rows comes from
+**human-in-the-loop** tools: in-app **Set place**, and the optional interactive
+CLI `backfill_location_places` (accept/reject/skip each Places result; see
+`docs/google-places.md`).
 
 ### A. Set place (explicit re-geocode)
 
@@ -898,9 +899,10 @@ When display stripping is added: prefer street name only in
 - Arbitrary polygon / "west side" geo queries (until a dedicated tool)
 - Native iOS/Android map apps
 - Overwriting coords on every reuse of a geocoded Location during game save
-- **Bulk automated backfill:** `geocode_locations` management command,
-  Admin batch Places search on name alone, `GOOGLE_PLACES_SERVER_API_KEY`
-  for CLI geocode
+- **Unattended bulk backfill:** auto-assign from name alone with no human
+  confirm, Admin batch Places search, treating browser keys as server keys
+- Interactive confirmed CLI (`backfill_location_places`) is allowed; see
+  `docs/google-places.md`
 
 ---
 
