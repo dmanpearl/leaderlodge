@@ -26,9 +26,19 @@
   <h1 class="h3 mb-3">Locations</h1>
 
   {% if location_rows %}
+    <div class="mb-3 location-list-search">
+      <label for="location-list-search" class="visually-hidden">Search locations</label>
+      <input
+        type="search"
+        id="location-list-search"
+        class="form-control"
+        placeholder="Search locations…"
+        autocomplete="off"
+      />
+    </div>
     <div class="card">
       <div class="table-responsive">
-        <table class="table table-striped table-sm mb-0">
+        <table class="table table-striped table-sm mb-0" id="location-list-table">
           <thead>
             <tr>
               <th scope="col">
@@ -73,7 +83,7 @@
           </thead>
           <tbody>
             {% for row in location_rows %}
-              <tr>
+              <tr data-location-row data-location-name="{{ row.location.name }}">
                 <td>{{ row.location.name }}</td>
                 <td class="text-center">
                   {% if row.is_geocoded %}
@@ -182,6 +192,9 @@
         </table>
       </div>
     </div>
+    <p class="text-muted mt-3 mb-0" id="location-list-empty" hidden>
+      No locations match that search.
+    </p>
   {% else %}
     <p class="text-muted">No locations recorded yet.</p>
   {% endif %}
@@ -326,6 +339,60 @@
         document.getElementById("location-data").textContent
       );
 
+      function normalizeForMatch(s) {
+        return s
+          .normalize("NFD")
+          .replace(/\p{M}/gu, "")
+          .trim()
+          .toLowerCase();
+      }
+
+      var searchInput = document.getElementById("location-list-search");
+      var emptyEl = document.getElementById("location-list-empty");
+      var tableCard = document.querySelector("#location-list-table")
+        ? document.querySelector("#location-list-table").closest(".card")
+        : null;
+      var searchStorageKey =
+        "leaderlodge.locationListSearch.{{ group.pk }}";
+
+      function filterLocationRows() {
+        if (!searchInput) return;
+        var raw = searchInput.value;
+        try {
+          if (raw) {
+            window.sessionStorage.setItem(searchStorageKey, raw);
+          } else {
+            window.sessionStorage.removeItem(searchStorageKey);
+          }
+        } catch (_err) {
+          /* ignore quota / private mode */
+        }
+        var q = normalizeForMatch(raw);
+        var rows = document.querySelectorAll("[data-location-row]");
+        var visible = 0;
+        rows.forEach(function (row) {
+          var name = normalizeForMatch(row.dataset.locationName || "");
+          var show = !q || name.includes(q);
+          row.hidden = !show;
+          if (show) visible += 1;
+        });
+        if (emptyEl) emptyEl.hidden = visible > 0;
+        if (tableCard) tableCard.hidden = visible === 0 && Boolean(q);
+      }
+
+      if (searchInput) {
+        try {
+          var saved = window.sessionStorage.getItem(searchStorageKey);
+          if (saved) {
+            searchInput.value = saved;
+          }
+        } catch (_err) {
+          /* ignore */
+        }
+        searchInput.addEventListener("input", filterLocationRows);
+        filterLocationRows();
+      }
+
       var renameModal = new bootstrap.Modal(
         document.getElementById("location-rename-modal")
       );
@@ -354,14 +421,6 @@
       var combineCandidates = [];
       var activeSuggestions = [];
       var activeIndex = -1;
-
-      function normalizeForMatch(s) {
-        return s
-          .normalize("NFD")
-          .replace(/\p{M}/gu, "")
-          .trim()
-          .toLowerCase();
-      }
 
       function filterCandidates(query) {
         var q = normalizeForMatch(query);

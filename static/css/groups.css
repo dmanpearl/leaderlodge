@@ -17,6 +17,10 @@
   font-weight: 600;
 }
 
+.location-list-search {
+  max-width: 24rem;
+}
+
 .location-game-pill {
   font-size: 0.7rem;
   font-weight: 500;
