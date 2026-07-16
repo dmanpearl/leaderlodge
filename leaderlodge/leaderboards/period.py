@@ -55,7 +55,7 @@ class LeaderboardPeriod:
         return self.start_date is not None and self.end_date is not None
 
     @property
-    def apply_vesting(self) -> bool:
+    def apply_bayesian(self) -> bool:
         return not self.is_filtered
 
     def query_params(self) -> dict[str, str]:

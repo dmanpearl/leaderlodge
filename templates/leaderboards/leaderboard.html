@@ -148,7 +148,7 @@
               >
                 <td class="leaderboard-sticky-col leaderboard-sticky-col--rank">{{ row.rank }}</td>
                 <td class="leaderboard-sticky-col leaderboard-sticky-col--player">
-                  {% include "includes/player_type_icon.html" with player=row.player %}{{ row.player.display_label }}
+                  {% include "includes/player_type_icon.html" with player=row.player %}{{ row.player.display_label }}{% if selected_period.apply_bayesian and row.games_played < provisional_threshold %}<span class="badge text-bg-warning ms-1">New</span>{% endif %}
                 </td>
                 <td>{{ row.rank_score|floatformat:1 }}</td>
                 <td>{{ row.wins|floatformat:-1 }}</td>

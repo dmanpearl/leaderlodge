@@ -134,7 +134,9 @@
 - [x] 0f35103 Fine tune 'Locate' function to discover parks (ie city parks) and reduce radius from 800m to 600m
 - [x] 8dbfe9b Date filtering for Games and Leaderboards adds day granularity: Shared period presets + optional date range for Games and Leaderboards; Ask reuses the same resolver
 - [x] 5e27505 Feedback notification email url should be working link instead of relative path (ex. /admin/feedback/feedback/13). Also determine if '/change/' portion of url is necessary and best practice (https://leaderlodge.com/admin/feedback/feedback/13)
-- [x] Add Teammate button sometimes displayed incorrectly. When displaying due to user adding a new player during game recording, the label gets incorrectly displayed on mobile as 'Add Teammate'. Should be '+ Teammate' on mobile
+- [x] 3232eeb Add Teammate button sometimes displayed incorrectly. When displaying due to user adding a new player during game recording, the label gets incorrectly displayed on mobile as 'Add Teammate'. Should be '+ Teammate' on mobile
+- [x] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
+- [x] Leaderboard: Replace vesting with Bayesian prior (games / (games + k)); add provisional 'New' badge for players below game threshold
 
 ## Open Items
 
@@ -147,7 +149,6 @@
 - [ ] Leaderboard graphs of leaders over time
 - [ ] User Account: 2FA and phone login options
 - [ ] Record Game > "Recording For" label: The 3 text items for <group>, <game-type>, and <date> should be links/buttons to allow each of those items to be changed. Avoid word-wrap for each of these items (date seems to wrap often in mobile). Place an icon next to each item. Also remove the label "Recording for"
-- [ ] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [ ] Mobile: Record Game player picker — on viewports ≤767px, replace fuzzy combobox (`static/js/player_picker.js`, `templates/games/game_form.html` `#player-picker-input`) with native `<select>` of roster players (from `data-player-picker` JSON roster) plus an "Add new guest…" option that reveals a plain text input. Keep desktop combobox unchanged. Reuse `appendParticipantRow` logic; ensure new rows still work with `game_record_form.js` score preview. Match existing guest vs linked-player behavior in `player_picker.js`.
 - [ ] Mobile: Record Game location — on viewports ≤767px, replace fuzzy combobox (`static/js/location_autocomplete.js`, `GameRecordForm.location_name` in `leaderlodge/games/forms.py`) with native `<select>` of group locations (fetch via `groups:locations` JSON or server-rendered options) plus "Other…" revealing a text field for new locations. Keep desktop fuzzy autocomplete (sub-string match per `dc93a1e`). Setup form is `templates/games/game_form.html` when `show_roster` is false.
 - [ ] Mobile: Record Game roster header — replace static "Recording for" card (`templates/games/game_form.html` when `show_roster`) with inline native controls: Group `<select>`, Game `<select>`, Date `<input type="date">`, optional Location (select/datalist per location mobile item). Remove "Recording for" label; use icons + nowrap chips; submit to change context without returning to setup step. Extends open item "Recording For" links/buttons UX. Preserve hidden fields / POST shape expected by `game_create` save action in `leaderlodge/games/views.py`.

@@ -85,44 +85,20 @@ def compute_rank_score(*, points_total: float, games_played: float) -> float:
     return points_total / games_played
 
 
-def compute_vesting_multiplier(
+def compute_bayesian_factor(
     games_played: float,
     *,
-    vesting_count: int | None = None,
-    vesting_factor: float | None = None,
+    k: int | None = None,
 ) -> float:
     if games_played <= 0:
         return 0.0
 
     from django.conf import settings
 
-    if vesting_count is None:
-        vesting_count = settings.LEADERBOARD_VESTING_COUNT
-    if vesting_factor is None:
-        vesting_factor = settings.LEADERBOARD_VESTING_FACTOR
+    if k is None:
+        k = settings.LEADERBOARD_BAYESIAN_K
 
-    if games_played >= vesting_count:
-        return 1.0
-
-    progress = games_played / vesting_count
-    return vesting_factor + (1.0 - vesting_factor) * progress
-
-
-def compute_linear_vesting_multiplier(
-    games_played: float,
-    *,
-    vesting_count: int,
-    vesting_factor: float,
-) -> float:
-    """Original linear ramp for comparison charts and documentation."""
-    if games_played <= 0:
-        return 0.0
-    if games_played >= vesting_count:
-        return 1.0
-    return vesting_factor * games_played / vesting_count
-
-
-LOW_WINS_VESTING_EXPONENT = 2.0
+    return games_played / (games_played + k)
 
 
 def compute_half_game_penalty_factor(
@@ -139,25 +115,20 @@ def compute_half_game_penalty_factor(
     return 1.0
 
 
-def apply_vesting_to_rank_score(
+def apply_bayesian_to_rank_score(
     raw_rank_score: float,
     games_played: float,
     *,
-    low_wins: bool = False,
-    half_game_penalty: float = 1.0,
-    apply_vesting: bool = True,
+    apply_bayesian: bool = True,
 ) -> float:
-    if not apply_vesting:
-        return raw_rank_score * half_game_penalty
+    if not apply_bayesian:
+        return raw_rank_score
 
-    vesting_multiplier = compute_vesting_multiplier(games_played)
-    if vesting_multiplier <= 0:
+    factor = compute_bayesian_factor(games_played)
+    if factor <= 0:
         return 0.0
 
-    if low_wins:
-        return raw_rank_score * (vesting_multiplier**LOW_WINS_VESTING_EXPONENT)
-
-    return raw_rank_score * vesting_multiplier
+    return raw_rank_score * factor
 
 
 def rank_score_sort_key(

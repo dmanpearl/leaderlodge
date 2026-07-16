@@ -226,8 +226,8 @@ def test_get_player_rankings_filters_by_year(user, group):
 
 
 @pytest.mark.django_db
-@override_settings(LEADERBOARD_VESTING_COUNT=20, LEADERBOARD_VESTING_FACTOR=0.5)
-def test_period_filter_disables_vesting(user, group):
+@override_settings(LEADERBOARD_BAYESIAN_K=20)
+def test_period_filter_disables_bayesian(user, group):
     _record_dominos_game(group, user, played_on=date(2026, 6, 1))
 
     all_time = get_player_rankings(

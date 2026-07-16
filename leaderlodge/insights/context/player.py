@@ -148,7 +148,7 @@ def build_player_insight_context(
         },
         "detail": {
             "raw_rank_score": _round(detail.raw_rank_score, 1),
-            "vesting_multiplier": _round(detail.vesting_multiplier, 1),
+            "bayesian_factor": _round(detail.bayesian_factor, 3),
             "podium_count": detail.podium_count,
             "podium_pct": _round(detail.podium_pct, 1),
             "average_field_size": _round(detail.average_field_size, 1),

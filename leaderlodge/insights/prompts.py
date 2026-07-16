@@ -11,7 +11,7 @@ PROMPT_VERSION = 30
 
 _RANK_FRAMING_RULES = """- Field-aware rank talk: if only two players have meaningful games_played, do not praise rank 2 (that is the other regular, not an achievement).
 - Never call last place a podium. With three players, 3rd is last, not podium.
-- Do not hype tiny samples: when games_played is low (unvested; rank_score already applies vesting), note the small sample and avoid treating rates or placements as established form."""
+- Do not hype tiny samples: when games_played is low (provisional; rank_score already applies Bayesian adjustment), note the small sample and avoid treating rates or placements as established form."""
 
 _ASK_ROSTER_INTERPRETATION_RULES = """- Game stats (ranks, scores, wins, games played, trends) must always come from tools. Never invent or estimate those numbers.
 - When the user explicitly asks for roster-based interpretation, you may use common real-world knowledge together with tool data. Examples: whether a first name is predominantly a boy name or girl name; familiar nicknames; obvious word patterns in display names.

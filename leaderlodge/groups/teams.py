@@ -171,12 +171,12 @@ def leaderboard_credit_players(player: GroupPlayer) -> list[GroupPlayer]:
     return [player]
 
 
-def vesting_games_played_for_player(
+def effective_games_played_for_player(
     player: GroupPlayer,
     games_played_by_id: dict[int, float],
 ) -> float:
     """
-    Weighted games used for vesting.
+    Weighted games used for Bayesian adjustment.
 
     People use their own total. Teams use the member with the fewest games.
     """

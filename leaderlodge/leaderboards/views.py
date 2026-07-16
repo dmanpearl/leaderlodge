@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseNotFound
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -279,6 +280,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
                 else ""
             ),
             "rankings": rankings,
+            "provisional_threshold": settings.LEADERBOARD_PROVISIONAL_THRESHOLD,
             "period_label": period_label,
             "leaderboard_query": leaderboard_query,
             "hall_of_fame_query": build_hall_of_fame_query(

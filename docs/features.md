@@ -42,8 +42,10 @@ and leaderboards for social games played by groups of people.
 - Per-game-type leaderboards scoped to each group
 - Rank score formula: field-weighted finish placement points accounting for
   player count, placement distance, game weight, and score magnitude
-- Vesting system: ranks stabilize after a minimum number of games played,
-  damping early outlier performance
+- Bayesian adjustment: rank scores are weighted by games / (games + k) so
+  players with few games cannot dominate the leaderboard on lucky early results
+- Provisional badge: players below the game threshold are marked "New" on the
+  all-time leaderboard for transparency
 - Filtering by period: all time, year, month, quick ranges (today, yesterday, last 7 days, last weekend, last week), or custom from/to dates (same filters on Games list and Ask)
 - Top-5 preview cards on the dashboard
 - Rank detail page showing a full breakdown (wins, losses, ties, points, games played)

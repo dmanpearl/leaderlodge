@@ -66,14 +66,15 @@ close second earns more than a far second. Last place earns 0 placement credit.
 Tied scores use lower-place tie ranking. Ties multiply finish credit by 0.5. Raw
 rank score is total finish points divided by weighted games played.
 
-High-wins game types (dominos, backgammon, mahjongg, pickleball): unvested scores are
-multiplied by vesting progress (lower displayed score until fully vested at
-`LEADERBOARD_VESTING_COUNT` games). Higher displayed score is better.
-
-Progressive Rummy (low-wins): unvested scores use vesting progress squared
-(`raw x vesting^2`) so one-game peaks are damped without inverting the scale.
-Higher displayed score is better (same sort order as other game types). Half
-games still count at 0.5x in games/wins totals only; no extra rank multiplier yet.
+All game types: raw rank score is multiplied by a Bayesian factor
+(`games / (games + k)`) where `k = LEADERBOARD_BAYESIAN_K` (default 20). This
+dampens scores for players with few games without a hard cutoff. At 1 game the
+factor is roughly 0.05; at 100 games it is 0.83; it approaches 1.0 asymptotically.
+Players below `LEADERBOARD_PROVISIONAL_THRESHOLD` games (default 10) are shown
+with a "New" badge on the all-time leaderboard. The Bayesian adjustment and
+provisional badge are both disabled for filtered periods (year, month, date range)
+since a veteran player may have few games in a narrow window. Half games still
+count at 0.5x in games/wins totals only; no extra rank multiplier yet.
 
 All players with at least one recorded game appear on the leaderboard.
 The group detail roster shows every active player; unranked rows have no games.

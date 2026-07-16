@@ -11,12 +11,12 @@ from leaderlodge.leaderboards.ranking import (
     FINISH_POINTS_EXPONENT,
     LOW_WINS_REFERENCE_SCORE,
     TIE_WIN_POINTS_FACTOR,
-    apply_vesting_to_rank_score,
+    apply_bayesian_to_rank_score,
+    compute_bayesian_factor,
     compute_finish_points,
     compute_half_game_penalty_factor,
     compute_rank_score,
     compute_score_magnitude,
-    compute_vesting_multiplier,
 )
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
@@ -128,22 +128,22 @@ def test_mahjongg_wall_game_losers_earn_no_finish_points(user, group):
     assert by_player[players[3].pk].finish_points == pytest.approx(0.0)
 
 
-@override_settings(LEADERBOARD_VESTING_COUNT=20, LEADERBOARD_VESTING_FACTOR=0.5)
-def test_compute_vesting_multiplier():
-    assert compute_vesting_multiplier(0) == 0.0
-    assert compute_vesting_multiplier(20) == 1.0
-    assert compute_vesting_multiplier(21) == 1.0
-    assert compute_vesting_multiplier(10) == pytest.approx(0.75)
-    assert compute_vesting_multiplier(1) == pytest.approx(0.525)
+@override_settings(LEADERBOARD_BAYESIAN_K=20)
+def test_compute_bayesian_factor():
+    assert compute_bayesian_factor(0) == 0.0
+    assert compute_bayesian_factor(20) == pytest.approx(20 / 40)
+    assert compute_bayesian_factor(1) == pytest.approx(1 / 21)
+    assert compute_bayesian_factor(10) == pytest.approx(10 / 30)
+    assert compute_bayesian_factor(1000) == pytest.approx(1000 / 1020)
 
 
-@override_settings(LEADERBOARD_VESTING_COUNT=20, LEADERBOARD_VESTING_FACTOR=0.5)
-def test_apply_vesting_to_rank_score():
-    assert apply_vesting_to_rank_score(2.0, 20) == pytest.approx(2.0)
-    assert apply_vesting_to_rank_score(2.0, 10) == pytest.approx(1.5)
-    vesting = compute_vesting_multiplier(0.5)
-    assert apply_vesting_to_rank_score(4.0, 0.5, low_wins=True) == pytest.approx(
-        4.0 * vesting**2
+@override_settings(LEADERBOARD_BAYESIAN_K=20)
+def test_apply_bayesian_to_rank_score():
+    assert apply_bayesian_to_rank_score(2.0, 20) == pytest.approx(2.0 * (20 / 40))
+    assert apply_bayesian_to_rank_score(2.0, 10) == pytest.approx(2.0 * (10 / 30))
+    assert apply_bayesian_to_rank_score(4.0, 0.5) == pytest.approx(4.0 * (0.5 / 20.5))
+    assert apply_bayesian_to_rank_score(4.0, 10, apply_bayesian=False) == pytest.approx(
+        4.0
     )
 
 
@@ -282,8 +282,8 @@ def test_tie_applies_half_factor_when_finish_points_are_nonzero():
 
 
 @pytest.mark.django_db
-@override_settings(LEADERBOARD_VESTING_COUNT=20, LEADERBOARD_VESTING_FACTOR=0.5)
-def test_vesting_penalizes_one_game_wonders(user, group):
+@override_settings(LEADERBOARD_BAYESIAN_K=20)
+def test_bayesian_penalizes_one_game_wonders(user, group):
     players = list(group.players.order_by("pk"))[:2]
     rows = [
         {"player": players[0], "score": 30},
@@ -315,7 +315,7 @@ def test_vesting_penalizes_one_game_wonders(user, group):
         games_played=winner.games_played,
     )
     assert winner.rank_score == pytest.approx(
-        apply_vesting_to_rank_score(raw_score, winner.games_played)
+        apply_bayesian_to_rank_score(raw_score, winner.games_played)
     )
 
     for _ in range(19):
@@ -336,11 +336,11 @@ def test_vesting_penalizes_one_game_wonders(user, group):
             ],
         )
 
-    vested_rankings = get_player_rankings(group, game_type_code="dominos")
-    vested_winner = next(row for row in vested_rankings if row.wins > 0)
-    assert vested_winner.games_played == pytest.approx(20)
-    assert vested_winner.rank_score == pytest.approx(60.0)
-    assert vested_winner.rank_score > winner.rank_score
+    more_games_rankings = get_player_rankings(group, game_type_code="dominos")
+    more_games_winner = next(row for row in more_games_rankings if row.wins > 0)
+    assert more_games_winner.games_played == pytest.approx(20)
+    assert more_games_winner.rank_score == pytest.approx(60.0 * (20 / 40))
+    assert more_games_winner.rank_score > winner.rank_score
 
 
 @pytest.mark.django_db
@@ -366,7 +366,7 @@ def test_get_player_rank_detail_breakdown(user, group):
         detail.ranking.finish_points / detail.ranking.games_played
     )
     assert detail.ranking.rank_score == pytest.approx(
-        detail.raw_rank_score * (detail.vesting_multiplier**2)
+        detail.raw_rank_score * detail.bayesian_factor
     )
 
     labels = [row.label for row in detail.placements]
@@ -402,8 +402,8 @@ def test_get_player_rank_detail_breakdown(user, group):
 
 
 @pytest.mark.django_db
-@override_settings(LEADERBOARD_VESTING_COUNT=14, LEADERBOARD_VESTING_FACTOR=0.5)
-def test_unvested_half_win_progressive_rummy_gets_penalized_rank_score(user, group):
+@override_settings(LEADERBOARD_BAYESIAN_K=20)
+def test_provisional_half_win_progressive_rummy_gets_penalized_rank_score(user, group):
     """Zach-style case: one half win should not rank near the top."""
     david = add_guest_player(group=group, display_name="David")
     nancy = add_guest_player(group=group, display_name="Nancy")
@@ -467,11 +467,11 @@ def test_unvested_half_win_progressive_rummy_gets_penalized_rank_score(user, gro
     zach_row = by_player[zach.pk]
     jake_row = by_player[jake.pk]
     david_row = by_player[david.pk]
-    vesting = compute_vesting_multiplier(0.5)
+    bayesian = compute_bayesian_factor(0.5)
 
     assert zach_row.games_played == pytest.approx(0.5)
     assert zach_row.wins == pytest.approx(0.5)
-    assert zach_row.rank_score == pytest.approx(1920.0 * vesting**2, abs=1.0)
+    assert zach_row.rank_score == pytest.approx(1920.0 * bayesian, abs=1.0)
     assert zach_row.rank_score > jake_row.rank_score
     assert zach_row.rank < jake_row.rank
     assert zach_row.rank > david_row.rank

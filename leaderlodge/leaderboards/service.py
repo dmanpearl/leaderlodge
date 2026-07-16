@@ -29,13 +29,13 @@ from leaderlodge.leaderboards.ranking import (
     FINISH_POINTS_EXPONENT,
     SORTABLE_COLUMNS,
     TIE_WIN_POINTS_FACTOR,
-    apply_vesting_to_rank_score,
+    apply_bayesian_to_rank_score,
+    compute_bayesian_factor,
     compute_finish_points,
     compute_half_game_penalty_factor,
     compute_percentage,
     compute_rank_score,
     compute_score_magnitude,
-    compute_vesting_multiplier,
     ordinal_place_label,
     rank_score_sort_key,
 )
@@ -98,9 +98,8 @@ class ScoreHighlight:
 class PlayerRankDetail:
     ranking: PlayerRanking
     raw_rank_score: float
-    vesting_multiplier: float
-    vesting_count: int
-    vesting_factor: float
+    bayesian_factor: float
+    bayesian_k: int
     half_game_penalty: float
     placements: tuple[PlacementBreakdown, ...]
     loss_game_count: float
@@ -322,17 +321,17 @@ def get_player_rank_detail(
     rank_by_player = {row.player.pk: row.rank for row in rankings}
     ranking = replace(ranking_row, rank=rank_by_player.get(player.pk))
 
-    from leaderlodge.groups.teams import vesting_games_played_for_player
+    from leaderlodge.groups.teams import effective_games_played_for_player
 
     games_played_by_id = {row.player.pk: row.games_played for row in standings}
-    vesting_games = vesting_games_played_for_player(player, games_played_by_id)
+    effective_games = effective_games_played_for_player(player, games_played_by_id)
 
     raw_rank_score = compute_rank_score(
         points_total=ranking.finish_points,
         games_played=ranking.games_played,
     )
-    vesting_multiplier = (
-        compute_vesting_multiplier(vesting_games) if period.apply_vesting else 1.0
+    bayesian_factor = (
+        compute_bayesian_factor(effective_games) if period.apply_bayesian else 1.0
     )
     half_game_penalty = compute_half_game_penalty_factor(
         weighted_games=weighted_games,
@@ -381,9 +380,8 @@ def get_player_rank_detail(
     return PlayerRankDetail(
         ranking=ranking,
         raw_rank_score=raw_rank_score,
-        vesting_multiplier=vesting_multiplier,
-        vesting_count=settings.LEADERBOARD_VESTING_COUNT,
-        vesting_factor=settings.LEADERBOARD_VESTING_FACTOR,
+        bayesian_factor=bayesian_factor,
+        bayesian_k=settings.LEADERBOARD_BAYESIAN_K,
         half_game_penalty=half_game_penalty,
         placements=tuple(placements),
         loss_game_count=loss_game_count,
@@ -707,9 +705,9 @@ def _standings_for_game_type(
 ) -> list[PlayerRanking]:
     from leaderlodge.games.models import GameParticipantResult
     from leaderlodge.groups.teams import (
+        effective_games_played_for_player,
         leaderboard_credit_players,
         matches_player_type,
-        vesting_games_played_for_player,
     )
 
     game_type = get_game_type(game_type_code)
@@ -776,7 +774,7 @@ def _standings_for_game_type(
         if not matches_player_type(player, player_type):
             continue
         games_played = row["games_played"]
-        vesting_games = vesting_games_played_for_player(player, games_played_by_id)
+        effective_games = effective_games_played_for_player(player, games_played_by_id)
         wins = row["wins"]
         losses = row["losses"]
         win_points = row["win_points"]
@@ -789,12 +787,10 @@ def _standings_for_game_type(
             weighted_games=games_played,
             half_weighted_games=row["half_weighted_games"],
         )
-        rank_score = apply_vesting_to_rank_score(
+        rank_score = apply_bayesian_to_rank_score(
             raw_rank_score,
-            vesting_games,
-            low_wins=low_wins,
-            half_game_penalty=half_game_penalty,
-            apply_vesting=period.apply_vesting,
+            effective_games,
+            apply_bayesian=period.apply_bayesian,
         )
         rows.append(
             PlayerRanking(

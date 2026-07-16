@@ -227,9 +227,9 @@ def test_player_type_people_excludes_teams(group, user):
 
 
 @pytest.mark.django_db
-def test_team_vesting_uses_lowest_member_games_played(group, user):
+def test_team_bayesian_uses_lowest_member_games_played(group, user):
     from leaderlodge.leaderboards.ranking import (
-        apply_vesting_to_rank_score,
+        apply_bayesian_to_rank_score,
         compute_rank_score,
     )
 
@@ -301,8 +301,8 @@ def test_team_vesting_uses_lowest_member_games_played(group, user):
     team_row = rankings[0]
     assert team_row.player.pk == team.pk
     assert team_row.games_played == 1.0
-    # Nancy has 21 games, Zach has 2; vesting uses min = 2, not team games = 1.
-    expected = apply_vesting_to_rank_score(
+    # Nancy has 21 games, Zach has 2; Bayesian uses min = 2, not team games = 1.
+    expected = apply_bayesian_to_rank_score(
         compute_rank_score(
             points_total=team_row.finish_points,
             games_played=team_row.games_played,
@@ -310,7 +310,7 @@ def test_team_vesting_uses_lowest_member_games_played(group, user):
         2.0,
     )
     assert team_row.rank_score == pytest.approx(expected)
-    not_team_only = apply_vesting_to_rank_score(
+    not_team_only = apply_bayesian_to_rank_score(
         compute_rank_score(
             points_total=team_row.finish_points,
             games_played=team_row.games_played,

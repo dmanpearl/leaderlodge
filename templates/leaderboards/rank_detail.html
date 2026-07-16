@@ -44,7 +44,7 @@
         data-bs-placement="bottom"
         data-bs-html="true"
         title="Scoring rules"
-        data-bs-content="Each finish earns field-weighted placement credit (distance from last place times player count) multiplied by in-game score magnitude (raw score for high-wins games; reference minus score for Progressive Rummy winners, field max minus score for other low-wins finishers). Score is the average finish points per weighted game{% if detail.score_low_wins %}, multiplied by vesting progress squared when game count is below {{ detail.vesting_count }} (stronger dampening for unvested players){% else %}, scaled by vesting when game count is below {{ detail.vesting_count }}{% endif %}. Wins, losses, and games above use weighted counts (half games count as 0.5) to match the leaderboard."
+        data-bs-content="Each finish earns field-weighted placement credit (distance from last place times player count) multiplied by in-game score magnitude (raw score for high-wins games; reference minus score for Progressive Rummy winners, field max minus score for other low-wins finishers). Score is the average finish points per weighted game, adjusted by a Bayesian factor (games / (games + {{ detail.bayesian_k }})) that dampens results for players with fewer games. Wins, losses, and games above use weighted counts (half games count as 0.5) to match the leaderboard."
         aria-label="Scoring rules"
       >
         <i class="bi bi-info-circle" aria-hidden="true"></i>
@@ -73,29 +73,16 @@
           {{ detail.raw_rank_score|floatformat:1 }}
         </dd>
 
-        {% if selected_period.apply_vesting %}
-        <dt class="col-7 col-sm-5">Vesting multiplier</dt>
+        {% if selected_period.apply_bayesian %}
+        <dt class="col-7 col-sm-5">Bayesian factor</dt>
         <dd class="col-5 col-sm-7">
-          {% if detail.vesting_multiplier == 1 %}
-            1.0 (fully vested at {{ detail.vesting_count }}+ games)
-          {% else %}
-            {{ detail.vesting_multiplier|floatformat:1 }}
-            <span class="text-muted">({{ detail.ranking.games_played|floatformat:-1 }} of {{ detail.vesting_count }} games)</span>
-          {% endif %}
+          {{ detail.ranking.games_played|floatformat:-1 }} / ({{ detail.ranking.games_played|floatformat:-1 }} + {{ detail.bayesian_k }}) = {{ detail.bayesian_factor|floatformat:3 }}
         </dd>
 
-        {% if detail.vesting_multiplier != 1 %}
-          <dt class="col-7 col-sm-5">Adjusted score</dt>
-          <dd class="col-5 col-sm-7">
-            {% if detail.score_low_wins %}
-              {{ detail.raw_rank_score|floatformat:1 }}
-              &times; {{ detail.vesting_multiplier|floatformat:1 }}^2
-            {% else %}
-              {{ detail.raw_rank_score|floatformat:1 }} &times; {{ detail.vesting_multiplier|floatformat:1 }}
-            {% endif %}
-            = {{ detail.ranking.rank_score|floatformat:1 }}
-          </dd>
-        {% endif %}
+        <dt class="col-7 col-sm-5">Adjusted score</dt>
+        <dd class="col-5 col-sm-7">
+          {{ detail.raw_rank_score|floatformat:1 }} &times; {{ detail.bayesian_factor|floatformat:3 }} = {{ detail.ranking.rank_score|floatformat:1 }}
+        </dd>
         {% endif %}
 
         <dt class="col-7 col-sm-5">Wins</dt>
