@@ -52,6 +52,61 @@ def test_place_hit_from_api_parses_address_components():
     assert hit.street_address == "Santa Monica Boulevard"
 
 
+def test_place_hit_ignores_long_country_name_without_iso_code():
+    raw = {
+        "id": "ChIJtz",
+        "displayName": {"text": "Kirawira Serena Camp"},
+        "formattedAddress": "Western Serengeti Corridor National Park, Tanzania",
+        "location": {"latitude": -2.15, "longitude": 34.83},
+        "addressComponents": [
+            {
+                "longText": "Tanzania",
+                "types": ["country"],
+            },
+            {
+                "longText": "Mara Region",
+                "shortText": "Mara Region",
+                "types": ["administrative_area_level_1"],
+            },
+        ],
+    }
+    hit = place_hit_from_api(raw)
+    assert hit is not None
+    assert hit.country == ""
+    assert hit.state == "Mara Region"
+
+
+@pytest.mark.django_db
+def test_apply_location_geo_clips_overlong_fields(user):
+    from leaderlodge.groups.location_geo import LocationGeo
+    from leaderlodge.groups.location_place import set_location_place
+
+    group = create_group_with_owner(user=user, name="manpearl")
+    location = get_or_create_location(
+        library=group.location_library,
+        name="Kira Wira",
+    )
+    set_location_place(
+        location=location,
+        geo=LocationGeo(
+            lat=-2.15,
+            lon=34.83,
+            city="Western Serengeti Corridor National Park",
+            state="Mara Region",
+            country="Tanzania",
+            place_id="pid-kira",
+            geocode_source=GEOCODE_SOURCE_BACKFILL_CONFIRMED,
+        ),
+        force=True,
+    )
+    location.refresh_from_db()
+    assert location.country == ""
+    assert location.state == ""
+    assert location.lat == -2.15
+    assert location.place_id == "pid-kira"
+    assert location.geocode_source == GEOCODE_SOURCE_BACKFILL_CONFIRMED
+
+
 @pytest.mark.django_db
 def test_backfill_command_assigns_keep_name(user, settings, tmp_path):
     settings.GOOGLE_PLACES_SERVER_API_KEY = "test-server-key"

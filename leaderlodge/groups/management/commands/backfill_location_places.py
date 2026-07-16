@@ -11,7 +11,7 @@ from django.db.models import Count, Q
 
 from leaderlodge.groups.location_geo import (
     GEOCODE_SOURCE_BACKFILL_CONFIRMED,
-    LocationGeo,
+    location_geo,
 )
 from leaderlodge.groups.location_place import set_location_place
 from leaderlodge.groups.models import Group, Location
@@ -276,7 +276,7 @@ class Command(BaseCommand):
         adopt_place_name: bool,
         dry_run: bool,
     ) -> None:
-        geo = LocationGeo(
+        geo = location_geo(
             lat=hit.lat,
             lon=hit.lon,
             city=hit.city,
@@ -287,14 +287,15 @@ class Command(BaseCommand):
             place_id=hit.place_id,
             geocode_source=GEOCODE_SOURCE_BACKFILL_CONFIRMED,
         )
-        verb = "Would assign" if dry_run else "Assigned"
         name_note = (
             f", rename to {hit.display_name!r}" if adopt_place_name else ", keep name"
         )
-        self.stdout.write(
-            self.style.SUCCESS(f"{verb} {location.name!r} -> {hit.label()}{name_note}")
-        )
         if dry_run:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Would assign {location.name!r} -> {hit.label()}{name_note}"
+                )
+            )
             return
         set_location_place(
             location=location,
@@ -302,6 +303,11 @@ class Command(BaseCommand):
             place_display_name=hit.display_name,
             adopt_place_name=adopt_place_name,
             force=True,
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Assigned {location.name!r} -> {hit.label()}{name_note}"
+            )
         )
 
     def _load_skips(self, path: Path | None) -> set[int]:

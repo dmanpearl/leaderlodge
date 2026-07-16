@@ -73,7 +73,10 @@ def extract_address_parts(
         elif "administrative_area_level_1" in types:
             parts["state"] = _component_text(component, short=True)
         elif "country" in types:
-            parts["country"] = _component_text(component, short=True).upper()
+            # Location.country is ISO-2 only; do not fall back to long names
+            # like "Tanzania" (that overflowed varchar(2) on backfill).
+            short = str(component.get("shortText") or "").strip().upper()
+            parts["country"] = short if len(short) == 2 else ""
         elif "postal_code" in types:
             parts["postal_code"] = _component_text(component)
         elif "route" in types:

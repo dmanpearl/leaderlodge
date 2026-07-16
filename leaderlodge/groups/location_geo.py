@@ -43,6 +43,75 @@ GEO_COPY_FIELDS = (
     "geocode_at",
 )
 
+# Keep in sync with Location CharField max_length values.
+GEO_TEXT_MAX_LENGTHS = {
+    "city": 100,
+    "state": 10,
+    "country": 2,
+    "postal_code": 20,
+    "street_address": 200,
+    "place_id": 300,
+    "geocode_source": 20,
+    "geocode_confidence": 10,
+}
+
+
+def clip_geo_text(value: str | None, max_len: int) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()[:max_len]
+
+
+def normalize_country_code(value: str | None) -> str:
+    """Keep ISO-3166 alpha-2 only; never slice full names like Tanzania."""
+    cleaned = str(value or "").strip().upper()
+    if len(cleaned) == 2 and cleaned.isalpha():
+        return cleaned
+    return ""
+
+
+def normalize_state_code(value: str | None) -> str:
+    """Keep short region codes; drop overlong region names."""
+    cleaned = str(value or "").strip()
+    if len(cleaned) <= GEO_TEXT_MAX_LENGTHS["state"]:
+        return cleaned
+    return ""
+
+
+def location_geo(
+    *,
+    lat: float | None = None,
+    lon: float | None = None,
+    city: str = "",
+    state: str = "",
+    country: str = "",
+    postal_code: str = "",
+    street_address: str = "",
+    place_id: str = "",
+    geocode_source: str = "",
+    geocode_confidence: str = "",
+) -> LocationGeo:
+    """Build LocationGeo with text fields clipped to model limits."""
+    source = clip_geo_text(geocode_source, GEO_TEXT_MAX_LENGTHS["geocode_source"])
+    if source and source not in VALID_GEOCODE_SOURCES:
+        source = ""
+    return LocationGeo(
+        lat=lat,
+        lon=lon,
+        city=clip_geo_text(city, GEO_TEXT_MAX_LENGTHS["city"]),
+        state=normalize_state_code(state),
+        country=normalize_country_code(country),
+        postal_code=clip_geo_text(postal_code, GEO_TEXT_MAX_LENGTHS["postal_code"]),
+        street_address=clip_geo_text(
+            street_address, GEO_TEXT_MAX_LENGTHS["street_address"]
+        ),
+        place_id=clip_geo_text(place_id, GEO_TEXT_MAX_LENGTHS["place_id"]),
+        geocode_source=source,
+        geocode_confidence=clip_geo_text(
+            geocode_confidence, GEO_TEXT_MAX_LENGTHS["geocode_confidence"]
+        ),
+    )
+
 
 @dataclass(frozen=True)
 class LocationGeo:
@@ -84,30 +153,34 @@ def location_geo_from_mapping(data: dict[str, Any] | None) -> LocationGeo | None
     if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
         return None
 
-    source = str(
-        data.get("location_geocode_source", data.get("geocode_source", "")) or ""
-    ).strip()
-    if source and source not in VALID_GEOCODE_SOURCES:
-        source = ""
-
     def _text(key_form: str, key_short: str, max_len: int) -> str:
         value = data.get(key_form, data.get(key_short, ""))
-        if value is None:
-            return ""
-        return str(value).strip()[:max_len]
+        return clip_geo_text(value, max_len)
 
-    return LocationGeo(
+    return location_geo(
         lat=lat,
         lon=lon,
-        city=_text("location_city", "city", 100),
-        state=_text("location_state", "state", 10),
-        country=_text("location_country", "country", 2).upper(),
-        postal_code=_text("location_postal_code", "postal_code", 20),
-        street_address=_text("location_street_address", "street_address", 200),
-        place_id=_text("location_place_id", "place_id", 300),
-        geocode_source=source,
+        city=_text("location_city", "city", GEO_TEXT_MAX_LENGTHS["city"]),
+        state=_text("location_state", "state", GEO_TEXT_MAX_LENGTHS["state"]),
+        country=_text("location_country", "country", GEO_TEXT_MAX_LENGTHS["country"]),
+        postal_code=_text(
+            "location_postal_code", "postal_code", GEO_TEXT_MAX_LENGTHS["postal_code"]
+        ),
+        street_address=_text(
+            "location_street_address",
+            "street_address",
+            GEO_TEXT_MAX_LENGTHS["street_address"],
+        ),
+        place_id=_text(
+            "location_place_id", "place_id", GEO_TEXT_MAX_LENGTHS["place_id"]
+        ),
+        geocode_source=str(
+            data.get("location_geocode_source", data.get("geocode_source", "")) or ""
+        ).strip(),
         geocode_confidence=_text(
-            "location_geocode_confidence", "geocode_confidence", 10
+            "location_geocode_confidence",
+            "geocode_confidence",
+            GEO_TEXT_MAX_LENGTHS["geocode_confidence"],
         ),
     )
 
@@ -124,16 +197,30 @@ def apply_location_geo(
     if location.lat is not None and location.lon is not None and not force:
         return location
 
-    location.lat = geo.lat
-    location.lon = geo.lon
-    location.city = geo.city
-    location.state = geo.state
-    location.country = geo.country
-    location.postal_code = geo.postal_code
-    location.street_address = geo.street_address
-    location.place_id = geo.place_id
-    location.geocode_source = geo.geocode_source
-    location.geocode_confidence = geo.geocode_confidence
+    # Clip again so callers that build LocationGeo directly cannot overflow columns.
+    safe = location_geo(
+        lat=geo.lat,
+        lon=geo.lon,
+        city=geo.city,
+        state=geo.state,
+        country=geo.country,
+        postal_code=geo.postal_code,
+        street_address=geo.street_address,
+        place_id=geo.place_id,
+        geocode_source=geo.geocode_source,
+        geocode_confidence=geo.geocode_confidence,
+    )
+
+    location.lat = safe.lat
+    location.lon = safe.lon
+    location.city = safe.city
+    location.state = safe.state
+    location.country = safe.country
+    location.postal_code = safe.postal_code
+    location.street_address = safe.street_address
+    location.place_id = safe.place_id
+    location.geocode_source = safe.geocode_source
+    location.geocode_confidence = safe.geocode_confidence
     location.geocode_at = timezone.now()
     location.save(
         update_fields=[
