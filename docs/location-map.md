@@ -11,20 +11,26 @@ geographic queries.
 ## Table of contents
 
 1. [Overview](#overview)
-2. [Database schema changes](#database-schema-changes)
-3. [Geocoding strategy](#geocoding-strategy)
-4. [The back-entry problem](#the-back-entry-problem)
-5. [Backfill tool](#backfill-tool)
-6. [Map picker - game recording](#map-picker---game-recording)
-7. [Map viewer - explore by location](#map-viewer---explore-by-location)
-8. [Location filters](#location-filters)
-9. [AI integration](#ai-integration)
-10. [Map provider: Google Maps JS](#map-provider-google-maps-js)
-11. [Custom game-type pins](#custom-game-type-pins)
-12. [Shared map component](#shared-map-component)
-13. [Performance and clustering](#performance-and-clustering)
-14. [Privacy model](#privacy-model)
-15. [Implementation phases](#implementation-phases)
+2. [Capture scenarios (product intent)](#capture-scenarios-product-intent)
+3. [Database schema changes](#database-schema-changes)
+4. [Geocoding strategy](#geocoding-strategy)
+5. [Phase 1 save path](#phase-1-save-path)
+6. [The back-entry problem](#the-back-entry-problem)
+7. [Backfill tool](#backfill-tool)
+8. [Map picker - game recording](#map-picker---game-recording)
+9. [Map viewer - explore by location](#map-viewer---explore-by-location)
+10. [Location filters](#location-filters)
+11. [Leaderboard location filters](#leaderboard-location-filters)
+12. [AI integration (Ask the Lodge)](#ai-integration-ask-the-lodge)
+13. [Map provider: Google Maps JS](#map-provider-google-maps-js)
+14. [Custom game-type pins](#custom-game-type-pins)
+15. [Shared map component](#shared-map-component)
+16. [Performance and clustering](#performance-and-clustering)
+17. [Privacy model](#privacy-model)
+18. [Existing location tooling](#existing-location-tooling)
+19. [Out of scope](#out-of-scope)
+20. [Documentation and examples checklist](#documentation-and-examples-checklist)
+21. [Implementation phases](#implementation-phases)
 
 ---
 
@@ -34,12 +40,108 @@ The Location model already exists and is per-group (each group has its
 own LocationLibrary). A Location has only a name today. The plan is to:
 
 - Add coordinate and structured address fields to Location
-- Capture coordinates at recording time (GPS or name lookup)
-- Provide a backfill tool for existing locations
+- Capture one lat/lon per Location at recording time (Places geometry,
+  map pin, or device GPS when there is no place point)
+- Reuse saved coordinates when the user picks an existing Location
+- Provide backfill tools (Admin UI required early for large existing
+  libraries; CLI optional) so name-only locations still get lat/lon
 - Build a map viewer with pin clustering and rich filters
+- Add location filters on the leaderboard UI (service already supports
+  venue filter; Ask already has `query_location_leaderboard`)
 - Build an enhanced map-based picker that replaces/extends the current
   Lookup button flow
 - Share a single map component between the picker and the viewer
+
+**Guiding rule:** every Location stores one lat/lon and should end up
+with the best point we can obtain. Places picks use Google geometry
+(not phone GPS). Prefer capture at entry; fall back to backfill; never
+require a fresh lookup when reusing a Location that already has
+coordinates.
+
+---
+
+## Capture scenarios (product intent)
+
+These are the recording behaviors the plan must support.
+
+### Coordinate source rule (single lat/lon)
+
+Each Location stores **exactly one** `lat`/`lon` pair. No separate phone
+vs Google coordinate fields.
+
+| User action | Saved lat/lon | `geocode_source` |
+|-------------|---------------|------------------|
+| Picks a Places result (nearby Lookup or search) | **Google** place geometry (overrides phone GPS) | `places_lookup` or `text_search` |
+| Drops a map pin | Pin coordinates | `map_pin` |
+| Types a custom name after Lookup (e.g. "Sally's House") with GPS available | **Phone** GPS | `gps` |
+| City-only Lookup row ("Los Angeles, CA") | **Phone** GPS | `gps` |
+| Types a name with no Lookup / picker geo | None (`lat` null) until fill-in or backfill | (blank) |
+| Reuses an existing Location that already has coords | Existing saved lat/lon (no new lookup) | unchanged |
+
+Phone GPS is used only to **discover** nearby places and as the pin when
+there is no Google place point. A Places pick always prefers Google
+lat/lon over the device reading.
+
+Privacy of precise home coordinates is not a blocker for v1; store full
+precision. Optional street-number stripping for display remains a later
+nice-to-have (see Privacy).
+
+### A. Record at the play location (typical)
+
+User is physically at the venue and taps Lookup (or later, "Use my
+location" in the map picker).
+
+- Device GPS runs nearby search.
+- User selects a place from the list: store selected **name** (place,
+  city, state), `place_id`, address components, and **Google** lat/lon.
+- `geocode_source=places_lookup`.
+
+### B. Record later, away from the venue (back-entry)
+
+User records hours or days later from somewhere else.
+
+- Device GPS is the wrong pin if used as the venue. Prefer text search
+  or (later) map pin / Places result.
+- Store selected **name** plus **place or pin** lat/lon.
+- `geocode_source=places_lookup`, `text_search`, or `map_pin`.
+
+GPS Lookup remains available (see Back-entry policy) so users who are
+actually still near the venue can use it; users who are elsewhere should
+prefer search or map pin. If they do use Lookup and pick a Places
+result, Google place lat/lon is still what is saved (same as A).
+
+### C. Custom name while Lookup GPS is available
+
+User runs Lookup (or has GPS), ignores the place list, and types
+"Sally's House".
+
+- Store custom name + **phone GPS** lat/lon (no Google place point).
+- `geocode_source=gps`. No place_id required.
+- Acceptable for homes and informal venues.
+
+### D. Reuse an existing Location
+
+User picks "Sally's House" (or any prior name) from autocomplete or by
+typing a name that fuzzy-matches an existing row.
+
+- Resolve to the existing Location FK (current `get_or_create_location`
+  / fuzzy merge behavior).
+- **Reuse saved lat/lon.** Do not call Places or overwrite coordinates.
+- No new lookup unless the Location has `lat IS NULL` (see fill-in
+  rules below).
+
+### Fill-in and overwrite rules
+
+| Situation | Behavior |
+|-----------|----------|
+| New Location, geo payload present | Write lat/lon and address fields |
+| Existing Location, already has lat/lon | Keep existing coords; ignore new GPS/place coords on silent reuse |
+| Existing Location, `lat IS NULL`, geo payload present | Fill coords and address fields (upgrade name-only row) |
+| Existing Location, operator backfill or explicit re-geocode | Allowed to set or replace coords |
+| Typed name only, no geo payload | Create/reuse name only; leave lat/lon null until backfill or a later fill-in |
+
+Goal: **management system** so ungeocoded rows are visible and
+backfillable; reuse never burns API calls or relocates a known venue.
 
 ---
 
@@ -55,7 +157,7 @@ own LocationLibrary). A Location has only a name today. The plan is to:
 | `state` | `CharField(max_length=10, blank=True)` | State/province short code (e.g. CA) |
 | `country` | `CharField(max_length=2, blank=True)` | ISO 3166-1 alpha-2 (e.g. US) |
 | `postal_code` | `CharField(max_length=20, blank=True)` | ZIP or postal code |
-| `street_address` | `CharField(max_length=200, blank=True)` | Street name only for residential; omit street number and unit |
+| `street_address` | `CharField(max_length=200, blank=True)` | Optional; street name preferred for residential display |
 | `place_id` | `CharField(max_length=300, blank=True)` | Google Places place ID |
 | `geocode_source` | `CharField(max_length=20, blank=True)` | See sources below |
 | `geocode_confidence` | `CharField(max_length=10, blank=True)` | `high`, `medium`, `low` |
@@ -65,10 +167,10 @@ own LocationLibrary). A Location has only a name today. The plan is to:
 
 | Value | Meaning |
 |-------|---------|
-| `gps` | GPS at time of game entry, confirmed by user |
-| `places_lookup` | Chose from Places API dropdown during entry |
-| `map_pin` | User dragged a pin on the map picker |
-| `text_search` | User searched by name on the map picker |
+| `gps` | Phone GPS used as the pin (custom name or city-only; no Places geometry) |
+| `places_lookup` | Nearby Lookup Places pick; saved lat/lon is Google place geometry |
+| `map_pin` | User dropped a pin on the map picker |
+| `text_search` | User searched by name and chose a Places result; Google geometry |
 | `backfill_auto` | Backfill tool, no operator review |
 | `backfill_confirmed` | Backfill tool, operator confirmed match |
 | `manual` | Coordinates entered manually by admin |
@@ -78,6 +180,7 @@ own LocationLibrary). A Location has only a name today. The plan is to:
 - `(lat, lon)` - geographic queries
 - `(state, city)` - filter queries
 - `(country, state)` - regional filter rollup
+- `(library, place_id)` - dedup lookup when place_id is present
 
 ### Why `place_id` matters
 
@@ -85,6 +188,11 @@ Storing the Google place ID allows:
 - Deduplication: two entries for the same venue can be linked
 - Refreshing data later (name or address changes)
 - Future: merging Location records that represent the same real place
+
+Phase 1: if the same library already has a Location with this
+`place_id`, reuse that row (silent) rather than creating a duplicate.
+Do not build a merge-confirmation UI in Phase 1; rely on existing
+combine tooling for messy name duplicates.
 
 ### No changes to `Game` or `GameParticipantResult`
 
@@ -104,45 +212,82 @@ deduplication via a shared venue registry is not planned.
 
 ### When to capture coordinates
 
-Coordinates should be captured at the time the user sets the location,
-not automatically on every game save. Two paths:
-
-1. **GPS lookup (current Lookup button)**: user taps Lookup, picks a
-   nearby place from the dropdown. The place carries coordinates and
-   address components. Store them on the Location row at that moment.
-
-2. **Map picker (planned)**: user searches or drops a pin on a map.
-   Same result: coordinates stored on Location.
-
-If the user types a location name and does not use either tool, no
-coordinates are stored. The location will need backfilling later.
+Coordinates are captured when the user sets location via Lookup, map
+picker, or when backfill fills a null row. They are **not** inferred
+automatically from a bare typed name with no geo payload.
 
 ### Coordinate precision
 
 Store 6 decimal places (approximately 11cm accuracy). This is more than
-sufficient for "which neighborhood/city" queries and for map display.
-`FloatField` gives 15 significant digits, which is more than enough.
+sufficient for neighborhood/city queries and map display. `FloatField`
+is acceptable at LeaderLodge scale.
 
-### Deduplication on entry
+### City-only Lookup row
 
-When the user picks a place from the GPS lookup or map picker, check
-whether another Location in the same library already has the same
-`place_id`. If so, offer to merge or reuse rather than create a
-duplicate entry.
+Today Lookup can offer a synthetic first option that is only
+"City, ST" (no venue). Phase 1 policy:
+
+- If the user picks the city-only row: store name as that text; store
+  **phone GPS** as lat/lon (`geocode_source=gps`); leave `place_id`
+  blank; set city/state from the label when parseable.
+- No Google place geometry for that row, so phone GPS is correct per
+  the coordinate source rule.
+- Do not invent a city centroid without a Places result.
+
+---
+
+## Phase 1 save path
+
+Today Lookup only writes a name string into the location input. GPS and
+Places fields are discarded. `nearbySearch` requests only
+`displayName` and `addressComponents`. Phase 1 must close that gap.
+
+### Client (`location_lookup.js`)
+
+1. Request additional Places fields: `location`, `id` (place ID), and
+   address components needed for city/state/country/postal.
+2. On Lookup start, retain device coords only for nearby search and as a
+   fallback pin (custom name / city-only). Do not send phone lat/lon as
+   the saved pin when the user picks a Places result.
+3. On Places pick: set hidden geo from **Google** `place.location` (and
+   address / place_id); `location_geocode_source=places_lookup`.
+4. On custom name after Lookup (or city-only row): set hidden geo from
+   **phone** GPS; `location_geocode_source=gps`; no place_id.
+5. Hidden fields (or one JSON field) alongside the visible name, e.g.:
+   - `location_lat`, `location_lon` (single pair only)
+   - `location_city`, `location_state`, `location_country`
+   - `location_postal_code`, `location_place_id`
+   - `location_geocode_source`
+6. Same payload on **create** and **edit** game forms.
+7. If the user never runs Lookup and only types a name, leave geo
+   fields empty (null coords until reuse-of-geocoded or backfill).
+
+### Server (`resolve_game_location` / `get_or_create_location`)
+
+1. Accept optional geo kwargs with the location name.
+2. Resolve name as today (exact / fuzzy / create).
+3. Apply [fill-in and overwrite rules](#fill-in-and-overwrite-rules).
+4. Create and edit game views must pass geo fields from the form into
+   resolve.
+
+### Docs
+
+Update `docs/google-places.md`: fields requested, what is saved, and
+any new API restrictions (Geocoding API when map picker needs reverse
+geocode).
 
 ---
 
 ## The back-entry problem
 
-When a game is entered hours or days after it was played, GPS
-coordinates reflect the user's current location, not the venue. The
-`Game.played_on` date can be compared to the current date to detect
-this.
+When a game is entered hours or days after it was played, device GPS
+reflects the user's current location, not the venue.
 
-**Policy:** GPS lookup is always available regardless of `played_on`.
-No date-based restrictions are applied. Users are trusted to recognize
-when GPS is unreliable for a back-entered game and to use text search
-or the map picker instead.
+**Policy (single rule):** GPS Lookup / "Use my location" is **always
+available**, regardless of `played_on`. No date-based hiding. Users are
+trusted to use text search or map pin when they are not at the venue.
+Optional UX later: soft hint when `played_on` is not today ("GPS is
+your current position; search if you are away from the venue").
 
 ---
 
@@ -150,9 +295,24 @@ or the map picker instead.
 
 ### Goal
 
-For each Location with `lat IS NULL`, attempt to geocode by name using
-the Places text search API. Present candidates to an operator for
-review. Store the confirmed match.
+For each Location with `lat IS NULL`, attempt to geocode by name.
+Present candidates for review. Store the confirmed match. This is the
+safety net so name-only locations still join the map.
+
+### Server API key (CLI) vs browser key (Admin UI)
+
+`GOOGLE_PLACES_API_KEY` is browser-restricted (HTTP referrers). A Django
+management command cannot use it for Places text search.
+
+- **Admin UI backfill (required early):** runs Places search in the
+  browser with the existing browser key, shows candidates and a
+  mini-map, saves the operator's pick. Primary path for reviewing large
+  existing location libraries.
+- **CLI backfill:** needs a separate env var, e.g.
+  `GOOGLE_PLACES_SERVER_API_KEY`, IP-restricted (or used only from
+  trusted operator machines). Document in `docs/google-places.md` and
+  `.env.example`. Optional convenience alongside Admin UI; if absent,
+  CLI auto-search is disabled but manual coord entry still works.
 
 ### Management command: `geocode_locations`
 
@@ -168,29 +328,38 @@ Options:
 ```
 
 **Algorithm per location:**
-1. Text-search the Google Places API for the location name + city/state
-   hint (derived from the group's other geocoded locations if available).
+1. Text-search Places for the location name + city/state hint (from the
+   group's other geocoded locations when available).
 2. Return up to 3 candidates with name, address, lat/lon, place_id.
-3. In interactive mode, print candidates and prompt operator:
+3. Interactive prompt:
    `[1/2/3] pick, [s] skip, [m] enter coordinates manually, [q] quit`
 4. On selection, write lat, lon, city, state, country, place_id,
    `geocode_source=backfill_confirmed`, `geocode_confidence=medium`.
 5. Log skipped locations for manual follow-up.
 
-### Admin UI backfill (future)
+### Admin UI backfill (required early)
 
-A Django admin action on the Location list view:
-- Select one or more ungeocoded locations
-- Run the text search and show a modal with candidates and a mini-map
-- Admin clicks the correct match; coordinates are saved
-- Useful for low-volume manual cleanup without the CLI
+Required in Phase 2, not optional. Existing datasets are large enough
+that operators need a reviewable UI, not CLI alone.
+
+Django admin (or staff Location list) action:
+
+- Filter / select ungeocoded locations (by library / group)
+- For each (or batch): Places text search via the **browser** key
+- Modal with up to 3 candidates, address text, and a mini-map preview
+- Operator confirms match, skips, or enters coordinates manually
+- Saves with `geocode_source=backfill_confirmed`
+
+This is the main tool for bringing historical name-only locations onto
+the map before map viewer / AI geo features depend on coverage.
 
 ### Estimate
 
-Current data: 5 game types, approximately 10-30 distinct locations per
-group. All locations will be processed in a single CLI session; order
-does not matter. API cost for 30 text searches is negligible (well
-within free tier).
+Groups may have large existing location libraries (well beyond a
+handful of venues). Budget Phase 2 for operator time in the Admin UI
+across libraries. Per-search API cost remains small inside the free
+credit; the bottleneck is human confirmation quality, which is why the
+Admin UI ships early.
 
 ---
 
@@ -198,18 +367,22 @@ within free tier).
 
 ### Purpose
 
-Replaces and extends the current GPS Lookup button. Gives the user
-three ways to set the game location:
+Replaces and extends the current GPS Lookup button. Three ways to set
+location:
 
-1. **GPS Lookup** (current) - tap to detect nearby venues
+1. **GPS Lookup** - tap to detect nearby venues (scenario A / C)
 2. **Text search** - type a venue name, see Places suggestions on a map
-3. **Drop pin** - pan/zoom the map and tap to place a pin anywhere
+   (scenario B)
+3. **Drop pin** - pan/zoom and tap to place a pin (scenario B)
 
 ### When it appears
 
-The map picker is triggered from the game recording setup form:
 - Current Lookup button becomes a "Set location" button
 - Opens a modal (or bottom sheet on mobile) containing the map
+
+Coexists with the open mobile TODO that may use a native `<select>` of
+group locations on small viewports: select/reuse remains for known
+names; Set location remains the path for GPS / search / pin.
 
 ### Modal layout
 
@@ -229,19 +402,20 @@ The map picker is triggered from the game recording setup form:
 +------------------------------------------+
 ```
 
-- Search field uses Places text search (type-ahead, results as map pins)
-- "Use my location" runs GPS lookup (hidden if `played_on < today`)
-- Tapping a result pin selects it and shows name + address at bottom
-- Dragging the map shows a crosshair; tapping confirms a custom pin
-  (reverse-geocoded to get address)
-- Confirm writes the selected name (and coordinates) to the hidden
-  location field and closes the modal
+- Search field: Places text search (results as map pins); saved pin is
+  **Google** place lat/lon
+- "Use my location": GPS nearby search; if user picks a Places result,
+  saved pin is still **Google** place lat/lon (phone GPS only discovers
+  candidates). Always shown; see back-entry policy.
+- Drop pin: reverse-geocode for address label; saved pin is **tap**
+  lat/lon
+- Confirm writes name + single geo payload into the form (same hidden
+  fields as Phase 1) and closes the modal
 
 ### Fallback
 
-If the user closes the modal without confirming, the location field
-is unchanged. The existing text entry and autocomplete still work as
-before for users who prefer typing.
+If the user closes without confirming, the location field is unchanged.
+Text entry and autocomplete still work for typed names and reuse.
 
 ---
 
@@ -250,7 +424,12 @@ before for users who prefer typing.
 ### URL
 
 `/games/map/` - requires authentication. Shows the user's groups'
-game locations.
+game locations. Add a nav entry when the page ships.
+
+### Empty state
+
+If the group has locations but none geocoded, show a short message
+pointing at Lookup / backfill rather than an empty map.
 
 ### Layout
 
@@ -320,7 +499,7 @@ centroids (see Performance section).
 
 ## Location filters
 
-### Supported filter dimensions
+### Supported filter dimensions (map viewer)
 
 | Filter | Source | Notes |
 |--------|--------|-------|
@@ -335,7 +514,6 @@ centroids (see Performance section).
 
 ### Granularity levels
 
-Filters can be applied at three geographic granularities:
 - **Venue** - specific Location record
 - **City** - all venues in a city (city + state match)
 - **State** - all venues in a state
@@ -346,37 +524,67 @@ shared (within the group's privacy constraints).
 
 ---
 
-## AI integration
+## Leaderboard location filters
 
-### New question types
+Ranking already accepts `location_id` in
+`leaderlodge/leaderboards/service.py`. Ask already exposes
+`query_location_leaderboard`. The **leaderboard page UI does not**
+offer a location filter yet.
 
-With location data, the AI can answer geographic questions:
+### Phase addition
 
-- "Who plays best at home games?"
-- "How does my Dominos record compare indoors vs outdoors?"
-- "Who has the best record on the west side of LA?"
-- "Where do we play most often?"
-- "Does player X perform better at their own home?"
+- Leaderboard (and optionally Hall of Fame) UI: filter by venue from the
+  group's location library (ids that have games for the current game
+  type).
+- After city/state fields are populated: optional city/state filters
+  that expand to matching `location_id`s server-side.
+- Reuse the same period / game-size controls already on the page.
 
-### Implementation approach
+This is separate from the map viewer filters but should use the same
+Location fields and naming conventions.
 
-When building the AI context for a query, include location fields in
-the game history rows if they are populated:
+---
 
-```
-Game 42 | 2025-03-15 | Dominos | The Parlor Room, Los Angeles, CA
-```
+## AI integration (Ask the Lodge)
 
-The AI prompt gains a note describing available location fields so the
-model knows it can filter or group by city, state, or venue name.
+Ask already supports venue leaders via `query_location_leaderboard`
+(`location_id` or `location_query`). Geo fields unlock **regional**
+questions; they are not required for "Who leads at Home?".
 
-For spatial queries ("west side of LA"), the AI would return a filter
-specification (city list, bounding box, or venue list) that the
-application applies to the game data before summarizing.
+### Approach (matches existing tool architecture)
 
-**Dependency:** Location fields must be populated for AI location
-queries to be meaningful. Sparse geocoding data will produce incomplete
-or misleading answers. Document this limitation in the AI answer footer.
+Do **not** invent an LLM "filter specification" that the app interprets.
+Extend validated Ask tools and Python execution:
+
+1. Enrich tool results and optional context with city/state when
+   present on Location.
+2. Add city/state (and later optional bbox) parameters to location-aware
+   standings tools, or a small `query_locations` / region leaderboard
+   helper that resolves venues then ranks.
+3. Update docs and in-app examples when geo Ask capabilities ship:
+   - `docs/ask-the-lodge-capabilities.md`
+   - `docs/features.md`
+   - In-app Ask Examples (`leaderlodge/insights/ask_examples.py` and the
+     Ask Examples UI at `/insights/ask/examples/`)
+4. Contextual insights (page-bound JSON): include city/state on game
+   rows when available (matchup / game detail).
+
+### Question types
+
+| Supported when data exists | Tool direction |
+|----------------------------|----------------|
+| Who leads at venue X? | Existing `query_location_leaderboard` |
+| Who leads in city / state? | New or extended tool args |
+| Where do we play most? | Aggregate over Location with coords/city |
+| West side of LA / arbitrary polygons | **Later / unsupported** until a real geo tool exists |
+
+### Sparse data
+
+If few locations are geocoded, regional answers are incomplete. Prompt
+and/or answer footer should note when coverage is thin.
+
+Indoor vs outdoor is **out of scope** unless an explicit field is added
+later; do not infer from Places types in v1.
 
 ---
 
@@ -384,42 +592,29 @@ or misleading answers. Document this limitation in the AI answer footer.
 
 ### Decision
 
-Google Maps JavaScript API is the map provider for all map features:
-the map picker and the map viewer.
+Google Maps JavaScript API is the map provider for the map picker and
+the map viewer.
 
 **Reasons:**
-- Already integrated - the `GOOGLE_PLACES_API_KEY` is set up, Places
-  API (New) is enabled, and `location_lookup.js` uses it today.
-  Adding a map is one more feature on the same key with zero new
-  account setup.
-- No token infrastructure needed - Google Maps JS uses the browser-
-  restricted API key directly in the page. No server-side JWT endpoint,
-  no key rotation, no PyJWT dependency.
-- Familiar on all platforms - Android users see the native Google Maps
-  style; iOS and desktop users know it equally well.
-- Free at LeaderLodge's scale - the $200/month Google credit covers
-  map loads, Places searches, and geocoding calls with large headroom.
-  No additional per-year account fee.
-- Single provider - all place IDs, geocoding results, and map
-  interactions come from Google, eliminating any provider mismatch.
+- Already integrated: `GOOGLE_PLACES_API_KEY`, Places API (New), and
+  `location_lookup.js`.
+- Browser-restricted key in the page; no JWT map-token service for
+  display.
+- Single provider for place IDs, geocoding, and map UI.
+- Free credit covers expected volume.
 
 ### APIs used
 
-| API | Purpose |
-|-----|---------|
-| Maps JavaScript API | Map display, markers, overlays (already enabled) |
-| Places API (New) | Nearby search, text search, place details (already enabled) |
-| Geocoding API | Reverse geocode for drop-pin placement |
-
-All three are enabled on the existing key and covered by the same
-$200/month credit.
+| API | Purpose | Key |
+|-----|---------|-----|
+| Maps JavaScript API | Map display, markers | Browser key (already) |
+| Places API (New) | Nearby search, text search, place details | Browser key; server key for CLI backfill |
+| Geocoding API | Reverse geocode for drop-pin (Phase 3+) | Enable on project; add to browser key API restrictions; update `docs/google-places.md` |
 
 ### Custom markers
 
-Google Maps JS supports custom markers via `google.maps.marker.AdvancedMarkerElement`
-(the modern replacement for the deprecated `Marker` class). Custom
-HTML content is passed as the `content` property, allowing the same
-game-type icon approach described in the Custom pins section.
+Use `google.maps.marker.AdvancedMarkerElement` with HTML `content` for
+game-type icons (see Custom pins).
 
 ---
 
@@ -482,23 +677,20 @@ LeaderLodgeMap.setFilters({ ... });   // viewer: update displayed pins
 LeaderLodgeMap.destroy();
 ```
 
-The `apiKey` value is already present in the Django template context
-(passed to `location_lookup.js` today via `data-api-key`). No new
-environment variable or server endpoint is needed.
+The browser `apiKey` is already passed via `data-api-key` today. The
+server backfill key is separate and never exposed to templates.
 
 ### Picker-specific behavior
 
-- Shows a search bar and "Use my location" button
-- On select, calls `onSelect({ name, lat, lon, city, state, place_id })`
+- Search bar and "Use my location"
+- On select: `onSelect({ name, lat, lon, city, state, place_id, geocode_source })`
 - No filter sidebar
 
 ### Viewer-specific behavior
 
 - Loads pins from `/api/map/locations/` with current filters
-- Shows cluster annotations
-- Click a cluster to zoom in
-- Click a single pin to show the popup
-- Re-fetches pins when map region changes significantly (viewport loading)
+- Cluster annotations; click cluster to zoom; click pin for popup
+- Re-fetches when the map region changes significantly (viewport loading)
 
 ---
 
@@ -506,41 +698,26 @@ environment variable or server endpoint is needed.
 
 ### Problem
 
-A group with 500+ games at 20 locations is trivial. A future scenario
-with many groups, many players, and overlapping venues could produce
-hundreds of pins in the same area.
+A group with 500+ games at 20 locations is trivial. Larger pin counts
+need clustering.
 
 ### Client-side clustering
 
-Use the **Supercluster** library (open source, no dependencies).
-It accepts GeoJSON points and returns clusters for a given zoom level
-and viewport. Google Maps zoom-change events trigger re-clustering.
+Use **Supercluster** in the browser. This repo has no `package.json` /
+JS bundler: **load from CDN or vendor a minified file under
+`static/js/`**. Do not assume `npm install`.
 
-```
-npm install supercluster   (or load from CDN)
-```
+Google Maps zoom-change events trigger re-clustering.
 
-Supercluster is used in-browser only; no server changes needed for
-basic clustering.
+### Server-side pre-aggregation (later)
 
-### Server-side pre-aggregation (for large datasets)
-
-If pin counts grow large (1,000+ distinct locations), move clustering
-to the server. The `/api/map/locations/` endpoint accepts a `zoom`
-parameter and returns pre-aggregated cluster centroids with counts
-instead of individual pins. This avoids sending large GeoJSON payloads
-to the browser.
-
-Implement server-side clustering only when client-side performance
-becomes noticeably slow. The threshold is roughly 500+ visible pins
-at the same zoom level.
+If pin counts grow large (1,000+ distinct locations), `/api/map/locations/`
+can accept `zoom` and return pre-aggregated centroids. Implement only
+when client-side clustering is noticeably slow (~500+ visible pins).
 
 ### Viewport loading
 
-The map viewer only fetches pins within the current visible bounding
-box plus a margin. As the user pans, new pins are fetched and existing
-out-of-viewport pins are removed from the map. This keeps memory and
-DOM size bounded.
+Fetch pins for the visible bounding box plus a margin.
 
 Endpoint parameter: `?bbox=lon_min,lat_min,lon_max,lat_max`
 
@@ -550,9 +727,8 @@ Endpoint parameter: `?bbox=lon_min,lat_min,lon_max,lat_max`
 
 ### Current model
 
-Locations are per-group (each group has its own LocationLibrary).
-Members of a group can see all locations in that group's library.
-Anonymous/demo users cannot see any location data.
+Locations are per-group. Members see their groups' locations.
+Anonymous users do not see non-demo location data.
 
 ### Proposed extensions
 
@@ -560,73 +736,143 @@ Anonymous/demo users cannot see any location data.
 |----------|-----------|
 | Group member views map | Sees all geocoded locations for their groups |
 | Non-member views a group | No location data (same as today) |
-| Demo group | Locations and exact coordinates visible to anonymous visitors; personal home names and addresses are already obfuscated in demo data |
+| Demo group | Locations and coordinates visible to anonymous visitors; demo data already obfuscates personal homes |
 | Admin/staff | Sees all locations across all groups |
 
-### Home address concern
+### Home addresses (v1)
 
-If a game is played at a private residence, precise coordinates are
-stored and the pin is shown on the map at full precision. To avoid
-exposing identifying address information:
+v1 stores precise coordinates for homes when GPS or pin is used.
+Security hardening (fuzzing pins, hiding street numbers) is optional
+later; product priority is complete lat/lon coverage.
 
-- `street_address` for residential locations stores the street name
-  only - no street number and no unit/apartment number (detected via
-  reverse geocode `types` field)
-- The map pin itself is shown at the stored coordinates; the address
-  line displayed in the popup omits the number
+When display stripping is added: prefer street name only in
+`street_address` / popup text; pin may still use stored coordinates.
+
+---
+
+## Existing location tooling
+
+- `rename_location` / `combine_locations` in `leaderlodge/groups/locations.py`
+  and group location UI already exist.
+- On **combine**: keeper keeps its geo fields; if keeper has null coords
+  and source has coords, copy source geo onto keeper before delete.
+- Open TODO "Merge similar locations tool" should respect the same rule
+  once geo fields exist.
+- Phase 1 place_id reuse is silent; name-merge UX stays on existing
+  combine flows.
+
+---
+
+## Out of scope
+
+- Cross-group shared venue registry
+- Indoor vs outdoor classification
+- Arbitrary polygon / "west side" geo queries (until a dedicated tool)
+- Native iOS/Android map apps
+- Overwriting coords on every reuse of a geocoded Location
+
+---
+
+## Documentation and examples checklist
+
+When a phase ships user-visible behavior, update the matching docs (and
+examples) in the same phase, not as a follow-up:
+
+| When | Update |
+|------|--------|
+| Phase 1 | `docs/google-places.md` (fields saved, Places field list) |
+| Phase 2 | `docs/google-places.md` (server key if CLI; Admin backfill notes) |
+| Phase 3+ | `docs/features.md` (Set location / map picker) |
+| Phase 4+ | `docs/features.md` (map viewer, leaderboard venue filter) |
+| Phase 6 | `docs/features.md`, `docs/ask-the-lodge-capabilities.md`, in-app Ask Examples (`ask_examples.py` + Examples UI) |
+
+`docs/location-map.md` remains the planning source of truth until
+features are marked shipped in `features.md`.
 
 ---
 
 ## Implementation phases
 
 **Deployment priority:** Phase 1 ships to production as soon as it is
-complete, before any map UI exists. The goal is to begin accumulating
-real coordinate data immediately via the existing Lookup button. Map
-display features in later phases depend on that data being present.
+complete, before any map UI exists. Accumulate real coordinate data via
+Lookup. Phase 2 Admin UI backfill runs early against large existing
+datasets so map and AI geo features have coverage. Later map UI depends
+on that data.
 
 ### Phase 1 - Schema and data foundation
 
-- Add coordinate and address fields to `Location`
-- Migration (nullable fields, no backfill in migration)
-- Update Lookup button flow to save coordinates on location create/update
-- Update `docs/google-places.md` to note which fields are saved
+**Done when:** new and edited games can persist lat/lon (and address
+fields) from Lookup; reuse of a geocoded Location does not overwrite
+coords; name-only entry still works with null coords.
 
-### Phase 2 - Backfill tool
+- Add coordinate and address fields to `Location` (+ indexes)
+- Migration (nullable fields; no backfill in migration)
+- Client: Places fields + hidden geo payload; Places pick saves Google
+  lat/lon; custom/city-only after Lookup saves phone GPS
+- Server: resolve/create with fill-in and overwrite rules
+- Create and edit game forms
+- Update `docs/google-places.md`
 
-- `geocode_locations` management command (CLI, interactive)
-- Admin action on Location list (modal with mini-map preview)
-- Backfill existing seed and demo locations
+### Phase 2 - Backfill tool (CLI + Admin UI)
+
+**Done when:** staff can geocode large existing `lat IS NULL` libraries
+via Admin UI (candidates + mini-map); CLI works when a server key is
+configured; seed/demo and production libraries can be brought to useful
+coverage before map viewer work.
+
+- Admin UI backfill action (required): list ungeocoded locations,
+  Places search in browser, candidate modal with mini-map, confirm /
+  skip / manual coords
+- `geocode_locations` management command (interactive; needs
+  `GOOGLE_PLACES_SERVER_API_KEY`)
+- Document keys and operator workflow in `docs/google-places.md`
+- Backfill existing production / seed / demo locations as needed for
+  map and Ask coverage
 
 ### Phase 3 - Map picker
 
+**Done when:** user can set location via GPS, text search, or drop pin;
+geo payload matches Phase 1 hidden fields (scenario B).
+
 - "Set location" modal on game recording form
-- Modes: GPS lookup (existing), text search, drop pin
-- Base `location_map.js` module (init, destroy, mode switching)
-- On confirm: write name + coordinates to location field
+- Modes: GPS lookup, text search, drop pin
+- Enable Geocoding API on the browser key if reverse geocode is used
+- Base `location_map.js` module
+- Update `docs/features.md`
 
-### Phase 4 - Map viewer
+### Phase 4 - Map viewer + leaderboard venue filter
 
-- `/games/map/` view and template
+**Done when:** authenticated users can open `/games/map/` with filters;
+leaderboard UI can filter by venue.
+
+- `/games/map/` view, nav entry, empty state
 - `/api/map/locations/` GeoJSON endpoint with filters
-- Filter sidebar (group, game type, player, date range, city, state)
-- Viewport loading and client-side Supercluster clustering
-- Pin popup with game counts and link to filtered game list
+- Filter sidebar; viewport loading; Supercluster via CDN/vendor
+- Pin popup linking to filtered game list
+- Leaderboard UI location (venue) filter wired to existing service
+- Update `docs/features.md`
 
 ### Phase 5 - Custom pins
 
 - HTML pin template per game type using `AdvancedMarkerElement`
-- Cluster badge annotation
-- Selected/hover states
+- Cluster badge annotation; selected/hover states
 
-### Phase 6 - AI integration
+### Phase 6 - AI / Ask geo extensions
 
-- Add location fields to AI game history context rows
-- Prompt update noting geographic filter capability
-- Test location-aware questions against real data
+**Done when:** Ask can answer city/state venue questions when data
+exists; docs and **in-app** examples updated; sparse-data caveat
+documented.
+
+- Extend Ask tools for city/state (and document limits)
+- Enrich contextual insight JSON with city/state when present
+- Update `docs/ask-the-lodge-capabilities.md`
+- Update `docs/features.md` (location-aware Ask)
+- Update in-app Ask Examples: `leaderlodge/insights/ask_examples.py`
+  and the Examples UI (`/insights/ask/examples/`) with venue and
+  city/state questions that match supported tools
 
 ### Phase 7 - Performance hardening
 
-- Server-side clustering if client-side becomes slow
-- Caching GeoJSON responses (invalidate on new game recorded)
+- Server-side clustering if needed
+- Caching GeoJSON responses (invalidate on new game / location geocode)
 - Load testing with realistic pin counts
-

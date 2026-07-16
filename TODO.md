@@ -136,11 +136,11 @@
 - [x] 5e27505 Feedback notification email url should be working link instead of relative path (ex. /admin/feedback/feedback/13). Also determine if '/change/' portion of url is necessary and best practice (https://leaderlodge.com/admin/feedback/feedback/13)
 - [x] 3232eeb Add Teammate button sometimes displayed incorrectly. When displaying due to user adding a new player during game recording, the label gets incorrectly displayed on mobile as 'Add Teammate'. Should be '+ Teammate' on mobile
 - [x] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
-- [x] Leaderboard: Replace vesting with Bayesian prior (games / (games + k)); add provisional 'New' badge for players below game threshold
+- [x] 856ae12 Leaderboard: Replace vesting with Bayesian prior (games / (games + k)); add provisional 'New' badge for players below game threshold
+- [ ] Game location: Save Additional Game location information including lat-lon to support eventual map display showing pins for game locations. Users will e allowed to place a pin in a map to represent their game play location (plan: docs/location-map.md)
 
 ## Open Items
 
-- [ ] Game location: Save Additional Game location information including lat-lon to support eventual map display showing pins for game locations. Users will also eventually be allowed to place a pin in a map to represent their game play location
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
