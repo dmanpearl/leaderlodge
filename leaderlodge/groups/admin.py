@@ -40,7 +40,16 @@ class GroupTeamMemberInline(admin.TabularInline):
 class LocationInline(admin.TabularInline):
     model = Location
     extra = 0
-    fields = ("name", "normalized_name", "created_at")
+    fields = (
+        "name",
+        "normalized_name",
+        "lat",
+        "lon",
+        "city",
+        "state",
+        "geocode_source",
+        "created_at",
+    )
     readonly_fields = ("normalized_name", "created_at")
 
 
@@ -57,9 +66,19 @@ class LocationLibraryAdmin(admin.ModelAdmin):
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ("name", "library", "created_at")
-    list_filter = ("library",)
-    search_fields = ("name",)
+    list_display = (
+        "name",
+        "library",
+        "city",
+        "state",
+        "lat",
+        "lon",
+        "geocode_source",
+        "created_at",
+    )
+    list_filter = ("library", "geocode_source", "state", "country")
+    search_fields = ("name", "city", "place_id")
+    readonly_fields = ("normalized_name", "geocode_at", "created_at")
 
 
 @admin.register(Group)

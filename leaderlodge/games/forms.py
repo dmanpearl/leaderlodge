@@ -2,7 +2,11 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from leaderlodge.games.location_field import location_name_form_field
+from leaderlodge.games.location_field import (
+    add_location_geo_fields,
+    location_geo_from_form,
+    location_name_form_field,
+)
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import game_type_choices, get_game_type
 from leaderlodge.games.scoring import assign_results_from_scores, player_count_is_valid
@@ -28,6 +32,7 @@ class GameRecordForm(forms.Form):
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
         super().__init__(*args, **kwargs)
+        add_location_geo_fields(self)
         from leaderlodge.games.last_location import last_recorded_location_name
         from leaderlodge.groups.services import editable_groups, get_demo_group
 
@@ -180,6 +185,7 @@ class GameEditForm(forms.Form):
     def __init__(self, *args, game: Game | None = None, **kwargs):
         self.game = game
         super().__init__(*args, **kwargs)
+        add_location_geo_fields(self)
         if game is None:
             return
         self.fields["played_on"].initial = game.played_on
@@ -217,6 +223,7 @@ class GameEditForm(forms.Form):
         return resolve_game_location(
             group=self.game.group,
             location_name=self.cleaned_data.get("location_name", ""),
+            geo=location_geo_from_form(self),
         )
 
     def location_changed(self) -> bool:

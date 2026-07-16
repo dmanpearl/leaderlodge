@@ -4,7 +4,8 @@ Plan for displaying game-play locations as pins on a map, with rich
 filtering, a map-based location picker for game recording, and AI-aware
 geographic queries.
 
-**Status: planning. Nothing here is implemented.**
+**Status: Phase 1 implemented (schema + Lookup geo save). Later phases
+still planning.**
 
 ---
 
@@ -801,17 +802,20 @@ on that data.
 
 ### Phase 1 - Schema and data foundation
 
+**Status: done (this phase).**
+
 **Done when:** new and edited games can persist lat/lon (and address
 fields) from Lookup; reuse of a geocoded Location does not overwrite
 coords; name-only entry still works with null coords.
 
-- Add coordinate and address fields to `Location` (+ indexes)
-- Migration (nullable fields; no backfill in migration)
-- Client: Places fields + hidden geo payload; Places pick saves Google
+- [x] Add coordinate and address fields to `Location` (+ indexes)
+- [x] Migration (nullable fields; no backfill in migration)
+- [x] Client: Places fields + hidden geo payload; Places pick saves Google
   lat/lon; custom/city-only after Lookup saves phone GPS
-- Server: resolve/create with fill-in and overwrite rules
-- Create and edit game forms
-- Update `docs/google-places.md`
+- [x] Server: resolve/create with fill-in and overwrite rules
+- [x] Create and edit game forms
+- [x] Update `docs/google-places.md`
+- [x] Carry Lookup geo through setup to roster save step
 
 ### Phase 2 - Backfill tool (CLI + Admin UI)
 

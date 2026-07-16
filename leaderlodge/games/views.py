@@ -38,6 +38,10 @@ from leaderlodge.games.registry import (
     get_game_type,
     score_type_choices_for,
 )
+from leaderlodge.games.location_field import (
+    location_geo_from_form,
+    location_geo_post_values,
+)
 from leaderlodge.games.last_location import last_recorded_location_name
 from leaderlodge.games.reuse_players import (
     participant_rows_from_game,
@@ -776,6 +780,19 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 "game_type_code": request.POST.get("game_type_code"),
                 "played_on": request.POST.get("played_on"),
                 "location_name": request.POST.get("location_name", ""),
+                "location_lat": request.POST.get("location_lat", ""),
+                "location_lon": request.POST.get("location_lon", ""),
+                "location_city": request.POST.get("location_city", ""),
+                "location_state": request.POST.get("location_state", ""),
+                "location_country": request.POST.get("location_country", ""),
+                "location_postal_code": request.POST.get("location_postal_code", ""),
+                "location_street_address": request.POST.get(
+                    "location_street_address", ""
+                ),
+                "location_place_id": request.POST.get("location_place_id", ""),
+                "location_geocode_source": request.POST.get(
+                    "location_geocode_source", ""
+                ),
             },
             user=request.user,
         )
@@ -786,6 +803,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 location = resolve_game_location(
                     group=group,
                     location_name=save_form.cleaned_data.get("location_name", ""),
+                    geo=location_geo_from_form(save_form),
                 )
                 participants = [
                     ParticipantInput(
@@ -825,6 +843,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     played_on_value = ""
     played_on_display = ""
     location_name = ""
+    location_geo = location_geo_post_values(None)
     score_type = ScoreType.TRADITIONAL.value
     selected_setup_game_type_code = ""
     if form.is_bound:
@@ -845,9 +864,11 @@ def game_create(request: HttpRequest) -> HttpResponse:
         played_on_value, played_on_display = _played_on_value_and_display(form)
         if form.is_bound:
             location_name = form.data.get("location_name", "")
+            location_geo = location_geo_post_values(form.data)
             score_type = request.POST.get("score_type", score_type)
         elif form.initial.get("location_name"):
             location_name = form.initial.get("location_name", "")
+            location_geo = location_geo_post_values(form.initial)
 
     return render(
         request,
@@ -870,6 +891,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "played_on_value": played_on_value,
             "played_on_display": played_on_display,
             "location_name": location_name,
+            "location_geo": location_geo,
             "setup_game_type_options": setup_game_type_options,
             "selected_setup_game_type_code": selected_setup_game_type_code,
             "selected_setup_game_type_icon_url": selected_setup_game_type_icon_url,
@@ -1059,5 +1081,6 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "results": results,
             "participant_form_rows": participant_form_rows,
             "is_double": game.double_weight == 2,
+            "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),
         },
     )

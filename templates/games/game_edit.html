@@ -130,7 +130,10 @@
   <script>
     document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
   </script>
-  <script src="{% static 'js/location_autocomplete.js' %}?v=8"></script>
+  <script src="{% static 'js/location_autocomplete.js' %}?v=9"></script>
+  {% if google_places_api_key %}
+    <script src="{% static 'js/location_lookup.js' %}?v=2"></script>
+  {% endif %}
   <script>
     (function () {
       function setRowRemovedState(row, removed) {

@@ -154,6 +154,9 @@
           <input type="hidden" name="game_type_code" value="{{ game_type.code }}" />
           <input type="hidden" name="played_on" value="{{ played_on_value }}" />
           <input type="hidden" name="location_name" value="{{ location_name }}" />
+          {% for geo_name, geo_value in location_geo.items %}
+            <input type="hidden" name="{{ geo_name }}" value="{{ geo_value }}" />
+          {% endfor %}
 
           {% if score_type_choices %}
             <div class="mb-3 d-flex align-items-center gap-2">
@@ -318,13 +321,13 @@
     <script>
       document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
     </script>
-    <script src="{% static 'js/location_autocomplete.js' %}?v=8"></script>
+    <script src="{% static 'js/location_autocomplete.js' %}?v=9"></script>
     <script src="{% static 'js/game_setup.js' %}?v=1"></script>
     {% if not is_guest_demo %}
       <script src="{% static 'js/game_setup_reuse.js' %}?v=6"></script>
     {% endif %}
     {% if google_places_api_key %}
-      <script src="{% static 'js/location_lookup.js' %}"></script>
+      <script src="{% static 'js/location_lookup.js' %}?v=2"></script>
     {% endif %}
   {% endif %}
 {% endblock %}

@@ -307,6 +307,12 @@
       this.skipRefresh = true;
       this.input.value = location.name;
       syncLocationClearButton(this.input);
+      this.input.dispatchEvent(
+        new CustomEvent("location-autocomplete-select", {
+          bubbles: true,
+          detail: { name: location.name },
+        }),
+      );
       this.close();
     }
 

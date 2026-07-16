@@ -5,6 +5,11 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from leaderlodge.groups.location_geo import (
+    LocationGeo,
+    apply_location_geo,
+    copy_geo_from_source_if_needed,
+)
 from leaderlodge.groups.models import Group, Location, LocationLibrary
 
 MIN_FUZZY_MERGE_SCORE = 50
@@ -128,11 +133,32 @@ def ensure_group_location_library(group: Group) -> LocationLibrary:
     return library
 
 
-def get_or_create_location(*, library: LocationLibrary, name: str) -> Location:
+def get_or_create_location(
+    *,
+    library: LocationLibrary,
+    name: str,
+    geo: LocationGeo | None = None,
+) -> Location:
     cleaned = name.strip()
     normalized = normalize_location_name(cleaned)
     if not normalized:
         raise ValidationError("Location name cannot be empty.")
+
+    if geo is not None and geo.place_id:
+        by_place = Location.objects.filter(
+            library=library,
+            place_id=geo.place_id,
+        ).first()
+        if by_place is not None:
+            if (
+                cleaned
+                and by_place.name != cleaned
+                and len(cleaned) > len(by_place.name)
+            ):
+                by_place.name = cleaned
+                by_place.normalized_name = normalize_location_name(cleaned)
+                by_place.save(update_fields=["name", "normalized_name"])
+            return apply_location_geo(by_place, geo)
 
     location = Location.objects.filter(
         library=library,
@@ -142,28 +168,34 @@ def get_or_create_location(*, library: LocationLibrary, name: str) -> Location:
         if location.name != cleaned:
             location.name = cleaned
             location.save(update_fields=["name"])
-        return location
+        return apply_location_geo(location, geo)
 
     fuzzy_match = find_fuzzy_location_match(library=library, cleaned=cleaned)
     if fuzzy_match is not None:
         if len(cleaned) > len(fuzzy_match.name):
             fuzzy_match.name = cleaned
             fuzzy_match.save(update_fields=["name"])
-        return fuzzy_match
+        return apply_location_geo(fuzzy_match, geo)
 
-    return Location.objects.create(
+    location = Location.objects.create(
         library=library,
         normalized_name=normalized,
         name=cleaned,
     )
+    return apply_location_geo(location, geo)
 
 
-def resolve_game_location(*, group: Group, location_name: str) -> Location | None:
+def resolve_game_location(
+    *,
+    group: Group,
+    location_name: str,
+    geo: LocationGeo | None = None,
+) -> Location | None:
     cleaned = location_name.strip()
     if not cleaned:
         return None
     library = ensure_group_location_library(group)
-    return get_or_create_location(library=library, name=cleaned)
+    return get_or_create_location(library=library, name=cleaned, geo=geo)
 
 
 def location_libraries_for_user(user: AbstractBaseUser):
@@ -218,6 +250,7 @@ def combine_locations(*, keeper: Location, source: Location) -> int:
 
     keeper = Location.objects.select_for_update().get(pk=keeper.pk)
     source = Location.objects.select_for_update().get(pk=source.pk)
+    copy_geo_from_source_if_needed(keeper=keeper, source=source)
     count = Game.objects.filter(location=source).update(location=keeper)
     source.delete()
     return count

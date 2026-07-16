@@ -123,6 +123,29 @@ If the button does not appear, check:
 
 ---
 
+## What Lookup saves (Phase 1)
+
+Nearby search requests Places fields: `displayName`, `addressComponents`,
+`location`, and `id`. On submit, the game form posts optional hidden geo
+fields with the location name. Those are stored on the group's `Location`
+row (not on the Game).
+
+| User action | Saved `lat`/`lon` | `geocode_source` |
+|-------------|-------------------|------------------|
+| Picks a Places result | Google place geometry | `places_lookup` |
+| Picks the city-only row, or types a custom name after Lookup | Device GPS | `gps` |
+| Types a name with no Lookup | None (null until reuse or backfill) | (blank) |
+| Reuses an existing Location that already has coords | Existing coords unchanged | unchanged |
+
+Phone GPS is used only to find nearby places and as the pin when there is
+no Google place point. A Places pick always prefers Google coordinates.
+
+Fields that may be saved: `lat`, `lon`, `city`, `state`, `country`,
+`postal_code`, `street_address`, `place_id`, `geocode_source`,
+`geocode_at`. See `docs/location-map.md` for the full location map plan.
+
+---
+
 ## Troubleshooting
 
 **Button appears but lookup fails with "Location lookup failed."**

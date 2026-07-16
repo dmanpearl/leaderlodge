@@ -3,6 +3,9 @@
   if (!btn) return;
 
   let mapsPromise = null;
+  let lastDeviceCoords = null;
+  let lastFilledValue = null;
+  let lookupList = null;
 
   function loadGoogleMaps(apiKey) {
     if (mapsPromise) return mapsPromise;
@@ -77,18 +80,105 @@
     });
   }
 
-  function extractCityState(addressComponents) {
-    if (!addressComponents) return null;
-    let city = "";
-    let state = "";
+  function geoRoot() {
+    return document.querySelector("[data-location-field]");
+  }
+
+  function geoInput(key) {
+    return geoRoot()?.querySelector(`[data-location-geo="${key}"]`);
+  }
+
+  function setGeoFields(geo) {
+    const mapping = {
+      lat: geo?.lat ?? "",
+      lon: geo?.lon ?? "",
+      city: geo?.city ?? "",
+      state: geo?.state ?? "",
+      country: geo?.country ?? "",
+      postal_code: geo?.postal_code ?? "",
+      street_address: geo?.street_address ?? "",
+      place_id: geo?.place_id ?? "",
+      geocode_source: geo?.geocode_source ?? "",
+    };
+    for (const [key, value] of Object.entries(mapping)) {
+      const input = geoInput(key);
+      if (input) input.value = value === null || value === undefined ? "" : value;
+    }
+  }
+
+  function clearGeoFields() {
+    setGeoFields(null);
+    lastFilledValue = null;
+  }
+
+  function setPhoneGpsGeo(city, state, country) {
+    if (!lastDeviceCoords) {
+      clearGeoFields();
+      return;
+    }
+    setGeoFields({
+      lat: lastDeviceCoords.lat,
+      lon: lastDeviceCoords.lon,
+      city: city || "",
+      state: state || "",
+      country: country || "",
+      postal_code: "",
+      street_address: "",
+      place_id: "",
+      geocode_source: "gps",
+    });
+  }
+
+  function extractAddressParts(addressComponents) {
+    const parts = {
+      city: "",
+      state: "",
+      country: "",
+      postal_code: "",
+      street_address: "",
+    };
+    if (!addressComponents) return parts;
+
+    let route = "";
+    let streetNumber = "";
     for (const c of addressComponents) {
       const types = c.types || [];
-      if (types.includes("locality")) city = c.longText || c.shortText || "";
-      if (types.includes("administrative_area_level_1"))
-        state = c.shortText || "";
+      if (types.includes("locality")) {
+        parts.city = c.longText || c.shortText || "";
+      } else if (types.includes("administrative_area_level_1")) {
+        parts.state = c.shortText || "";
+      } else if (types.includes("country")) {
+        parts.country = (c.shortText || "").toUpperCase();
+      } else if (types.includes("postal_code")) {
+        parts.postal_code = c.longText || c.shortText || "";
+      } else if (types.includes("route")) {
+        route = c.longText || c.shortText || "";
+      } else if (types.includes("street_number")) {
+        streetNumber = c.longText || c.shortText || "";
+      }
     }
-    if (city && state) return `${city}, ${state}`;
-    return city || state || null;
+    // Prefer street name only for stored street_address.
+    parts.street_address = route || (streetNumber ? streetNumber : "");
+    return parts;
+  }
+
+  function extractCityState(addressComponents) {
+    const parts = extractAddressParts(addressComponents);
+    if (parts.city && parts.state) return `${parts.city}, ${parts.state}`;
+    return parts.city || parts.state || null;
+  }
+
+  function placeLatLon(place) {
+    const loc = place?.location;
+    if (!loc) return null;
+    const lat = typeof loc.lat === "function" ? loc.lat() : loc.lat;
+    const lng = typeof loc.lng === "function" ? loc.lng() : loc.lng;
+    if (lat == null || lng == null) return null;
+    return { lat: Number(lat), lon: Number(lng) };
+  }
+
+  function placeIdOf(place) {
+    return place?.id || place?.placeId || "";
   }
 
   async function nearbySearch(lat, lng) {
@@ -98,7 +188,7 @@
     const searchPromise = (async () => {
       const { Place } = await google.maps.importLibrary("places");
       const { places } = await Place.searchNearby({
-        fields: ["displayName", "addressComponents"],
+        fields: ["displayName", "addressComponents", "location", "id"],
         locationRestriction: { center: { lat, lng }, radius: 600 },
         includedTypes: [
           "park",
@@ -125,24 +215,51 @@
     return Promise.race([searchPromise, timeoutPromise]);
   }
 
-  let lookupList = null;
-
   function hideList() {
     lookupList?.remove();
     lookupList = null;
   }
 
-  function fillLocation(value) {
-    const input =
+  function locationInput() {
+    return (
       document.querySelector("[data-location-autocomplete]") ??
-      document.querySelector("[data-location-field] input[type=text]");
+      document.querySelector("[data-location-field] input[type=text]")
+    );
+  }
+
+  function fillLocation(value) {
+    const input = locationInput();
     if (!input) return;
     input.value = value;
+    lastFilledValue = value;
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
-  function addListItem(items, fillValue, label, isCity) {
-    items.push({ fillValue, label, isCity });
+  function addListItem(items, fillValue, label, meta) {
+    items.push({ fillValue, label, meta });
+  }
+
+  function applySelection(item) {
+    fillLocation(item.fillValue);
+    const meta = item.meta || {};
+    if (meta.kind === "place" && meta.lat != null && meta.lon != null) {
+      setGeoFields({
+        lat: meta.lat,
+        lon: meta.lon,
+        city: meta.city || "",
+        state: meta.state || "",
+        country: meta.country || "",
+        postal_code: meta.postal_code || "",
+        street_address: meta.street_address || "",
+        place_id: meta.place_id || "",
+        geocode_source: "places_lookup",
+      });
+    } else {
+      // City-only row, or Places result missing geometry: phone GPS.
+      setPhoneGpsGeo(meta.city, meta.state, meta.country);
+    }
+    hideList();
+    btn.focus();
   }
 
   function showList(places) {
@@ -166,12 +283,37 @@
     const items = [];
 
     const cityState = extractCityState(places[0].addressComponents);
-    if (cityState) addListItem(items, cityState, cityState, true);
+    const firstParts = extractAddressParts(places[0].addressComponents);
+    if (cityState) {
+      addListItem(items, cityState, cityState, {
+        kind: "city",
+        city: firstParts.city,
+        state: firstParts.state,
+        country: firstParts.country,
+      });
+    }
 
     for (const place of places) {
       const name = place.displayName;
+      const parts = extractAddressParts(place.addressComponents);
       const cs = extractCityState(place.addressComponents);
-      addListItem(items, cs ? `${name}, ${cs}` : name, cs ? `${name}, ${cs}` : name, false);
+      const coords = placeLatLon(place);
+      addListItem(
+        items,
+        cs ? `${name}, ${cs}` : name,
+        cs ? `${name}, ${cs}` : name,
+        {
+          kind: "place",
+          lat: coords?.lat,
+          lon: coords?.lon,
+          city: parts.city,
+          state: parts.state,
+          country: parts.country,
+          postal_code: parts.postal_code,
+          street_address: parts.street_address,
+          place_id: placeIdOf(place),
+        },
+      );
     }
 
     items.forEach((item, i) => {
@@ -186,17 +328,11 @@
       li.appendChild(nameEl);
 
       li.addEventListener("mousedown", (e) => e.preventDefault());
-      li.addEventListener("click", () => {
-        fillLocation(item.fillValue);
-        hideList();
-        btn.focus();
-      });
+      li.addEventListener("click", () => applySelection(item));
       li.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          fillLocation(item.fillValue);
-          hideList();
-          btn.focus();
+          applySelection(item);
         } else if (e.key === "ArrowDown") {
           e.preventDefault();
           lookupList?.children[i + 1]?.focus();
@@ -264,6 +400,42 @@
     }, 5000);
   }
 
+  function onLocationInputChanged() {
+    const input = locationInput();
+    if (!input) return;
+    const value = input.value.trim();
+    if (!value) {
+      clearGeoFields();
+      return;
+    }
+    if (lastFilledValue !== null && value === lastFilledValue) {
+      return;
+    }
+    // Custom or edited name after Lookup: phone GPS when available.
+    if (lastDeviceCoords) {
+      setPhoneGpsGeo("", "", "");
+      lastFilledValue = value;
+    } else {
+      clearGeoFields();
+    }
+  }
+
+  const inputEl = locationInput();
+  if (inputEl) {
+    inputEl.addEventListener("input", onLocationInputChanged);
+  }
+
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-location-clear]")) {
+      clearGeoFields();
+    }
+  });
+
+  // Autocomplete reuse of an existing library name: drop pending Lookup geo.
+  document.addEventListener("location-autocomplete-select", () => {
+    clearGeoFields();
+  });
+
   btn.addEventListener("click", async () => {
     if (lookupList) {
       hideList();
@@ -279,6 +451,10 @@
 
     try {
       const pos = await getPosition();
+      lastDeviceCoords = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+      };
       setButtonState("searching");
       await loadGoogleMaps(apiKey);
       const places = await nearbySearch(

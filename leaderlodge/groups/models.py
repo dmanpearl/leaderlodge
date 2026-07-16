@@ -30,11 +30,28 @@ class Location(models.Model):
     )
     name = models.CharField(max_length=200)
     normalized_name = models.CharField(max_length=200)
+    lat = models.FloatField(null=True, blank=True)
+    lon = models.FloatField(null=True, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=10, blank=True)
+    country = models.CharField(max_length=2, blank=True)
+    postal_code = models.CharField(max_length=20, blank=True)
+    street_address = models.CharField(max_length=200, blank=True)
+    place_id = models.CharField(max_length=300, blank=True)
+    geocode_source = models.CharField(max_length=20, blank=True)
+    geocode_confidence = models.CharField(max_length=10, blank=True)
+    geocode_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = [("library", "normalized_name")]
         ordering = ["name"]
+        indexes = [
+            models.Index(fields=["lat", "lon"]),
+            models.Index(fields=["state", "city"]),
+            models.Index(fields=["country", "state"]),
+            models.Index(fields=["library", "place_id"]),
+        ]
 
     def __str__(self) -> str:
         return self.name
