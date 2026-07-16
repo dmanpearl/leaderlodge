@@ -13,6 +13,7 @@ from leaderlodge.core.admin_notification_registry import (
     NOTIFICATION_LABELS,
 )
 from leaderlodge.core.admin_notifications import (
+    absolute_url,
     notification_enabled,
     notify_admin,
     notify_admin_signup,
@@ -147,7 +148,17 @@ def test_signup_notification_includes_location(mock_lookup, client, site_setting
 
 
 @pytest.mark.django_db
-def test_feedback_create_notifies_admin(client, site_settings, user):
+def test_absolute_url_prefixes_site_origin(settings):
+    settings.CSRF_TRUSTED_ORIGINS = ["https://leaderlodge.com"]
+    assert absolute_url("/admin/feedback/feedback/13/change/") == (
+        "https://leaderlodge.com/admin/feedback/feedback/13/change/"
+    )
+    assert absolute_url("https://example.com/x") == "https://example.com/x"
+
+
+@pytest.mark.django_db
+def test_feedback_create_notifies_admin(client, site_settings, user, settings):
+    settings.CSRF_TRUSTED_ORIGINS = ["https://leaderlodge.com"]
     client.force_login(user)
     response = client.post(
         reverse("feedback:create"),
@@ -165,6 +176,11 @@ def test_feedback_create_notifies_admin(client, site_settings, user):
     assert len(admin_messages) == 1
     assert "feedback submitted" in admin_messages[0].subject.lower()
     assert "Button stuck" in admin_messages[0].body
+    feedback = Feedback.objects.get()
+    expected_admin_url = (
+        f"https://leaderlodge.com/admin/feedback/feedback/{feedback.pk}/change/"
+    )
+    assert expected_admin_url in admin_messages[0].body
 
 
 @pytest.mark.django_db

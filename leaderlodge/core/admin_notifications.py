@@ -38,6 +38,28 @@ def get_notify_email() -> str:
     return (get_site_settings().notify_email or "").strip()
 
 
+def absolute_site_url() -> str:
+    """Public site origin for email links (no trailing slash)."""
+    trusted_origins = getattr(settings, "CSRF_TRUSTED_ORIGINS", []) or []
+    if not trusted_origins:
+        return ""
+    return str(trusted_origins[0]).rstrip("/")
+
+
+def absolute_url(path: str) -> str:
+    """Join site origin with a path for clickable notification links."""
+    if not path:
+        return ""
+    if path.startswith(("http://", "https://")):
+        return path
+    site_url = absolute_site_url()
+    if not site_url:
+        return path
+    if not path.startswith("/"):
+        path = f"/{path}"
+    return f"{site_url}{path}"
+
+
 def notify_admin(*, kind: str, context: dict[str, Any]) -> bool:
     """Send an admin notification email when enabled. Never raises."""
     if kind not in NOTIFICATION_LABELS:
@@ -173,11 +195,8 @@ def notify_admin_game_change(*, log) -> bool:
     except Exception:
         game_type_label = game.game_type_code
 
-    from django.conf import settings
-
-    trusted_origins = getattr(settings, "CSRF_TRUSTED_ORIGINS", [])
-    site_url = trusted_origins[0].rstrip("/") if trusted_origins else ""
     game_path = reverse("games:detail", kwargs={"pk": game.pk})
+    # Django admin change URLs include /change/; that is the canonical edit view.
     admin_path = reverse("admin:games_gamescorechangelog_change", args=[log.pk])
 
     return notify_admin(
@@ -190,8 +209,8 @@ def notify_admin_game_change(*, log) -> bool:
             "played_on": game.played_on,
             "changed_by_display": format_user_display_name(changed_by),
             "notes": log.notes,
-            "game_url": f"{site_url}{game_path}",
-            "admin_url": f"{site_url}{admin_path}",
+            "game_url": absolute_url(game_path),
+            "admin_url": absolute_url(admin_path),
             "old_snapshot": log.old_snapshot,
             "new_snapshot": log.new_snapshot,
         },
@@ -204,12 +223,15 @@ def notify_admin_feedback(*, feedback) -> bool:
     from leaderlodge.groups.names import format_user_display_name
 
     user = feedback.user
+    # Keep /change/: admin:<app>_<model>_change is the edit page; bare
+    # /admin/.../<id>/ is not the reverse target and is unreliable in mail clients.
+    admin_path = reverse("admin:feedback_feedback_change", args=[feedback.pk])
     return notify_admin(
         kind="feedback",
         context={
             "feedback": feedback,
             "user_display": format_user_display_name(user),
-            "admin_url": reverse("admin:feedback_feedback_change", args=[feedback.pk]),
+            "admin_url": absolute_url(admin_path),
         },
     )
 
