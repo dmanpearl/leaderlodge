@@ -4,34 +4,72 @@ Plan for displaying game-play locations as pins on a map, with rich
 filtering, a map-based location picker for game recording, and AI-aware
 geographic queries.
 
-**Status: Phase 1 implemented (schema + Lookup geo save). Later phases
-still planning.**
+**Status: Phase 1 done. Phase 2a (Set place map picker) implemented.
+Phase 2b (merge duplicates) and later phases still planning.**
+
+---
+
+## Progress (follow along here)
+
+Search this file for `>>> NEXT UP <<<` to jump to the active phase.
+
+| Phase | Name | Status |
+|-------|------|--------|
+| 1 | Schema and data foundation | **done** |
+| 2 | Set place (map picker + search + assign) + merge | **2a done; 2b >>> NEXT UP <<<** |
+| 3 | Map picker on Record Game | not started |
+| 4 | Map viewer + leaderboard venue filter | not started |
+| 5 | Custom pins | not started |
+| 6 | AI / Ask geo extensions | not started |
+| 7 | Performance hardening | not started |
+
+**How to use this doc while we build:**
+
+1. Open **Progress** (this section) or Cmd/Ctrl+F `>>> NEXT UP <<<`.
+2. Jump to **Implementation phases** for the checklist of the active
+   phase (`### Phase N - ...`).
+3. For design detail of that phase, use the matching topic section
+   (examples below). Update the Progress table and move
+   `>>> NEXT UP <<<` when a phase finishes.
+
+| When working on | Read these sections |
+|-----------------|---------------------|
+| Phase 2 | Set place map picker; Location library tools; Shared map component |
+| Phase 3 | Map picker on Record Game; Phase 1 save path |
+| Phase 4 | Map viewer; Location filters; Leaderboard location filters |
+| Phase 5 | Custom game-type pins |
+| Phase 6 | AI integration; Documentation checklist |
+| Phase 7 | Performance and clustering |
+
+Capture rules (always in force): **Capture scenarios (product intent)**.
 
 ---
 
 ## Table of contents
 
-1. [Overview](#overview)
-2. [Capture scenarios (product intent)](#capture-scenarios-product-intent)
-3. [Database schema changes](#database-schema-changes)
-4. [Geocoding strategy](#geocoding-strategy)
-5. [Phase 1 save path](#phase-1-save-path)
-6. [The back-entry problem](#the-back-entry-problem)
-7. [Backfill tool](#backfill-tool)
-8. [Map picker - game recording](#map-picker---game-recording)
-9. [Map viewer - explore by location](#map-viewer---explore-by-location)
-10. [Location filters](#location-filters)
-11. [Leaderboard location filters](#leaderboard-location-filters)
-12. [AI integration (Ask the Lodge)](#ai-integration-ask-the-lodge)
-13. [Map provider: Google Maps JS](#map-provider-google-maps-js)
-14. [Custom game-type pins](#custom-game-type-pins)
-15. [Shared map component](#shared-map-component)
-16. [Performance and clustering](#performance-and-clustering)
-17. [Privacy model](#privacy-model)
-18. [Existing location tooling](#existing-location-tooling)
-19. [Out of scope](#out-of-scope)
-20. [Documentation and examples checklist](#documentation-and-examples-checklist)
-21. [Implementation phases](#implementation-phases)
+1. [Progress (follow along here)](#progress-follow-along-here)
+2. [Overview](#overview)
+3. [Capture scenarios (product intent)](#capture-scenarios-product-intent)
+4. [Database schema changes](#database-schema-changes)
+5. [Geocoding strategy](#geocoding-strategy)
+6. [Phase 1 save path](#phase-1-save-path)
+7. [The back-entry problem](#the-back-entry-problem)
+8. [Location library tools](#location-library-tools)
+9. [Set place map picker (shared)](#set-place-map-picker-shared)
+10. [Map picker on Record Game](#map-picker-on-record-game)
+11. [Map viewer - explore by location](#map-viewer---explore-by-location)
+12. [Location filters](#location-filters)
+13. [Leaderboard location filters](#leaderboard-location-filters)
+14. [AI integration (Ask the Lodge)](#ai-integration-ask-the-lodge)
+15. [Map provider: Google Maps JS](#map-provider-google-maps-js)
+16. [Custom game-type pins](#custom-game-type-pins)
+17. [Shared map component](#shared-map-component)
+18. [Performance and clustering](#performance-and-clustering)
+19. [Privacy model](#privacy-model)
+20. [Existing location tooling](#existing-location-tooling)
+21. [Out of scope](#out-of-scope)
+22. [Documentation and examples checklist](#documentation-and-examples-checklist)
+23. [Implementation phases](#implementation-phases)
 
 ---
 
@@ -44,20 +82,20 @@ own LocationLibrary). A Location has only a name today. The plan is to:
 - Capture one lat/lon per Location at recording time (Places geometry,
   map pin, or device GPS when there is no place point)
 - Reuse saved coordinates when the user picks an existing Location
-- Provide backfill tools (Admin UI required early for large existing
-  libraries; CLI optional) so name-only locations still get lat/lon
+- Provide in-app **Set place** tools (map picker + editable Places search)
+  to geocode informal Location rows in one edit, plus find/merge duplicates
 - Build a map viewer with pin clustering and rich filters
 - Add location filters on the leaderboard UI (service already supports
   venue filter; Ask already has `query_location_leaderboard`)
-- Build an enhanced map-based picker that replaces/extends the current
-  Lookup button flow
+- Build an enhanced map-based picker on Record Game (Phase 3; same module
+  as Set place)
 - Share a single map component between the picker and the viewer
 
 **Guiding rule:** every Location stores one lat/lon and should end up
 with the best point we can obtain. Places picks use Google geometry
-(not phone GPS). Prefer capture at entry; fall back to backfill; never
-require a fresh lookup when reusing a Location that already has
-coordinates.
+(not phone GPS). Prefer capture at entry; use explicit re-geocode on the
+Locations page for historical rows; never require a fresh lookup when
+reusing a Location that already has coordinates.
 
 ---
 
@@ -76,7 +114,7 @@ vs Google coordinate fields.
 | Drops a map pin | Pin coordinates | `map_pin` |
 | Types a custom name after Lookup (e.g. "Sally's House") with GPS available | **Phone** GPS | `gps` |
 | City-only Lookup row ("Los Angeles, CA") | **Phone** GPS | `gps` |
-| Types a name with no Lookup / picker geo | None (`lat` null) until fill-in or backfill | (blank) |
+| Types a name with no Lookup / picker geo | None (`lat` null) until explicit re-geocode or fill-in on save | (blank) |
 | Reuses an existing Location that already has coords | Existing saved lat/lon (no new lookup) | unchanged |
 
 Phone GPS is used only to **discover** nearby places and as the pin when
@@ -138,11 +176,12 @@ typing a name that fuzzy-matches an existing row.
 | New Location, geo payload present | Write lat/lon and address fields |
 | Existing Location, already has lat/lon | Keep existing coords; ignore new GPS/place coords on silent reuse |
 | Existing Location, `lat IS NULL`, geo payload present | Fill coords and address fields (upgrade name-only row) |
-| Existing Location, operator backfill or explicit re-geocode | Allowed to set or replace coords |
-| Typed name only, no geo payload | Create/reuse name only; leave lat/lon null until backfill or a later fill-in |
+| Existing Location, explicit re-geocode from Locations page | Set or replace coords (user confirms if coords already set) |
+| Typed name only, no geo payload | Create/reuse name only; leave lat/lon null until explicit re-geocode or fill-in on a later save |
 
-Goal: **management system** so ungeocoded rows are visible and
-backfillable; reuse never burns API calls or relocates a known venue.
+Goal: **management system** so ungeocoded rows are visible on the
+Locations page and fixable in one edit; reuse never burns API calls or
+relocates a known venue without user intent.
 
 ---
 
@@ -172,9 +211,16 @@ backfillable; reuse never burns API calls or relocates a known venue.
 | `places_lookup` | Nearby Lookup Places pick; saved lat/lon is Google place geometry |
 | `map_pin` | User dropped a pin on the map picker |
 | `text_search` | User searched by name and chose a Places result; Google geometry |
-| `backfill_auto` | Backfill tool, no operator review |
-| `backfill_confirmed` | Backfill tool, operator confirmed match |
 | `manual` | Coordinates entered manually by admin |
+
+Set place on the Locations page uses the same sources as recording
+(`places_lookup`, `gps`, `map_pin`, `text_search`) depending on how the
+user picks the pin.
+
+`backfill_auto` and `backfill_confirmed` are reserved in the schema but
+**not used**. Bulk name-based backfill (CLI or Admin) is out of scope;
+vague venue names do not geocode reliably without a human who knows the
+place.
 
 ### Indexes to add
 
@@ -214,7 +260,8 @@ deduplication via a shared venue registry is not planned.
 ### When to capture coordinates
 
 Coordinates are captured when the user sets location via Lookup, map
-picker, or when backfill fills a null row. They are **not** inferred
+picker, explicit re-geocode on the Locations page, or when a save
+includes a geo payload that fills a null row. They are **not** inferred
 automatically from a bare typed name with no geo payload.
 
 ### Coordinate precision
@@ -261,7 +308,7 @@ Places fields are discarded. `nearbySearch` requests only
    - `location_geocode_source`
 6. Same payload on **create** and **edit** game forms.
 7. If the user never runs Lookup and only types a name, leave geo
-   fields empty (null coords until reuse-of-geocoded or backfill).
+   fields empty (null coords until explicit re-geocode or fill-in).
 
 ### Server (`resolve_game_location` / `get_or_create_location`)
 
@@ -292,131 +339,203 @@ your current position; search if you are away from the venue").
 
 ---
 
-## Backfill tool
+## Location library tools
 
-### Goal
+### Why not bulk backfill?
 
-For each Location with `lat IS NULL`, attempt to geocode by name.
-Present candidates for review. Store the confirmed match. This is the
-safety net so name-only locations still join the map.
+Most historical locations are informal names ("Sally's House",
+"Home - Island", vague restaurant labels, sometimes with a state code).
+Automated Places text search on those names returns multiple low-confidence
+matches. A management command or staff batch backfill would spend API
+calls and still produce wrong pins.
 
-### Server API key (CLI) vs browser key (Admin UI)
+**Decision:** no `geocode_locations` CLI and no Admin batch backfill.
+Coverage for existing rows comes from **smart in-app tools** that keep a
+human in the loop.
 
-`GOOGLE_PLACES_API_KEY` is browser-restricted (HTTP referrers). A Django
-management command cannot use it for Places text search.
+### A. Set place (explicit re-geocode)
 
-- **Admin UI backfill (required early):** runs Places search in the
-  browser with the existing browser key, shows candidates and a
-  mini-map, saves the operator's pick. Primary path for reviewing large
-  existing location libraries.
-- **CLI backfill:** needs a separate env var, e.g.
-  `GOOGLE_PLACES_SERVER_API_KEY`, IP-restricted (or used only from
-  trusted operator machines). Document in `docs/google-places.md` and
-  `.env.example`. Optional convenience alongside Admin UI; if absent,
-  CLI auto-search is disabled but manual coord entry still works.
+**Goal:** edit the **Location** row (not one Game), so one action updates
+every game that uses that venue.
 
-### Management command: `geocode_locations`
+**Requires map picker from day one.** Nearby-only Lookup (device GPS) is
+not enough: the user is often at home editing a game played elsewhere.
+They must pan the map, drop a pin, search by business name, and pick a
+Google place.
 
-```
-python manage.py geocode_locations [options]
+#### Canonical workflow (map + pin lookup)
 
-Options:
-  --dry-run          Show what would be searched, make no changes
-  --limit N          Process at most N locations (default: 50)
-  --group NAME       Restrict to a specific group's library
-  --auto-confirm     Accept top result automatically (no review)
-                     Only use when confidence is high
-```
+Example: informal name `Cafe 50s`; real venue `Café 50's, West Los Angeles, CA`.
 
-**Algorithm per location:**
-1. Text-search Places for the location name + city/state hint (from the
-   group's other geocoded locations when available).
-2. Return up to 3 candidates with name, address, lat/lon, place_id.
-3. Interactive prompt:
-   `[1/2/3] pick, [s] skip, [m] enter coordinates manually, [q] quit`
-4. On selection, write lat, lon, city, state, country, place_id,
-   `geocode_source=backfill_confirmed`, `geocode_confidence=medium`.
-5. Log skipped locations for manual follow-up.
+1. View Game detail
+2. Edit game
+3. Location: open **Set place** (updates the shared Location, not only
+   this game's text field)
+4. Map opens (default region: group centroid, last geocoded venue in
+   area, or US overview; not device GPS as the pin)
+5. Pan/zoom to West LA; drop pin on the restaurant
+6. **Pin lookup:** nearby Places at the pin; list results on map
+7. Select Google place (`Café 50's, ...`)
+8. **Assign**
+9. Location `Cafe 50s` now has lat/lon, `place_id`, city, state; all
+   games at that Location share the pin
 
-### Admin UI backfill (required early)
+Name policy on Assign: keep informal `Cafe 50s` by default; optional
+checkbox "Use place name" to adopt the Google display name.
 
-Required in Phase 2, not optional. Existing datasets are large enough
-that operators need a reviewable UI, not CLI alone.
+#### Canonical workflow (editable text search)
 
-Django admin (or staff Location list) action:
+Example: `Pancake House, OR` (informal); user knows the business name.
 
-- Filter / select ungeocoded locations (by library / group)
-- For each (or batch): Places text search via the **browser** key
-- Modal with up to 3 candidates, address text, and a mini-map preview
-- Operator confirms match, skips, or enters coordinates manually
-- Saves with `geocode_source=backfill_confirmed`
+1. Same entry (Edit game, Locations list, etc.)
+2. Search field pre-filled from current Location name; **user may edit**
+   query (e.g. `Pancake House Oregon` or full address)
+3. Places text search; results as map pins
+4. Select suggestion
+5. **Assign**
 
-This is the main tool for bringing historical name-only locations onto
-the map before map viewer / AI geo features depend on coverage.
+Saved lat/lon is always **Google place geometry** for a Places pick.
+
+#### Entry points (Phase 2)
+
+| Entry | Notes |
+|-------|-------|
+| **Edit game** Location | Primary; user story above |
+| **Group Locations** row action Set place | Same modal |
+| Game detail | Link: "Set place for all games here" when `game.location` set |
+
+**Who can use it:** same permission as rename/combine on Locations
+(group editors / owners).
+
+**Overwrite rules:**
+
+| Current state | On Assign |
+|---------------|-----------|
+| `lat IS NULL` | Write geo from pick |
+| Already geocoded | Confirm: "Replace pin for all N games?" |
+
+`geocode_source`: `text_search` (search pick), `map_pin` (pin only, no
+place match), or `places_lookup` (pin lookup nearby pick). Not device
+`gps` for this flow unless user explicitly uses "Use my location".
+
+**Why this beats bulk backfill:** user at home can still fix `Cafe 50s`
+by map + search; no blind auto-geocode on the informal string.
+
+### B. Find and merge duplicate locations
+
+**Goal:** reduce duplicate Location rows ("Home" vs "Home - Island",
+typos, rename drift) so geo and game counts consolidate.
+
+**Builds on:** existing `combine_locations` and rename on the Locations
+page; open TODO "Merge similar locations tool".
+
+**UI concept:**
+
+- **Group Locations:** "Find duplicates" (or badge when suggestions exist)
+- Server suggests candidate pairs using existing fuzzy match scoring
+  (`score_location_match`, library-scoped), plus optional same
+  `place_id` when both geocoded
+- List shows: name A, name B, game counts, whether either has lat/lon
+- User picks keeper, confirms merge (reuse existing combine confirmation)
+- On merge: keeper keeps geo; if keeper null and source has coords, copy
+  (existing `copy_geo_from_source_if_needed` rule)
+
+**Not in scope for v1 of this tool:** cross-group merge, auto-merge
+without confirmation, merging more than two at once.
+
+### Locations list enhancements (Phase 2)
+
+Support the tools above on `templates/groups/location_list.html`:
+
+- Column or badge: geocoded vs not (`lat` null)
+- Sort/filter: ungeocoded first (optional default for editors)
+- Row actions: Rename, Combine (existing), **Set place**, Delete (existing)
 
 ### Estimate
 
-Groups may have large existing location libraries (well beyond a
-handful of venues). Budget Phase 2 for operator time in the Admin UI
-across libraries. Per-search API cost remains small inside the free
-credit; the bottleneck is human confirmation quality, which is why the
-Admin UI ships early.
+Per-group libraries are large in count but human-driven. Budget Phase 2
+for UX on the Locations page, not operator CLI sessions. Places API cost
+stays low because users only search when they choose to set a place.
 
 ---
 
-## Map picker - game recording
+## Set place map picker (shared)
 
-### Purpose
+Built in **Phase 2** for Location assign; reused in **Phase 3** on Record
+Game. One module: `static/js/location_map.js`.
 
-Replaces and extends the current GPS Lookup button. Three ways to set
-location:
+### Modes
 
-1. **GPS Lookup** - tap to detect nearby venues (scenario A / C)
-2. **Text search** - type a venue name, see Places suggestions on a map
-   (scenario B)
-3. **Drop pin** - pan/zoom and tap to place a pin (scenario B)
-
-### When it appears
-
-- Current Lookup button becomes a "Set location" button
-- Opens a modal (or bottom sheet on mobile) containing the map
-
-Coexists with the open mobile TODO that may use a native `<select>` of
-group locations on small viewports: select/reuse remains for known
-names; Set location remains the path for GPS / search / pin.
+| Mode | Purpose | On confirm |
+|------|---------|------------|
+| `assign` | Set place on existing Location | POST geo to Location; updates all games |
+| `record` | Record Game (Phase 3) | Write geo hidden fields + name on game form |
 
 ### Modal layout
 
 ```
 +------------------------------------------+
-| Set location                          [x] |
+| Set place for Cafe 50s (12 games)     [x] |
 +------------------------------------------+
-| [Search field]          [Use my location] |
+| [Search: Cafe 50s____________]  [Search] |
+| [Pin lookup]              [Use my location] |
 +------------------------------------------+
 |                                          |
 |           Google Maps                    |
-|         (full-width, ~60vh)              |
+|    (draggable pin + result markers)      |
 |                                          |
 +------------------------------------------+
-| Selected: The Parlor Room, Los Angeles   |
-|           [Clear]              [Confirm] |
+| Selected: Café 50's, West Los Angeles    |
+| [ ] Use place name                       |
+|           [Clear]              [Assign]   |
 +------------------------------------------+
 ```
 
-- Search field: Places text search (results as map pins); saved pin is
-  **Google** place lat/lon
-- "Use my location": GPS nearby search; if user picks a Places result,
-  saved pin is still **Google** place lat/lon (phone GPS only discovers
-  candidates). Always shown; see back-entry policy.
-- Drop pin: reverse-geocode for address label; saved pin is **tap**
-  lat/lon
-- Confirm writes name + single geo payload into the form (same hidden
-  fields as Phase 1) and closes the modal
+### Behaviors
+
+1. **Editable search:** input pre-filled from Location name; user edits
+   before search (`Pancake House, OR` to `Pancake House Oregon`).
+2. **Text search:** Places API; markers on map; select one.
+3. **Drop pin:** tap map to place crosshair/pin; does not save until Assign.
+4. **Pin lookup:** nearby Places at pin (same types as Lookup); user
+   picks a business. Primary path when user knows where on map but not
+   the exact query string.
+5. **Use my location:** optional; centers map and runs nearby search.
+   Not the default for assign mode (user often away from venue).
+6. **Assign:** writes geo via `apply_location_geo(..., force=...)`;
+   optional adopt place name.
+
+### APIs
+
+Enable **Geocoding API** on the browser key if reverse-geocode is used
+for pin-only assigns. Places API (New) for search and pin lookup.
+
+### Server
+
+`POST` assign endpoint (e.g. group location set-place): `location_id`,
+geo payload, optional `adopt_place_name`, `confirm_replace` when coords
+exist.
+
+---
+
+## Map picker on Record Game
+
+**Phase 3.** Replaces the Record Game Lookup button with the same modal
+in `record` mode (hidden fields + location name). Phase 1 Lookup remains
+until Phase 3 ships.
+
+Coexists with mobile native location `<select>` TODO: reuse for known
+names; Set place for GPS / search / pin.
+
+### Recording-specific behavior
+
+- "Use my location" more prominent (often at venue)
+- Confirm writes name + geo into game form (Phase 1 hidden fields)
+- Does not require `location_id` until form save
 
 ### Fallback
 
-If the user closes without confirming, the location field is unchanged.
-Text entry and autocomplete still work for typed names and reuse.
+Close without Assign: game form unchanged. Text autocomplete still works.
 
 ---
 
@@ -430,7 +549,8 @@ game locations. Add a nav entry when the page ships.
 ### Empty state
 
 If the group has locations but none geocoded, show a short message
-pointing at Lookup / backfill rather than an empty map.
+pointing at Lookup and **Set place** on the Locations page rather than an
+empty map.
 
 ### Layout
 
@@ -609,7 +729,7 @@ the map viewer.
 | API | Purpose | Key |
 |-----|---------|-----|
 | Maps JavaScript API | Map display, markers | Browser key (already) |
-| Places API (New) | Nearby search, text search, place details | Browser key; server key for CLI backfill |
+| Places API (New) | Nearby search, text search, place details | Browser key |
 | Geocoding API | Reverse geocode for drop-pin (Phase 3+) | Enable on project; add to browser key API restrictions; update `docs/google-places.md` |
 
 ### Custom markers
@@ -657,8 +777,8 @@ multiple game types. Color indicates approximate count range
 
 ## Shared map component
 
-Both the map picker and the map viewer use the same underlying
-JavaScript module. The mode is set at initialization.
+Both Set place (assign/record) and the map viewer use the same underlying
+JavaScript module.
 
 ### Module interface
 
@@ -666,26 +786,32 @@ JavaScript module. The mode is set at initialization.
 // static/js/location_map.js
 
 LeaderLodgeMap.init({
-  container: HTMLElement,        // element to mount into
-  mode: 'picker' | 'viewer',
-  apiKey: string,                // GOOGLE_PLACES_API_KEY from template context
-  onSelect: (location) => {},    // picker only
+  container: HTMLElement,
+  mode: 'assign' | 'record' | 'viewer',
+  apiKey: string,
+  locationId: number | null,     // assign mode
+  locationName: string,          // assign: show title + pre-fill search
+  gameCount: number | null,      // assign: "N games"
+  onAssign: (result) => {},      // assign mode
+  onSelect: (location) => {},    // record mode
   initialRegion: { lat, lon, zoom },
-  filters: { ... },             // viewer only
+  filters: { ... },              // viewer only
 });
 
-LeaderLodgeMap.setFilters({ ... });   // viewer: update displayed pins
 LeaderLodgeMap.destroy();
 ```
 
-The browser `apiKey` is already passed via `data-api-key` today. The
-server backfill key is separate and never exposed to templates.
+### Assign-specific behavior
 
-### Picker-specific behavior
+- Search pre-filled from `locationName`; user edits before search
+- Pin lookup at dropped pin
+- Assign POST; optional adopt place name
+- Default map region not device GPS
 
-- Search bar and "Use my location"
-- On select: `onSelect({ name, lat, lon, city, state, place_id, geocode_source })`
-- No filter sidebar
+### Record-specific behavior
+
+- Same search / pin / pin lookup
+- Confirm fills Phase 1 hidden geo fields on game form
 
 ### Viewer-specific behavior
 
@@ -754,13 +880,14 @@ When display stripping is added: prefer street name only in
 ## Existing location tooling
 
 - `rename_location` / `combine_locations` in `leaderlodge/groups/locations.py`
-  and group location UI already exist.
+  and group **Locations** page (`templates/groups/location_list.html`)
+  already exist.
 - On **combine**: keeper keeps its geo fields; if keeper has null coords
   and source has coords, copy source geo onto keeper before delete.
-- Open TODO "Merge similar locations tool" should respect the same rule
-  once geo fields exist.
-- Phase 1 place_id reuse is silent; name-merge UX stays on existing
-  combine flows.
+- **Phase 2** adds **Set place** (explicit re-geocode) and **Find
+  duplicates** (suggested merges) on the same Locations page.
+- Phase 1 place_id reuse is silent; pairwise combine stays the merge UX
+  for confirmed duplicates.
 
 ---
 
@@ -770,7 +897,10 @@ When display stripping is added: prefer street name only in
 - Indoor vs outdoor classification
 - Arbitrary polygon / "west side" geo queries (until a dedicated tool)
 - Native iOS/Android map apps
-- Overwriting coords on every reuse of a geocoded Location
+- Overwriting coords on every reuse of a geocoded Location during game save
+- **Bulk automated backfill:** `geocode_locations` management command,
+  Admin batch Places search on name alone, `GOOGLE_PLACES_SERVER_API_KEY`
+  for CLI geocode
 
 ---
 
@@ -782,8 +912,8 @@ examples) in the same phase, not as a follow-up:
 | When | Update |
 |------|--------|
 | Phase 1 | `docs/google-places.md` (fields saved, Places field list) |
-| Phase 2 | `docs/google-places.md` (server key if CLI; Admin backfill notes) |
-| Phase 3+ | `docs/features.md` (Set location / map picker) |
+| Phase 2 | `docs/features.md`, `docs/google-places.md` (map, search, pin lookup) |
+| Phase 3+ | `docs/features.md` (Set location / map picker on Record Game) |
 | Phase 4+ | `docs/features.md` (map viewer, leaderboard venue filter) |
 | Phase 6 | `docs/features.md`, `docs/ask-the-lodge-capabilities.md`, in-app Ask Examples (`ask_examples.py` + Examples UI) |
 
@@ -794,11 +924,10 @@ features are marked shipped in `features.md`.
 
 ## Implementation phases
 
-**Deployment priority:** Phase 1 ships to production as soon as it is
-complete, before any map UI exists. Accumulate real coordinate data via
-Lookup. Phase 2 Admin UI backfill runs early against large existing
-datasets so map and AI geo features have coverage. Later map UI depends
-on that data.
+**Deployment priority:** Phase 1 done. Phase 2 ships the shared map picker
+and Set place (assign) so informal locations can be fixed from Edit Game
+and Locations. Phase 3 wires the same picker to Record Game. Phase 4+
+map viewer depends on geocoded data.
 
 ### Phase 1 - Schema and data foundation
 
@@ -809,7 +938,7 @@ fields) from Lookup; reuse of a geocoded Location does not overwrite
 coords; name-only entry still works with null coords.
 
 - [x] Add coordinate and address fields to `Location` (+ indexes)
-- [x] Migration (nullable fields; no backfill in migration)
+- [x] Migration (nullable fields; no data backfill in migration)
 - [x] Client: Places fields + hidden geo payload; Places pick saves Google
   lat/lon; custom/city-only after Lookup saves phone GPS
 - [x] Server: resolve/create with fill-in and overwrite rules
@@ -817,66 +946,88 @@ coords; name-only entry still works with null coords.
 - [x] Update `docs/google-places.md`
 - [x] Carry Lookup geo through setup to roster save step
 
-### Phase 2 - Backfill tool (CLI + Admin UI)
+### Phase 2 - Set place (map picker + assign) + merge duplicates
 
-**Done when:** staff can geocode large existing `lat IS NULL` libraries
-via Admin UI (candidates + mini-map); CLI works when a server key is
-configured; seed/demo and production libraries can be brought to useful
-coverage before map viewer work.
+**Status: 2a done. 2b >>> NEXT UP <<<.**
 
-- Admin UI backfill action (required): list ungeocoded locations,
-  Places search in browser, candidate modal with mini-map, confirm /
-  skip / manual coords
-- `geocode_locations` management command (interactive; needs
-  `GOOGLE_PLACES_SERVER_API_KEY`)
-- Document keys and operator workflow in `docs/google-places.md`
-- Backfill existing production / seed / demo locations as needed for
-  map and Ask coverage
+**Done when:** from Edit Game or Locations, user can open a map, search
+(editable query), drop pin, pin-lookup, pick a Google place, and Assign
+to update the Location row for all linked games; duplicate merge tool
+ships.
 
-### Phase 3 - Map picker
+**2a - Shared map picker + Set place assign**
 
-**Done when:** user can set location via GPS, text search, or drop pin;
-geo payload matches Phase 1 hidden fields (scenario B).
+- [x] `location_map.js`: assign mode (map, editable search, drop pin,
+  pin lookup, place select, Assign)
+- [x] Enable Geocoding API on browser key if needed
+- [x] Server: set-place POST on Location (`force` when replacing coords)
+- [x] Edit game: Set place on Location (primary entry)
+- [x] Locations list: geocoded badge; row action Set place (same modal)
+- [x] Game detail link when location set
+- [x] Update `docs/google-places.md` (map + search APIs)
+- [x] Update `docs/features.md`
 
-- "Set location" modal on game recording form
-- Modes: GPS lookup, text search, drop pin
-- Enable Geocoding API on the browser key if reverse geocode is used
-- Base `location_map.js` module
-- Update `docs/features.md`
+**2b - Find and merge duplicates**
+
+- [ ] Suggest duplicate pairs (fuzzy score + optional `place_id` match)
+- [ ] UI: review list, pick keeper, confirm (reuse combine flow)
+- [ ] Respect geo copy rules on merge
+- [ ] Update `docs/features.md`; close TODO "Merge similar locations tool"
+
+**Not in Phase 2:** CLI batch backfill, Record Game button swap (Phase 3)
+
+### Phase 3 - Map picker on Record Game
+
+**Status: not started.**
+
+**Done when:** Record Game uses the same `location_map.js` in `record`
+mode; Lookup button becomes Set location.
+
+- [ ] Wire modal to game form (Phase 1 hidden geo fields)
+- [ ] Keep Phase 1 Lookup as fallback until verified, then remove or merge
+- [ ] Update `docs/features.md`
 
 ### Phase 4 - Map viewer + leaderboard venue filter
+
+**Status: not started.**
 
 **Done when:** authenticated users can open `/games/map/` with filters;
 leaderboard UI can filter by venue.
 
-- `/games/map/` view, nav entry, empty state
-- `/api/map/locations/` GeoJSON endpoint with filters
-- Filter sidebar; viewport loading; Supercluster via CDN/vendor
-- Pin popup linking to filtered game list
-- Leaderboard UI location (venue) filter wired to existing service
-- Update `docs/features.md`
+- [ ] `/games/map/` view, nav entry, empty state
+- [ ] `/api/map/locations/` GeoJSON endpoint with filters
+- [ ] Filter sidebar; viewport loading; Supercluster via CDN/vendor
+- [ ] Pin popup linking to filtered game list
+- [ ] Leaderboard UI location (venue) filter wired to existing service
+- [ ] Update `docs/features.md`
 
 ### Phase 5 - Custom pins
 
-- HTML pin template per game type using `AdvancedMarkerElement`
-- Cluster badge annotation; selected/hover states
+**Status: not started.**
+
+- [ ] HTML pin template per game type using `AdvancedMarkerElement`
+- [ ] Cluster badge annotation; selected/hover states
 
 ### Phase 6 - AI / Ask geo extensions
+
+**Status: not started.**
 
 **Done when:** Ask can answer city/state venue questions when data
 exists; docs and **in-app** examples updated; sparse-data caveat
 documented.
 
-- Extend Ask tools for city/state (and document limits)
-- Enrich contextual insight JSON with city/state when present
-- Update `docs/ask-the-lodge-capabilities.md`
-- Update `docs/features.md` (location-aware Ask)
-- Update in-app Ask Examples: `leaderlodge/insights/ask_examples.py`
+- [ ] Extend Ask tools for city/state (and document limits)
+- [ ] Enrich contextual insight JSON with city/state when present
+- [ ] Update `docs/ask-the-lodge-capabilities.md`
+- [ ] Update `docs/features.md` (location-aware Ask)
+- [ ] Update in-app Ask Examples: `leaderlodge/insights/ask_examples.py`
   and the Examples UI (`/insights/ask/examples/`) with venue and
   city/state questions that match supported tools
 
 ### Phase 7 - Performance hardening
 
-- Server-side clustering if needed
-- Caching GeoJSON responses (invalidate on new game / location geocode)
-- Load testing with realistic pin counts
+**Status: not started.**
+
+- [ ] Server-side clustering if needed
+- [ ] Caching GeoJSON responses (invalidate on new game / location geocode)
+- [ ] Load testing with realistic pin counts

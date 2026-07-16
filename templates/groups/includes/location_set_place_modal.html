@@ -1,0 +1,121 @@
+<div
+  class="modal fade location-set-place-modal"
+  id="location-set-place-modal"
+  tabindex="-1"
+  aria-labelledby="location-set-place-modal-label"
+  aria-hidden="true"
+  data-api-key="{{ google_places_api_key }}"
+>
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      {# Own form so Enter in search does not submit the page Edit game form. #}
+      <form id="location-set-place-form" action="#" method="post">
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="location-set-place-modal-label">
+            Set place
+          </h2>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-2" id="location-set-place-subtitle"></p>
+
+          <div class="location-map-toolbar">
+            <div class="location-map-search-wrap">
+              <label class="visually-hidden" for="location-map-search-input"
+                >Search places</label
+              >
+              <input
+                type="search"
+                id="location-map-search-input"
+                class="form-control"
+                placeholder="Search for a place"
+                autocomplete="off"
+              />
+              <button
+                type="submit"
+                class="btn btn-outline-primary"
+                id="location-map-search-btn"
+              >
+                Search
+              </button>
+            </div>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              id="location-map-pin-lookup-btn"
+            >
+              Pin lookup
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              id="location-map-my-location-btn"
+            >
+              Use my location
+            </button>
+          </div>
+
+          <div
+            id="location-map-canvas"
+            class="location-map-canvas"
+            role="application"
+            aria-label="Map"
+          ></div>
+
+          <div
+            class="location-map-status text-danger"
+            id="location-map-status"
+            aria-live="polite"
+          ></div>
+
+          <ul
+            id="location-map-results"
+            class="location-map-results"
+            role="listbox"
+            aria-label="Place results"
+            hidden
+          ></ul>
+
+          <div class="location-map-selected" id="location-map-selected">
+            <span class="text-muted">Drop a pin or search, then pick a place.</span>
+          </div>
+
+          <div class="form-check mt-2">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              id="location-map-adopt-name"
+            />
+            <label class="form-check-label" for="location-map-adopt-name">
+              Use place name
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer flex-wrap">
+          <div class="location-map-footer-actions">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              id="location-map-clear-btn"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="location-map-assign-btn"
+              disabled
+            >
+              Assign
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

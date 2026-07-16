@@ -1,0 +1,47 @@
+<div
+  class="modal fade location-show-place-modal"
+  id="location-show-place-modal"
+  tabindex="-1"
+  aria-labelledby="location-show-place-modal-label"
+  aria-hidden="true"
+  data-api-key="{{ google_places_api_key }}"
+>
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="location-show-place-modal-label">
+          Show place
+        </h2>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-2" id="location-show-place-subtitle"></p>
+        <div
+          id="location-show-place-canvas"
+          class="location-map-canvas"
+          role="application"
+          aria-label="Map"
+        ></div>
+        <div
+          class="location-map-status text-danger"
+          id="location-show-place-status"
+          aria-live="polite"
+        ></div>
+      </div>
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          data-bs-dismiss="modal"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

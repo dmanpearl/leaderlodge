@@ -6,6 +6,9 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=2" />
+  {% if google_places_api_key and can_set_place %}
+    <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -76,6 +79,28 @@
         <label for="{{ form.location_name.id_for_label }}" class="col-4 col-form-label">{{ form.location_name.label }}</label>
         <div class="col-8">
           {% include "games/includes/location_field.html" with field=form.location_name show_label=False %}
+          {% if can_set_place and google_places_api_key %}
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+              <span class="d-inline-flex align-items-center text-nowrap">{% spaceless %}
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  data-location-set-place
+                  data-set-place-url="{% url 'groups:location_set_place' game.group.pk game.location.pk %}"
+                  data-location-name="{{ game.location.name }}"
+                  data-game-count="{{ location_game_count }}"
+                  {% if game.location.lat %}data-lat="{{ game.location.lat }}"{% endif %}
+                  {% if game.location.lon %}data-lon="{{ game.location.lon }}"{% endif %}
+                  title="Map"
+                  aria-label="Map"
+                ><i class="bi bi-map" aria-hidden="true"></i></button>{% if game.location.lat and game.location.lon %}&nbsp;<span class="badge text-bg-success location-geocoded-badge" title="Pin set"><i class="bi bi-pin-fill" aria-hidden="true"></i><span class="visually-hidden">Pin set</span></span>{% endif %}
+              {% endspaceless %}</span>
+              {% if not game.location.lat or not game.location.lon %}
+                <span class="text-muted small">No pin yet for this location</span>
+              {% endif %}
+            </div>
+            <div class="form-text">Assign saves the pin on the location row. You do not need Save changes for that.</div>
+          {% endif %}
         </div>
       </div>
 
@@ -124,6 +149,10 @@
       <a href="{% url 'games:detail' pk=game.pk %}" class="btn btn-outline-secondary">Cancel</a>
     </div>
   </form>
+
+  {% if can_set_place and google_places_api_key %}
+    {% include "groups/includes/location_set_place_modal.html" %}
+  {% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -133,6 +162,10 @@
   <script src="{% static 'js/location_autocomplete.js' %}?v=9"></script>
   {% if google_places_api_key %}
     <script src="{% static 'js/location_lookup.js' %}?v=2"></script>
+  {% endif %}
+  {% if can_set_place and google_places_api_key %}
+    <script src="{% static 'js/location_map.js' %}?v=2"></script>
+    <script src="{% static 'js/location_set_place.js' %}?v=2"></script>
   {% endif %}
   <script>
     (function () {

@@ -1,9 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
+from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
+import json
 
 from leaderlodge.accounts.email_verification import (
     is_email_verified,
@@ -858,9 +862,19 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
                 "game_count": loc.game_count,
                 "last_played": loc.last_played,
                 "game_pills": game_pills,
+                "is_geocoded": loc.lat is not None and loc.lon is not None,
             }
         )
-        location_data.append({"pk": loc.pk, "name": loc.name})
+        location_data.append(
+            {
+                "pk": loc.pk,
+                "name": loc.name,
+                "lat": loc.lat,
+                "lon": loc.lon,
+                "game_count": loc.game_count,
+                "is_geocoded": loc.lat is not None and loc.lon is not None,
+            }
+        )
 
     return render(
         request,
@@ -871,6 +885,7 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
             "location_data": location_data,
             "sort_field": sort_field,
             "sort_dir": sort_dir,
+            "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),
         },
     )
 
@@ -956,3 +971,83 @@ def location_delete(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
     location.delete()
     messages.success(request, f'Deleted "{name}".')
     return redirect("groups:location_manage", pk=group.pk)
+
+
+@login_required
+@require_POST
+def location_set_place(request: HttpRequest, pk: int, loc_pk: int) -> JsonResponse:
+    from leaderlodge.games.models import Game
+    from leaderlodge.groups.location_geo import location_geo_from_mapping
+    from leaderlodge.groups.location_place import set_location_place
+    from leaderlodge.groups.locations import ensure_group_location_library
+
+    group = get_object_or_404(Group, pk=pk)
+    if not can_manage_group_members(request.user, group):
+        raise Http404
+
+    library = ensure_group_location_library(group)
+    location = get_object_or_404(Location, pk=loc_pk, library=library)
+
+    try:
+        if request.content_type and "application/json" in request.content_type:
+            payload = json.loads(request.body.decode("utf-8") or "{}")
+        else:
+            payload = request.POST.dict()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"error": "Invalid request body."}, status=400)
+
+    geo = location_geo_from_mapping(payload)
+    if geo is None:
+        return JsonResponse({"error": "Valid coordinates are required."}, status=400)
+
+    has_coords = location.lat is not None and location.lon is not None
+    confirm_replace = str(payload.get("confirm_replace", "")).lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    if has_coords and not confirm_replace:
+        game_count = Game.objects.filter(location=location).count()
+        return JsonResponse(
+            {
+                "error": "confirm_required",
+                "message": "This location already has a pin.",
+                "game_count": game_count,
+            },
+            status=409,
+        )
+
+    adopt_place_name = str(payload.get("adopt_place_name", "")).lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    place_display_name = str(payload.get("place_display_name", "") or "").strip()
+
+    try:
+        set_location_place(
+            location=location,
+            geo=geo,
+            place_display_name=place_display_name,
+            adopt_place_name=adopt_place_name,
+            force=confirm_replace or not has_coords,
+        )
+    except ValidationError as exc:
+        message = exc.messages[0] if getattr(exc, "messages", None) else str(exc)
+        return JsonResponse({"error": message}, status=400)
+
+    location.refresh_from_db()
+    return JsonResponse(
+        {
+            "ok": True,
+            "location": {
+                "id": location.pk,
+                "name": location.name,
+                "lat": location.lat,
+                "lon": location.lon,
+                "city": location.city,
+                "state": location.state,
+                "geocode_source": location.geocode_source,
+            },
+        }
+    )

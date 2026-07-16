@@ -8,6 +8,9 @@
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
+  {% if can_set_place and google_places_api_key or can_show_place %}
+    <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -38,6 +41,39 @@
       {{ game.group.name }} &middot; {{ game.played_on|date:"M j, Y" }}
       {% if game.location %}
         &middot; {{ game.location.name }}
+        {% if can_set_place and google_places_api_key %}
+          &middot;<span class="text-nowrap">{% spaceless %}
+          <button
+            type="button"
+            class="btn btn-link btn-sm p-0 align-baseline"
+            data-location-set-place
+            data-set-place-url="{% url 'groups:location_set_place' game.group.pk game.location.pk %}"
+            data-location-name="{{ game.location.name }}"
+            data-game-count="{{ location_game_count }}"
+            {% if game.location.lat %}data-lat="{{ game.location.lat }}"{% endif %}
+            {% if game.location.lon %}data-lon="{{ game.location.lon }}"{% endif %}
+            title="Map"
+            aria-label="Map"
+          ><i class="bi bi-map" aria-hidden="true"></i></button>{% if location_is_geocoded %}&nbsp;<span class="badge text-bg-success location-geocoded-badge" title="Pin set"><i class="bi bi-pin-fill" aria-hidden="true"></i><span class="visually-hidden">Pin set</span></span>{% endif %}
+          {% endspaceless %}</span>
+        {% elif can_show_place %}
+          &middot;<span class="text-nowrap">{% spaceless %}
+          <button
+            type="button"
+            class="btn btn-link btn-sm p-0 align-baseline"
+            data-location-show-place
+            data-location-name="{{ game.location.name }}"
+            data-city="{{ game.location.city }}"
+            data-state="{{ game.location.state }}"
+            data-lat="{{ game.location.lat }}"
+            data-lon="{{ game.location.lon }}"
+            title="Map"
+            aria-label="Map"
+          ><i class="bi bi-map" aria-hidden="true"></i></button>{% if location_is_geocoded %}&nbsp;<span class="badge text-bg-success location-geocoded-badge" title="Pin set"><i class="bi bi-pin-fill" aria-hidden="true"></i><span class="visually-hidden">Pin set</span></span>{% endif %}
+          {% endspaceless %}</span>
+        {% elif location_is_geocoded %}
+          <span class="text-nowrap">&nbsp;<span class="badge text-bg-success location-geocoded-badge" title="Pin set"><i class="bi bi-pin-fill" aria-hidden="true"></i><span class="visually-hidden">Pin set</span></span></span>
+        {% endif %}
       {% endif %}
     </p>
   </div>
@@ -257,6 +293,13 @@
   {% if insights_enabled %}
     {% include "includes/matchup_insights_panel.html" with panel_id="game-detail-insights-panel" %}
   {% endif %}
+
+  {% if can_set_place and google_places_api_key %}
+    {% include "groups/includes/location_set_place_modal.html" %}
+  {% endif %}
+  {% if can_show_place %}
+    {% include "groups/includes/location_show_place_modal.html" %}
+  {% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -290,5 +333,12 @@
     {% include "includes/insights_result_script.html" %}
     {% include "includes/insights_debug_script.html" %}
     <script src="{% static 'js/insights_panel.js' %}"></script>
+  {% endif %}
+  {% if can_set_place and google_places_api_key %}
+    <script src="{% static 'js/location_map.js' %}?v=2"></script>
+    <script src="{% static 'js/location_set_place.js' %}?v=2"></script>
+  {% elif can_show_place %}
+    <script src="{% static 'js/location_map.js' %}?v=2"></script>
+    <script src="{% static 'js/location_show_place.js' %}?v=1"></script>
   {% endif %}
 {% endblock %}

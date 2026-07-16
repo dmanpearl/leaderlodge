@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -425,3 +427,141 @@ def test_resolve_game_location_accepts_geo(user):
     )
     assert location is not None
     assert location.lat == pytest.approx(33.985)
+
+
+@pytest.mark.django_db
+def test_location_set_place_sets_coords(client, user):
+    from leaderlodge.groups.location_geo import GEOCODE_SOURCE_TEXT_SEARCH
+    from leaderlodge.groups.locations import get_or_create_location
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = get_or_create_location(
+        library=group.location_library,
+        name="Cafe 50s",
+    )
+    url = reverse(
+        "groups:location_set_place",
+        kwargs={"pk": group.pk, "loc_pk": location.pk},
+    )
+    payload = {
+        "lat": 34.0522,
+        "lon": -118.2437,
+        "city": "Los Angeles",
+        "state": "CA",
+        "country": "US",
+        "place_id": "places/cafe50",
+        "geocode_source": GEOCODE_SOURCE_TEXT_SEARCH,
+        "place_display_name": "Cafe 50's",
+    }
+
+    client.force_login(user)
+    response = client.post(
+        url,
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["location"]["lat"] == pytest.approx(34.0522)
+    assert data["location"]["city"] == "Los Angeles"
+    location.refresh_from_db()
+    assert location.geocode_source == GEOCODE_SOURCE_TEXT_SEARCH
+
+
+@pytest.mark.django_db
+def test_location_set_place_requires_confirm_to_replace(client, user):
+    from leaderlodge.groups.location_geo import (
+        GEOCODE_SOURCE_GPS,
+        GEOCODE_SOURCE_TEXT_SEARCH,
+        LocationGeo,
+    )
+    from leaderlodge.groups.locations import get_or_create_location
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = get_or_create_location(
+        library=group.location_library,
+        name="Cafe 50s",
+        geo=LocationGeo(lat=34.0, lon=-118.0, geocode_source=GEOCODE_SOURCE_GPS),
+    )
+    url = reverse(
+        "groups:location_set_place",
+        kwargs={"pk": group.pk, "loc_pk": location.pk},
+    )
+    payload = {
+        "lat": 34.0522,
+        "lon": -118.2437,
+        "geocode_source": GEOCODE_SOURCE_TEXT_SEARCH,
+    }
+
+    client.force_login(user)
+    first = client.post(url, data=json.dumps(payload), content_type="application/json")
+    assert first.status_code == 409
+    assert first.json()["error"] == "confirm_required"
+
+    payload["confirm_replace"] = True
+    second = client.post(url, data=json.dumps(payload), content_type="application/json")
+    assert second.status_code == 200
+    location.refresh_from_db()
+    assert location.lat == pytest.approx(34.0522)
+    assert location.geocode_source == GEOCODE_SOURCE_TEXT_SEARCH
+
+
+@pytest.mark.django_db
+def test_location_set_place_adopts_place_name(client, user):
+    from leaderlodge.groups.location_geo import GEOCODE_SOURCE_TEXT_SEARCH
+    from leaderlodge.groups.locations import get_or_create_location
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = get_or_create_location(
+        library=group.location_library,
+        name="Cafe 50s",
+    )
+    url = reverse(
+        "groups:location_set_place",
+        kwargs={"pk": group.pk, "loc_pk": location.pk},
+    )
+    payload = {
+        "lat": 34.0522,
+        "lon": -118.2437,
+        "geocode_source": GEOCODE_SOURCE_TEXT_SEARCH,
+        "place_display_name": "Cafe 50's",
+        "adopt_place_name": True,
+    }
+
+    client.force_login(user)
+    response = client.post(
+        url,
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 200
+    location.refresh_from_db()
+    assert location.name == "Cafe 50's"
+
+
+@pytest.mark.django_db
+def test_location_set_place_requires_membership(client, user):
+    from leaderlodge.groups.locations import get_or_create_location
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = get_or_create_location(
+        library=group.location_library,
+        name="Cafe 50s",
+    )
+    stranger = User.objects.create_user(username="stranger", password="pass")
+    url = reverse(
+        "groups:location_set_place",
+        kwargs={"pk": group.pk, "loc_pk": location.pk},
+    )
+
+    client.force_login(stranger)
+    response = client.post(
+        url,
+        data=json.dumps({"lat": 34.0, "lon": -118.0, "geocode_source": "map_pin"}),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 404

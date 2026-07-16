@@ -137,10 +137,11 @@
 - [x] 3232eeb Add Teammate button sometimes displayed incorrectly. When displaying due to user adding a new player during game recording, the label gets incorrectly displayed on mobile as 'Add Teammate'. Should be '+ Teammate' on mobile
 - [x] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [x] 856ae12 Leaderboard: Replace vesting with Bayesian prior (games / (games + k)); add provisional 'New' badge for players below game threshold
-- [ ] Game location: Save Additional Game location information including lat-lon to support eventual map display showing pins for game locations. Users will e allowed to place a pin in a map to represent their game play location (plan: docs/location-map.md)
+- [x] Game location: Phase 2a Set place (map + search + assign) shipped; Phase 3 Record Game picker per docs/location-map.md
 
 ## Open Items
 
+- [ ] Record Game: Make it easier to go back and set location during user selections
 - [ ] Add Favicon
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
@@ -165,7 +166,7 @@
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
-- [ ] Merge similar locations tool
+- [ ] Merge similar locations tool (plan: docs/location-map.md Phase 2b)
 - [ ] Add Contact form.
 - [ ] iOS: Build native mobile app for iPhone and iPad
 - [ ] Android: Build native mobile app for Android

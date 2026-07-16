@@ -155,6 +155,8 @@ individual leaderboard credit still applied
 
 - Fuzzy player/user/guest name auto-complete on game recording forms
 - Fuzzy location name auto-complete on game recording forms
+- **Set place** map picker for group managers (Edit game, Game detail, Locations list): search, drop pin, pin lookup, assign geo to a location row
+- **Show place** read-only map on Game detail for other members when a pin is set
 - Substring matching for locations and players
 
 ## Admin Interface

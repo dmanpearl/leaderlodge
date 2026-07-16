@@ -4,7 +4,7 @@
 {% block title %}{{ selected_game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=4" />
 {% endblock %}
 
 {% block content %}
@@ -210,7 +210,7 @@
                 </th>
               {% endif %}
               {% if show_location_column %}
-                <th scope="col" class="game-list-nowrap-col">Location</th>
+                <th scope="col" class="game-list-location-col">Location</th>
               {% endif %}
               {% for player in player_columns %}
                 <th scope="col" class="text-center game-list-player-col">
@@ -245,9 +245,22 @@
                   </td>
                 {% endif %}
                 {% if show_location_column %}
-                  <td class="text-muted game-list-nowrap-col">
+                  <td class="text-muted game-list-location-col">
                     {% if row.game.location %}
-                      {{ row.game.location.name }}
+                      <div class="game-list-location">
+                        {% if row.game.location.lat is not None and row.game.location.lon is not None %}
+                          <i
+                            class="bi bi-pin-fill game-list-location-pin"
+                            title="Pin set"
+                            aria-hidden="true"
+                          ></i>
+                          <span class="visually-hidden">Pin set</span>
+                        {% endif %}
+                        <span
+                          class="game-list-location-name"
+                          title="{{ row.game.location.name }}"
+                        >{{ row.game.location.name }}</span>
+                      </div>
                     {% endif %}
                   </td>
                 {% endif %}
@@ -281,7 +294,7 @@
                 </th>
               {% endif %}
               {% if show_location_column %}
-                <th scope="col" class="game-list-nowrap-col">Location</th>
+                <th scope="col" class="game-list-location-col">Location</th>
               {% endif %}
               {% for player in player_columns %}
                 <th scope="col" class="text-center game-list-player-col">

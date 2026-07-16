@@ -39,8 +39,11 @@ If you already have a suitable project, select it and skip this step.
 1. In the left nav, go to **APIs and Services** > **Library**.
 2. Search for and enable **Maps JavaScript API**.
 3. Search for and enable **Places API (New)**.
+4. Search for and enable **Geocoding API** (reverse geocode for map pin assigns).
 
-Both are required. The Maps JavaScript API loads the client library. Places API (New) handles the nearby search. The legacy Places API does not accept new customers as of March 2025.
+Both Maps JavaScript API and Places API (New) are required for Lookup.
+Geocoding API is required for **Set place** when the user drops a pin
+without picking a Places result.
 
 ---
 
@@ -73,10 +76,10 @@ Both are required. The Maps JavaScript API loads the client library. Places API 
 
    Add `https://*.up.railway.app/*` only if you need to test on a Railway preview URL.
 
-7. Under **API restrictions**, select **Restrict key**, then check **Maps JavaScript API** and **Places API (New)** in the list.
+7. Under **API restrictions**, select **Restrict key**, then check **Maps JavaScript API**, **Places API (New)**, and **Geocoding API** in the list.
 8. Click **Save**.
 
-The key now only works from your listed domains and only for the Places API.
+The key now only works from your listed domains and for the enabled Maps APIs.
 
 ---
 
@@ -143,6 +146,32 @@ no Google place point. A Places pick always prefers Google coordinates.
 Fields that may be saved: `lat`, `lon`, `city`, `state`, `country`,
 `postal_code`, `street_address`, `place_id`, `geocode_source`,
 `geocode_at`. See `docs/location-map.md` for the full location map plan.
+
+---
+
+## Set place on map (Phase 2a)
+
+Group managers can open **Set place** from **Edit game**, **Game detail**
+(when a location is set), or the group **Locations** list. The modal
+includes:
+
+- Editable Places text search (pre-filled from the informal location name)
+- Map with draggable pin (click map to drop)
+- **Pin lookup** (nearby Places at the pin, same types as Lookup)
+- Optional **Use my location** (centers map; not the default for assign)
+- **Assign** writes geo to the `Location` row for all games using it
+
+| User action | `geocode_source` |
+|-------------|------------------|
+| Picks a Places search or pin-lookup result | `text_search` or `places_lookup` |
+| Drops pin only (reverse geocode) | `map_pin` |
+| Use my location then pin lookup | `gps` or `places_lookup` |
+
+Assign replaces existing coords only after confirm. Optional **Use place
+name** renames the location to the Google place display name.
+
+Server endpoint: `POST /groups/<group_id>/locations/<location_id>/set-place/`
+(JSON geo payload).
 
 ---
 

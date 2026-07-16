@@ -288,6 +288,61 @@
   width: 1%;
 }
 
+.game-list .game-list-location-col {
+  box-sizing: border-box;
+  width: 11rem;
+  min-width: 10rem;
+  max-width: 11rem;
+  vertical-align: middle;
+}
+
+/* Pin sits beside the name block (not inside line-clamp), so it cannot
+   wrap onto its own line. Name clamps to 2 layout lines. */
+.game-list-location {
+  display: flex;
+  align-items: flex-start;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 9.75rem;
+  max-width: 11rem;
+}
+
+.game-list-location-pin {
+  flex: 0 0 auto;
+  margin-top: 0.15em;
+  margin-right: 0.25rem;
+  font-size: 0.85em;
+  line-height: 1;
+  color: var(--bs-success, #198754);
+}
+
+.game-list-location-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Few player columns (comfortable): give location more room on desktop. */
+@media (min-width: 768px) {
+  .game-list-density--comfortable .game-list-location-col {
+    width: 16rem;
+    min-width: 14rem;
+    max-width: 18rem;
+  }
+
+  .game-list-density--comfortable .game-list-location {
+    min-width: 13.75rem;
+    max-width: 18rem;
+  }
+}
+
 .game-list-density--comfortable .game-list-table-card,
 .game-list-density--comfortable .game-list-stats-card,
 .game-list-density--compact .game-list-table-card,
@@ -346,7 +401,7 @@
   padding: 0.5rem;
 }
 
-.game-list-density--compact .game-list-data-table> :not(caption)>*>* {
+.game-list-density--compact .game-list-data-table > :not(caption) > * > * {
   padding: 0.2rem 0.35rem;
 }
 
@@ -407,11 +462,11 @@
   padding: 0.25rem;
 }
 
-.game-list-density--dense .game-list-data-table> :not(caption)>*>* {
+.game-list-density--dense .game-list-data-table > :not(caption) > * > * {
   padding: 0.1rem 0.25rem;
 }
 
-.game-list-density--dense .game-list-stats-table> :not(caption)>*>* {
+.game-list-density--dense .game-list-stats-table > :not(caption) > * > * {
   padding: 0.08rem 0.2rem;
 }
 

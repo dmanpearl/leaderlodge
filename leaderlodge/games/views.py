@@ -984,6 +984,23 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     results = list(game.participant_results.order_by("placement", "pk"))
     apply_label_overrides([r.player for r in results])
     can_invite_guests = can_manage_group_members(request.user, game.group)
+    can_set_place = can_invite_guests and game.location is not None
+    location_is_geocoded = bool(
+        game.location
+        and game.location.lat is not None
+        and game.location.lon is not None
+    )
+    google_places_api_key = getattr(settings, "GOOGLE_PLACES_API_KEY", "")
+    can_show_place = (
+        (not can_set_place) and location_is_geocoded and bool(google_places_api_key)
+    )
+    location_game_count = 0
+    if game.location_id:
+        from leaderlodge.games.models import Game as GameModel
+
+        location_game_count = GameModel.objects.filter(
+            location_id=game.location_id
+        ).count()
     show_record_again = (
         can_edit_group(request.user, game.group)
         and request.GET.get("record_again") == "1"
@@ -1016,6 +1033,11 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "selected_insight_model": preferred_insight_model_id(request),
             "can_edit_game": user_can_edit_game(request.user, game),
             "can_invite_guests": can_invite_guests,
+            "can_set_place": can_set_place,
+            "can_show_place": can_show_place,
+            "location_is_geocoded": location_is_geocoded,
+            "location_game_count": location_game_count,
+            "google_places_api_key": google_places_api_key,
             "show_record_again": show_record_again,
         },
     )
@@ -1070,6 +1092,18 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
         for r in results
     ]
 
+    can_set_place = (
+        can_manage_group_members(request.user, game.group)
+        and game.location_id is not None
+    )
+    location_game_count = 0
+    if game.location_id:
+        from leaderlodge.games.models import Game as GameModel
+
+        location_game_count = GameModel.objects.filter(
+            location_id=game.location_id
+        ).count()
+
     return render(
         request,
         "games/game_edit.html",
@@ -1082,5 +1116,7 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "participant_form_rows": participant_form_rows,
             "is_double": game.double_weight == 2,
             "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),
+            "can_set_place": can_set_place,
+            "location_game_count": location_game_count,
         },
     )

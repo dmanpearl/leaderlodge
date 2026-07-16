@@ -5,6 +5,9 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/groups.css' %}" />
+  {% if google_places_api_key %}
+    <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -39,6 +42,7 @@
                   <a href="?sort=name&amp;dir=asc" class="location-sort-link">Name</a>
                 {% endif %}
               </th>
+              <th scope="col">Pin</th>
               <th scope="col">Games</th>
               <th scope="col">
                 {% if sort_field == "count" %}
@@ -71,6 +75,13 @@
             {% for row in location_rows %}
               <tr>
                 <td>{{ row.location.name }}</td>
+                <td>
+                  {% if row.is_geocoded %}
+                    <span class="badge text-bg-success location-geocoded-badge">Yes</span>
+                  {% else %}
+                    <span class="text-muted small">No</span>
+                  {% endif %}
+                </td>
                 <td>
                   {% for pill in row.game_pills %}<span
                       class="badge rounded-pill location-game-pill"
@@ -109,6 +120,23 @@
                           Rename
                         </button>
                       </li>
+                      {% if google_places_api_key %}
+                        <li>
+                          <button
+                            type="button"
+                            class="dropdown-item d-flex align-items-center gap-2"
+                            data-location-set-place
+                            data-set-place-url="{% url 'groups:location_set_place' group.pk row.location.pk %}"
+                            data-location-name="{{ row.location.name }}"
+                            data-game-count="{{ row.game_count }}"
+                            {% if row.location.lat %}data-lat="{{ row.location.lat }}"{% endif %}
+                            {% if row.location.lon %}data-lon="{{ row.location.lon }}"{% endif %}
+                          >
+                            <i class="bi bi-map" aria-hidden="true"></i>
+                            Map
+                          </button>
+                        </li>
+                      {% endif %}
                       {% if location_rows|length > 1 %}
                         <li>
                           <button
@@ -153,6 +181,10 @@
     </div>
   {% else %}
     <p class="text-muted">No locations recorded yet.</p>
+  {% endif %}
+
+  {% if google_places_api_key %}
+    {% include "groups/includes/location_set_place_modal.html" %}
   {% endif %}
 
   <!-- Rename modal -->
@@ -281,6 +313,10 @@
 {% endblock %}
 
 {% block extra_js %}
+  {% if google_places_api_key %}
+    <script src="{% static 'js/location_map.js' %}?v=2"></script>
+    <script src="{% static 'js/location_set_place.js' %}?v=2"></script>
+  {% endif %}
   <script>
     (function () {
       var locationData = JSON.parse(
