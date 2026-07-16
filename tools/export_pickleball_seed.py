@@ -112,7 +112,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=ROOT / "data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx",
+        default=ROOT / "data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx",
         help="Output .xlsx path",
     )
     args = parser.parse_args()

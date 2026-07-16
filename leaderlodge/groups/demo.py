@@ -14,14 +14,14 @@ GUEST_DEMO_PAGE_NOTICE = (
 )
 
 DEMO_SEED_IMPORTS: tuple[tuple[str, str], ...] = (
-    ("dominos", "data/seeds/dominos/dominos_demo_2026-06-22.xlsx"),
-    ("backgammon", "data/seeds/backgammon/backgammon_demo_2026-06-22.xlsx"),
+    ("dominos", "data/seeds/dominos/dominos_demo_2026-07-16.xlsx"),
+    ("backgammon", "data/seeds/backgammon/backgammon_demo_2026-07-16.xlsx"),
     (
         "progressiverummy",
-        "data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx",
+        "data/seeds/progressiverummy/progressiverummy_demo_2026-07-16.xlsx",
     ),
-    ("mahjongg", "data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx"),
-    ("pickleball", "data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx"),
+    ("mahjongg", "data/seeds/mahjongg/mahjongg_demo_2026-07-16.xlsx"),
+    ("pickleball", "data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx"),
 )
 
 

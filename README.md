@@ -102,10 +102,10 @@ railway run python manage.py setup_site_settings --email=you@example.com
 Create the `manpearl` group and link players in the app, then import seeds:
 
 ```bash
-railway run python manage.py import_games -g manpearl --game-type dominos data/seeds/dominos/dominos_seed_2026-06-16.xlsx
-railway run python manage.py import_games -g manpearl --game-type backgammon data/seeds/backgammon/backgammon_seed_2026-06-16.xlsx
-railway run python manage.py import_games -g manpearl --game-type progressiverummy data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx
-railway run python manage.py import_games -g manpearl --game-type pickleball data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
+railway run python manage.py import_games -g manpearl --game-type dominos data/seeds/dominos/dominos_seed_2026-07-16.xlsx
+railway run python manage.py import_games -g manpearl --game-type backgammon data/seeds/backgammon/backgammon_seed_2026-07-16.xlsx
+railway run python manage.py import_games -g manpearl --game-type progressiverummy data/seeds/progressiverummy/progressiverummy_seed_2026-07-16.xlsx
+railway run python manage.py import_games -g manpearl --game-type pickleball data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx
 ```
 
 ### Demo group (anonymous visitors)
@@ -118,11 +118,11 @@ railway run python manage.py setup_demo
 
 This creates **Demo**, sets `is_demo=True`, and imports:
 
-- `data/seeds/dominos/dominos_demo_2026-06-22.xlsx`
-- `data/seeds/backgammon/backgammon_demo_2026-06-22.xlsx`
-- `data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx`
-- `data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx`
-- `data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx`
+- `data/seeds/dominos/dominos_demo_2026-07-16.xlsx`
+- `data/seeds/backgammon/backgammon_demo_2026-07-16.xlsx`
+- `data/seeds/progressiverummy/progressiverummy_demo_2026-07-16.xlsx`
+- `data/seeds/mahjongg/mahjongg_demo_2026-07-16.xlsx`
+- `data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx`
 
 See [Demo group setup](docs/setup.md#demo-group-public-read-only) and [Importing — Demo seeds](docs/importing.md#demo-group-seeds) for local use, `--dry-run`, and manual import alternatives.
 

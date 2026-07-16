@@ -748,7 +748,7 @@ def test_sides_have_shared_members_detects_overlap():
 
 @pytest.mark.django_db
 def test_import_committed_pickleball_demo_seed(group, user):
-    path = Path("data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx")
+    path = Path("data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx")
     if not path.is_file():
         pytest.skip("Pickleball demo seed not present")
 

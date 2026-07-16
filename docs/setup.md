@@ -97,7 +97,7 @@ Quick example:
 python manage.py import_games \
   --group "manpearl" \
   --game-type dominos \
-  data/seeds/dominos/dominos_seed_2026-06-16.xlsx
+  data/seeds/dominos/dominos_seed_2026-07-16.xlsx
 ```
 
 ## Demo group (public read-only)

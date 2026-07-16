@@ -7,13 +7,17 @@ LeaderLodge can import historical games from Excel **ScoreKeeper** workbooks. Im
 Store versioned seed files under `data/seeds/<game-type>/`:
 
 ```text
-data/seeds/dominos/dominos_seed_2026-06-16.xlsx
-data/seeds/backgammon/backgammon_seed_2026-06-16.xlsx
-data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx
-data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
+data/seeds/dominos/dominos_seed_2026-07-16.xlsx
+data/seeds/backgammon/backgammon_seed_2026-07-16.xlsx
+data/seeds/progressiverummy/progressiverummy_seed_2026-07-16.xlsx
+data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx
 ```
 
 Date-stamped filenames act as lightweight version control for binary spreadsheets. You can keep older exports alongside newer ones; each file is identified separately during import.
+
+Location names in the **Where** column can be normalized with
+`tools/rewrite_seed_locations.py` (writes a new dated copy; does not add
+lat/lon).
 
 Progressive Rummy, Mah Jongg, and Pickleball use a **Raw Games** worksheet in a separate seed format (see below).
 
@@ -50,22 +54,22 @@ source venv/bin/activate
 python manage.py import_games \
   --group "Family" \
   --game-type dominos \
-  data/seeds/dominos/dominos_seed_2026-06-16.xlsx
+  data/seeds/dominos/dominos_seed_2026-07-16.xlsx
 
 python manage.py import_games \
   -g 3 \
   --game-type backgammon \
-  data/seeds/backgammon/backgammon_seed_2026-06-16.xlsx
+  data/seeds/backgammon/backgammon_seed_2026-07-16.xlsx
 
 python manage.py import_games \
   --group "Family" \
   --game-type progressiverummy \
-  data/seeds/progressiverummy/progressiverummy_seed_2026-06-16.xlsx
+  data/seeds/progressiverummy/progressiverummy_seed_2026-07-16.xlsx
 
 python manage.py import_games \
   --group Demo \
   --game-type pickleball \
-  data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
+  data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx
 ```
 
 ### Options
@@ -186,7 +190,7 @@ To build a spreadsheet from games already in the database:
 
 ```bash
 python tools/export_pickleball_seed.py --group Demo \
-  --output data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
+  --output data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx
 ```
 
 ## Demo group seeds
@@ -194,11 +198,11 @@ python tools/export_pickleball_seed.py --group Demo \
 Bundled demo spreadsheets use fictional player names and live in the repo under `data/seeds/`:
 
 ```text
-data/seeds/dominos/dominos_demo_2026-06-22.xlsx
-data/seeds/backgammon/backgammon_demo_2026-06-22.xlsx
-data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx
-data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx
-data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
+data/seeds/dominos/dominos_demo_2026-07-16.xlsx
+data/seeds/backgammon/backgammon_demo_2026-07-16.xlsx
+data/seeds/progressiverummy/progressiverummy_demo_2026-07-16.xlsx
+data/seeds/mahjongg/mahjongg_demo_2026-07-16.xlsx
+data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx
 ```
 
 ### One-command demo setup
@@ -235,19 +239,19 @@ To import demo seeds manually instead:
 
 ```bash
 python manage.py import_games --group Demo --game-type dominos \
-  data/seeds/dominos/dominos_demo_2026-06-22.xlsx
+  data/seeds/dominos/dominos_demo_2026-07-16.xlsx
 
 python manage.py import_games --group Demo --game-type backgammon \
-  data/seeds/backgammon/backgammon_demo_2026-06-22.xlsx
+  data/seeds/backgammon/backgammon_demo_2026-07-16.xlsx
 
 python manage.py import_games --group Demo --game-type progressiverummy \
-  data/seeds/progressiverummy/progressiverummy_demo_2026-06-22.xlsx
+  data/seeds/progressiverummy/progressiverummy_demo_2026-07-16.xlsx
 
 python manage.py import_games --group Demo --game-type mahjongg \
-  data/seeds/mahjongg/mahjongg_demo_2026-06-22.xlsx
+  data/seeds/mahjongg/mahjongg_demo_2026-07-16.xlsx
 
 python manage.py import_games --group Demo --game-type pickleball \
-  data/seeds/pickleball/pickleball_demo_2026-07-04.xlsx
+  data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx
 ```
 
 ## Dependencies
