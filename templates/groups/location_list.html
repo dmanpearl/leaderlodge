@@ -75,11 +75,14 @@
             {% for row in location_rows %}
               <tr>
                 <td>{{ row.location.name }}</td>
-                <td>
+                <td class="text-center">
                   {% if row.is_geocoded %}
-                    <span class="badge text-bg-success location-geocoded-badge">Yes</span>
-                  {% else %}
-                    <span class="text-muted small">No</span>
+                    <i
+                      class="bi bi-pin-fill text-success"
+                      title="Pin set"
+                      aria-hidden="true"
+                    ></i>
+                    <span class="visually-hidden">Pin set</span>
                   {% endif %}
                 </td>
                 <td>

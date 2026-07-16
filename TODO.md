@@ -137,10 +137,11 @@
 - [x] 3232eeb Add Teammate button sometimes displayed incorrectly. When displaying due to user adding a new player during game recording, the label gets incorrectly displayed on mobile as 'Add Teammate'. Should be '+ Teammate' on mobile
 - [x] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [x] 856ae12 Leaderboard: Replace vesting with Bayesian prior (games / (games + k)); add provisional 'New' badge for players below game threshold
-- [x] Game location: Phase 2a Set place (map + search + assign) shipped; Phase 3 Record Game picker per docs/location-map.md
+- [x] 0875d24 Game location: Phase 2a Set place (map + search + assign) shipped; Phase 3 Record Game picker per docs/location-map.md
 
 ## Open Items
 
+- [ ] Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other. I prefer the larger system size, but I want to follow the path of least resistance
 - [ ] Record Game: Make it easier to go back and set location during user selections
 - [ ] Add Favicon
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
