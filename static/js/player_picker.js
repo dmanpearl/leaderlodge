@@ -185,7 +185,7 @@
               }
             </span>
             <span class="d-flex align-items-center gap-1 flex-shrink-0">
-              <button type="button" class="btn btn-sm btn-outline-primary" data-add-teammate>Add Teammate</button>
+              <button type="button" class="btn btn-sm btn-outline-primary" data-add-teammate><span class="d-none d-sm-inline">Add Teammate</span><span class="d-sm-none">+ Teammate</span></button>
               <button type="button" class="btn btn-sm btn-outline-secondary" data-remove-participant aria-label="Remove player">&times;</button>
             </span>
           </div>

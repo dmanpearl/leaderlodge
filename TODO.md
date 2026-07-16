@@ -133,11 +133,11 @@
 - [x] 704cd8b Record Game: Reuse allows pick from multiple sets of players/teammates recent games instead of only the most recent (https://leaderlodge.com/admin/feedback/feedback/12/change/)
 - [x] 0f35103 Fine tune 'Locate' function to discover parks (ie city parks) and reduce radius from 800m to 600m
 - [x] 8dbfe9b Date filtering for Games and Leaderboards adds day granularity: Shared period presets + optional date range for Games and Leaderboards; Ask reuses the same resolver
-- [x] Feedback notification email url should be working link instead of relative path (ex. /admin/feedback/feedback/13). Also determine if '/change/' portion of url is necessary and best practice (https://leaderlodge.com/admin/feedback/feedback/13)
+- [x] 5e27505 Feedback notification email url should be working link instead of relative path (ex. /admin/feedback/feedback/13). Also determine if '/change/' portion of url is necessary and best practice (https://leaderlodge.com/admin/feedback/feedback/13)
+- [x] Add Teammate button sometimes displayed incorrectly. When displaying due to user adding a new player during game recording, the label gets incorrectly displayed on mobile as 'Add Teammate'. Should be '+ Teammate' on mobile
 
 ## Open Items
 
-- [ ] Add Teammate button sometimes displayed incorrectly. When displaying due to user adding a new player during game recording, the label gets incorrectly displayed on mobile as 'Add Teammate'. Should be '+ Teammate' on mobile
 - [ ] Game location: Save Additional Game location information including lat-lon to support eventual map display showing pins for game locations. Users will also eventually be allowed to place a pin in a map to represent their game play location
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
