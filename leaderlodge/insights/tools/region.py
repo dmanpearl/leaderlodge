@@ -114,6 +114,7 @@ class RegionMatch:
     locations: tuple[Location, ...]
     venues_in_library: int
     venues_with_city_or_state: int
+    exclude: bool = False
 
     @property
     def location_ids(self) -> list[int]:
@@ -136,18 +137,62 @@ class RegionMatch:
             parts.append(
                 state_display_label(self.state) if len(self.state) == 2 else self.state
             )
-        return ", ".join(parts) if parts else "region"
+        label = ", ".join(parts) if parts else "region"
+        if self.exclude:
+            return f"outside {label}"
+        return label
 
     def coverage_note(self) -> str | None:
         if not self.locations:
             return None
         if not self.coverage_thin:
+            if self.exclude:
+                return (
+                    "Outside-region rankings only include venues with city/state "
+                    "filled that do not match the excluded region. Venues with "
+                    "blank city/state are omitted."
+                )
             return None
-        return (
+        note = (
             f"Only {self.venues_with_city_or_state} of {self.venues_in_library} "
             "saved venues have city or state filled. Regional rankings only include "
             "games at matched venues with geo fields; other games are omitted."
         )
+        if self.exclude:
+            note += " Outside-region queries also omit venues with blank city/state."
+        return note
+
+
+def _location_matches_region(location: Location, *, city_q: str, state_q: str) -> bool:
+    if city_q and location.city.strip().lower() != city_q.lower():
+        return False
+    if state_q and location.state.strip().lower() != state_q.lower():
+        return False
+    return True
+
+
+def _exclude_region_locations(
+    library: list[Location], *, city_q: str, state_q: str
+) -> tuple[Location, ...]:
+    """Venues with known geo that do not match the excluded city/state."""
+    if state_q and not city_q:
+        return tuple(
+            loc
+            for loc in library
+            if loc.state.strip() and loc.state.strip().lower() != state_q.lower()
+        )
+    if city_q and not state_q:
+        return tuple(
+            loc
+            for loc in library
+            if loc.city.strip() and loc.city.strip().lower() != city_q.lower()
+        )
+    return tuple(
+        loc
+        for loc in library
+        if (loc.city.strip() or loc.state.strip())
+        and not _location_matches_region(loc, city_q=city_q, state_q=state_q)
+    )
 
 
 def resolve_region_locations(
@@ -155,6 +200,7 @@ def resolve_region_locations(
     *,
     city: str | None = None,
     state: str | None = None,
+    exclude: bool = False,
 ) -> RegionMatch:
     city_raw = city or ""
     state_raw = state or ""
@@ -168,12 +214,14 @@ def resolve_region_locations(
     library = list(locations_for_group(group))
     venues_with_geo = sum(1 for loc in library if loc.city.strip() or loc.state.strip())
 
-    matched = tuple(
-        loc
-        for loc in library
-        if (not city_q or loc.city.strip().lower() == city_q.lower())
-        and (not state_q or loc.state.strip().lower() == state_q.lower())
-    )
+    if exclude:
+        matched = _exclude_region_locations(library, city_q=city_q, state_q=state_q)
+    else:
+        matched = tuple(
+            loc
+            for loc in library
+            if _location_matches_region(loc, city_q=city_q, state_q=state_q)
+        )
 
     if not matched:
         label_parts: list[str] = []
@@ -181,8 +229,10 @@ def resolve_region_locations(
             label_parts.append(f"city={city_q!r}")
         if state_q:
             label_parts.append(f"state={state_q!r}")
+        scope = "outside " if exclude else ""
         raise ValueError(
             "No venues matched "
+            + scope
             + " and ".join(label_parts)
             + " in this group. Regional answers need city/state on saved venues."
         )
@@ -193,6 +243,7 @@ def resolve_region_locations(
         locations=matched,
         venues_in_library=len(library),
         venues_with_city_or_state=venues_with_geo,
+        exclude=exclude,
     )
 
 
@@ -201,6 +252,7 @@ def region_match_payload(match: RegionMatch) -> dict:
     payload = {
         "city": match.city or None,
         "state": match.state or None,
+        "exclude": match.exclude,
         "region_label": match.region_label(),
         "matched_venue_count": len(match.locations),
         "matched_venues": [

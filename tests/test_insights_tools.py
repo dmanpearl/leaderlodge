@@ -647,6 +647,80 @@ def test_query_region_leaderboard_filters_by_city(user, group):
 
 
 @pytest.mark.django_db
+def test_query_region_leaderboard_exclude_state(user, group):
+    from datetime import date
+
+    from leaderlodge.groups.location_geo import (
+        GEOCODE_SOURCE_PLACES_LOOKUP,
+        LocationGeo,
+    )
+    from leaderlodge.groups.locations import get_or_create_location
+    from leaderlodge.insights.tools.standings import query_region_leaderboard
+
+    ca = get_or_create_location(
+        library=group.location_library,
+        name="LA Spot",
+        geo=LocationGeo(
+            lat=34.05,
+            lon=-118.25,
+            city="Los Angeles",
+            state="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    ny = get_or_create_location(
+        library=group.location_library,
+        name="NY Spot",
+        geo=LocationGeo(
+            lat=40.7,
+            lon=-74.0,
+            city="New York",
+            state="NY",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    get_or_create_location(library=group.location_library, name="No Geo Spot")
+
+    players = list(group.players.order_by("pk")[:2])
+    for location in (ca, ny):
+        rows = [
+            {"player": players[0], "score": 35},
+            {"player": players[1], "score": 20},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        participants = [
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ]
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=date(2026, 5, 1),
+            location=location,
+            participants=participants,
+        )
+
+    result = query_region_leaderboard(
+        group,
+        game_type_code="dominos",
+        state="California",
+        exclude=True,
+    )
+
+    assert result["exclude"] is True
+    assert result["region_label"] == "outside California"
+    assert result["matched_venue_count"] == 1
+    assert result["matched_venues"][0]["name"] == "NY Spot"
+    assert result["rankings"][0]["games_played"] == 1
+
+
+@pytest.mark.django_db
 def test_tool_executor_query_region_leaderboard(user, group):
     from leaderlodge.groups.location_geo import (
         GEOCODE_SOURCE_PLACES_LOOKUP,

@@ -367,10 +367,12 @@ ASK_TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "query_region_leaderboard",
             "description": (
-                "Leaderboard for games across all venues in a city and/or state. "
-                "Use for questions like who plays best in Santa Monica or "
-                "California. Pass US state as full name or two-letter code. "
-                "Requires city/state on saved venues; check coverage_thin."
+                "Leaderboard for games across venues in a city and/or state. "
+                "Use for who plays best in Santa Monica or California. "
+                "For outside California / outside a city, pass the same "
+                "city/state with exclude=true. Pass US state as full name or "
+                "two-letter code. Requires city/state on saved venues; check "
+                "coverage_thin."
             ),
             "parameters": {
                 "type": "object",
@@ -387,6 +389,14 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                             "US full names are normalized to two-letter codes."
                         ),
                     },
+                    "exclude": {
+                        "type": "boolean",
+                        "description": (
+                            "When true, rank games at venues outside the "
+                            "given city/state (venues with blank city/state "
+                            "are omitted). Use for outside California."
+                        ),
+                    },
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
                     "limit": {"type": "integer"},
@@ -401,7 +411,8 @@ ASK_TOOL_SCHEMAS: list[dict] = [
             "name": "query_play_locations",
             "description": (
                 "Venues ranked by how many games were played there. "
-                "Optional city and/or state limit the set. Use for "
+                "Optional city and/or state limit the set; exclude=true "
+                "selects venues outside that region. Use for "
                 "where do we play most questions."
             ),
             "parameters": {
@@ -410,6 +421,13 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     "game_type_code": {"type": "string"},
                     "city": {"type": "string"},
                     "state": {"type": "string"},
+                    "exclude": {
+                        "type": "boolean",
+                        "description": (
+                            "When true with city/state, only venues outside "
+                            "that region (blank city/state omitted)."
+                        ),
+                    },
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
                     "limit": {"type": "integer"},

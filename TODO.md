@@ -142,7 +142,7 @@
 - [x] f7d3aee Location: Find duplicates on Locations page (fuzzy name + place_id pairs; merge via combine)
 - [x] e257530 Location: Record Game Map picker (record mode; Near me / Search kept)
 - [x] 8b34372 Location: Phase 4 Games Map viewer + leaderboard venue filter (Demo map for anonymous)
-- [x] Location: AI Insights/Ask city/state region leaderboard + play-locations tools
+- [x] 7e73826 Location: AI Insights/Ask city/state region leaderboard + play-locations tools
 
 ## Open Items
 

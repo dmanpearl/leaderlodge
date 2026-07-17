@@ -404,6 +404,21 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
         ),
     ),
     _example(
+        "Outside a state",
+        ("Who plays best outside of California?", "Who leads outside CA?"),
+        reliability="supported",
+        tool_calls=(
+            AskToolCall(
+                "query_region_leaderboard",
+                {"state": "California", "exclude": True},
+            ),
+        ),
+        limitation=(
+            "Only venues with a non-matching state filled are included. "
+            "Venues with blank state are omitted."
+        ),
+    ),
+    _example(
         "Where we play most",
         ("Where do we play most?", "Which venues have the most games?"),
         reliability="supported",

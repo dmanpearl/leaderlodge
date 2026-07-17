@@ -97,6 +97,7 @@ def query_region_leaderboard(
     game_type_code: str,
     city: str | None = None,
     state: str | None = None,
+    exclude: bool = False,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
     limit: int = 10,
@@ -106,7 +107,7 @@ def query_region_leaderboard(
         resolve_region_locations,
     )
 
-    match = resolve_region_locations(group, city=city, state=state)
+    match = resolve_region_locations(group, city=city, state=state, exclude=exclude)
     payload = query_leaderboard(
         group,
         game_type_code=game_type_code,
@@ -125,6 +126,7 @@ def query_play_locations(
     game_type_code: str,
     city: str | None = None,
     state: str | None = None,
+    exclude: bool = False,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
     limit: int = 10,
@@ -153,7 +155,7 @@ def query_play_locations(
 
     region_payload: dict = {}
     if city or state:
-        match = resolve_region_locations(group, city=city, state=state)
+        match = resolve_region_locations(group, city=city, state=state, exclude=exclude)
         games_qs = games_qs.filter(location_id__in=match.location_ids)
         region_payload = region_match_payload(match)
 

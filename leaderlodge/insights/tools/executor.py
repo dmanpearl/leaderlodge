@@ -425,6 +425,9 @@ class ToolExecutor:
             limit=self._resolve_limit(arguments),
         )
 
+    def _resolve_region_exclude(self, arguments: dict[str, Any]) -> bool:
+        return bool(arguments.get("exclude"))
+
     def _query_region_leaderboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
         game_type_code = self._resolve_game_type_code(arguments)
         city = str(arguments.get("city") or "").strip() or None
@@ -435,6 +438,7 @@ class ToolExecutor:
                 game_type_code=game_type_code,
                 city=city,
                 state=state,
+                exclude=self._resolve_region_exclude(arguments),
                 period=self._resolve_period(arguments, game_type_code),
                 game_size=self._resolve_game_size(arguments, game_type_code),
                 limit=self._resolve_limit(arguments),
@@ -452,6 +456,7 @@ class ToolExecutor:
                 game_type_code=game_type_code,
                 city=city,
                 state=state,
+                exclude=self._resolve_region_exclude(arguments),
                 period=self._resolve_period(arguments, game_type_code),
                 game_size=self._resolve_game_size(arguments, game_type_code),
                 limit=self._resolve_limit(arguments),
