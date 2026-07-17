@@ -279,7 +279,8 @@
                         <strong>{{ pair.suggested_keeper.name }}</strong>
                       </div>
                     </div>
-                    <div class="d-flex flex-wrap gap-2 align-items-start">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                      <span class="small text-muted mb-0">Keep:</span>
                       <form
                         method="post"
                         action="{% url 'groups:location_combine' group.pk pair.suggested_keeper.pk %}"
@@ -291,8 +292,13 @@
                           name="source"
                           value="{{ pair.suggested_source.pk }}"
                         />
-                        <button type="submit" class="btn btn-sm btn-primary">
-                          Keep {{ pair.suggested_keeper.name }}
+                        <button
+                          type="submit"
+                          class="btn btn-sm btn-primary"
+                          aria-label="Keep {{ pair.suggested_keeper.name }}"
+                          title="Keep {{ pair.suggested_keeper.name }}"
+                        >
+                          {{ pair.suggested_keeper.name }}
                         </button>
                       </form>
                       <form
@@ -306,8 +312,13 @@
                           name="source"
                           value="{{ pair.suggested_keeper.pk }}"
                         />
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">
-                          Keep {{ pair.suggested_source.name }}
+                        <button
+                          type="submit"
+                          class="btn btn-sm btn-outline-secondary"
+                          aria-label="Keep {{ pair.suggested_source.name }}"
+                          title="Keep {{ pair.suggested_source.name }}"
+                        >
+                          {{ pair.suggested_source.name }}
                         </button>
                       </form>
                     </div>

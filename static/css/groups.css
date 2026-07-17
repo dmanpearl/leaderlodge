@@ -23,9 +23,9 @@
 
 .location-duplicates-list .btn {
   max-width: 16rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: left;
+  height: auto;
 }
 
 .location-game-pill {

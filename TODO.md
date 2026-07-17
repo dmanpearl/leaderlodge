@@ -139,7 +139,7 @@
 - [x] 856ae12 Leaderboard: Replace vesting with Bayesian prior (games / (games + k)); add provisional 'New' badge for players below game threshold
 - [x] 0875d24 Game location: Phase 2a Set place (map + search + assign) shipped; Phase 3 Record Game picker per docs/location-map.md
 - [x] 8147977 Location: Record Game Near me is always nearby GPS; in-field magnifying-glass Search runs Places text search (up to 8 results)
-- [x] Location: Find duplicates on Locations page (fuzzy name + place_id pairs; merge via combine)
+- [x] f7d3aee Location: Find duplicates on Locations page (fuzzy name + place_id pairs; merge via combine)
 
 ## Open Items
 
