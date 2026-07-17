@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Map | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/game_map.css' %}?v=3" />
+{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h3 mb-0">Map</h1>
+    {% if groups and google_places_api_key %}
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#game-map-filters"
+        aria-controls="game-map-filters"
+      >
+        <i class="bi bi-funnel" aria-hidden="true"></i>
+        Filters
+      </button>
+    {% endif %}
+  </div>
+
+  {% if not groups %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-muted mb-3">
+          Create a group to see game locations on a map, or accept an invite.
+        </p>
+        {% if user.is_authenticated %}
+          <a href="{% url 'groups:create' %}" class="btn btn-primary">Create a group</a>
+        {% endif %}
+      </div>
+    </div>
+  {% elif not google_places_api_key %}
+    <div class="alert alert-warning mb-0">
+      Map view needs a Google Maps browser API key
+      (<code>GOOGLE_PLACES_API_KEY</code>).
+    </div>
+  {% else %}
+    <div class="game-map-layout">
+      <aside
+        class="game-map-filters offcanvas offcanvas-start"
+        tabindex="-1"
+        id="game-map-filters"
+        aria-labelledby="game-map-filters-label"
+      >
+        <div class="offcanvas-header">
+          <h2 class="offcanvas-title h5" id="game-map-filters-label">Filters</h2>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+            data-bs-target="#game-map-filters"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="offcanvas-body">
+          <form method="get" id="game-map-filter-form" class="game-map-filter-form">
+            <div class="game-map-filter-field">
+              <label for="map-group-select" class="form-label">Group</label>
+              <select name="group" id="map-group-select" class="form-select">
+                {% for group in groups %}
+                  <option
+                    value="{{ group.pk }}"
+                    {% if selected_group and selected_group.pk == group.pk %}selected{% endif %}
+                  >
+                    {{ group.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            {% if selected_group %}
+              <div class="game-map-filter-field">
+                <label for="map-game-type-select" class="form-label">Game</label>
+                <select name="game_type" id="map-game-type-select" class="form-select">
+                  <option value="">All games</option>
+                  {% for code, name in game_type_options %}
+                    <option
+                      value="{{ code }}"
+                      {% if params.game_type == code %}selected{% endif %}
+                    >
+                      {{ name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="game-map-filter-field">
+                <label for="map-player-select" class="form-label">Player</label>
+                <select name="player" id="map-player-select" class="form-select">
+                  <option value="">All players</option>
+                  {% for player in players %}
+                    <option
+                      value="{{ player.pk }}"
+                      {% if params.player == player.pk|stringformat:"s" %}selected{% endif %}
+                    >
+                      {{ player.display_label }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="row">
+                {% include "includes/leaderboard_period_filters.html" with year_select_id="map-year" month_select_id="map-month" %}
+              </div>
+
+              <div class="game-map-filter-field">
+                <label for="map-state-select" class="form-label">State</label>
+                <select name="state" id="map-state-select" class="form-select">
+                  <option value="">All states</option>
+                  {% for state in state_choices %}
+                    <option value="{{ state }}" {% if params.state == state %}selected{% endif %}>
+                      {{ state }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="game-map-filter-field">
+                <label for="map-city-input" class="form-label">City</label>
+                <input
+                  type="text"
+                  name="city"
+                  id="map-city-input"
+                  class="form-control"
+                  value="{{ params.city }}"
+                  list="map-city-datalist"
+                  autocomplete="off"
+                  placeholder="Any city"
+                />
+                <datalist id="map-city-datalist">
+                  {% for city in city_choices %}
+                    <option value="{{ city }}"></option>
+                  {% endfor %}
+                </datalist>
+              </div>
+
+              <div class="game-map-filter-field">
+                <label for="map-location-name-input" class="form-label">Location</label>
+                <div class="game-map-location-typeahead">
+                  <input
+                    type="text"
+                    name="location_name"
+                    id="map-location-name-input"
+                    class="form-control"
+                    value="{{ params.location_name }}"
+                    autocomplete="off"
+                    placeholder="Type to search"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="map-location-name-list"
+                  />
+                  <ul
+                    id="map-location-name-list"
+                    class="game-map-location-typeahead-list"
+                    role="listbox"
+                    hidden
+                  ></ul>
+                </div>
+              </div>
+              {{ location_name_choices|json_script:"map-location-name-choices" }}
+
+              {% if params.country %}
+                <input type="hidden" name="country" value="{{ params.country }}" />
+              {% endif %}
+            {% endif %}
+
+            <div class="game-map-filter-actions">
+              <button type="submit" class="btn btn-primary">Apply</button>
+              <a href="{% url 'games:map' %}{% if selected_group %}?group={{ selected_group.pk }}{% endif %}" class="btn btn-outline-secondary">
+                Reset
+              </a>
+            </div>
+          </form>
+        </div>
+      </aside>
+
+      <div class="game-map-main">
+        {% if empty_no_pins %}
+          <div class="game-map-empty card">
+            <div class="card-body">
+              <h2 class="h5">No map pins yet</h2>
+              <p class="text-muted mb-2">
+                This group has locations, but none have coordinates.
+                Use <strong>Near me</strong>, <strong>Search</strong>, or <strong>Map</strong>
+                when recording a game{% if can_manage_locations %}, or
+                <strong>Set place</strong> on the Locations page{% endif %}.
+              </p>
+              {% if can_manage_locations and selected_group %}
+                <a
+                  href="{% url 'groups:location_manage' selected_group.pk %}"
+                  class="btn btn-outline-primary btn-sm"
+                >
+                  Open Locations
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% elif selected_group and feature_count == 0 %}
+          <div class="game-map-empty card">
+            <div class="card-body">
+              <h2 class="h5">No matching places</h2>
+              <p class="text-muted mb-0">
+                Try clearing filters, or geocode more locations.
+              </p>
+            </div>
+          </div>
+        {% else %}
+          <div
+            id="game-map-canvas"
+            class="game-map-canvas"
+            role="application"
+            aria-label="Games map"
+          ></div>
+          <div id="game-map-status" class="game-map-status text-muted small" aria-live="polite"></div>
+          {{ features|json_script:"game-map-features" }}
+          <script type="application/json" id="game-map-config">
+            {
+              "apiKey": "{{ google_places_api_key|escapejs }}",
+              "apiUrl": "{% url 'map_locations' %}",
+              "gamesListUrl": "{{ games_list_url|escapejs }}",
+              "groupId": "{% if selected_group %}{{ selected_group.pk }}{% endif %}",
+              "query": "{{ map_api_query|escapejs }}"
+            }
+          </script>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {% if groups and google_places_api_key %}
+    <script src="{% static 'js/period_filters.js' %}?v=2"></script>
+    <script src="{% static 'js/game_map_filters.js' %}?v=1"></script>
+  {% endif %}
+  {% if groups and google_places_api_key and feature_count > 0 %}
+    <script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
+    <script src="{% static 'js/game_map.js' %}?v=2"></script>
+  {% endif %}
+{% endblock %}

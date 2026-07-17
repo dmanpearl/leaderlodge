@@ -4,8 +4,9 @@ Plan for displaying game-play locations as pins on a map, with rich
 filtering, a map-based location picker for game recording, and AI-aware
 geographic queries.
 
-**Status: Phase 1–3 done (schema, Set place + Find duplicates, Record Game
-map picker). Phase 4 (map viewer) >>> NEXT UP <<<.**
+**Status: Phases 1 - 4 done (schema, Set place + duplicates, Record Game map,
+games map viewer + leaderboard venue filter). Phase 5 (custom pins)
+>>> NEXT UP <<<.**
 
 ---
 
@@ -18,8 +19,8 @@ Search this file for `>>> NEXT UP <<<` to jump to the active phase.
 | 1 | Schema and data foundation | **done** |
 | 2 | Set place (map picker + search + assign) + merge | **done** |
 | 3 | Map picker on Record Game | **done** |
-| 4 | Map viewer + leaderboard venue filter | **>>> NEXT UP <<<** |
-| 5 | Custom pins | not started |
+| 4 | Map viewer + leaderboard venue filter | **done** |
+| 5 | Custom pins | **>>> NEXT UP <<<** |
 | 6 | AI / Ask geo extensions | not started |
 | 7 | Performance hardening | not started |
 
@@ -549,8 +550,9 @@ and Search still work.
 
 ### URL
 
-`/games/map/` - requires authentication. Shows the user's groups'
-game locations. Add a nav entry when the page ships.
+`/games/map/` - `@demo_or_login_required`. Authenticated users see their
+visible groups; anonymous visitors can open the Demo group map when demo
+mode is on. Add a nav entry when the page ships (done: Map in navbar).
 
 ### Empty state
 
@@ -931,8 +933,7 @@ features are marked shipped in `features.md`.
 
 ## Implementation phases
 
-**Deployment priority:** Phases 1–3 done. Phase 4 adds the games map
-viewer and leaderboard venue filter.
+**Deployment priority:** Phases 1 - 4 done. Phase 5 customizes map pins.
 
 ### Phase 1 - Schema and data foundation
 
@@ -994,21 +995,22 @@ mode alongside Near me / Search.
 
 ### Phase 4 - Map viewer + leaderboard venue filter
 
-**Status: >>> NEXT UP <<<.**
+**Status: done.**
 
-**Done when:** authenticated users can open `/games/map/` with filters;
-leaderboard UI can filter by venue.
+**Done when:** users can open `/games/map/` with filters (authenticated
+groups, or anonymous Demo group when demo mode is on); leaderboard UI can
+filter by venue.
 
-- [ ] `/games/map/` view, nav entry, empty state
-- [ ] `/api/map/locations/` GeoJSON endpoint with filters
-- [ ] Filter sidebar; viewport loading; Supercluster via CDN/vendor
-- [ ] Pin popup linking to filtered game list
-- [ ] Leaderboard UI location (venue) filter wired to existing service
-- [ ] Update `docs/features.md`
+- [x] `/games/map/` view, nav entry, empty state
+- [x] `/api/map/locations/` GeoJSON endpoint with filters
+- [x] Filter sidebar; viewport loading; Supercluster via CDN
+- [x] Pin popup linking to filtered game list
+- [x] Leaderboard UI location (venue) filter wired to existing service
+- [x] Update `docs/features.md`
 
 ### Phase 5 - Custom pins
 
-**Status: not started.**
+**Status: >>> NEXT UP <<<.**
 
 - [ ] HTML pin template per game type using `AdvancedMarkerElement`
 - [ ] Cluster badge annotation; selected/hover states

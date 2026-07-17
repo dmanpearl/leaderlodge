@@ -183,6 +183,19 @@ includes:
 Assign replaces existing coords only after confirm. Optional **Use place
 name** renames the location to the Google place display name.
 
+---
+
+## Games Map viewer (Phase 4)
+
+`/games/map/` shows geocoded venues for a visible group (navbar **Map**).
+Anonymous visitors can use it for the **Demo** group when demo mode is on.
+Filters: group, game type, player, period, state, city, location name.
+Pins cluster via Supercluster; popups link to the games list for that venue.
+GeoJSON: `GET /api/map/locations/` with the same query params.
+
+Leaderboards add a **Location** venue filter that uses existing
+`location_id` ranking support.
+
 Server endpoint: `POST /groups/<group_id>/locations/<location_id>/set-place/`
 (JSON geo payload).
 

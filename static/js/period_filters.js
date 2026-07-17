@@ -58,7 +58,7 @@
 
   document
     .querySelectorAll(
-      "form#leaderboard-filters, form#game-list-filters, form#ask-lodge-filters, form#group-standings-filters"
+      "form#leaderboard-filters, form#game-list-filters, form#ask-lodge-filters, form#group-standings-filters, form#game-map-filter-form"
     )
     .forEach(bindForm);
 })();

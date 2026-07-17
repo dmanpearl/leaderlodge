@@ -17,7 +17,7 @@ from leaderlodge.games.game_size import available_game_sizes, resolve_game_size
 from leaderlodge.games.game_type_icons import game_type_icon_url
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
-from leaderlodge.groups.models import Group
+from leaderlodge.groups.models import Group, Location
 from leaderlodge.groups.services import visible_groups
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
@@ -106,6 +106,28 @@ def _game_size_context(
         "game_size_options": options,
         "selected_game_size": selected,
     }
+
+
+def _location_choices_for_leaderboard(group: Group | None, game_type_code: str | None):
+    if group is None or not game_type_code:
+        return Location.objects.none()
+    location_ids = (
+        Game.objects.filter(group=group, game_type_code=game_type_code)
+        .exclude(location_id=None)
+        .values_list("location_id", flat=True)
+        .distinct()
+    )
+    return Location.objects.filter(pk__in=location_ids).order_by("name")
+
+
+def _resolve_leaderboard_location_id(request: HttpRequest, locations) -> int | None:
+    raw = (request.GET.get("location") or "").strip()
+    if not raw.isdigit():
+        return None
+    location_id = int(raw)
+    if any(loc.pk == location_id for loc in locations):
+        return location_id
+    return None
 
 
 def _leaderboard_needs_redirect(
@@ -208,6 +230,14 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         return redirect(url)
 
     player_type = normalize_player_type(request.GET.get("player_type", ""))
+    locations = list(
+        _location_choices_for_leaderboard(selected_group, selected_game_type_code)
+    )
+    selected_location_id = _resolve_leaderboard_location_id(request, locations)
+    selected_location = next(
+        (loc for loc in locations if loc.pk == selected_location_id),
+        None,
+    )
 
     rankings = []
     selected_game_type = None
@@ -219,6 +249,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             period=selected_period,
             game_size=selected_game_size,
             player_type=player_type,
+            location_id=selected_location_id,
         )
         if rankings:
             apply_label_overrides([r.player for r in rankings])
@@ -235,6 +266,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         period=selected_period,
         game_size=selected_game_size,
         player_type=player_type,
+        location_id=selected_location_id,
     )
     game_size_label = ""
     if selected_game_size is not None:
@@ -253,6 +285,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         )
     )
     player_type_label = player_type_filter_label(player_type)
+    location_name = selected_location.name if selected_location else ""
     filter_summary = ""
     if selected_group:
         filter_summary = leaderboard_filter_summary(
@@ -261,6 +294,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             period_label=period_label,
             game_size_label=game_size_label,
             player_type_label=player_type_label,
+            location_name=location_name,
         )
 
     return render(
@@ -292,6 +326,9 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "game_size_label": game_size_label,
             "player_type": player_type,
             "player_type_choices": PLAYER_TYPE_CHOICES,
+            "locations": locations,
+            "selected_location_id": selected_location_id,
+            "selected_location": selected_location,
             **period_ctx,
             **game_size_ctx,
             **_insights_template_context(request),

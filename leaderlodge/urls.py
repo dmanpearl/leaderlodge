@@ -4,6 +4,7 @@ from django.urls import include, path
 
 from leaderlodge.core.sitemaps import StaticPageSitemap
 from leaderlodge.core.views import robots_txt
+from leaderlodge.games import map_views
 
 _sitemaps = {
     "static": StaticPageSitemap,
@@ -21,6 +22,11 @@ urlpatterns = [
     path("accounts/", include("leaderlodge.accounts.urls")),
     path("groups/", include("leaderlodge.groups.urls")),
     path("games/", include("leaderlodge.games.urls")),
+    path(
+        "api/map/locations/",
+        map_views.map_locations_api,
+        name="map_locations",
+    ),
     path("leaderboards/", include("leaderlodge.leaderboards.urls")),
     path("insights/", include("leaderlodge.insights.urls")),
     path("feedback/", include("leaderlodge.feedback.urls")),

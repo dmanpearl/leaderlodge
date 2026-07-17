@@ -84,6 +84,27 @@
             </div>
             {% include "includes/leaderboard_period_filters.html" with year_select_id="leaderboard-year" month_select_id="leaderboard-month" %}
             {% include "includes/game_size_filter.html" with select_id="leaderboard-game-size" %}
+            {% if locations %}
+              <div class="col-12 col-sm-6 col-lg-4 col-xl">
+                <label for="leaderboard-location" class="form-label">Location</label>
+                <select
+                  name="location"
+                  id="leaderboard-location"
+                  class="form-select"
+                  onchange="this.form.submit()"
+                >
+                  <option value="">All locations</option>
+                  {% for location in locations %}
+                    <option
+                      value="{{ location.pk }}"
+                      {% if selected_location_id == location.pk %}selected{% endif %}
+                    >
+                      {{ location.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            {% endif %}
           {% endif %}
         </form>
       </div>
