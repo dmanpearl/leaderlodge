@@ -81,6 +81,8 @@ The model cannot run SQL or invent stats. It selects from a fixed tool catalog; 
 | `compare_players` | Side-by-side stats for 2 to 5 players in one call |
 | `query_date_range_leaderboard` | Leaders for an inclusive `start_date` to `end_date` span |
 | `query_location_leaderboard` | Leaders at one venue (`location_query` or `location_id`) |
+| `query_region_leaderboard` | Leaders across venues in a city and/or state |
+| `query_play_locations` | Venues ranked by games played (optional city/state) |
 
 Period-aware tools accept optional `year`, `month`, and `all_time` (ignore Ask page default period). Game-type tools return `score_direction`; low-wins types also return `scoring_note`. Player outcome stats include `wins_display`, `losses_display`, and `ties_display`; point totals include `total_points_display` and `avg_points_display` (per-game average). See [ask-the-lodge-capabilities.md](./ask-the-lodge-capabilities.md) for the full capability matrix and shared response fields.
 

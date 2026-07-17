@@ -341,8 +341,9 @@ ASK_TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "query_location_leaderboard",
             "description": (
-                "Leaderboard for games at one venue or location. "
-                "Use location_query for names like Joe's house."
+                "Leaderboard for games at one named venue only "
+                "(e.g. Joe's house, Home). Do NOT use for city or state "
+                "questions; use query_region_leaderboard instead."
             ),
             "parameters": {
                 "type": "object",
@@ -353,6 +354,62 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                         "type": "string",
                         "description": "Location name from the group's saved venues.",
                     },
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_region_leaderboard",
+            "description": (
+                "Leaderboard for games across all venues in a city and/or state. "
+                "Use for questions like who plays best in Santa Monica or "
+                "California. Pass US state as full name or two-letter code. "
+                "Requires city/state on saved venues; check coverage_thin."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    "city": {
+                        "type": "string",
+                        "description": "City name, e.g. Santa Monica.",
+                    },
+                    "state": {
+                        "type": "string",
+                        "description": (
+                            "State or region, e.g. California or CA. "
+                            "US full names are normalized to two-letter codes."
+                        ),
+                    },
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                    "limit": {"type": "integer"},
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_play_locations",
+            "description": (
+                "Venues ranked by how many games were played there. "
+                "Optional city and/or state limit the set. Use for "
+                "where do we play most questions."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    "city": {"type": "string"},
+                    "state": {"type": "string"},
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
                     "limit": {"type": "integer"},

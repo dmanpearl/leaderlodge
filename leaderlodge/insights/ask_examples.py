@@ -374,6 +374,42 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
         ),
     ),
     _example(
+        "City leaders",
+        ("Who plays best in Santa Monica?", "Who leads in Los Angeles?"),
+        reliability="supported",
+        tool_calls=(
+            AskToolCall(
+                "query_region_leaderboard",
+                {"city": "Santa Monica"},
+            ),
+        ),
+        limitation=(
+            "Only venues with city filled are included. "
+            "Sparse geo coverage may omit many games."
+        ),
+    ),
+    _example(
+        "State leaders",
+        ("Who plays best in California?", "Who leads in CA?"),
+        reliability="supported",
+        tool_calls=(
+            AskToolCall(
+                "query_region_leaderboard",
+                {"state": "California"},
+            ),
+        ),
+        limitation=(
+            "Only venues with state filled are included. "
+            "US state names normalize to two-letter codes."
+        ),
+    ),
+    _example(
+        "Where we play most",
+        ("Where do we play most?", "Which venues have the most games?"),
+        reliability="supported",
+        tool_calls=(AskToolCall("query_play_locations", {}),),
+    ),
+    _example(
         "Specific game",
         "What happened in the game on 3/15/2026?",
         reliability="supported",

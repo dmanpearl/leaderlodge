@@ -117,7 +117,8 @@ individual leaderboard credit still applied
 - Multi-round tool calling (up to 5 rounds) against structured game data
 - Available tools: leaderboard query, placement leaders, month leaders, rank
   trends, player detail, head-to-head, hall of fame, loss leaders, player
-  comparison, date-range leaderboard, location leaderboard, and more
+  comparison, date-range leaderboard, location leaderboard, region
+  (city/state) leaderboard, play-location frequency, and more
 - Scoped to group, game type, and optional period
 
 ### AI Model Options (owner-paid API)
@@ -159,6 +160,10 @@ individual leaderboard credit still applied
 - **Map** on Record Game setup: same picker in record mode writes name + pin onto the game form (Near me and Search stay available)
 - **Games Map** (`/games/map/`): browse geocoded venues with filters and clusters; anonymous Demo access when demo mode is on
 - Leaderboard **Location** filter for venue-scoped rankings
+- Ask the Lodge: venue leaders (`query_location_leaderboard`), city/state
+  leaders (`query_region_leaderboard`), and where-we-play-most
+  (`query_play_locations`); regional answers only include venues with
+  city/state filled
 - **Find duplicates** on the Locations page: suggest pairs by similar name or same Google place ID; keep one name and merge via existing combine (geo copy rules apply)
 - **Show place** read-only map on Game detail for other members when a pin is set
 - Substring matching for locations and players

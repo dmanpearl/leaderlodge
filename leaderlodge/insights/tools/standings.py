@@ -39,6 +39,7 @@ def query_leaderboard(
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
     location_id: int | None = None,
+    location_ids: list[int] | None = None,
     limit: int = 10,
 ) -> dict:
     if period is None:
@@ -51,6 +52,7 @@ def query_leaderboard(
         period=period,
         game_size=game_size,
         location_id=location_id,
+        location_ids=location_ids,
     )
     payload = {
         "game_type_code": game_type_code,
@@ -62,6 +64,8 @@ def query_leaderboard(
     }
     if location_id is not None:
         payload["location_id"] = location_id
+    if location_ids is not None:
+        payload["location_ids"] = list(location_ids)
     return payload
 
 
@@ -84,6 +88,103 @@ def query_location_leaderboard(
         limit=limit,
     )
     payload["location_name"] = location_name
+    return payload
+
+
+def query_region_leaderboard(
+    group: Group,
+    *,
+    game_type_code: str,
+    city: str | None = None,
+    state: str | None = None,
+    period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
+    limit: int = 10,
+) -> dict:
+    from leaderlodge.insights.tools.region import (
+        region_match_payload,
+        resolve_region_locations,
+    )
+
+    match = resolve_region_locations(group, city=city, state=state)
+    payload = query_leaderboard(
+        group,
+        game_type_code=game_type_code,
+        period=period,
+        game_size=game_size,
+        location_ids=match.location_ids,
+        limit=limit,
+    )
+    payload.update(region_match_payload(match))
+    return payload
+
+
+def query_play_locations(
+    group: Group,
+    *,
+    game_type_code: str,
+    city: str | None = None,
+    state: str | None = None,
+    period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
+    limit: int = 10,
+) -> dict:
+    from django.db.models import Count
+
+    from leaderlodge.games.models import Game
+    from leaderlodge.insights.tools.region import (
+        region_match_payload,
+        resolve_region_locations,
+    )
+    from leaderlodge.leaderboards.period import filter_results_by_period
+
+    if period is None:
+        period = LeaderboardPeriod.all_time()
+
+    game_type = get_game_type(game_type_code)
+    games_qs = Game.objects.filter(
+        group=group,
+        game_type_code=game_type_code,
+        location_id__isnull=False,
+    )
+    if game_size is not None:
+        games_qs = games_qs.filter(player_count=game_size)
+    games_qs = filter_results_by_period(games_qs, period, game_prefix="")
+
+    region_payload: dict = {}
+    if city or state:
+        match = resolve_region_locations(group, city=city, state=state)
+        games_qs = games_qs.filter(location_id__in=match.location_ids)
+        region_payload = region_match_payload(match)
+
+    rows = list(
+        games_qs.values(
+            "location_id",
+            "location__name",
+            "location__city",
+            "location__state",
+        )
+        .annotate(games_played=Count("id"))
+        .order_by("-games_played", "location__name")[:limit]
+    )
+
+    payload = {
+        "game_type_code": game_type_code,
+        "game_type_name": game_type.name,
+        "period": period.query_params() or {"all_time": True},
+        "game_size": game_size,
+        "locations": [
+            {
+                "location_id": row["location_id"],
+                "name": row["location__name"],
+                "city": row["location__city"] or None,
+                "state": row["location__state"] or None,
+                "games_played": row["games_played"],
+            }
+            for row in rows
+        ],
+    }
+    payload.update(region_payload)
     return payload
 
 

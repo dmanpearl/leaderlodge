@@ -13,7 +13,7 @@ from leaderlodge.leaderboards.service import get_player_rank_detail
 if TYPE_CHECKING:
     from leaderlodge.games.models import Game
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 MIN_RECOMMENDED_GAMES = 3
 
 
@@ -168,6 +168,12 @@ def build_matchup_insight_context(game: Game) -> dict[str, Any]:
             "id": game.pk,
             "played_on": game.played_on.isoformat(),
             "location": game.location.name if game.location_id else None,
+            "location_city": (
+                (game.location.city or None) if game.location_id else None
+            ),
+            "location_state": (
+                (game.location.state or None) if game.location_id else None
+            ),
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
         },

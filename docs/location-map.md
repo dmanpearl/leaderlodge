@@ -4,8 +4,8 @@ Plan for displaying game-play locations as pins on a map, with rich
 filtering, a map-based location picker for game recording, and AI-aware
 geographic queries.
 
-**Status: Phases 1 - 4 done (schema, Set place + duplicates, Record Game map,
-games map viewer + leaderboard venue filter). Phase 5 (custom pins)
+**Status: Phases 1 - 4 and 6 done (schema, Set place + duplicates, Record Game map,
+games map viewer + leaderboard venue filter, Ask city/state tools). Phase 5 (custom pins)
 >>> NEXT UP <<<.**
 
 ---
@@ -21,7 +21,7 @@ Search this file for `>>> NEXT UP <<<` to jump to the active phase.
 | 3 | Map picker on Record Game | **done** |
 | 4 | Map viewer + leaderboard venue filter | **done** |
 | 5 | Custom pins | **>>> NEXT UP <<<** |
-| 6 | AI / Ask geo extensions | not started |
+| 6 | AI / Ask geo extensions | **done** |
 | 7 | Performance hardening | not started |
 
 **How to use this doc while we build:**
@@ -933,7 +933,7 @@ features are marked shipped in `features.md`.
 
 ## Implementation phases
 
-**Deployment priority:** Phases 1 - 4 done. Phase 5 customizes map pins.
+**Deployment priority:** Phases 1 - 4 and 6 done. Phase 5 customizes map pins.
 
 ### Phase 1 - Schema and data foundation
 
@@ -1017,17 +1017,17 @@ filter by venue.
 
 ### Phase 6 - AI / Ask geo extensions
 
-**Status: not started.**
+**Status: done.**
 
 **Done when:** Ask can answer city/state venue questions when data
 exists; docs and **in-app** examples updated; sparse-data caveat
 documented.
 
-- [ ] Extend Ask tools for city/state (and document limits)
-- [ ] Enrich contextual insight JSON with city/state when present
-- [ ] Update `docs/ask-the-lodge-capabilities.md`
-- [ ] Update `docs/features.md` (location-aware Ask)
-- [ ] Update in-app Ask Examples: `leaderlodge/insights/ask_examples.py`
+- [x] Extend Ask tools for city/state (and document limits)
+- [x] Enrich contextual insight JSON with city/state when present
+- [x] Update `docs/ask-the-lodge-capabilities.md`
+- [x] Update `docs/features.md` (location-aware Ask)
+- [x] Update in-app Ask Examples: `leaderlodge/insights/ask_examples.py`
   and the Examples UI (`/insights/ask/examples/`) with venue and
   city/state questions that match supported tools
 

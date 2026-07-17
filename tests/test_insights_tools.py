@@ -486,6 +486,277 @@ def test_query_location_leaderboard_filters_by_venue(user, group):
 
 
 @pytest.mark.django_db
+def test_normalize_region_state_maps_full_names():
+    from leaderlodge.insights.tools.region import normalize_region_state
+
+    assert normalize_region_state("California") == "CA"
+    assert normalize_region_state("ca") == "CA"
+    assert normalize_region_state("  New York ") == "NY"
+
+
+@pytest.mark.django_db
+def test_query_region_leaderboard_aggregates_venues_in_state(user, group):
+    from datetime import date
+
+    from leaderlodge.groups.location_geo import (
+        GEOCODE_SOURCE_PLACES_LOOKUP,
+        LocationGeo,
+    )
+    from leaderlodge.groups.locations import get_or_create_location
+    from leaderlodge.insights.tools.standings import query_region_leaderboard
+
+    la = get_or_create_location(
+        library=group.location_library,
+        name="LA Spot",
+        geo=LocationGeo(
+            lat=34.05,
+            lon=-118.25,
+            city="Los Angeles",
+            state="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    sm = get_or_create_location(
+        library=group.location_library,
+        name="SM Spot",
+        geo=LocationGeo(
+            lat=34.01,
+            lon=-118.49,
+            city="Santa Monica",
+            state="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    other = get_or_create_location(
+        library=group.location_library,
+        name="NY Spot",
+        geo=LocationGeo(
+            lat=40.7,
+            lon=-74.0,
+            city="New York",
+            state="NY",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+
+    players = list(group.players.order_by("pk")[:2])
+    for location in (la, sm, other):
+        rows = [
+            {"player": players[0], "score": 35},
+            {"player": players[1], "score": 20},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        participants = [
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ]
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=date(2026, 5, 1),
+            location=location,
+            participants=participants,
+        )
+
+    result = query_region_leaderboard(
+        group,
+        game_type_code="dominos",
+        state="California",
+    )
+
+    assert result["state"] == "CA"
+    assert result["matched_venue_count"] == 2
+    assert {v["name"] for v in result["matched_venues"]} == {"LA Spot", "SM Spot"}
+    assert result["rankings"][0]["games_played"] == 2
+
+
+@pytest.mark.django_db
+def test_query_region_leaderboard_filters_by_city(user, group):
+    from datetime import date
+
+    from leaderlodge.groups.location_geo import (
+        GEOCODE_SOURCE_PLACES_LOOKUP,
+        LocationGeo,
+    )
+    from leaderlodge.groups.locations import get_or_create_location
+    from leaderlodge.insights.tools.standings import query_region_leaderboard
+
+    sm = get_or_create_location(
+        library=group.location_library,
+        name="SM Spot",
+        geo=LocationGeo(
+            lat=34.01,
+            lon=-118.49,
+            city="Santa Monica",
+            state="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    la = get_or_create_location(
+        library=group.location_library,
+        name="LA Spot",
+        geo=LocationGeo(
+            lat=34.05,
+            lon=-118.25,
+            city="Los Angeles",
+            state="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    players = list(group.players.order_by("pk")[:2])
+    for location in (sm, la):
+        rows = [
+            {"player": players[0], "score": 35},
+            {"player": players[1], "score": 20},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        participants = [
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ]
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=date(2026, 6, 1),
+            location=location,
+            participants=participants,
+        )
+
+    result = query_region_leaderboard(
+        group,
+        game_type_code="dominos",
+        city="Santa Monica, CA",
+    )
+
+    assert result["city"] == "Santa Monica"
+    assert result["state"] == "CA"
+    assert result["matched_venue_count"] == 1
+    assert result["rankings"][0]["games_played"] == 1
+
+
+@pytest.mark.django_db
+def test_tool_executor_query_region_leaderboard(user, group):
+    from leaderlodge.groups.location_geo import (
+        GEOCODE_SOURCE_PLACES_LOOKUP,
+        LocationGeo,
+    )
+    from leaderlodge.groups.locations import get_or_create_location
+    from leaderlodge.insights.tools.executor import ToolExecutionError
+
+    get_or_create_location(
+        library=group.location_library,
+        name="SM Spot",
+        geo=LocationGeo(
+            lat=34.01,
+            lon=-118.49,
+            city="Santa Monica",
+            state="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+
+    result = executor.execute(
+        "query_region_leaderboard",
+        {"game_type_code": "dominos", "state": "CA"},
+    )
+    assert result["matched_venue_count"] == 1
+
+    with pytest.raises(ToolExecutionError, match="No venues matched"):
+        executor.execute(
+            "query_region_leaderboard",
+            {"game_type_code": "dominos", "city": "Nowhereville"},
+        )
+
+
+@pytest.mark.django_db
+def test_query_play_locations_orders_by_game_count(user, group):
+    from datetime import date
+
+    from leaderlodge.groups.location_geo import (
+        GEOCODE_SOURCE_PLACES_LOOKUP,
+        LocationGeo,
+    )
+    from leaderlodge.groups.locations import get_or_create_location
+    from leaderlodge.insights.tools.standings import query_play_locations
+
+    busy = get_or_create_location(
+        library=group.location_library,
+        name="Busy Spot",
+        geo=LocationGeo(
+            lat=34.05,
+            lon=-118.25,
+            city="Los Angeles",
+            state="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    quiet = get_or_create_location(
+        library=group.location_library,
+        name="Quiet Spot",
+        geo=LocationGeo(
+            lat=34.01,
+            lon=-118.49,
+            city="Santa Monica",
+            state="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    players = list(group.players.order_by("pk")[:2])
+
+    def _play(location, day):
+        rows = [
+            {"player": players[0], "score": 35},
+            {"player": players[1], "score": 20},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        participants = [
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ]
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=date(2026, 7, day),
+            location=location,
+            participants=participants,
+        )
+
+    _play(busy, 1)
+    _play(busy, 2)
+    _play(quiet, 3)
+
+    result = query_play_locations(group, game_type_code="dominos")
+    assert result["locations"][0]["name"] == "Busy Spot"
+    assert result["locations"][0]["games_played"] == 2
+    assert result["locations"][1]["name"] == "Quiet Spot"
+
+
+@pytest.mark.django_db
 def test_tool_executor_compare_players(user, group):
     _record_game(group, user, third_idx=None)
     players = list(group.players.order_by("pk")[:2])

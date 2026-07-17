@@ -204,12 +204,36 @@ Returns ranked rows for games played in the date span. Vesting is not applied (s
 | Parameter | Required | Notes |
 | --------- | -------- | ----- |
 | `game_type_code` | Yes | |
-| `location_id` or `location_query` | One of | Venue from the group's location library |
+| `location_id` or `location_query` | One of | Venue from the group's location library (name only, not city/state) |
 | `year`, `month`, `all_time` | No | Period filter |
 | `game_size` | No | |
 | `limit` | No | Default 10, max 20 |
 
 Returns ranked rows for games at that location, plus `location_name`.
+
+### `query_region_leaderboard`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `city` and/or `state` | At least one | City is case-insensitive. US state full names normalize to two-letter codes (e.g. California to CA). `city` may be `"Santa Monica, CA"`. |
+| `year`, `month`, `all_time` | No | Period filter |
+| `game_size` | No | |
+| `limit` | No | Default 10, max 20 |
+
+Returns ranked rows for games at all matched venues, plus `matched_venues`, `region_label`, and coverage fields (`coverage_thin`, optional `coverage_note`). Only venues with matching city/state fields are included; ungeocoded venues are omitted.
+
+### `query_play_locations`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `city` / `state` | No | Optional region filter (same rules as `query_region_leaderboard`) |
+| `year`, `month`, `all_time` | No | Period filter |
+| `game_size` | No | |
+| `limit` | No | Default 10, max 20 |
+
+Returns venues ordered by `games_played`, with city/state when present.
 
 ### `query_game_detail`
 
@@ -255,6 +279,8 @@ Returns scores, placements, location, and players for one recorded game.
 | Loss leaders | "Who loses most in Progressive Rummy?" | `query_loss_leaders` |
 | Custom date span | "Who led dominos during spring break?" / "Leaders from Spring Break week" | `query_date_range_leaderboard` with `start_date` / `end_date` (model infers dates from the question) |
 | Venue leaders | "Who leads at Home?" | `query_location_leaderboard` with `location_query` |
+| City / state leaders | "Who plays best in Santa Monica?" / "Who leads in California?" | `query_region_leaderboard` with `city` and/or `state` |
+| Where we play most | "Where do we play most?" | `query_play_locations` |
 | Specific game | "What happened in the game on 3/15/2026?" | `query_game_detail` with `played_on` (model infers date from the question) |
 | Current leader profile | "Tell me about the leader" / "Who is on top?" | `query_leaderboard` (limit 1), then `query_player_detail` for rank 1 |
 
@@ -268,6 +294,7 @@ Returns scores, placements, location, and players for one recorded game.
 | Name-based group compares | "Boys vs girls average rank" / "Men vs women average rank" for large rosters | Many `query_player_detail` or `compare_players` calls; may hit round limits. Response `meta.coverage` flags when stats were fetched for fewer than 60% of roster players |
 | Inactive players | "How did former member Alex do?" | Active roster only |
 | Sparse trends | "Who improved most this month?" | Trend tool needs games in both windows |
+| Regional with thin geo | "Who leads in California?" when few venues have state filled | Rankings omit venues without city/state; check `coverage_thin` |
 | Ambiguous names | "How is Lucas doing?" with two Lucases | Ambiguity error or wrong match |
 | "Most" without metric | "Who is the best in dominos?" | Model must choose rank_score vs wins vs placement |
 | Exact counts across many players | "Rank everyone by 2nd-place finishes" | 20-row cap |
@@ -281,6 +308,7 @@ Returns scores, placements, location, and players for one recorded game.
 | Rank movement after one game | "Who did Amelia pass when she won last Tuesday?" | Matchup page only |
 | Cross game type summary | "Who is best across all our games?" | No multi-type aggregate tool |
 | Predictions | "Who will win next month?" | Prompt forbids; no predictive data |
+| Arbitrary geo regions | "Who leads on the west side of LA?" | No polygon / bbox tool yet |
 
 ---
 

@@ -155,12 +155,28 @@ def _update_score_highlight(
     return best, worst
 
 
+def _apply_location_filters(
+    results_qs,
+    *,
+    location_id: int | None = None,
+    location_ids: list[int] | None = None,
+):
+    if location_id is not None and location_ids is not None:
+        raise ValueError("Provide location_id or location_ids, not both.")
+    if location_id is not None:
+        return results_qs.filter(game__location_id=location_id)
+    if location_ids is not None:
+        return results_qs.filter(game__location_id__in=location_ids)
+    return results_qs
+
+
 def get_player_rank_detail(
     group: Group,
     player: GroupPlayer,
     *,
     game_type_code: str,
     location_id: int | None = None,
+    location_ids: list[int] | None = None,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
 ) -> PlayerRankDetail | None:
@@ -184,8 +200,9 @@ def get_player_rank_detail(
         .prefetch_related("game__participant_results")
         .order_by("game__played_on", "game__pk", "pk")
     )
-    if location_id is not None:
-        results_qs = results_qs.filter(game__location_id=location_id)
+    results_qs = _apply_location_filters(
+        results_qs, location_id=location_id, location_ids=location_ids
+    )
     if game_size is not None:
         results_qs = results_qs.filter(game__player_count=game_size)
     results_qs = filter_results_by_period(results_qs, period)
@@ -307,6 +324,7 @@ def get_player_rank_detail(
         group,
         game_type_code,
         location_id=location_id,
+        location_ids=location_ids,
         period=period,
         game_size=game_size,
     )
@@ -414,6 +432,7 @@ def get_player_rankings(
     *,
     game_type_code: str | None = None,
     location_id: int | None = None,
+    location_ids: list[int] | None = None,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
     player_type: str = "",
@@ -443,6 +462,7 @@ def get_player_rankings(
             group,
             code,
             location_id=location_id,
+            location_ids=location_ids,
             period=period,
             game_size=game_size,
             player_type=player_type,
@@ -698,6 +718,7 @@ def _standings_for_game_type(
     game_type_code: str,
     *,
     location_id: int | None = None,
+    location_ids: list[int] | None = None,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
     results_qs=None,
@@ -721,8 +742,9 @@ def _standings_for_game_type(
             game__group=group,
             game__game_type_code=game_type_code,
         )
-        if location_id is not None:
-            results_qs = results_qs.filter(game__location_id=location_id)
+        results_qs = _apply_location_filters(
+            results_qs, location_id=location_id, location_ids=location_ids
+        )
         if game_size is not None:
             results_qs = results_qs.filter(game__player_count=game_size)
         results_qs = filter_results_by_period(results_qs, period)

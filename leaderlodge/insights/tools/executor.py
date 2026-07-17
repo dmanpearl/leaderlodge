@@ -22,7 +22,9 @@ from leaderlodge.insights.tools.standings import (
     query_date_range_leaderboard,
     query_leaderboard,
     query_location_leaderboard,
+    query_play_locations,
     query_player_detail,
+    query_region_leaderboard,
 )
 from leaderlodge.insights.tools.teams import query_team_pairings
 from leaderlodge.insights.tools.trends import query_month_leaders, query_rank_trends
@@ -58,6 +60,8 @@ class ToolExecutor:
             "compare_players": self._compare_players,
             "query_date_range_leaderboard": self._query_date_range_leaderboard,
             "query_location_leaderboard": self._query_location_leaderboard,
+            "query_region_leaderboard": self._query_region_leaderboard,
+            "query_play_locations": self._query_play_locations,
             "query_team_pairings": self._query_team_pairings,
         }
         handler = handlers.get(name)
@@ -420,6 +424,40 @@ class ToolExecutor:
             game_size=self._resolve_game_size(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )
+
+    def _query_region_leaderboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        city = str(arguments.get("city") or "").strip() or None
+        state = str(arguments.get("state") or "").strip() or None
+        try:
+            return query_region_leaderboard(
+                self.scope.group,
+                game_type_code=game_type_code,
+                city=city,
+                state=state,
+                period=self._resolve_period(arguments, game_type_code),
+                game_size=self._resolve_game_size(arguments, game_type_code),
+                limit=self._resolve_limit(arguments),
+            )
+        except ValueError as exc:
+            raise ToolExecutionError(str(exc)) from exc
+
+    def _query_play_locations(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        city = str(arguments.get("city") or "").strip() or None
+        state = str(arguments.get("state") or "").strip() or None
+        try:
+            return query_play_locations(
+                self.scope.group,
+                game_type_code=game_type_code,
+                city=city,
+                state=state,
+                period=self._resolve_period(arguments, game_type_code),
+                game_size=self._resolve_game_size(arguments, game_type_code),
+                limit=self._resolve_limit(arguments),
+            )
+        except ValueError as exc:
+            raise ToolExecutionError(str(exc)) from exc
 
     def _query_team_pairings(self, arguments: dict[str, Any]) -> dict[str, Any]:
         game_type_code = self._resolve_game_type_code(arguments)
