@@ -529,6 +529,12 @@
     }
   });
 
+  // Map picker (record mode) wrote geo + name; treat as intentional fill.
+  document.addEventListener("location-map-apply", (e) => {
+    const name = String(e.detail?.name || "").trim();
+    lastFilledValue = name || null;
+  });
+
   // Autocomplete reuse of an existing library name: drop pending Lookup geo.
   document.addEventListener("location-autocomplete-select", () => {
     clearGeoFields();

@@ -199,3 +199,18 @@ def test_game_edit_includes_location_clear_button(client, staff_user, group):
     assert response.status_code == 200
     assert "data-location-clear" in content
     assert 'value="Sally"' in content
+
+
+@pytest.mark.django_db
+def test_record_game_setup_includes_map_picker_when_places_key_set(
+    client, staff_user, group, settings
+):
+    settings.GOOGLE_PLACES_API_KEY = "test-browser-key"
+    client.force_login(staff_user)
+    response = client.get(reverse("games:create"))
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "data-location-record-place" in content
+    assert "location-set-place-modal" in content
+    assert "Near me" in content

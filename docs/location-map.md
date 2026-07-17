@@ -4,8 +4,8 @@ Plan for displaying game-play locations as pins on a map, with rich
 filtering, a map-based location picker for game recording, and AI-aware
 geographic queries.
 
-**Status: Phase 1 done. Phase 2 (Set place + Find duplicates) done.
-Phase 3 (Record Game map picker) >>> NEXT UP <<<.**
+**Status: Phase 1–3 done (schema, Set place + Find duplicates, Record Game
+map picker). Phase 4 (map viewer) >>> NEXT UP <<<.**
 
 ---
 
@@ -17,8 +17,8 @@ Search this file for `>>> NEXT UP <<<` to jump to the active phase.
 |-------|------|--------|
 | 1 | Schema and data foundation | **done** |
 | 2 | Set place (map picker + search + assign) + merge | **done** |
-| 3 | Map picker on Record Game | **>>> NEXT UP <<<** |
-| 4 | Map viewer + leaderboard venue filter | not started |
+| 3 | Map picker on Record Game | **done** |
+| 4 | Map viewer + leaderboard venue filter | **>>> NEXT UP <<<** |
 | 5 | Custom pins | not started |
 | 6 | AI / Ask geo extensions | not started |
 | 7 | Performance hardening | not started |
@@ -523,22 +523,25 @@ exist.
 
 ## Map picker on Record Game
 
-**Phase 3.** Replaces the Record Game Near me / Search controls with the same modal
-in `record` mode (hidden fields + location name). Phase 1 Near me remains
-until Phase 3 ships.
+**Phase 3 (done).** Record Game setup adds a **Map** control beside Near me
+that opens the shared `location_map.js` modal in `record` mode. Confirm
+(**Use place**) writes name + geo hidden fields on the game form. Near me,
+in-field Search, and text autocomplete remain available.
 
 Coexists with mobile native location `<select>` TODO: reuse for known
-names; Set place for GPS / search / pin.
+names; Map for GPS / search / pin.
 
 ### Recording-specific behavior
 
-- "Use my location" more prominent (often at venue)
+- "Use my location" emphasized (outline-primary) in record mode
 - Confirm writes name + geo into game form (Phase 1 hidden fields)
 - Does not require `location_id` until form save
+- Optional "Use place name" adopts the Google display name
 
 ### Fallback
 
-Close without Assign: game form unchanged. Text autocomplete still works.
+Close without Use place: game form unchanged. Text autocomplete, Near me,
+and Search still work.
 
 ---
 
@@ -928,8 +931,8 @@ features are marked shipped in `features.md`.
 
 ## Implementation phases
 
-**Deployment priority:** Phase 1 and Phase 2 done. Phase 3 wires the same
-map picker to Record Game. Phase 4+ map viewer depends on geocoded data.
+**Deployment priority:** Phases 1–3 done. Phase 4 adds the games map
+viewer and leaderboard venue filter.
 
 ### Phase 1 - Schema and data foundation
 
@@ -980,18 +983,18 @@ ships.
 
 ### Phase 3 - Map picker on Record Game
 
-**Status: >>> NEXT UP <<<.**
+**Status: done.**
 
 **Done when:** Record Game uses the same `location_map.js` in `record`
-mode; Near me / Search become Set location.
+mode alongside Near me / Search.
 
-- [ ] Wire modal to game form (Phase 1 hidden geo fields)
-- [ ] Keep Phase 1 Near me / Search as fallback until verified, then remove or merge
-- [ ] Update `docs/features.md`
+- [x] Wire modal to game form (Phase 1 hidden geo fields)
+- [x] Keep Phase 1 Near me / Search as fallback (Map is additive)
+- [x] Update `docs/features.md`
 
 ### Phase 4 - Map viewer + leaderboard venue filter
 
-**Status: not started.**
+**Status: >>> NEXT UP <<<.**
 
 **Done when:** authenticated users can open `/games/map/` with filters;
 leaderboard UI can filter by venue.

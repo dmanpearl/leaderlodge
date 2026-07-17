@@ -127,6 +127,9 @@
     adoptNameCheckbox.checked = false;
     adoptNameCheckbox.disabled = true;
     renderSelected(null);
+    setAssignButtonLabel("assign");
+    myLocationBtn.classList.remove("btn-outline-primary");
+    myLocationBtn.classList.add("btn-outline-secondary");
     if (picker) {
       picker.destroy();
       picker = null;
@@ -159,18 +162,87 @@
     return `${n} games`;
   }
 
+  function setAssignButtonLabel(mode) {
+    assignBtn.textContent = mode === "record" ? "Use place" : "Assign";
+  }
+
+  function locationNameInput() {
+    return (
+      document.querySelector("[data-location-autocomplete]") ??
+      document.querySelector("[data-location-field] input[type=text]")
+    );
+  }
+
+  function setFormGeoField(key, value) {
+    const input = document.querySelector(
+      `[data-location-field] [data-location-geo="${key}"]`,
+    );
+    if (input) {
+      input.value = value === null || value === undefined ? "" : String(value);
+    }
+  }
+
+  function applyRecordSelection(geo, adoptName) {
+    if (!geo) return;
+
+    setFormGeoField("lat", geo.lat);
+    setFormGeoField("lon", geo.lon);
+    setFormGeoField("city", geo.city || "");
+    setFormGeoField("state", geo.state || "");
+    setFormGeoField("country", geo.country || "");
+    setFormGeoField("postal_code", geo.postal_code || "");
+    setFormGeoField("street_address", geo.street_address || "");
+    setFormGeoField("place_id", geo.place_id || "");
+    setFormGeoField("geocode_source", geo.geocode_source || "map_pin");
+
+    const input = locationNameInput();
+    let name = (input?.value || "").trim();
+    if (adoptName && geo.place_display_name) {
+      name = geo.label || geo.place_display_name;
+    } else if (!name && geo.place_display_name) {
+      name = geo.label || geo.place_display_name;
+    } else if (!name && geo.label && !String(geo.label).match(/^-?\d+(\.\d+)?,\s*-?\d+/)) {
+      name = geo.label;
+    }
+    if (input && name) {
+      input.value = name;
+    }
+
+    document.dispatchEvent(
+      new CustomEvent("location-map-apply", {
+        detail: { name: input?.value || name || "" },
+      }),
+    );
+    if (input) {
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+
   async function openSetPlace(context) {
     if (!apiKey) return;
     activeContext = context;
+    const mode = context.mode === "record" ? "record" : "assign";
+    activeContext.mode = mode;
 
     const name = context.locationName || "Location";
-    const count = Number(context.gameCount) || 0;
-    titleEl.textContent = `Set place for ${name}`;
-    subtitleEl.textContent =
-      count > 0
-        ? `Updates the location row used by ${gameCountLabel(count)}.`
-        : "Updates this location row for all linked games.";
-    searchInput.value = name;
+    if (mode === "record") {
+      titleEl.textContent = "Set location";
+      subtitleEl.textContent =
+        "Search, drop a pin, or use your location. Confirm writes the pin onto this game.";
+      myLocationBtn.classList.remove("btn-outline-secondary");
+      myLocationBtn.classList.add("btn-outline-primary");
+    } else {
+      const count = Number(context.gameCount) || 0;
+      titleEl.textContent = `Set place for ${name}`;
+      subtitleEl.textContent =
+        count > 0
+          ? `Updates the location row used by ${gameCountLabel(count)}.`
+          : "Updates this location row for all linked games.";
+      myLocationBtn.classList.remove("btn-outline-primary");
+      myLocationBtn.classList.add("btn-outline-secondary");
+    }
+    setAssignButtonLabel(mode);
+    searchInput.value = name === "Location" ? "" : name;
     adoptNameCheckbox.checked = false;
 
     const initial = {
@@ -220,6 +292,12 @@
 
   async function handleAssign() {
     if (!activeContext || !picker?.selection) return;
+
+    if (activeContext.mode === "record") {
+      applyRecordSelection(picker.selection, adoptNameCheckbox.checked);
+      modal.hide();
+      return;
+    }
 
     setBusy(true);
     setStatus("");
@@ -336,12 +414,31 @@
   document.querySelectorAll("[data-location-set-place]").forEach((btn) => {
     btn.addEventListener("click", () => {
       openSetPlace({
+        mode: "assign",
         setPlaceUrl: btn.dataset.setPlaceUrl,
         locationName: btn.dataset.locationName,
         gameCount: btn.dataset.gameCount,
         lat: btn.dataset.lat,
         lon: btn.dataset.lon,
         onSuccess: btn.dataset.reload === "false" ? null : undefined,
+      });
+    });
+  });
+
+  document.querySelectorAll("[data-location-record-place]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = locationNameInput();
+      const latEl = document.querySelector(
+        '[data-location-field] [data-location-geo="lat"]',
+      );
+      const lonEl = document.querySelector(
+        '[data-location-field] [data-location-geo="lon"]',
+      );
+      openSetPlace({
+        mode: "record",
+        locationName: (input?.value || "").trim(),
+        lat: latEl?.value || "",
+        lon: lonEl?.value || "",
       });
     });
   });

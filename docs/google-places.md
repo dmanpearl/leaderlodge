@@ -6,8 +6,10 @@ LeaderLodge uses the Google Places API on the Record Game location field:
   device GPS.
 - **Search** (magnifying glass inside the text field, left of clear) runs a
   Places text search on the typed name, with optional GPS bias.
+- **Map** opens the shared map picker (search, drop pin, pin lookup, use my
+  location) and writes the chosen pin onto the game form.
 
-Both show a short list of venues to pick from.
+All three show or fill venues to pick from; Map uses the same modal as Set place.
 
 The API key is a **browser-restricted** key: it is safe to expose in the page source because Google enforces HTTP referrer restrictions on it. It never touches your server after the initial render.
 
@@ -125,7 +127,8 @@ Restart `python manage.py runserver`. Open the Record Game page and the **Near m
 5. A dropdown of up to 8 nearby establishments appears below the location field.
 6. Click any result to fill the location field with that place's name and Google coordinates.
 7. If the venue is missing from nearby results: type a business name (optionally with city). A magnifying-glass **Search** button appears inside the field (left of clear). Click it to run a Places text search (up to 8 results), same idea as **Set place** search on the Locations page.
-8. Submit the form as normal.
+8. Or click **Map** next to Near me: search / drop pin / pin lookup / use my location, then **Use place** to fill the location name and hidden geo fields on the form.
+9. Submit the form as normal.
 
 If the Near me button does not appear, check:
 - `GOOGLE_PLACES_API_KEY` is set in `.env` (local) or Railway Variables (production).
@@ -144,8 +147,9 @@ row (not on the Game).
 | User action | Saved `lat`/`lon` | `geocode_source` |
 |-------------|-------------------|------------------|
 | Picks a Places result | Google place geometry | `places_lookup` (Near me) or `text_search` (in-field Search) |
+| Confirms a Map picker selection | Google place or pin geometry | `places_lookup`, `text_search`, or `map_pin` |
 | Picks the city-only row, or types a custom name after Near me | Device GPS | `gps` |
-| Types a name with no Near me / Search | None (null until reuse or backfill) | (blank) |
+| Types a name with no Near me / Search / Map | None (null until reuse or backfill) | (blank) |
 | Reuses an existing Location that already has coords | Existing coords unchanged | unchanged |
 
 Phone GPS is used only to find nearby places, bias typed text search, and as
@@ -245,4 +249,4 @@ This is expected behavior for the initial release. The Places API returns genera
 
 ## Removing or disabling the feature
 
-Remove or leave blank `GOOGLE_PLACES_API_KEY` in your environment. When the key is absent, the Near me and Search controls do not render and no Google scripts are loaded.
+Remove or leave blank `GOOGLE_PLACES_API_KEY` in your environment. When the key is absent, the Near me, Search, and Map controls do not render and no Google scripts are loaded.

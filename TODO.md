@@ -140,9 +140,11 @@
 - [x] 0875d24 Game location: Phase 2a Set place (map + search + assign) shipped; Phase 3 Record Game picker per docs/location-map.md
 - [x] 8147977 Location: Record Game Near me is always nearby GPS; in-field magnifying-glass Search runs Places text search (up to 8 results)
 - [x] f7d3aee Location: Find duplicates on Locations page (fuzzy name + place_id pairs; merge via combine)
+- [x] Location: Phase 3 Record Game Map picker (record mode; Near me / Search kept)
 
 ## Open Items
 
+- [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other. I prefer the larger system size, but I want to follow the path of least resistance
 - [ ] Record Game: Make it easier to go back and set location during user selections
 - [ ] Add Favicon

@@ -335,10 +335,10 @@
     <script src="{% static 'js/insights_panel.js' %}"></script>
   {% endif %}
   {% if can_set_place and google_places_api_key %}
-    <script src="{% static 'js/location_map.js' %}?v=2"></script>
-    <script src="{% static 'js/location_set_place.js' %}?v=3"></script>
+    <script src="{% static 'js/location_map.js' %}?v=3"></script>
+    <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
   {% elif can_show_place %}
-    <script src="{% static 'js/location_map.js' %}?v=2"></script>
+    <script src="{% static 'js/location_map.js' %}?v=3"></script>
     <script src="{% static 'js/location_show_place.js' %}?v=1"></script>
   {% endif %}
 {% endblock %}
