@@ -21,6 +21,13 @@
   max-width: 24rem;
 }
 
+.location-duplicates-list .btn {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .location-game-pill {
   font-size: 0.7rem;
   font-weight: 500;

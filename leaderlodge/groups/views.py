@@ -790,6 +790,7 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
     from leaderlodge.groups.locations import (
         GAME_CODE_SHORT,
         ensure_group_location_library,
+        find_duplicate_location_pairs,
     )
 
     group = get_object_or_404(Group, pk=pk)
@@ -876,6 +877,8 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
             }
         )
 
+    duplicate_pairs = find_duplicate_location_pairs(library=library)
+
     return render(
         request,
         "groups/location_list.html",
@@ -883,6 +886,7 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
             "group": group,
             "location_rows": location_rows,
             "location_data": location_data,
+            "duplicate_pairs": duplicate_pairs,
             "sort_field": sort_field,
             "sort_dir": sort_dir,
             "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),

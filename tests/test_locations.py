@@ -408,6 +408,101 @@ def test_combine_locations_copies_geo_onto_ungeocoded_keeper(user):
     assert not Location.objects.filter(pk=source.pk).exists()
 
 
+def _raw_location(library, name, **kwargs):
+    return Location.objects.create(
+        library=library,
+        name=name,
+        normalized_name=normalize_location_name(name),
+        **kwargs,
+    )
+
+
+@pytest.mark.django_db
+def test_find_duplicate_location_pairs_by_place_id(user):
+    from leaderlodge.groups.locations import find_duplicate_location_pairs
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+    left = _raw_location(library, "Cafe 50s Venice", place_id="places/cafe50")
+    right = _raw_location(library, "Cafe Fifties", place_id="places/cafe50")
+    _raw_location(library, "Unrelated Park")
+
+    pairs = find_duplicate_location_pairs(library=library)
+    assert len(pairs) == 1
+    assert pairs[0].reason == "place_id"
+    assert {pairs[0].left.pk, pairs[0].right.pk} == {left.pk, right.pk}
+
+
+@pytest.mark.django_db
+def test_find_duplicate_location_pairs_by_similar_name(user):
+    from leaderlodge.groups.locations import find_duplicate_location_pairs
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+    left = _raw_location(library, "Home Island")
+    right = _raw_location(library, "Home - Island")
+    _raw_location(library, "Preston")
+    _raw_location(library, "Preston - Passover")
+
+    pairs = find_duplicate_location_pairs(library=library)
+    assert len(pairs) == 1
+    assert pairs[0].reason == "name"
+    assert {pairs[0].left.pk, pairs[0].right.pk} == {left.pk, right.pk}
+
+
+@pytest.mark.django_db
+def test_find_duplicate_location_pairs_skips_name_extensions(user):
+    from leaderlodge.groups.locations import find_duplicate_location_pairs
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+    _raw_location(library, "Preston")
+    _raw_location(library, "Preston - Passover")
+    _raw_location(library, "The Parlor")
+    _raw_location(library, "The Parlor Room")
+
+    assert find_duplicate_location_pairs(library=library) == []
+
+
+@pytest.mark.django_db
+def test_find_duplicate_location_pairs_suggested_keeper_prefers_game_count(user):
+    from datetime import date
+
+    from leaderlodge.groups.locations import find_duplicate_location_pairs
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+    left = _raw_location(library, "The Parlor", place_id="places/parlor")
+    right = _raw_location(library, "Parlor Room", place_id="places/parlor")
+    Game.objects.create(
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2024, 1, 1),
+        recorded_by=user,
+        player_count=2,
+        location=right,
+    )
+    pairs = find_duplicate_location_pairs(library=library)
+    assert len(pairs) == 1
+    assert pairs[0].suggested_keeper.pk == right.pk
+    assert pairs[0].suggested_source.pk == left.pk
+
+
+@pytest.mark.django_db
+def test_location_manage_shows_find_duplicates(client, user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+    _raw_location(library, "Cafe A", place_id="places/same")
+    _raw_location(library, "Cafe B", place_id="places/same")
+    client.force_login(user)
+    url = reverse("groups:location_manage", kwargs={"pk": group.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Find duplicates" in response.content
+    assert b"Same Google place" in response.content
+    assert response.context["duplicate_pairs"]
+
+
 @pytest.mark.django_db
 def test_resolve_game_location_accepts_geo(user):
     from leaderlodge.groups.location_geo import (

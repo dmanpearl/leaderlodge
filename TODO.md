@@ -138,7 +138,8 @@
 - [x] Bug: Demo group description is unnecessarily truncated/elipsized despite enough room for more text. Implement wrapping. Example: "Test group with example game data. Login and use '+ Create Group' … "
 - [x] 856ae12 Leaderboard: Replace vesting with Bayesian prior (games / (games + k)); add provisional 'New' badge for players below game threshold
 - [x] 0875d24 Game location: Phase 2a Set place (map + search + assign) shipped; Phase 3 Record Game picker per docs/location-map.md
-- [x] Location: Record Game Near me is always nearby GPS; in-field magnifying-glass Search runs Places text search (up to 8 results)
+- [x] 8147977 Location: Record Game Near me is always nearby GPS; in-field magnifying-glass Search runs Places text search (up to 8 results)
+- [x] Location: Find duplicates on Locations page (fuzzy name + place_id pairs; merge via combine)
 
 ## Open Items
 
@@ -168,7 +169,6 @@
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
-- [ ] Merge similar locations tool (plan: docs/location-map.md Phase 2b)
 - [ ] Add Contact form.
 - [ ] iOS: Build native mobile app for iPhone and iPad
 - [ ] Android: Build native mobile app for Android

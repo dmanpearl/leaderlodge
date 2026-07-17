@@ -1,5 +1,6 @@
 import re
 import unicodedata
+from dataclasses import dataclass
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.core.exceptions import ValidationError
@@ -68,6 +69,133 @@ def score_location_match(query_normalized: str, candidate_normalized: str) -> in
         return MIN_SUBSEQUENCE_MERGE_SCORE
 
     return -1
+
+
+@dataclass(frozen=True)
+class DuplicateLocationPair:
+    """Unordered duplicate suggestion for the Locations merge UI."""
+
+    left: Location
+    right: Location
+    score: int
+    reason: str  # "place_id" | "name"
+
+    @property
+    def suggested_keeper(self) -> Location:
+        """Prefer more games, then geocoded, then name."""
+        left_count = int(getattr(self.left, "game_count", 0) or 0)
+        right_count = int(getattr(self.right, "game_count", 0) or 0)
+        if left_count != right_count:
+            return self.left if left_count > right_count else self.right
+        left_geo = self.left.lat is not None and self.left.lon is not None
+        right_geo = self.right.lat is not None and self.right.lon is not None
+        if left_geo != right_geo:
+            return self.left if left_geo else self.right
+        if self.left.name.lower() <= self.right.name.lower():
+            return self.left
+        return self.right
+
+    @property
+    def suggested_source(self) -> Location:
+        keeper = self.suggested_keeper
+        return self.right if keeper.pk == self.left.pk else self.left
+
+
+def _pair_key(a_pk: int, b_pk: int) -> tuple[int, int]:
+    return (a_pk, b_pk) if a_pk < b_pk else (b_pk, a_pk)
+
+
+def _fuzzy_compare_key(name: str) -> str:
+    """Fuzzy key for duplicate suggestions (collapse spaces after strip)."""
+    return re.sub(r"\s+", " ", normalize_for_fuzzy_match(name)).strip()
+
+
+def _is_name_extension(left: str, right: str) -> bool:
+    """True when one name is only a longer form of the other (e.g. Preston...)."""
+    if not left or not right or left == right:
+        return False
+    shorter, longer = (left, right) if len(left) < len(right) else (right, left)
+    return longer.startswith(shorter)
+
+
+def find_duplicate_location_pairs(
+    *,
+    library: LocationLibrary,
+) -> list[DuplicateLocationPair]:
+    """Suggest pairwise merges within a library.
+
+    Includes same non-empty ``place_id``, plus fuzzy name pairs at or above
+    ``MIN_FUZZY_MERGE_SCORE``. Skips pure name-extension pairs (short name vs
+    the same name with a suffix) so Find duplicates does not nag about
+    intentional variants like "Preston" vs "Preston - Passover". Does not
+    auto-merge; UI must confirm via ``combine_locations``.
+    """
+    from django.db.models import Count
+
+    locations = list(
+        library.locations.annotate(game_count=Count("games")).order_by("name", "pk")
+    )
+    if len(locations) < 2:
+        return []
+
+    pairs: dict[tuple[int, int], DuplicateLocationPair] = {}
+
+    by_place_id: dict[str, list[Location]] = {}
+    for location in locations:
+        place_id = (location.place_id or "").strip()
+        if not place_id:
+            continue
+        by_place_id.setdefault(place_id, []).append(location)
+
+    for group in by_place_id.values():
+        if len(group) < 2:
+            continue
+        for i, left in enumerate(group):
+            for right in group[i + 1 :]:
+                key = _pair_key(left.pk, right.pk)
+                pairs[key] = DuplicateLocationPair(
+                    left=left,
+                    right=right,
+                    score=200,
+                    reason="place_id",
+                )
+
+    for i, left in enumerate(locations):
+        left_norm = _fuzzy_compare_key(left.name)
+        if not left_norm:
+            continue
+        for right in locations[i + 1 :]:
+            key = _pair_key(left.pk, right.pk)
+            if key in pairs:
+                continue
+            right_norm = _fuzzy_compare_key(right.name)
+            if not right_norm:
+                continue
+            if _is_name_extension(left_norm, right_norm):
+                continue
+            score = max(
+                score_location_match(left_norm, right_norm),
+                score_location_match(right_norm, left_norm),
+            )
+            if score < MIN_FUZZY_MERGE_SCORE:
+                continue
+            pairs[key] = DuplicateLocationPair(
+                left=left,
+                right=right,
+                score=score,
+                reason="name",
+            )
+
+    return sorted(
+        pairs.values(),
+        key=lambda pair: (
+            -pair.score,
+            pair.left.name.lower(),
+            pair.right.name.lower(),
+            pair.left.pk,
+            pair.right.pk,
+        ),
+    )
 
 
 def find_fuzzy_location_match(

@@ -4,8 +4,8 @@ Plan for displaying game-play locations as pins on a map, with rich
 filtering, a map-based location picker for game recording, and AI-aware
 geographic queries.
 
-**Status: Phase 1 done. Phase 2a (Set place map picker) implemented.
-Phase 2b (merge duplicates) and later phases still planning.**
+**Status: Phase 1 done. Phase 2 (Set place + Find duplicates) done.
+Phase 3 (Record Game map picker) >>> NEXT UP <<<.**
 
 ---
 
@@ -16,8 +16,8 @@ Search this file for `>>> NEXT UP <<<` to jump to the active phase.
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | Schema and data foundation | **done** |
-| 2 | Set place (map picker + search + assign) + merge | **2a done; 2b >>> NEXT UP <<<** |
-| 3 | Map picker on Record Game | not started |
+| 2 | Set place (map picker + search + assign) + merge | **done** |
+| 3 | Map picker on Record Game | **>>> NEXT UP <<<** |
 | 4 | Map viewer + leaderboard venue filter | not started |
 | 5 | Custom pins | not started |
 | 6 | AI / Ask geo extensions | not started |
@@ -428,14 +428,16 @@ by map + search; no blind auto-geocode on the informal string.
 typos, rename drift) so geo and game counts consolidate.
 
 **Builds on:** existing `combine_locations` and rename on the Locations
-page; open TODO "Merge similar locations tool".
+page (TODO "Merge similar locations tool" closed with this phase).
 
 **UI concept:**
 
 - **Group Locations:** "Find duplicates" (or badge when suggestions exist)
 - Server suggests candidate pairs using existing fuzzy match scoring
   (`score_location_match`, library-scoped), plus optional same
-  `place_id` when both geocoded
+  `place_id` when both geocoded. Name-extension pairs (short name vs the
+  same name with a suffix) are omitted so intentional variants are not
+  nagged; they remain available via manual Combine.
 - List shows: name A, name B, game counts, whether either has lat/lon
 - User picks keeper, confirms merge (reuse existing combine confirmation)
 - On merge: keeper keeps geo; if keeper null and source has coords, copy
@@ -926,10 +928,8 @@ features are marked shipped in `features.md`.
 
 ## Implementation phases
 
-**Deployment priority:** Phase 1 done. Phase 2 ships the shared map picker
-and Set place (assign) so informal locations can be fixed from Edit Game
-and Locations. Phase 3 wires the same picker to Record Game. Phase 4+
-map viewer depends on geocoded data.
+**Deployment priority:** Phase 1 and Phase 2 done. Phase 3 wires the same
+map picker to Record Game. Phase 4+ map viewer depends on geocoded data.
 
 ### Phase 1 - Schema and data foundation
 
@@ -950,7 +950,7 @@ coords; name-only entry still works with null coords.
 
 ### Phase 2 - Set place (map picker + assign) + merge duplicates
 
-**Status: 2a done. 2b >>> NEXT UP <<<.**
+**Status: done.**
 
 **Done when:** from Edit Game or Locations, user can open a map, search
 (editable query), drop pin, pin-lookup, pick a Google place, and Assign
@@ -971,16 +971,16 @@ ships.
 
 **2b - Find and merge duplicates**
 
-- [ ] Suggest duplicate pairs (fuzzy score + optional `place_id` match)
-- [ ] UI: review list, pick keeper, confirm (reuse combine flow)
-- [ ] Respect geo copy rules on merge
-- [ ] Update `docs/features.md`; close TODO "Merge similar locations tool"
+- [x] Suggest duplicate pairs (fuzzy score + optional `place_id` match)
+- [x] UI: review list, pick keeper, confirm (reuse combine flow)
+- [x] Respect geo copy rules on merge
+- [x] Update `docs/features.md`; close TODO "Merge similar locations tool"
 
 **Not in Phase 2:** CLI batch backfill, Record Game button swap (Phase 3)
 
 ### Phase 3 - Map picker on Record Game
 
-**Status: not started.**
+**Status: >>> NEXT UP <<<.**
 
 **Done when:** Record Game uses the same `location_map.js` in `record`
 mode; Near me / Search become Set location.

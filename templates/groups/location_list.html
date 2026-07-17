@@ -23,7 +23,22 @@
     </ol>
   </nav>
 
-  <h1 class="h3 mb-3">Locations</h1>
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h3 mb-0">Locations</h1>
+    {% if location_rows|length > 1 %}
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#location-duplicates-modal"
+      >
+        Find duplicates
+        {% if duplicate_pairs %}
+          <span class="badge text-bg-secondary ms-1">{{ duplicate_pairs|length }}</span>
+        {% endif %}
+      </button>
+    {% endif %}
+  </div>
 
   {% if location_rows %}
     <div class="mb-3 location-list-search">
@@ -202,6 +217,123 @@
   {% if google_places_api_key %}
     {% include "groups/includes/location_set_place_modal.html" %}
   {% endif %}
+
+  <!-- Find duplicates modal -->
+  <div
+    class="modal fade"
+    id="location-duplicates-modal"
+    tabindex="-1"
+    aria-labelledby="location-duplicates-modal-label"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="location-duplicates-modal-label">
+            Find duplicates
+          </h2>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          {% if duplicate_pairs %}
+            <p class="text-muted small mb-3">
+              Suggested pairs from matching Google place IDs or similar names.
+              Choose which name to keep; games move to the keeper and the other
+              location is deleted. If only one side has a pin, that pin is kept.
+            </p>
+            <ul class="list-group location-duplicates-list">
+              {% for pair in duplicate_pairs %}
+                <li class="list-group-item">
+                  <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                    <div>
+                      <div class="fw-semibold">
+                        {{ pair.left.name }}
+                        {% if pair.left.lat and pair.left.lon %}
+                          <i class="bi bi-pin-fill text-success" title="Pin set" aria-hidden="true"></i>
+                        {% endif %}
+                        <span class="text-muted fw-normal">
+                          ({{ pair.left.game_count }} game{{ pair.left.game_count|pluralize }})
+                        </span>
+                      </div>
+                      <div class="fw-semibold">
+                        {{ pair.right.name }}
+                        {% if pair.right.lat and pair.right.lon %}
+                          <i class="bi bi-pin-fill text-success" title="Pin set" aria-hidden="true"></i>
+                        {% endif %}
+                        <span class="text-muted fw-normal">
+                          ({{ pair.right.game_count }} game{{ pair.right.game_count|pluralize }})
+                        </span>
+                      </div>
+                      <div class="small text-muted mt-1">
+                        {% if pair.reason == "place_id" %}
+                          Same Google place
+                        {% else %}
+                          Similar names
+                        {% endif %}
+                        · Suggested keeper:
+                        <strong>{{ pair.suggested_keeper.name }}</strong>
+                      </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-start">
+                      <form
+                        method="post"
+                        action="{% url 'groups:location_combine' group.pk pair.suggested_keeper.pk %}"
+                        class="m-0 location-duplicate-merge-form"
+                      >
+                        {% csrf_token %}
+                        <input
+                          type="hidden"
+                          name="source"
+                          value="{{ pair.suggested_source.pk }}"
+                        />
+                        <button type="submit" class="btn btn-sm btn-primary">
+                          Keep {{ pair.suggested_keeper.name }}
+                        </button>
+                      </form>
+                      <form
+                        method="post"
+                        action="{% url 'groups:location_combine' group.pk pair.suggested_source.pk %}"
+                        class="m-0 location-duplicate-merge-form"
+                      >
+                        {% csrf_token %}
+                        <input
+                          type="hidden"
+                          name="source"
+                          value="{{ pair.suggested_keeper.pk }}"
+                        />
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                          Keep {{ pair.suggested_source.name }}
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="mb-0 text-muted">
+              No likely duplicates found. You can still Combine locations from
+              the row menu.
+            </p>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Rename modal -->
   <div
@@ -441,7 +573,9 @@
       // Rename / Combine / Delete POST back to this list; Map Assign uses
       // location_set_place.js which also writes leaderlodge.restoreScroll.
       document
-        .querySelectorAll("#location-rename-form, #location-combine-form")
+        .querySelectorAll(
+          "#location-rename-form, #location-combine-form, .location-duplicate-merge-form"
+        )
         .forEach(function (form) {
           form.addEventListener("submit", saveScrollForRestore);
         });
