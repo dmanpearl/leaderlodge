@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />
-  <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=2" />
+  <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
   {% if google_places_api_key and can_set_place %}
     <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
   {% endif %}
@@ -159,9 +159,9 @@
   <script>
     document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
   </script>
-  <script src="{% static 'js/location_autocomplete.js' %}?v=9"></script>
+  <script src="{% static 'js/location_autocomplete.js' %}?v=10"></script>
   {% if google_places_api_key %}
-    <script src="{% static 'js/location_lookup.js' %}?v=2"></script>
+    <script src="{% static 'js/location_lookup.js' %}?v=6"></script>
   {% endif %}
   {% if can_set_place and google_places_api_key %}
     <script src="{% static 'js/location_map.js' %}?v=2"></script>

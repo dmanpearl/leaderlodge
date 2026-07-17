@@ -76,13 +76,20 @@
     return wrap;
   }
 
-  function syncLocationClearButton(input) {
+  function syncLocationFieldButtons(input) {
     const field = input.closest("[data-location-field]");
-    const clearButton = field?.querySelector("[data-location-clear]");
-    if (!clearButton) {
+    if (!field) {
       return;
     }
-    clearButton.hidden = !input.value.trim();
+    const hasValue = Boolean(input.value.trim());
+    const clearButton = field.querySelector("[data-location-clear]");
+    const searchButton = field.querySelector("[data-location-search]");
+    if (clearButton) {
+      clearButton.hidden = !hasValue;
+    }
+    if (searchButton) {
+      searchButton.hidden = !hasValue;
+    }
   }
 
   function initLocationClearButton(input) {
@@ -97,11 +104,11 @@
     });
     clearButton.addEventListener("click", () => {
       input.value = "";
-      syncLocationClearButton(input);
+      syncLocationFieldButtons(input);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.focus();
     });
-    syncLocationClearButton(input);
+    syncLocationFieldButtons(input);
   }
 
   function viewportHeight() {
@@ -207,7 +214,7 @@
     }
 
     onInput(event) {
-      syncLocationClearButton(this.input);
+      syncLocationFieldButtons(this.input);
       if (this.skipRefresh) {
         this.skipRefresh = false;
         return;
@@ -306,7 +313,7 @@
     selectSuggestion(location) {
       this.skipRefresh = true;
       this.input.value = location.name;
-      syncLocationClearButton(this.input);
+      syncLocationFieldButtons(this.input);
       this.input.dispatchEvent(
         new CustomEvent("location-autocomplete-select", {
           bubbles: true,

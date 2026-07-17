@@ -8,16 +8,27 @@
       id="location-lookup-btn"
       class="btn btn-sm btn-link p-0 location-lookup-btn"
       data-api-key="{{ google_places_api_key }}"
-      aria-label="Find nearby locations"
+      aria-label="Find places near me"
     >
       <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-      <span class="location-lookup-btn-text">Lookup</span>
+      <span class="location-lookup-btn-text">Near me</span>
     </button>
   {% endif %}
 </div>
 <div class="location-field" data-location-field>
   <div class="location-field-input-wrap combobox-input-wrap">
     {{ field }}
+    {% if google_places_api_key and not is_guest_demo %}
+      <button
+        type="button"
+        class="location-field-search"
+        data-location-search
+        aria-label="Search places by name"
+        hidden
+      >
+        <i class="bi bi-search" aria-hidden="true"></i>
+      </button>
+    {% endif %}
     <button
       type="button"
       class="location-field-clear"

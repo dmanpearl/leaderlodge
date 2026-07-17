@@ -2,10 +2,13 @@
   const btn = document.getElementById("location-lookup-btn");
   if (!btn) return;
 
+  const searchBtn = document.querySelector("[data-location-search]");
+
   let mapsPromise = null;
   let lastDeviceCoords = null;
   let lastFilledValue = null;
   let lookupList = null;
+  let activeControl = null;
 
   function loadGoogleMaps(apiKey) {
     if (mapsPromise) return mapsPromise;
@@ -181,6 +184,9 @@
     return place?.id || place?.placeId || "";
   }
 
+  const PLACE_FIELDS = ["displayName", "addressComponents", "location", "id"];
+  const MAX_PLACE_RESULTS = 8;
+
   async function nearbySearch(lat, lng) {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Places search timed out.")), 10000),
@@ -188,7 +194,7 @@
     const searchPromise = (async () => {
       const { Place } = await google.maps.importLibrary("places");
       const { places } = await Place.searchNearby({
-        fields: ["displayName", "addressComponents", "location", "id"],
+        fields: PLACE_FIELDS,
         locationRestriction: { center: { lat, lng }, radius: 600 },
         includedTypes: [
           "park",
@@ -208,8 +214,36 @@
           "hospital",
           "food_court",
         ],
-        maxResultCount: 8,
+        maxResultCount: MAX_PLACE_RESULTS,
       });
+      return places || [];
+    })();
+    return Promise.race([searchPromise, timeoutPromise]);
+  }
+
+  async function textSearch(query, biasCoords) {
+    const text = String(query || "").trim();
+    if (!text) {
+      throw new Error("Enter a place name to search.");
+    }
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Places search timed out.")), 12000),
+    );
+    const searchPromise = (async () => {
+      const { Place } = await google.maps.importLibrary("places");
+      const request = {
+        textQuery: text,
+        fields: PLACE_FIELDS,
+        maxResultCount: MAX_PLACE_RESULTS,
+      };
+      if (biasCoords?.lat != null && biasCoords?.lon != null) {
+        // Maps JS expects a Circle/LatLng, not the REST {circle:{center,radius}} shape.
+        request.locationBias = new google.maps.Circle({
+          center: { lat: Number(biasCoords.lat), lng: Number(biasCoords.lon) },
+          radius: 5000,
+        });
+      }
+      const { places } = await Place.searchByText(request);
       return places || [];
     })();
     return Promise.race([searchPromise, timeoutPromise]);
@@ -252,7 +286,7 @@
         postal_code: meta.postal_code || "",
         street_address: meta.street_address || "",
         place_id: meta.place_id || "",
-        geocode_source: "places_lookup",
+        geocode_source: meta.geocode_source || "places_lookup",
       });
     } else {
       // City-only row, or Places result missing geometry: phone GPS.
@@ -262,10 +296,20 @@
     btn.focus();
   }
 
-  function showList(places) {
+  function showList(places, options) {
+    const mode = options?.mode || "nearby";
+    const query = options?.query || "";
     hideList();
     if (!places.length) {
-      showError("No nearby places found.");
+      if (mode === "text") {
+        showError(
+          "No places found for that name. Try a fuller name or city.",
+        );
+      } else {
+        showError(
+          "No nearby places found. Type a name, then use the search icon.",
+        );
+      }
       return;
     }
 
@@ -277,24 +321,33 @@
     lookupList = document.createElement("ul");
     lookupList.className = "location-lookup-list";
     lookupList.setAttribute("role", "listbox");
-    lookupList.setAttribute("aria-label", "Nearby places");
+    lookupList.setAttribute(
+      "aria-label",
+      mode === "text" ? "Place search results" : "Nearby places",
+    );
     wrap.appendChild(lookupList);
 
     const items = [];
+    const placeSource = mode === "text" ? "text_search" : "places_lookup";
 
-    const cityState = extractCityState(places[0].addressComponents);
-    const firstParts = extractAddressParts(places[0].addressComponents);
-    if (cityState) {
-      addListItem(items, cityState, cityState, {
-        kind: "city",
-        city: firstParts.city,
-        state: firstParts.state,
-        country: firstParts.country,
-      });
+    if (mode === "nearby") {
+      const cityState = extractCityState(places[0].addressComponents);
+      const firstParts = extractAddressParts(places[0].addressComponents);
+      if (cityState) {
+        addListItem(items, cityState, cityState, {
+          kind: "city",
+          city: firstParts.city,
+          state: firstParts.state,
+          country: firstParts.country,
+        });
+      }
     }
 
     for (const place of places) {
-      const name = place.displayName;
+      const name =
+        typeof place.displayName === "string"
+          ? place.displayName
+          : place.displayName?.text || "";
       const parts = extractAddressParts(place.addressComponents);
       const cs = extractCityState(place.addressComponents);
       const coords = placeLatLon(place);
@@ -312,6 +365,7 @@
           postal_code: parts.postal_code,
           street_address: parts.street_address,
           place_id: placeIdOf(place),
+          geocode_source: placeSource,
         },
       );
     }
@@ -355,18 +409,21 @@
   }
 
   document.addEventListener("click", (e) => {
-    if (lookupList && !lookupList.contains(e.target) && e.target !== btn) {
+    if (
+      lookupList &&
+      !lookupList.contains(e.target) &&
+      e.target !== btn &&
+      !e.target.closest("[data-location-search]")
+    ) {
       hideList();
     }
   });
 
-  function setButtonState(state) {
-    btn.disabled = state !== "idle";
-
+  function setLookupButtonIcon(state) {
     const existing = btn.querySelector("i, .location-lookup-spinner");
     if (existing) existing.remove();
 
-    if (state === "searching") {
+    if (state === "searching" && activeControl === "nearby") {
       const spinner = document.createElement("span");
       spinner.className =
         "spinner-border spinner-border-sm location-lookup-spinner";
@@ -381,9 +438,49 @@
 
     const text = btn.querySelector(".location-lookup-btn-text");
     if (text) {
-      text.hidden = state === "searching";
-      text.textContent = state === "locating" ? "Locating..." : "Lookup";
+      const busy = state !== "idle" && activeControl === "nearby";
+      text.hidden = state === "searching" && activeControl === "nearby";
+      text.textContent =
+        busy && state === "locating" ? "Locating..." : "Near me";
     }
+  }
+
+  function setSearchButtonIcon(state) {
+    if (!searchBtn) return;
+    const existing = searchBtn.querySelector("i, .location-lookup-spinner");
+    if (existing) existing.remove();
+
+    if (
+      (state === "locating" || state === "searching") &&
+      activeControl === "text"
+    ) {
+      const spinner = document.createElement("span");
+      spinner.className =
+        "spinner-border spinner-border-sm location-lookup-spinner";
+      spinner.setAttribute("aria-hidden", "true");
+      searchBtn.appendChild(spinner);
+    } else {
+      const icon = document.createElement("i");
+      icon.className = "bi bi-search";
+      icon.setAttribute("aria-hidden", "true");
+      searchBtn.appendChild(icon);
+    }
+  }
+
+  function setButtonState(state, control) {
+    if (control) {
+      activeControl = control;
+    }
+    if (state === "idle") {
+      activeControl = null;
+    }
+
+    const busy = state !== "idle";
+    btn.disabled = busy;
+    if (searchBtn) searchBtn.disabled = busy;
+
+    setLookupButtonIcon(state);
+    setSearchButtonIcon(state);
   }
 
   let errEl = null;
@@ -394,6 +491,7 @@
     errEl.className = "location-lookup-error text-danger small ms-2";
     btn.after(errEl);
     errEl.textContent = msg;
+    console.warn("[location-lookup]", msg);
     setTimeout(() => {
       errEl?.remove();
       errEl = null;
@@ -436,7 +534,7 @@
     clearGeoFields();
   });
 
-  btn.addEventListener("click", async () => {
+  async function runPlacesLookup(mode) {
     if (lookupList) {
       hideList();
       return;
@@ -447,29 +545,64 @@
     const apiKey = btn.dataset.apiKey;
     if (!apiKey) return;
 
-    setButtonState("locating");
+    const query = (locationInput()?.value || "").trim();
+    if (mode === "text" && !query) {
+      showError("Enter a place name to search.");
+      return;
+    }
+
+    setButtonState("locating", mode);
 
     try {
-      const pos = await getPosition();
-      lastDeviceCoords = {
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-      };
-      setButtonState("searching");
+      // Prefer GPS for nearby search and as a bias for typed text search.
+      try {
+        const pos = await getPosition();
+        lastDeviceCoords = {
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+        };
+      } catch (geoErr) {
+        if (mode === "nearby") {
+          throw geoErr;
+        }
+        // Text search can still run without GPS.
+      }
+
+      setButtonState("searching", mode);
       await loadGoogleMaps(apiKey);
-      const places = await nearbySearch(
-        pos.coords.latitude,
-        pos.coords.longitude,
-      );
+
+      let places;
+      if (mode === "text") {
+        places = await textSearch(query, lastDeviceCoords);
+      } else {
+        places = await nearbySearch(
+          lastDeviceCoords.lat,
+          lastDeviceCoords.lon,
+        );
+      }
       setButtonState("idle");
-      showList(places);
+      showList(places, { mode, query });
     } catch (err) {
       setButtonState("idle");
       let msg = err?.message || "Location lookup failed.";
       if (err?.code === 1) msg = "Location permission denied.";
       else if (err?.code === 2) msg = "Location unavailable.";
       else if (err?.code === 3) msg = "Location request timed out.";
+      console.warn("[location-lookup]", err);
       showError(msg);
     }
+  }
+
+  btn.addEventListener("click", () => {
+    runPlacesLookup("nearby");
   });
+
+  if (searchBtn) {
+    searchBtn.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+    });
+    searchBtn.addEventListener("click", () => {
+      runPlacesLookup("text");
+    });
+  }
 })();

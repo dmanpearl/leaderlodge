@@ -60,8 +60,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--max-results",
             type=int,
-            default=5,
-            help="Places results to show per search (default 5).",
+            default=8,
+            help="Places results to show per search (default 8).",
         )
         parser.add_argument(
             "--region-code",

@@ -110,11 +110,11 @@ vs Google coordinate fields.
 
 | User action | Saved lat/lon | `geocode_source` |
 |-------------|---------------|------------------|
-| Picks a Places result (nearby Lookup or search) | **Google** place geometry (overrides phone GPS) | `places_lookup` or `text_search` |
+| Picks a Places result (Near me or in-field Search) | **Google** place geometry (overrides phone GPS) | `places_lookup` or `text_search` |
 | Drops a map pin | Pin coordinates | `map_pin` |
-| Types a custom name after Lookup (e.g. "Sally's House") with GPS available | **Phone** GPS | `gps` |
-| City-only Lookup row ("Los Angeles, CA") | **Phone** GPS | `gps` |
-| Types a name with no Lookup / picker geo | None (`lat` null) until explicit re-geocode or fill-in on save | (blank) |
+| Types a custom name after Near me (e.g. "Sally's House") with GPS available | **Phone** GPS | `gps` |
+| City-only Near me row ("Los Angeles, CA") | **Phone** GPS | `gps` |
+| Types a name with no Near me / Search / picker geo | None (`lat` null) until explicit re-geocode or fill-in on save | (blank) |
 | Reuses an existing Location that already has coords | Existing saved lat/lon (no new lookup) | unchanged |
 
 Phone GPS is used only to **discover** nearby places and as the pin when
@@ -127,7 +127,7 @@ nice-to-have (see Privacy).
 
 ### A. Record at the play location (typical)
 
-User is physically at the venue and taps Lookup (or later, "Use my
+User is physically at the venue and taps **Near me** (or later, "Use my
 location" in the map picker).
 
 - Device GPS runs nearby search.
@@ -144,14 +144,14 @@ User records hours or days later from somewhere else.
 - Store selected **name** plus **place or pin** lat/lon.
 - `geocode_source=places_lookup`, `text_search`, or `map_pin`.
 
-GPS Lookup remains available (see Back-entry policy) so users who are
+**Near me** remains available (see Back-entry policy) so users who are
 actually still near the venue can use it; users who are elsewhere should
-prefer search or map pin. If they do use Lookup and pick a Places
+prefer search or map pin. If they do use Near me and pick a Places
 result, Google place lat/lon is still what is saved (same as A).
 
-### C. Custom name while Lookup GPS is available
+### C. Custom name while Near me GPS is available
 
-User runs Lookup (or has GPS), ignores the place list, and types
+User runs Near me (or has GPS), ignores the place list, and types
 "Sally's House".
 
 - Store custom name + **phone GPS** lat/lon (no Google place point).
@@ -208,7 +208,7 @@ relocates a known venue without user intent.
 | Value | Meaning |
 |-------|---------|
 | `gps` | Phone GPS used as the pin (custom name or city-only; no Places geometry) |
-| `places_lookup` | Nearby Lookup Places pick; saved lat/lon is Google place geometry |
+| `places_lookup` | Near me Places pick; saved lat/lon is Google place geometry |
 | `map_pin` | User dropped a pin on the map picker |
 | `text_search` | User searched by name and chose a Places result; Google geometry |
 | `manual` | Coordinates entered manually by admin |
@@ -259,7 +259,7 @@ deduplication via a shared venue registry is not planned.
 
 ### When to capture coordinates
 
-Coordinates are captured when the user sets location via Lookup, map
+Coordinates are captured when the user sets location via Near me / Search, map
 picker, explicit re-geocode on the Locations page, or when a save
 includes a geo payload that fills a null row. They are **not** inferred
 automatically from a bare typed name with no geo payload.
@@ -270,9 +270,9 @@ Store 6 decimal places (approximately 11cm accuracy). This is more than
 sufficient for neighborhood/city queries and map display. `FloatField`
 is acceptable at LeaderLodge scale.
 
-### City-only Lookup row
+### City-only Near me row
 
-Today Lookup can offer a synthetic first option that is only
+Today Near me can offer a synthetic first option that is only
 "City, ST" (no venue). Phase 1 policy:
 
 - If the user picks the city-only row: store name as that text; store
@@ -286,7 +286,7 @@ Today Lookup can offer a synthetic first option that is only
 
 ## Phase 1 save path
 
-Today Lookup only writes a name string into the location input. GPS and
+Today Near me only writes a name string into the location input. GPS and
 Places fields are discarded. `nearbySearch` requests only
 `displayName` and `addressComponents`. Phase 1 must close that gap.
 
@@ -294,12 +294,12 @@ Places fields are discarded. `nearbySearch` requests only
 
 1. Request additional Places fields: `location`, `id` (place ID), and
    address components needed for city/state/country/postal.
-2. On Lookup start, retain device coords only for nearby search and as a
+2. On Near me start, retain device coords only for nearby search and as a
    fallback pin (custom name / city-only). Do not send phone lat/lon as
    the saved pin when the user picks a Places result.
 3. On Places pick: set hidden geo from **Google** `place.location` (and
    address / place_id); `location_geocode_source=places_lookup`.
-4. On custom name after Lookup (or city-only row): set hidden geo from
+4. On custom name after Near me (or city-only row): set hidden geo from
    **phone** GPS; `location_geocode_source=gps`; no place_id.
 5. Hidden fields (or one JSON field) alongside the visible name, e.g.:
    - `location_lat`, `location_lon` (single pair only)
@@ -307,7 +307,7 @@ Places fields are discarded. `nearbySearch` requests only
    - `location_postal_code`, `location_place_id`
    - `location_geocode_source`
 6. Same payload on **create** and **edit** game forms.
-7. If the user never runs Lookup and only types a name, leave geo
+7. If the user never runs Near me / Search and only types a name, leave geo
    fields empty (null coords until explicit re-geocode or fill-in).
 
 ### Server (`resolve_game_location` / `get_or_create_location`)
@@ -331,7 +331,7 @@ geocode).
 When a game is entered hours or days after it was played, device GPS
 reflects the user's current location, not the venue.
 
-**Policy (single rule):** GPS Lookup / "Use my location" is **always
+**Policy (single rule):** Near me / "Use my location" is **always
 available**, regardless of `played_on`. No date-based hiding. Users are
 trusted to use text search or map pin when they are not at the venue.
 Optional UX later: soft hint when `played_on` is not today ("GPS is
@@ -359,7 +359,7 @@ CLI `backfill_location_places` (accept/reject/skip each Places result; see
 **Goal:** edit the **Location** row (not one Game), so one action updates
 every game that uses that venue.
 
-**Requires map picker from day one.** Nearby-only Lookup (device GPS) is
+**Requires map picker from day one.** Nearby-only Near me (device GPS) is
 not enough: the user is often at home editing a game played elsewhere.
 They must pan the map, drop a pin, search by business name, and pick a
 Google place.
@@ -498,7 +498,7 @@ Game. One module: `static/js/location_map.js`.
    before search (`Pancake House, OR` to `Pancake House Oregon`).
 2. **Text search:** Places API; markers on map; select one.
 3. **Drop pin:** tap map to place crosshair/pin; does not save until Assign.
-4. **Pin lookup:** nearby Places at pin (same types as Lookup); user
+4. **Pin lookup:** nearby Places at pin (same types as Near me); user
    picks a business. Primary path when user knows where on map but not
    the exact query string.
 5. **Use my location:** optional; centers map and runs nearby search.
@@ -521,8 +521,8 @@ exist.
 
 ## Map picker on Record Game
 
-**Phase 3.** Replaces the Record Game Lookup button with the same modal
-in `record` mode (hidden fields + location name). Phase 1 Lookup remains
+**Phase 3.** Replaces the Record Game Near me / Search controls with the same modal
+in `record` mode (hidden fields + location name). Phase 1 Near me remains
 until Phase 3 ships.
 
 Coexists with mobile native location `<select>` TODO: reuse for known
@@ -550,7 +550,7 @@ game locations. Add a nav entry when the page ships.
 ### Empty state
 
 If the group has locations but none geocoded, show a short message
-pointing at Lookup and **Set place** on the Locations page rather than an
+pointing at Near me / Search and **Set place** on the Locations page rather than an
 empty map.
 
 ### Layout
@@ -936,17 +936,17 @@ map viewer depends on geocoded data.
 **Status: done (this phase).**
 
 **Done when:** new and edited games can persist lat/lon (and address
-fields) from Lookup; reuse of a geocoded Location does not overwrite
+fields) from Near me / Search; reuse of a geocoded Location does not overwrite
 coords; name-only entry still works with null coords.
 
 - [x] Add coordinate and address fields to `Location` (+ indexes)
 - [x] Migration (nullable fields; no data backfill in migration)
 - [x] Client: Places fields + hidden geo payload; Places pick saves Google
-  lat/lon; custom/city-only after Lookup saves phone GPS
+  lat/lon; custom/city-only after Near me saves phone GPS
 - [x] Server: resolve/create with fill-in and overwrite rules
 - [x] Create and edit game forms
 - [x] Update `docs/google-places.md`
-- [x] Carry Lookup geo through setup to roster save step
+- [x] Carry Near me / Search geo through setup to roster save step
 
 ### Phase 2 - Set place (map picker + assign) + merge duplicates
 
@@ -983,10 +983,10 @@ ships.
 **Status: not started.**
 
 **Done when:** Record Game uses the same `location_map.js` in `record`
-mode; Lookup button becomes Set location.
+mode; Near me / Search become Set location.
 
 - [ ] Wire modal to game form (Phase 1 hidden geo fields)
-- [ ] Keep Phase 1 Lookup as fallback until verified, then remove or merge
+- [ ] Keep Phase 1 Near me / Search as fallback until verified, then remove or merge
 - [ ] Update `docs/features.md`
 
 ### Phase 4 - Map viewer + leaderboard venue filter

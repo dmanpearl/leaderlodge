@@ -1,6 +1,13 @@
 # Google Places API - Location Lookup Setup
 
-LeaderLodge uses the Google Places API to let users tap a **Lookup** button next to the Location field when recording a game. The browser detects the device's GPS coordinates, sends a nearby-places search to Google, and shows a short list of venues to pick from.
+LeaderLodge uses the Google Places API on the Record Game location field:
+
+- **Near me** (pin icon next to the label) always runs a nearby search from
+  device GPS.
+- **Search** (magnifying glass inside the text field, left of clear) runs a
+  Places text search on the typed name, with optional GPS bias.
+
+Both show a short list of venues to pick from.
 
 The API key is a **browser-restricted** key: it is safe to expose in the page source because Google enforces HTTP referrer restrictions on it. It never touches your server after the initial render.
 
@@ -41,7 +48,7 @@ If you already have a suitable project, select it and skip this step.
 3. Search for and enable **Places API (New)**.
 4. Search for and enable **Geocoding API** (reverse geocode for map pin assigns).
 
-Both Maps JavaScript API and Places API (New) are required for Lookup.
+Both Maps JavaScript API and Places API (New) are required for Near me and Search.
 Geocoding API is required for **Set place** when the user drops a pin
 without picking a Places result.
 
@@ -91,7 +98,7 @@ Open your `.env` file and add:
 GOOGLE_PLACES_API_KEY=AIzaSy...your-key-here...
 ```
 
-Restart `python manage.py runserver`. Open the Record Game page and the **Lookup** button should appear next to the Location label.
+Restart `python manage.py runserver`. Open the Record Game page and the **Near me** button should appear next to the Location label.
 
 ---
 
@@ -109,24 +116,25 @@ Restart `python manage.py runserver`. Open the Record Game page and the **Lookup
 
 ---
 
-## Testing the Lookup button
+## Testing Near me and Search
 
 1. Open **Record Game** (`/games/new/`).
-2. The **Lookup** button (location pin icon) appears to the right of the **Location** label.
-3. Click **Lookup**. The browser asks for location permission - allow it.
-4. The button briefly shows **Locating...** then **Searching...**
+2. The **Near me** button (location pin icon) appears to the right of the **Location** label.
+3. Click **Near me** (with or without text in the field). The browser asks for location permission - allow it.
+4. The button briefly shows **Locating...** then a spinner while searching.
 5. A dropdown of up to 8 nearby establishments appears below the location field.
-6. Click any result to fill the location field with that place's name.
-7. Submit the form as normal.
+6. Click any result to fill the location field with that place's name and Google coordinates.
+7. If the venue is missing from nearby results: type a business name (optionally with city). A magnifying-glass **Search** button appears inside the field (left of clear). Click it to run a Places text search (up to 8 results), same idea as **Set place** search on the Locations page.
+8. Submit the form as normal.
 
-If the button does not appear, check:
+If the Near me button does not appear, check:
 - `GOOGLE_PLACES_API_KEY` is set in `.env` (local) or Railway Variables (production).
 - The server was restarted after adding the key locally.
 - You are logged in (the button is hidden for anonymous/demo users).
 
 ---
 
-## What Lookup saves (Phase 1)
+## What Near me / Search saves (Phase 1)
 
 Nearby search requests Places fields: `displayName`, `addressComponents`,
 `location`, and `id`. On submit, the game form posts optional hidden geo
@@ -135,13 +143,14 @@ row (not on the Game).
 
 | User action | Saved `lat`/`lon` | `geocode_source` |
 |-------------|-------------------|------------------|
-| Picks a Places result | Google place geometry | `places_lookup` |
-| Picks the city-only row, or types a custom name after Lookup | Device GPS | `gps` |
-| Types a name with no Lookup | None (null until reuse or backfill) | (blank) |
+| Picks a Places result | Google place geometry | `places_lookup` (Near me) or `text_search` (in-field Search) |
+| Picks the city-only row, or types a custom name after Near me | Device GPS | `gps` |
+| Types a name with no Near me / Search | None (null until reuse or backfill) | (blank) |
 | Reuses an existing Location that already has coords | Existing coords unchanged | unchanged |
 
-Phone GPS is used only to find nearby places and as the pin when there is
-no Google place point. A Places pick always prefers Google coordinates.
+Phone GPS is used only to find nearby places, bias typed text search, and as
+the pin when there is no Google place point. A Places pick always prefers
+Google coordinates.
 
 Fields that may be saved: `lat`, `lon`, `city`, `state`, `country`,
 `postal_code`, `street_address`, `place_id`, `geocode_source`,
@@ -157,7 +166,7 @@ includes:
 
 - Editable Places text search (pre-filled from the informal location name)
 - Map with draggable pin (click map to drop)
-- **Pin lookup** (nearby Places at the pin, same types as Lookup)
+- **Pin lookup** (nearby Places at the pin, same types as Near me)
 - Optional **Use my location** (centers map; not the default for assign)
 - **Assign** writes geo to the `Location` row for all games using it
 
@@ -236,4 +245,4 @@ This is expected behavior for the initial release. The Places API returns genera
 
 ## Removing or disabling the feature
 
-Remove or leave blank `GOOGLE_PLACES_API_KEY` in your environment. When the key is absent, the Lookup button does not render and no Google scripts are loaded.
+Remove or leave blank `GOOGLE_PLACES_API_KEY` in your environment. When the key is absent, the Near me and Search controls do not render and no Google scripts are loaded.
