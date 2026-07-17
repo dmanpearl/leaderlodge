@@ -425,6 +425,24 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
         tool_calls=(AskToolCall("query_play_locations", {}),),
     ),
     _example(
+        "Player games by state",
+        (
+            "Show me the list of states in which Nancy has played and her number of games in each.",
+            "Where has David played by state?",
+        ),
+        reliability="supported",
+        tool_calls=(
+            AskToolCall(
+                "query_player_play_locations",
+                {"player_query": "Nancy", "group_by": "state"},
+            ),
+        ),
+        limitation=(
+            "Blank or missing state is returned as an unknown bucket. "
+            "Do not treat unknown games as California or any other state."
+        ),
+    ),
+    _example(
         "Specific game",
         "What happened in the game on 3/15/2026?",
         reliability="supported",

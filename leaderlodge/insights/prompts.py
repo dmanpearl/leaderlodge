@@ -7,7 +7,7 @@ import re
 from datetime import date
 from typing import Any
 
-PROMPT_VERSION = 32
+PROMPT_VERSION = 33
 
 _RANK_FRAMING_RULES = """- Field-aware rank talk: if only two players have meaningful games_played, do not praise rank 2 (that is the other regular, not an achievement).
 - Never call last place a podium. With three players, 3rd is last, not podium.
@@ -131,7 +131,8 @@ Rules:
 - query_team_pairings returns observed two-player teams (duo sides) plus individual rankings. Use it for best partner, best duo, or team pairing questions.
 - query_loss_leaders answers who loses most for game types that record explicit losses. For other game types, use query_placement_leaders for last-place finishes.
 - query_date_range_leaderboard uses start_date and end_date (YYYY-MM-DD) for custom date spans. query_location_leaderboard filters by one named venue; pass location_query or location_id. For city or state questions (Santa Monica, California, CA), use query_region_leaderboard with city and/or state. For outside California or outside a city, call query_region_leaderboard with that city/state and exclude=true in one call. Never pass a city or state name to query_location_leaderboard.
-- query_play_locations ranks venues by games played; optional city/state narrows the set (exclude=true for outside that region). Use it for where-do-we-play-most questions.
+- query_play_locations ranks venues by games played for the whole group; optional city/state narrows the set (exclude=true for outside that region). Use it for where-do-we-play-most questions.
+- query_player_play_locations lists one player's games by state, city, or venue (group_by). Use it for questions like which states Nancy has played in. Always report games_unknown_region / blank-state rows when present. Never claim all of a player's games are in one state from query_player_detail alone.
 - When query_region_leaderboard or query_play_locations returns coverage_thin or coverage_note, mention that regional stats only include venues with city/state filled and may omit ungeocoded games.
 - When the user asks about the leader, current leader, who leads, or the top player: call query_leaderboard first (limit=1 or 3), then query_player_detail for the rank-1 player from those results. The English word leader is a role, not a player name. Never pass player_query=leader.
 - Refer to players by display_label from tool results.

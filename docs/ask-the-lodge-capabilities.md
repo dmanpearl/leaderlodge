@@ -236,6 +236,19 @@ Returns ranked rows for games at all matched venues, plus `matched_venues`, `reg
 
 Returns venues ordered by `games_played`, with city/state when present.
 
+### `query_player_play_locations`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `player_id` or `player_query` | One of | Same resolution as `query_player_detail` |
+| `group_by` | No | `state` (default), `city`, or `venue` |
+| `year`, `month`, `all_time` | No | Period filter |
+| `game_size` | No | |
+| `limit` | No | Default 20, max 20 |
+
+Returns `rows` of counts for that player, plus `total_games`, `games_unknown_region`, and optional `coverage_note`. Blank or missing geo is an explicit unknown bucket; do not treat those games as belonging to a specific state.
+
 ### `query_game_detail`
 
 | Parameter | Required | Notes |
@@ -283,6 +296,7 @@ Returns scores, placements, location, and players for one recorded game.
 | City / state leaders | "Who plays best in Santa Monica?" / "Who leads in California?" | `query_region_leaderboard` with `city` and/or `state` |
 | Outside a region | "Who plays best outside of California?" | `query_region_leaderboard` with `state` and `exclude: true` |
 | Where we play most | "Where do we play most?" | `query_play_locations` |
+| Player games by state/city/venue | "Which states has Nancy played in?" | `query_player_play_locations` with `group_by` |
 | Specific game | "What happened in the game on 3/15/2026?" | `query_game_detail` with `played_on` (model infers date from the question) |
 | Current leader profile | "Tell me about the leader" / "Who is on top?" | `query_leaderboard` (limit 1), then `query_player_detail` for rank 1 |
 

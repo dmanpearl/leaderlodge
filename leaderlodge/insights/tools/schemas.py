@@ -192,6 +192,45 @@ ASK_TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "query_player_play_locations",
+            "description": (
+                "One player's games grouped by state, city, or venue. "
+                "Use for lists like which states Nancy has played in and "
+                "how many games in each. Always report the unknown/blank "
+                "geo bucket when present; never invent that all games are "
+                "in one state from query_player_detail totals alone."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "player_id": {"type": "integer"},
+                    "player_query": {
+                        "type": "string",
+                        "description": ("Player name or username from the question."),
+                    },
+                    "game_type_code": {"type": "string"},
+                    "group_by": {
+                        "type": "string",
+                        "enum": ["state", "city", "venue"],
+                        "description": (
+                            "state for per-state counts, city for per-city, "
+                            "venue for per-location. Default state."
+                        ),
+                    },
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                    "limit": {
+                        "type": "integer",
+                        "description": "Max rows to return (default 20).",
+                    },
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "query_head_to_head",
             "description": (
                 "Head-to-head stats for two players in games they both attended: "

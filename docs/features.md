@@ -161,8 +161,9 @@ individual leaderboard credit still applied
 - **Games Map** (`/games/map/`): browse geocoded venues with filters and clusters; anonymous Demo access when demo mode is on
 - Leaderboard **Location** filter for venue-scoped rankings
 - Ask the Lodge: venue leaders (`query_location_leaderboard`), city/state
-  leaders (`query_region_leaderboard`), and where-we-play-most
-  (`query_play_locations`); regional answers only include venues with
+  leaders (`query_region_leaderboard`), where-we-play-most
+  (`query_play_locations`), and per-player games by state/city/venue
+  (`query_player_play_locations`); regional answers only include venues with
   city/state filled
 - **Find duplicates** on the Locations page: suggest pairs by similar name or same Google place ID; keep one name and merge via existing combine (geo copy rules apply)
 - **Show place** read-only map on Game detail for other members when a pin is set

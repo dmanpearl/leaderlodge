@@ -24,6 +24,7 @@ from leaderlodge.insights.tools.standings import (
     query_location_leaderboard,
     query_play_locations,
     query_player_detail,
+    query_player_play_locations,
     query_region_leaderboard,
 )
 from leaderlodge.insights.tools.teams import query_team_pairings
@@ -54,6 +55,7 @@ class ToolExecutor:
             "query_month_leaders": self._query_month_leaders,
             "query_rank_trends": self._query_rank_trends,
             "query_player_detail": self._query_player_detail,
+            "query_player_play_locations": self._query_player_play_locations,
             "query_head_to_head": self._query_head_to_head,
             "query_hall_of_fame": self._query_hall_of_fame,
             "query_loss_leaders": self._query_loss_leaders,
@@ -317,6 +319,27 @@ class ToolExecutor:
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
         )
+
+    def _query_player_play_locations(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        player_id = self._resolve_player_id(arguments)
+        group_by = str(arguments.get("group_by") or "state").strip().lower()
+        try:
+            return query_player_play_locations(
+                self.scope.group,
+                player_id=player_id,
+                game_type_code=game_type_code,
+                group_by=group_by,
+                period=self._resolve_period(arguments, game_type_code),
+                game_size=self._resolve_game_size(arguments, game_type_code),
+                limit=(
+                    self._resolve_limit(arguments)
+                    if arguments.get("limit") is not None
+                    else 20
+                ),
+            )
+        except ValueError as exc:
+            raise ToolExecutionError(str(exc)) from exc
 
     def _query_head_to_head(self, arguments: dict[str, Any]) -> dict[str, Any]:
         game_type_code = self._resolve_game_type_code(arguments)
