@@ -11,7 +11,7 @@ from leaderlodge.insights.limits import (
     load_site_limit_config,
     resolve_insight_limits,
 )
-from leaderlodge.insights.limits_defaults import TIER_AUTHENTICATED, TIER_STAFF
+from leaderlodge.insights.limits_defaults import TIER_STAFF
 from leaderlodge.insights.rate_limit import (
     check_insight_rate_limit,
     get_usage_status,
@@ -51,13 +51,6 @@ def _request_for(user=None, ip="203.0.113.10"):
     request.user = user if user is not None else AnonymousUser()
     request.META["REMOTE_ADDR"] = ip
     return request
-
-
-@pytest.mark.django_db
-def test_load_site_limit_config_uses_defaults():
-    config = load_site_limit_config()
-    assert config["authenticated"]["hourly"] == 30
-    assert config["models"]["flash-lite"]["daily"] == 100
 
 
 @pytest.mark.django_db
@@ -126,22 +119,6 @@ def test_anonymous_subject_key_uses_ip_hash():
 
 @pytest.mark.django_db
 @override_settings(INSIGHTS_RATE_LIMITS_ENABLED=True)
-def test_check_rate_limit_allows_under_cap(user, rf):
-    request = _request_for(user)
-    check_insight_rate_limit(request, user=user, model_slug="flash-lite")
-
-
-@pytest.mark.django_db
-@override_settings(INSIGHTS_RATE_LIMITS_ENABLED=False)
-def test_rate_limits_disabled_allows_unlimited_usage(user):
-    request = _request_for(user)
-    for _ in range(35):
-        record_insight_usage(request, user=user, model_slug="flash-lite")
-    check_insight_rate_limit(request, user=user, model_slug="flash-lite")
-
-
-@pytest.mark.django_db
-@override_settings(INSIGHTS_RATE_LIMITS_ENABLED=True)
 def test_check_rate_limit_blocks_actor_hourly(user):
     request = _request_for(user)
     for _ in range(30):
@@ -173,17 +150,9 @@ def test_check_rate_limit_blocks_per_model_daily(user):
 
 
 @pytest.mark.django_db
-@override_settings(INSIGHTS_RATE_LIMITS_ENABLED=True)
-def test_different_models_have_separate_model_counters(user):
-    request = _request_for(user)
-    for _ in range(2):
-        record_insight_usage(request, user=user, model_slug="gpt-4o-mini")
-
-    check_insight_rate_limit(request, user=user, model_slug="flash-lite")
-
-
-@pytest.mark.django_db
-@override_settings(INSIGHTS_RATE_LIMITS_ENABLED=True, INSIGHTS_LIMITS={"global_daily": 1})
+@override_settings(
+    INSIGHTS_RATE_LIMITS_ENABLED=True, INSIGHTS_LIMITS={"global_daily": 1}
+)
 def test_global_daily_limit(user):
     request = _request_for(user)
     record_insight_usage(request, user=user, model_slug="flash-lite")

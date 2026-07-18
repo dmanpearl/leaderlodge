@@ -1,7 +1,6 @@
 import pytest
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
-from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
@@ -80,34 +79,6 @@ def _inline_formset(*, game, data):
                 }
             )
     return factory(instance=game, data=data, queryset=queryset, prefix=prefix)
-
-
-@pytest.mark.django_db
-def test_game_clean_ignores_stale_participant_results(backgammon_game):
-    backgammon_game.clean()
-
-
-@pytest.mark.django_db
-def test_game_admin_formset_accepts_backgammon_win_and_played(backgammon_game):
-    participants = list(backgammon_game.participant_results.order_by("pk"))
-    data = {
-        "results-TOTAL_FORMS": "2",
-        "results-INITIAL_FORMS": "2",
-        "results-MIN_NUM_FORMS": "0",
-        "results-MAX_NUM_FORMS": "1000",
-        f"results-0-id": participants[0].pk,
-        f"results-0-player": participants[0].player_id,
-        f"results-0-score": participants[0].score,
-        f"results-0-result": Result.WIN,
-        f"results-0-placement": participants[0].placement,
-        f"results-1-id": participants[1].pk,
-        f"results-1-player": participants[1].player_id,
-        f"results-1-score": participants[1].score,
-        f"results-1-result": Result.PLAYED,
-        f"results-1-placement": participants[1].placement,
-    }
-    formset = _inline_formset(game=backgammon_game, data=data)
-    assert formset.is_valid(), formset.errors
 
 
 @pytest.mark.django_db

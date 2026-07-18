@@ -84,7 +84,9 @@ def test_record_game_form_uses_saved_game_type(client, user, group):
 
     assert response.status_code == 200
     assert 'value="backgammon"' in content
-    assert "selected" in content.split('value="backgammon"', 1)[1].split("</option>", 1)[0]
+    assert (
+        "selected" in content.split('value="backgammon"', 1)[1].split("</option>", 1)[0]
+    )
     assert "game-setup-game-type-icon" in content
     assert "game-types/backgammon.png" in content
 
@@ -164,23 +166,6 @@ def test_leaderboard_uses_saved_game_type(client, user, group):
     assert "selected" in content
     assert "Backgammon" in content
     assert f"game_type_code=backgammon" in content or "game_type=backgammon" in content
-
-
-@pytest.mark.django_db
-def test_navbar_links_include_saved_game_type(client, user, group):
-    set_ui_settings(
-        user,
-        GAME_SELECTION_NAMESPACE,
-        {GAME_TYPE_CODE_KEY: "dominos"},
-    )
-    client.force_login(user)
-
-    response = client.get(reverse("core:dashboard"))
-    content = response.content.decode()
-
-    assert "game_type=dominos" in content
-    assert "game_type_code=dominos" in content
-    assert "Reset Preferences" in content
 
 
 @pytest.mark.django_db

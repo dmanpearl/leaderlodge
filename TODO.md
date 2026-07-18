@@ -144,7 +144,7 @@
 - [x] 8b34372 Location: Phase 4 Games Map viewer + leaderboard venue filter (Demo map for anonymous)
 - [x] 7e73826 Location: AI Insights/Ask city/state region leaderboard + play-locations tools
 - [x] c865a27 Location List View: Click on location row to open a location detail view
-- [x] Map View: Location modal includes link to Location Detail View. Also rename 'View Games' > 'View Game'.
+- [x] 57acd3c Map View: Location modal includes link to Location Detail View. Also rename 'View Games' > 'View Game'.
 
 ## Open Items
 

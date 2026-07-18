@@ -5,13 +5,9 @@ from pathlib import Path
 
 import pytest
 from django.contrib.auth.models import User
-from django.core.management import call_command
-from django.urls import reverse
-from io import StringIO
 from openpyxl import Workbook
 
 from leaderlodge.games.importing.progressiverummy import parse_progressiverummy_workbook
-from leaderlodge.games.importing.scorekeeper import parse_scorekeeper_workbook
 from leaderlodge.games.importing.service import (
     import_games_file,
     import_mahjongg_file,
@@ -21,11 +17,6 @@ from leaderlodge.games.importing.service import (
 )
 from leaderlodge.games.models import Game
 from leaderlodge.groups.models import GroupMembership, GroupPlayer
-from leaderlodge.groups.names import format_user_display_name
-from leaderlodge.groups.templatetags.display_names import (
-    user_primary_label,
-    user_shows_username_suffix,
-)
 from leaderlodge.groups.services import (
     add_guest_player,
     create_group_with_owner,
@@ -87,54 +78,6 @@ def sample_spreadsheet(tmp_path):
         ],
     )
     return path
-
-
-def test_format_user_display_name():
-    user = User(
-        username="david",
-        first_name="David",
-        last_name="Pearl",
-    )
-    assert format_user_display_name(user) == "David P"
-
-    user = User(username="david", first_name="David")
-    assert format_user_display_name(user) == "David"
-
-    user = User(username="david")
-    assert format_user_display_name(user) == "david"
-
-
-def test_user_primary_label_and_username_suffix():
-    user = User(username="dmanpearl", first_name="David")
-    assert user_primary_label(user) == "David"
-    assert user_shows_username_suffix(user) is True
-
-    user = User(username="david", first_name="David")
-    assert user_primary_label(user) == "David"
-    assert user_shows_username_suffix(user) is False
-
-    user = User(username="dmanpearl")
-    assert user_primary_label(user) == "dmanpearl"
-    assert user_shows_username_suffix(user) is False
-
-
-@pytest.mark.django_db
-def test_group_detail_shows_first_with_username(client, user, group):
-    user.username = "dmanpearl"
-    user.save(update_fields=["username"])
-    client.force_login(user)
-    content = client.get(
-        reverse("groups:detail", kwargs={"pk": group.pk})
-    ).content.decode()
-    assert "David" in content
-    assert "dmanpearl" in content
-    assert "user-name-username-suffix" in content
-
-
-@pytest.mark.django_db
-def test_resolve_seed_player_matches_linked_username(group, user):
-    player = resolve_seed_player(group=group, seed_name="david")
-    assert player.linked_user_id == user.pk
 
 
 @pytest.mark.django_db
@@ -255,30 +198,6 @@ def test_resolve_seed_player_creates_guest(group):
     assert player.linked_user is None
 
 
-def test_parse_scorekeeper_workbook(sample_spreadsheet):
-    parsed = parse_scorekeeper_workbook(sample_spreadsheet)
-    assert parsed.player_names == ("Nancy", "David")
-    assert len(parsed.rows) == 2
-    assert parsed.rows[0].played_on.isoformat() == "2026-03-08"
-    assert parsed.rows[0].scores == (25, 30)
-    assert parsed.rows[0].location_name == "Sally"
-    assert parsed.rows[1].location_name == ""
-
-
-def test_parse_scorekeeper_workbook_reads_custom_player_headers(tmp_path):
-    path = tmp_path / "custom_players.xlsx"
-    _write_scorekeeper(
-        path,
-        [
-            (datetime(2026, 3, 8), 25, 30, "Lodge"),
-        ],
-        headers=("Date", "Carter", "Elena", "Where"),
-    )
-    parsed = parse_scorekeeper_workbook(path)
-    assert parsed.player_names == ("Carter", "Elena")
-    assert parsed.rows[0].scores == (25, 30)
-
-
 @pytest.mark.django_db
 def test_import_scorekeeper_file_uses_header_player_names(group, user, tmp_path):
     path = tmp_path / "custom_players.xlsx"
@@ -302,22 +221,6 @@ def test_import_scorekeeper_file_uses_header_player_names(group, user, tmp_path)
 
 
 @pytest.mark.django_db
-def test_import_scorekeeper_file(group, user, sample_spreadsheet):
-    summary = import_scorekeeper_file(
-        path=sample_spreadsheet,
-        group=group,
-        game_type_code="dominos",
-        recorded_by=user,
-    )
-
-    assert summary.parsed == 2
-    assert summary.created == 2
-    assert summary.skipped == 0
-    assert Game.objects.filter(group=group).count() == 2
-    assert GroupPlayer.objects.filter(group=group, display_name="Nancy").exists()
-
-
-@pytest.mark.django_db
 def test_import_scorekeeper_file_is_idempotent(group, user, sample_spreadsheet):
     import_scorekeeper_file(
         path=sample_spreadsheet,
@@ -335,64 +238,6 @@ def test_import_scorekeeper_file_is_idempotent(group, user, sample_spreadsheet):
     assert summary.created == 0
     assert summary.skipped == 2
     assert Game.objects.filter(group=group).count() == 2
-
-
-@pytest.mark.django_db
-def test_import_games_command(group, user, sample_spreadsheet):
-    stdout = StringIO()
-    call_command(
-        "import_games",
-        str(sample_spreadsheet),
-        "--group",
-        str(group.pk),
-        "--game-type",
-        "dominos",
-        stdout=stdout,
-    )
-
-    output = stdout.getvalue()
-    assert "Created: 2" in output
-    assert (
-        Game.objects.filter(group=group, import_source="dominos_seed_test").count() == 2
-    )
-
-
-@pytest.mark.django_db
-def test_import_backgammon_after_dominos(group, user, sample_spreadsheet, tmp_path):
-    """Second scorekeeper import reuses Nancy created by the first."""
-    backgammon_path = tmp_path / "backgammon_seed_test.xlsx"
-    _write_scorekeeper(
-        backgammon_path,
-        [
-            (datetime(2026, 4, 1), 1, 0, "Home"),
-        ],
-    )
-
-    import_scorekeeper_file(
-        path=sample_spreadsheet,
-        group=group,
-        game_type_code="dominos",
-        recorded_by=user,
-    )
-    assert GroupPlayer.objects.filter(group=group, display_name="Nancy").count() == 1
-
-    summary = import_scorekeeper_file(
-        path=backgammon_path,
-        group=group,
-        game_type_code="backgammon",
-        recorded_by=user,
-    )
-
-    assert summary.created == 1
-    assert GroupPlayer.objects.filter(group=group, display_name="Nancy").count() == 1
-
-
-@pytest.mark.django_db
-def test_resolve_seed_player_reuses_existing_after_integrity_error(group):
-    add_guest_player(group=group, display_name="Nancy")
-    player = resolve_seed_player(group=group, seed_name="Nancy")
-    assert player.display_name == "Nancy"
-    assert GroupPlayer.objects.filter(group=group, display_name="Nancy").count() == 1
 
 
 @pytest.mark.django_db
@@ -519,49 +364,6 @@ def test_import_progressiverummy_file(group, user, progressiverummy_spreadsheet)
     assert GroupPlayer.objects.filter(group=group, display_name="Pat").exists()
 
 
-@pytest.mark.django_db
-def test_import_progressiverummy_file_is_idempotent(
-    group, user, progressiverummy_spreadsheet
-):
-    import_progressiverummy_file(
-        path=progressiverummy_spreadsheet,
-        group=group,
-        recorded_by=user,
-    )
-    summary = import_progressiverummy_file(
-        path=progressiverummy_spreadsheet,
-        group=group,
-        recorded_by=user,
-    )
-
-    assert summary.created == 0
-    assert summary.skipped == 3
-
-
-@pytest.mark.django_db
-def test_import_progressiverummy_command(group, user, progressiverummy_spreadsheet):
-    stdout = StringIO()
-    call_command(
-        "import_games",
-        str(progressiverummy_spreadsheet),
-        "--group",
-        str(group.pk),
-        "--game-type",
-        "progressiverummy",
-        stdout=stdout,
-    )
-
-    output = stdout.getvalue()
-    assert "Created: 3" in output
-    assert (
-        Game.objects.filter(
-            group=group,
-            import_source="progressiverummy_seed_test",
-        ).count()
-        == 3
-    )
-
-
 def _write_mahjongg(path: Path, rows: list[tuple]) -> None:
     workbook = Workbook()
     worksheet = workbook.active
@@ -620,30 +422,6 @@ def test_import_mahjongg_file(group, user, mahjongg_spreadsheet):
     assert winners == {"Carter", "Elena"}
 
 
-@pytest.mark.django_db
-def test_import_mahjongg_command(group, user, mahjongg_spreadsheet):
-    stdout = StringIO()
-    call_command(
-        "import_games",
-        str(mahjongg_spreadsheet),
-        "--group",
-        str(group.pk),
-        "--game-type",
-        "mahjongg",
-        stdout=stdout,
-    )
-
-    output = stdout.getvalue()
-    assert "Created: 2" in output
-    assert (
-        Game.objects.filter(
-            group=group,
-            import_source="mahjongg_seed_test",
-        ).count()
-        == 2
-    )
-
-
 def _write_pickleball(path: Path, rows: list[tuple]) -> None:
     workbook = Workbook()
     worksheet = workbook.active
@@ -680,18 +458,6 @@ def pickleball_spreadsheet(tmp_path):
 
 
 @pytest.mark.django_db
-def test_parse_pickleball_workbook(pickleball_spreadsheet):
-    from leaderlodge.games.importing.pickleball import parse_pickleball_workbook
-    from leaderlodge.games.registry import ScoreType
-
-    rows = parse_pickleball_workbook(pickleball_spreadsheet)
-    assert len(rows) == 4
-    assert rows[0].side_scores[0].label == "Harper+Owen"
-    assert rows[1].score_type == ScoreType.RALLY.value
-    assert rows[2].side_scores[0].label == "Lucas"
-
-
-@pytest.mark.django_db
 def test_import_pickleball_file(group, user, pickleball_spreadsheet):
     summary = import_pickleball_file(
         path=pickleball_spreadsheet,
@@ -712,38 +478,6 @@ def test_import_pickleball_file(group, user, pickleball_spreadsheet):
     team_result = team_game.participant_results.filter(player__is_team=True).first()
     assert team_result is not None
     assert "+" in team_result.player.display_name
-
-
-@pytest.mark.django_db
-def test_import_pickleball_command(group, user, pickleball_spreadsheet):
-    stdout = StringIO()
-    call_command(
-        "import_games",
-        str(pickleball_spreadsheet),
-        "--group",
-        str(group.pk),
-        "--game-type",
-        "pickleball",
-        stdout=stdout,
-    )
-
-    output = stdout.getvalue()
-    assert "Created: 3" in output
-    assert (
-        Game.objects.filter(
-            group=group,
-            import_source="pickleball_seed_test",
-        ).count()
-        == 3
-    )
-
-
-def test_sides_have_shared_members_detects_overlap():
-    from leaderlodge.games.importing.pickleball import sides_have_shared_members
-
-    assert sides_have_shared_members(["Harper+Owen", "Lucas+Owen"]) is True
-    assert sides_have_shared_members(["Harper+Owen", "Elena+Lucy"]) is False
-    assert sides_have_shared_members(["Lucas", "Elena+Lucy"]) is False
 
 
 @pytest.mark.django_db

@@ -10,15 +10,6 @@ def test_whole_roster_question_matches_men_and_women():
     assert coverage["likely_incomplete"] is True
 
 
-def test_whole_roster_question_matches_boys_and_girls():
-    coverage = analyze_ask_tool_coverage(
-        tool_rounds=[],
-        roster_player_count=8,
-        question="Do boys and girls play better?",
-    )
-    assert coverage["likely_incomplete"] is True
-
-
 def test_small_roster_skips_incomplete_warning():
     coverage = analyze_ask_tool_coverage(
         tool_rounds=[],

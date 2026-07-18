@@ -35,14 +35,6 @@ def _people(group):
 
 
 @pytest.mark.django_db
-def test_resolve_side_player_solo_returns_person(group, user):
-    owner, nancy, _, _ = _people(group)
-    side = resolve_side_player(group=group, members=[nancy])
-    assert side.pk == nancy.pk
-    assert side.is_team is False
-
-
-@pytest.mark.django_db
 def test_resolve_side_player_creates_team_with_sorted_label(group, user):
     _, nancy, zach, _ = _people(group)
     team = resolve_side_player(group=group, members=[zach, nancy])

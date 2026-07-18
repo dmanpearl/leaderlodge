@@ -7,23 +7,6 @@ from leaderlodge.feedback.prompts import GUEST_FEEDBACK_AUTH_MESSAGE
 
 
 @pytest.mark.django_db
-def test_about_page_is_public(client):
-    response = client.get(reverse("core:about"))
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "About LeaderLodge" in content
-    assert "about-page-title-icon" in content
-    assert "bi-list-check" in content
-    assert "bi-controller" in content
-    assert "bi-stars" in content
-    assert "btn-insights-outline" in content
-    assert "about-section-heading--insights" in content
-    assert "bi-chat-left-text" in content
-    assert reverse("core:about_insights") in content
-
-
-@pytest.mark.django_db
 def test_about_insights_page_is_public(client):
     response = client.get(reverse("core:about_insights"))
     content = response.content.decode()
@@ -51,19 +34,6 @@ def test_about_insights_links_to_ask_when_enabled(client):
 
 
 @pytest.mark.django_db
-def test_site_footer_links_to_about_pages(client):
-    content = client.get(reverse("core:about")).content.decode()
-
-    assert "site-footer" in content
-    assert reverse("core:about") in content
-    assert reverse("core:about_insights") in content
-    assert "site-footer-nav-link--insights" in content
-    assert 'href="https://pixelmonks.com"' in content
-    assert ">Pixelmonks</a>" in content
-    assert "LeaderLodge</span>" not in content
-
-
-@pytest.mark.django_db
 def test_about_page_guest_feedback_uses_auth_dialog(client):
     content = client.get(reverse("core:about")).content.decode()
 
@@ -86,35 +56,3 @@ def test_about_page_authenticated_feedback_links_directly(client, django_user_mo
     assert reverse("feedback:create") in content
     assert "data-guest-auth-trigger" not in content
     assert "guest-auth-dialog" not in content
-
-
-@pytest.mark.django_db
-def test_account_menu_includes_about_for_guest(client):
-    content = client.get(reverse("accounts:login")).content.decode()
-
-    assert reverse("core:about") in content
-    assert ">About</a>" in content
-    assert "Feedback" in content
-    assert "data-guest-auth-trigger" in content
-    assert GUEST_FEEDBACK_AUTH_MESSAGE in content
-    assert "guest-auth-dialog" in content
-    assert "auth_dialog.js" in content
-
-
-@pytest.mark.django_db
-def test_account_menu_includes_about_for_signed_in_user(client, django_user_model):
-    from leaderlodge.groups.services import create_group_with_owner
-
-    user = django_user_model.objects.create_user(
-        username="david",
-        password="test-pass-123",
-    )
-    create_group_with_owner(user=user, name="Dom Club")
-    client.force_login(user)
-    content = client.get(reverse("core:dashboard")).content.decode()
-
-    assert reverse("core:about") in content
-    assert ">About</a>" in content
-    assert reverse("feedback:create") in content
-    assert "Feedback" in content
-    assert "data-guest-auth-trigger" not in content

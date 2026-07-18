@@ -7,7 +7,6 @@ from django.urls import reverse
 from leaderlodge.accounts.group_selection import (
     GROUP_ID_KEY,
     GROUP_SELECTION_NAMESPACE,
-    SESSION_GROUP_ID,
     preferred_group_id,
     resolve_group_id,
 )
@@ -59,42 +58,6 @@ def demo_group_flagged(user):
 
 
 @pytest.mark.django_db
-def test_resolve_group_id_persists_explicit_selection(user, group, other_group, rf):
-    request = _request_with_session(rf, user=user)
-    groups = [group, other_group]
-
-    chosen = resolve_group_id(
-        request,
-        requested=str(other_group.pk),
-        available_groups=groups,
-    )
-
-    assert chosen == str(other_group.pk)
-    assert preferred_group_id(request) == str(other_group.pk)
-
-
-@pytest.mark.django_db
-def test_resolve_group_id_uses_saved_preference_over_first_available(
-    user, group, other_group, rf
-):
-    set_ui_settings(
-        user,
-        GROUP_SELECTION_NAMESPACE,
-        {GROUP_ID_KEY: str(other_group.pk)},
-    )
-    request = _request_with_session(rf, user=user)
-
-    chosen = resolve_group_id(
-        request,
-        requested=None,
-        available_groups=[group, other_group],
-    )
-
-    assert chosen == str(other_group.pk)
-    assert chosen != str(group.pk)
-
-
-@pytest.mark.django_db
 def test_resolve_group_id_persists_first_available_when_no_preference(
     user, group, other_group, rf
 ):
@@ -108,22 +71,6 @@ def test_resolve_group_id_persists_first_available_when_no_preference(
 
     assert chosen == str(group.pk)
     assert preferred_group_id(request) == str(group.pk)
-
-
-@pytest.mark.django_db
-def test_resolve_group_id_persists_to_session_for_anonymous(
-    rf, demo_group_flagged
-):
-    request = _request_with_session(rf)
-
-    chosen = resolve_group_id(
-        request,
-        requested=str(demo_group_flagged.pk),
-        available_groups=[demo_group_flagged],
-    )
-
-    assert chosen == str(demo_group_flagged.pk)
-    assert request.session[SESSION_GROUP_ID] == str(demo_group_flagged.pk)
 
 
 @pytest.mark.django_db

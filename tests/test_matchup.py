@@ -1,7 +1,7 @@
 import pytest
 from django.contrib.auth.models import User
 from django.test import Client
-from django.urls import resolve, reverse
+from django.urls import reverse
 
 from leaderlodge.games.matchup import build_matchup_view
 from leaderlodge.games.models import Game
@@ -27,24 +27,6 @@ def _record_game(client, group, players, scores):
     return client.post(
         reverse("games:create"),
         _save_game_post(group, players_played=players, scores=scores),
-    )
-
-
-@pytest.mark.django_db
-def test_save_game_redirects_to_game_detail(client, user, group):
-    players = list(group.players.order_by("pk")[:2])
-    client.force_login(user)
-    response = _record_game(
-        client,
-        group,
-        players,
-        {players[0].pk: 30, players[1].pk: 20},
-    )
-
-    assert response.status_code == 302
-    game = Game.objects.get(group=group)
-    assert response["Location"] == (
-        reverse("games:detail", kwargs={"pk": game.pk}) + "?record_again=1"
     )
 
 

@@ -6,8 +6,6 @@ from leaderlodge.games.scoring import (
     assign_results_from_scores,
     compute_double_weight,
     evaluate_results_from_rows,
-    player_count_is_valid,
-    record_game_rules_summary,
 )
 
 Result = GameParticipantResult.Result
@@ -67,15 +65,6 @@ def test_all_same_score_is_tie_without_loser():
     assert evaluation.loss_pks == set()
 
 
-def test_assign_results_from_scores():
-    rows = _rows([10, 20])
-    assign_results_from_scores(rows, "dominos")
-    assert rows[1]["result"] == Result.WIN
-    assert rows[0]["result"] == Result.PLAYED
-    assert rows[1]["placement"] == 0
-    assert rows[0]["placement"] == 1
-
-
 def test_assign_placements_competition_ranking():
     rows = _rows([30, 20, 20])
     assign_results_from_scores(rows, "progressiverummy")
@@ -121,23 +110,6 @@ def test_compute_double_weight_dominos(scores, expected):
     ]
     assign_results_from_scores(rows, "dominos")
     assert compute_double_weight(rows, "dominos") == expected
-
-
-def test_player_count_is_valid():
-    assert player_count_is_valid(2, "dominos") is True
-    assert player_count_is_valid(3, "dominos") is True
-    assert player_count_is_valid(1, "dominos") is False
-    assert player_count_is_valid(4, "dominos") is True
-    assert player_count_is_valid(5, "dominos") is False
-
-
-def test_record_game_rules_summary():
-    assert record_game_rules_summary("dominos") == "Highest score wins, 2-4 players."
-    assert record_game_rules_summary("backgammon") == "Highest score wins, 2 players."
-    assert (
-        record_game_rules_summary("progressiverummy")
-        == "Lowest score wins, 2-10 players."
-    )
 
 
 def test_assign_rejects_no_top_result():

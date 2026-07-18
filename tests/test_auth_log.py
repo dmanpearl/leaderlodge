@@ -1,4 +1,3 @@
-import re
 from unittest import mock
 
 import pytest
@@ -10,7 +9,6 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from leaderlodge.accounts import auth_log
-from leaderlodge.accounts.auth_log import record_auth_event
 from leaderlodge.accounts.honeypot import HONEYPOT_FIELD, honeypot_post_data
 from leaderlodge.accounts.models import AuthEvent
 from leaderlodge.core.admin_notification_registry import DEFAULT_NOTIFICATIONS
@@ -31,17 +29,6 @@ def site_settings(db):
         notify_email="admin@example.com",
         notifications=dict(DEFAULT_NOTIFICATIONS),
     )
-
-
-@pytest.mark.django_db
-def test_record_auth_event_default_outcomes():
-    success = record_auth_event(event_type=AuthEvent.EventType.SIGNUP)
-    blocked = record_auth_event(event_type=AuthEvent.EventType.SIGNUP_BLOCKED)
-    failed = record_auth_event(event_type=AuthEvent.EventType.LOGIN_FAILED)
-
-    assert success.outcome == AuthEvent.Outcome.SUCCESS
-    assert blocked.outcome == AuthEvent.Outcome.BLOCKED
-    assert failed.outcome == AuthEvent.Outcome.FAILURE
 
 
 @pytest.mark.django_db

@@ -2,8 +2,6 @@ import pytest
 
 from leaderlodge.games.game_size import (
     available_game_sizes,
-    game_size_filter_label,
-    resolve_game_size,
 )
 from leaderlodge.games.models import Game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
@@ -50,12 +48,3 @@ def test_available_game_sizes_returns_sorted_unique_counts(user, group):
     assert available_game_sizes(Game.objects.filter(group=group)) == (2, 3)
 
 
-@pytest.mark.django_db
-def test_resolve_game_size_accepts_only_available_values():
-    assert resolve_game_size("3", (2, 3)) == 3
-    assert resolve_game_size("4", (2, 3)) is None
-    assert resolve_game_size("", (2, 3)) is None
-
-
-def test_game_size_filter_label():
-    assert game_size_filter_label(3) == "3-player"

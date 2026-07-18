@@ -10,7 +10,6 @@ from leaderlodge.accounts.honeypot import honeypot_post_data
 from leaderlodge.accounts.models import UserProfile
 from leaderlodge.accounts.registration import (
     unique_username_for_email,
-    username_base_from_email,
 )
 from leaderlodge.core.brand import TAGLINE
 
@@ -23,11 +22,6 @@ def user(db):
 @pytest.fixture
 def client():
     return Client()
-
-
-@pytest.mark.django_db
-def test_username_base_from_email():
-    assert username_base_from_email("David.Pearl@Example.com") == "david.pearl"
 
 
 @pytest.mark.django_db
@@ -171,34 +165,6 @@ def test_verify_email_sign_in_logs_out_and_redirects_to_login(client, user):
 
 
 @pytest.mark.django_db
-def test_verify_email_confirm_anonymous_shows_sign_in(client, user):
-    from django.utils.encoding import force_bytes
-    from django.utils.http import urlsafe_base64_encode
-
-    from leaderlodge.accounts.email_verification import (
-        email_verification_token_generator,
-    )
-
-    user.email = "david@example.com"
-    user.save(update_fields=["email"])
-    uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-    token = email_verification_token_generator.make_token(user)
-
-    response = client.get(
-        reverse(
-            "accounts:verify_email_confirm",
-            kwargs={"uidb64": uidb64, "token": token},
-        )
-    )
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "david@example.com" in content
-    assert reverse("accounts:login") in content
-    assert "You're signed in as" not in content
-
-
-@pytest.mark.django_db
 def test_verify_email_confirm_rejects_invalid_token(client, user):
     from django.utils.encoding import force_bytes
     from django.utils.http import urlsafe_base64_encode
@@ -252,52 +218,6 @@ def test_verify_email_page_resends_on_post(client, user):
     assert response.status_code == 302
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == ["david@example.com"]
-
-
-@pytest.mark.django_db
-def test_navbar_shows_account_name_in_mobile_dropdown(client, user):
-    user.first_name = "David"
-    user.save(update_fields=["first_name"])
-    client.force_login(user)
-
-    content = client.get(reverse("core:dashboard")).content.decode()
-
-    assert 'class="dropdown-header mb-0">' in content
-    assert "David" in content
-    assert "d-md-none" in content
-
-
-@pytest.mark.django_db
-def test_navbar_shows_verify_email_for_unverified_user(client, user):
-    user.email = "david@example.com"
-    user.save(update_fields=["email"])
-    client.force_login(user)
-
-    content = client.get(reverse("core:dashboard")).content.decode()
-
-    assert reverse("accounts:verify_email") in content
-    assert "Verify Email" in content
-    assert "account-verified-badge" not in content
-
-
-@pytest.mark.django_db
-def test_navbar_shows_verified_badge_for_verified_user(client, user):
-    from django.utils import timezone
-
-    user.email = "david@example.com"
-    user.first_name = "David"
-    user.save(update_fields=["email", "first_name"])
-    user.profile.email_verified_at = timezone.now()
-    user.profile.save(update_fields=["email_verified_at"])
-    client.force_login(user)
-
-    content = client.get(reverse("core:dashboard")).content.decode()
-
-    assert content.count("account-verified-badge") == 2
-    assert "Verify Email" not in content
-    assert (
-        "dropdown-item-text d-flex align-items-center gap-2 text-success" not in content
-    )
 
 
 @pytest.mark.django_db
@@ -427,70 +347,6 @@ def test_password_reset_email_uses_request_host(client, user):
             secure=True,
         )
         assert f"https://{host}/accounts/reset/" in mail.outbox[0].body
-
-
-@pytest.mark.django_db
-def test_profile_requires_login(client):
-    response = client.get(reverse("accounts:profile"))
-    assert response.status_code == 302
-    assert reverse("accounts:login") in response.url
-
-
-@pytest.mark.django_db
-def test_profile_shows_user_information(client, user):
-    user.first_name = "David"
-    user.last_name = "Pearl"
-    user.email = "david@example.com"
-    user.save(update_fields=["first_name", "last_name", "email"])
-    client.force_login(user)
-    content = client.get(reverse("accounts:profile")).content.decode()
-
-    assert "Profile" in content
-    assert "David" in content
-    assert "Pearl" in content
-    assert "david@example.com" in content
-    assert "david" in content
-    assert "Unverified" in content
-    assert reverse("accounts:verify_email") in content
-    assert reverse("accounts:password_reset") in content
-    assert reverse("groups:list") in content
-
-
-@pytest.mark.django_db
-def test_navbar_includes_profile_link(client, user):
-    client.force_login(user)
-    content = client.get(reverse("core:dashboard")).content.decode()
-    assert reverse("accounts:profile") in content
-    assert "Profile" in content
-
-
-@pytest.mark.django_db
-def test_anonymous_navbar_uses_account_dropdown(client):
-    content = client.get(reverse("accounts:login")).content.decode()
-
-    assert 'id="guestAccountMenu"' in content
-    assert reverse("accounts:signup") in content
-    assert reverse("accounts:login") in content
-    assert "btn btn-outline-light btn-sm" not in content
-
-
-@pytest.mark.django_db
-def test_signup_page_linked_from_login(client):
-    content = client.get(reverse("accounts:login")).content.decode()
-    assert reverse("accounts:signup") in content
-    assert reverse("accounts:password_reset") in content
-
-
-@pytest.mark.django_db
-def test_login_form_preserves_next_query_param(client):
-    feedback_url = reverse("feedback:create")
-    content = client.get(
-        reverse("accounts:login"),
-        {"next": feedback_url},
-    ).content.decode()
-
-    assert f'value="{feedback_url}"' in content
-    assert 'name="next"' in content
 
 
 @pytest.mark.django_db

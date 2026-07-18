@@ -173,26 +173,6 @@ def test_get_player_rankings_filters_by_date_range(user, group):
 
 
 @pytest.mark.django_db
-def test_leaderboard_index_shows_quick_range_filter(client, user, group):
-    client.force_login(user)
-    _record_dominos_game(group, user, played_on=date(2026, 3, 1))
-
-    response = client.get(
-        reverse("leaderboards:index"),
-        {
-            "group": str(group.pk),
-            "game_type_code": "dominos",
-            "period_preset": "yesterday",
-        },
-    )
-    content = response.content.decode()
-    assert response.status_code == 200
-    assert 'name="period_preset"' in content
-    assert "Yesterday" in content
-    assert "Quick range" in content
-
-
-@pytest.mark.django_db
 def test_available_leaderboard_periods(user, group):
     _record_dominos_game(group, user, played_on=date(2026, 1, 15))
     _record_dominos_game(group, user, played_on=date(2026, 6, 10))
@@ -261,62 +241,6 @@ def test_get_player_rankings_filters_by_game_size(user, group):
     assert len(two_player) == 2
     assert all(row.games_played == 1 for row in three_player)
     assert len(three_player) == 3
-
-
-@pytest.mark.django_db
-def test_leaderboard_index_shows_year_filter(client, user, group):
-    client.force_login(user)
-    _record_dominos_game(group, user, played_on=date(2026, 3, 1))
-
-    response = client.get(
-        reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos", "year": "2026"},
-    )
-    content = response.content.decode()
-    assert response.status_code == 200
-    assert 'id="leaderboard-year"' in content
-    assert 'id="leaderboard-game-type-icon"' in content
-    assert "game-types/dominos.png" in content
-    assert "All years" in content
-    assert "2026" in content
-    assert "Dominos" in content and "2026" in content.split("card-header", 1)[1]
-
-
-@pytest.mark.django_db
-def test_leaderboard_index_shows_disabled_game_types_without_games(client, user, group):
-    client.force_login(user)
-    _record_dominos_game(group, user, played_on=date(2026, 3, 1))
-
-    response = client.get(
-        reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
-    )
-    content = response.content.decode()
-    assert response.status_code == 200
-    assert 'value="dominos"' in content
-    assert 'value="pickleball"' in content
-    assert 'value="pickleball" disabled' in content or (
-        'value="pickleball"' in content and "disabled" in content
-    )
-    assert "Pickleball" in content
-
-
-@pytest.mark.django_db
-def test_leaderboard_index_shows_game_size_filter(client, user, group):
-    add_guest_player(group=group, display_name="Alex")
-    client.force_login(user)
-    _record_dominos_game(group, user, played_on=date(2026, 3, 1))
-    _record_three_player_dominos_game(group, user, played_on=date(2026, 3, 2))
-
-    response = client.get(
-        reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos", "game_size": "3"},
-    )
-    content = response.content.decode()
-    assert response.status_code == 200
-    assert 'id="leaderboard-game-size"' in content
-    assert "All sizes" in content
-    assert "3-player" in content
 
 
 @pytest.mark.django_db

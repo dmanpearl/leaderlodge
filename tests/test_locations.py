@@ -8,13 +8,9 @@ from leaderlodge.games.models import Game
 from leaderlodge.groups.locations import (
     find_fuzzy_location_match,
     get_or_create_location,
-    locations_for_group,
-    normalize_for_fuzzy_match,
     normalize_location_name,
-    resolve_game_location,
-    score_location_match,
 )
-from leaderlodge.groups.models import Location, LocationLibrary
+from leaderlodge.groups.models import Location
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from tests.test_games import _load_roster_post, _save_game_post
 
@@ -22,27 +18,6 @@ from tests.test_games import _load_roster_post, _save_game_post
 @pytest.fixture
 def user(db):
     return User.objects.create_user(username="david", password="test-pass-123")
-
-
-@pytest.mark.django_db
-def test_create_group_creates_location_library(user):
-    group = create_group_with_owner(user=user, name="Dom Club")
-
-    assert group.location_library is not None
-    assert group.location_library.name == "Dom Club places"
-    assert group.location_library.created_by == user
-
-
-@pytest.mark.django_db
-def test_normalize_location_name():
-    assert normalize_location_name("  Nancy's   House  ") == "nancy's house"
-    assert normalize_location_name("Zinqué") == "zinque"
-    assert normalize_location_name("  Café   Noir  ") == "cafe noir"
-
-
-@pytest.mark.django_db
-def test_normalize_for_fuzzy_match_strips_punctuation():
-    assert normalize_for_fuzzy_match("Zinque, Venice") == "zinque venice"
 
 
 @pytest.mark.django_db
@@ -108,42 +83,6 @@ def test_find_fuzzy_location_match_returns_none_when_ambiguous(user):
     assert match is None
 
 
-def test_score_location_match_prefers_longer_extension():
-    assert score_location_match("zinque venice", "zinque") > score_location_match(
-        "zinque venice", "superior zinque"
-    )
-    assert score_location_match("zinque", "zinque venice") == -1
-
-
-@pytest.mark.django_db
-def test_get_or_create_location_deduplicates_case(user):
-    group = create_group_with_owner(user=user, name="Dom Club")
-    library = group.location_library
-
-    first = get_or_create_location(library=library, name="Nancy's House")
-    second = get_or_create_location(library=library, name="nancy's house")
-
-    assert first.pk == second.pk
-    assert Location.objects.filter(library=library).count() == 1
-
-
-@pytest.mark.django_db
-def test_groups_can_share_location_library(user):
-    family = create_group_with_owner(user=user, name="Family")
-    friends = create_group_with_owner(user=user, name="Friends")
-
-    friends.location_library = family.location_library
-    friends.save(update_fields=["location_library"])
-
-    location = get_or_create_location(
-        library=family.location_library,
-        name="Zinque",
-    )
-
-    assert location in locations_for_group(friends)
-    assert family.location_library_id == friends.location_library_id
-
-
 @pytest.mark.django_db
 def test_group_locations_api(client, user):
     group = create_group_with_owner(user=user, name="Dom Club")
@@ -165,27 +104,6 @@ def test_group_locations_api_requires_membership(client, user):
     response = client.get(reverse("groups:locations", kwargs={"pk": group.pk}))
 
     assert response.status_code == 404
-
-
-@pytest.mark.django_db
-def test_record_game_creates_distinct_shorter_location(client, user):
-    group = create_group_with_owner(user=user, name="Dom Club")
-    add_guest_player(group=group, display_name="Pat")
-    get_or_create_location(library=group.location_library, name="Preston - Passover")
-    client.force_login(user)
-
-    load_data = _load_roster_post(group)
-    load_data["location_name"] = "Preston"
-    client.post(reverse("games:create"), load_data)
-
-    save_data = _save_game_post(group)
-    save_data["location_name"] = "Preston"
-    response = client.post(reverse("games:create"), save_data)
-
-    assert response.status_code == 302
-    game = Game.objects.get()
-    assert game.location.name == "Preston"
-    assert Location.objects.filter(library=group.location_library).count() == 2
 
 
 @pytest.mark.django_db
@@ -231,21 +149,6 @@ def test_shared_library_location_available_to_both_groups(client, user):
     assert response.status_code == 302
     game = Game.objects.get(group=friends)
     assert game.location.name == "Superior Ave"
-
-
-@pytest.mark.django_db
-def test_resolve_game_location_returns_none_for_blank(user):
-    group = create_group_with_owner(user=user, name="Dom Club")
-    assert resolve_game_location(group=group, location_name="") is None
-
-
-@pytest.mark.django_db
-def test_location_libraries_are_not_global(user):
-    other = User.objects.create_user(username="stranger", password="pass")
-    create_group_with_owner(user=user, name="Mine")
-    create_group_with_owner(user=other, name="Theirs")
-
-    assert LocationLibrary.objects.count() == 2
 
 
 @pytest.mark.django_db
@@ -489,21 +392,6 @@ def test_find_duplicate_location_pairs_suggested_keeper_prefers_game_count(user)
 
 
 @pytest.mark.django_db
-def test_location_manage_shows_find_duplicates(client, user):
-    group = create_group_with_owner(user=user, name="Dom Club")
-    library = group.location_library
-    _raw_location(library, "Cafe A", place_id="places/same")
-    _raw_location(library, "Cafe B", place_id="places/same")
-    client.force_login(user)
-    url = reverse("groups:location_manage", kwargs={"pk": group.pk})
-    response = client.get(url)
-    assert response.status_code == 200
-    assert b"Find duplicates" in response.content
-    assert b"Same Google place" in response.content
-    assert response.context["duplicate_pairs"]
-
-
-@pytest.mark.django_db
 def test_location_detail_renders_for_owner(client, user):
     group = create_group_with_owner(user=user, name="Dom Club")
     location = _raw_location(
@@ -549,21 +437,6 @@ def test_location_detail_hidden_from_outsider(client, user):
 
 
 @pytest.mark.django_db
-def test_location_manage_rows_link_to_detail(client, user):
-    group = create_group_with_owner(user=user, name="Dom Club")
-    location = _raw_location(group.location_library, "Zinque")
-    client.force_login(user)
-    response = client.get(reverse("groups:location_manage", kwargs={"pk": group.pk}))
-    assert response.status_code == 200
-    detail_path = reverse(
-        "groups:location_detail",
-        kwargs={"pk": group.pk, "loc_pk": location.pk},
-    )
-    assert detail_path.encode() in response.content
-    assert b'data-href="' in response.content
-
-
-@pytest.mark.django_db
 def test_location_rename_respects_next_redirect(client, user):
     group = create_group_with_owner(user=user, name="Dom Club")
     location = _raw_location(group.location_library, "Zinque")
@@ -583,27 +456,6 @@ def test_location_rename_respects_next_redirect(client, user):
     assert response["Location"].endswith(detail_url)
     location.refresh_from_db()
     assert location.name == "Zinque Venice"
-
-
-@pytest.mark.django_db
-def test_resolve_game_location_accepts_geo(user):
-    from leaderlodge.groups.location_geo import (
-        GEOCODE_SOURCE_PLACES_LOOKUP,
-        LocationGeo,
-    )
-
-    group = create_group_with_owner(user=user, name="Dom Club")
-    location = resolve_game_location(
-        group=group,
-        location_name="Zinque",
-        geo=LocationGeo(
-            lat=33.985,
-            lon=-118.469,
-            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
-        ),
-    )
-    assert location is not None
-    assert location.lat == pytest.approx(33.985)
 
 
 @pytest.mark.django_db

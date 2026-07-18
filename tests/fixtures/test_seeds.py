@@ -21,7 +21,8 @@ EXPECTED_IMPORT_SUMMARIES: dict[str, tuple[int, int, int]] = {
 
 # Games persisted after a successful import (created count only)
 EXPECTED_GAME_COUNTS: dict[str, int] = {
-    game_type: created for game_type, (_, created, _) in EXPECTED_IMPORT_SUMMARIES.items()
+    game_type: created
+    for game_type, (_, created, _) in EXPECTED_IMPORT_SUMMARIES.items()
 }
 
 

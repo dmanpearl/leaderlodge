@@ -58,7 +58,9 @@ def demo_group_seeded_once(
     use_test_demo_seeds_module,
 ):
     if not all_committed_test_seeds_present():
-        pytest.skip("Test seed files not present; run tests/fixtures/build_test_seeds.py")
+        pytest.skip(
+            "Test seed files not present; run tests/fixtures/build_test_seeds.py"
+        )
 
     with django_db_blocker.unblock():
         User.objects.get_or_create(
@@ -92,7 +94,9 @@ def test_setup_demo_creates_group_and_imports(demo_group_seeded_once):
 @pytest.mark.django_db
 def test_setup_demo_dry_run(superuser, use_test_demo_seeds):
     if not all_committed_test_seeds_present():
-        pytest.skip("Test seed files not present; run tests/fixtures/build_test_seeds.py")
+        pytest.skip(
+            "Test seed files not present; run tests/fixtures/build_test_seeds.py"
+        )
 
     before_groups = Group.objects.filter(name=DEMO_GROUP_NAME).count()
     before_games = Game.objects.count()
@@ -121,4 +125,6 @@ def test_setup_demo_idempotent(demo_group_seeded_once):
     second_count = Game.objects.filter(group=group).count()
 
     assert second_count == first_count
-    assert "skipped" in stdout.getvalue().lower() or "already exists" in stdout.getvalue()
+    assert (
+        "skipped" in stdout.getvalue().lower() or "already exists" in stdout.getvalue()
+    )

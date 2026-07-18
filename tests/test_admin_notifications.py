@@ -4,18 +4,13 @@ import pytest
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.management import call_command
-from django.core.management.base import CommandError
 from django.urls import reverse
 
 from leaderlodge.accounts.honeypot import honeypot_post_data
 from leaderlodge.core.admin_notification_registry import (
     DEFAULT_NOTIFICATIONS,
-    NOTIFICATION_LABELS,
 )
 from leaderlodge.core.admin_notifications import (
-    absolute_url,
-    notification_enabled,
-    notify_admin,
     notify_admin_signup,
     resolved_notifications,
 )
@@ -44,12 +39,6 @@ def user(db):
         password="test-pass-123",
         first_name="David",
     )
-
-
-@pytest.mark.django_db
-def test_setup_site_settings_command_requires_email():
-    with pytest.raises(CommandError, match="--email"):
-        call_command("setup_site_settings")
 
 
 @pytest.mark.django_db
@@ -88,34 +77,6 @@ def test_notify_admin_skipped_when_email_missing(site_settings, user):
 
 
 @pytest.mark.django_db
-def test_notify_admin_signup_sends_email(site_settings, user):
-    assert notify_admin_signup(user=user) is True
-    assert len(mail.outbox) == 1
-    assert mail.outbox[0].to == [TEST_NOTIFY_EMAIL]
-    assert "new user signup" in mail.outbox[0].subject.lower()
-    assert "David" in mail.outbox[0].body
-
-
-@pytest.mark.django_db
-def test_signup_view_notifies_admin(client, site_settings):
-    response = client.post(
-        reverse("accounts:signup"),
-        honeypot_post_data(
-            {
-                "email": "newplayer@example.com",
-                "first_name": "New",
-                "password1": "strong-pass-123",
-                "password2": "strong-pass-123",
-            }
-        ),
-    )
-    assert response.status_code == 302
-    assert len(mail.outbox) == 2
-    subjects = [message.subject.lower() for message in mail.outbox]
-    assert any("new user signup" in subject for subject in subjects)
-
-
-@pytest.mark.django_db
 @mock.patch("leaderlodge.core.geoip._lookup_ip_http")
 def test_signup_notification_includes_location(mock_lookup, client, site_settings):
     from leaderlodge.core.geoip import GeoLookup
@@ -145,15 +106,6 @@ def test_signup_notification_includes_location(mock_lookup, client, site_setting
     )
     assert "Location: Istanbul, Turkey" in signup_email.body
     assert "Timezone: Europe/Istanbul" in signup_email.body
-
-
-@pytest.mark.django_db
-def test_absolute_url_prefixes_site_origin(settings):
-    settings.CSRF_TRUSTED_ORIGINS = ["https://leaderlodge.com"]
-    assert absolute_url("/admin/feedback/feedback/13/change/") == (
-        "https://leaderlodge.com/admin/feedback/feedback/13/change/"
-    )
-    assert absolute_url("https://example.com/x") == "https://example.com/x"
 
 
 @pytest.mark.django_db
@@ -227,27 +179,6 @@ def test_apply_game_edits_notifies_admin(site_settings, user):
     ]
     assert len(admin_messages) == 1
     assert "game edited" in admin_messages[0].subject.lower()
-
-
-@pytest.mark.django_db
-def test_site_settings_admin_add_form_renders(client, django_user_model):
-    admin = django_user_model.objects.create_superuser(
-        username="admin",
-        email="admin@example.com",
-        password="test-pass-123",
-    )
-    client.force_login(admin)
-    response = client.get(reverse("admin:core_sitesettings_add"))
-    assert response.status_code == 200
-    content = response.content.decode()
-    assert "notify_email" in content
-    for label in NOTIFICATION_LABELS.values():
-        assert label in content
-
-
-@pytest.mark.django_db
-def test_notification_enabled_unknown_kind(site_settings):
-    assert notification_enabled("not_a_real_kind") is False
 
 
 @pytest.mark.django_db

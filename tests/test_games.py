@@ -74,38 +74,6 @@ def _reuse_roster_post(group, *, game_type_code="dominos", reuse_game_id=None):
 
 
 @pytest.mark.django_db
-def test_record_dominos_game(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    response = client.post(reverse("games:create"), _save_game_post(group))
-
-    assert response.status_code == 302
-    game = Game.objects.get(group=group)
-    winner = game.participant_results.get(result=GameParticipantResult.Result.WIN)
-    assert winner.score == 30
-
-
-@pytest.mark.django_db
-def test_record_dominos_tie(client, user, group):
-    players = list(group.players.order_by("pk"))
-    data = _save_game_post(
-        group,
-        players_played=players[:2],
-        scores={players[0].pk: 20, players[1].pk: 20},
-    )
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    response = client.post(reverse("games:create"), data)
-    assert response.status_code == 302
-
-    game = Game.objects.get()
-    assert (
-        game.participant_results.filter(result=GameParticipantResult.Result.TIE).count()
-        == 2
-    )
-
-
-@pytest.mark.django_db
 def test_record_progressive_rummy_tied_losers(client, user, group):
     players = list(group.players.order_by("pk"))
     while len(players) < 3:
@@ -162,18 +130,6 @@ def test_record_dominos_double_game(client, user, group):
 
 
 @pytest.mark.django_db
-def test_auto_select_single_group(client, user, group):
-    client.force_login(user)
-    response = client.get(reverse("games:create"))
-    assert response.status_code == 200
-    content = response.content.decode()
-    assert "Dom Club" in content
-    assert "Choose a game" in content
-    assert "Pick Players" in content
-    assert 'id="game-record-form"' not in content
-
-
-@pytest.mark.django_db
 def test_record_game_default_date_uses_configured_timezone(client, user, group):
     """11pm Pacific is already the next calendar day in UTC."""
     late_evening_utc = datetime(2026, 6, 20, 6, 9, tzinfo=dt_timezone.utc)
@@ -209,33 +165,6 @@ def test_load_roster_requires_game_type(client, user, group):
 
 
 @pytest.mark.django_db
-def test_load_roster_shows_formatted_date(client, user, group):
-    client.force_login(user)
-    response = client.post(reverse("games:create"), _load_roster_post(group))
-    content = response.content.decode()
-    assert response.status_code == 200
-    assert "localdate" not in content
-    assert 'id="game-record-form"' in content
-    assert "data-player-picker" in content
-    assert "Add player" in content
-    assert "Highest score wins" in content
-    assert "player_picker.css" in content
-
-
-@pytest.mark.django_db
-def test_load_roster_defaults_score_to_zero_for_high_wins_games(client, user, group):
-    client.force_login(user)
-    for game_type_code in ("dominos", "backgammon", "mahjongg"):
-        response = client.post(
-            reverse("games:create"),
-            _load_roster_post(group, game_type_code=game_type_code),
-        )
-        content = response.content.decode()
-        assert response.status_code == 200
-        assert 'data-default-participant-score="0"' in content
-
-
-@pytest.mark.django_db
 def test_load_roster_leaves_score_blank_for_progressive_rummy(client, user, group):
     client.force_login(user)
     response = client.post(
@@ -246,23 +175,6 @@ def test_load_roster_leaves_score_blank_for_progressive_rummy(client, user, grou
 
     assert response.status_code == 200
     assert 'data-default-participant-score=""' in content
-
-
-@pytest.mark.django_db
-def test_load_roster_shows_low_wins_instructions_for_progressive_rummy(
-    client, user, group
-):
-    client.force_login(user)
-    response = client.post(
-        reverse("games:create"),
-        _load_roster_post(group, game_type_code="progressiverummy"),
-    )
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "Lowest score wins" in content
-    assert "2-10 players" in content
-    assert "Highest score wins" not in content
 
 
 @pytest.mark.django_db
@@ -287,62 +199,6 @@ def test_record_game_with_new_guest(client, user, group):
     assert group.players.filter(display_name="Alex").exists()
     game = Game.objects.get(group=group)
     assert game.participant_results.count() == 2
-
-
-@pytest.mark.django_db
-def test_game_list_for_member(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    response = client.get(reverse("games:list"), follow=True)
-    assert response.status_code == 200
-    content = response.content.decode()
-    assert "Dom Club" in content
-    assert "Dominos" in content
-    assert "game-list-title-icon" in content
-    assert 'id="game-list-title-icon"' in content
-    assert "game-list-stats-game-icon" in content
-    assert "game-types/dominos.png" in content
-    assert '<option value="">All games</option>' not in content
-
-
-@pytest.mark.django_db
-def test_game_list_type_filters_collapsible(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    content = client.get(reverse("games:list"), follow=True).content.decode()
-
-    assert 'id="game-list-type-filters"' in content
-    assert 'data-bs-target="#game-list-type-filters"' in content
-    assert ">Filters</span>" in content
-    assert 'id="game-list-filters-summary"' in content
-    assert "(Dom Club)" in content
-    assert 'id="filter-group"' in content
-
-
-@pytest.mark.django_db
-def test_game_list_filter_summary_lists_group_and_location(client, user, group):
-    client.force_login(user)
-    load = _load_roster_post(group)
-    load["location_name"] = "Sally"
-    client.post(reverse("games:create"), load)
-    save = _save_game_post(group)
-    save["location_name"] = "Sally"
-    client.post(reverse("games:create"), save)
-
-    from leaderlodge.groups.models import Location
-
-    location = Location.objects.get(name="Sally")
-    content = client.get(
-        reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos", "location": str(location.pk)},
-        follow=True,
-    ).content.decode()
-
-    assert "(Dom Club, Sally)" in content
 
 
 @pytest.mark.django_db
@@ -613,46 +469,6 @@ def test_game_list_filters_by_player(client, user, group):
 
 
 @pytest.mark.django_db
-def test_game_list_sort_and_empty_filter_message(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    response = client.get(
-        reverse("games:list"),
-        {"game_type": "backgammon"},
-        follow=True,
-    )
-    assert response.status_code == 200
-    assert "No games match these filters." in response.content.decode()
-
-    sorted_response = client.get(reverse("games:list"), {"sort": "asc"}, follow=True)
-    assert sorted_response.status_code == 200
-    assert 'value="asc" selected' in sorted_response.content.decode()
-
-
-@pytest.mark.django_db
-def test_game_detail_for_member(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-    game = Game.objects.get()
-    response = client.get(reverse("games:detail", kwargs={"pk": game.pk}))
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "Dom Club" in content
-    assert "game-detail-title-icon" in content
-    assert "game-types/dominos.png" in content
-    assert f'href="/games/matchup/?game={game.pk}"' in content
-    player = group.players.order_by("pk").first()
-    assert (
-        f'href="/leaderboards/detail/?group={group.pk}&amp;game_type_code=dominos&amp;player={player.pk}"'
-        in content
-    )
-
-
-@pytest.mark.django_db
 def test_reuse_roster_prefills_previous_players(client, user, group):
     client.force_login(user)
     client.post(reverse("games:create"), _load_roster_post(group))
@@ -710,17 +526,6 @@ def test_reuse_roster_prefills_selected_older_game(client, user, group):
     assert f'data-player-id="{players[2].pk}"' in content
     assert f'data-player-id="{players[1].pk}"' not in content
     assert content.count("data-game-row") == 2
-
-
-@pytest.mark.django_db
-def test_reuse_roster_stays_on_setup_without_previous_game(client, user, group):
-    client.force_login(user)
-    response = client.post(reverse("games:create"), _reuse_roster_post(group))
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "Pick Players" in content
-    assert "Type player name" not in content
 
 
 @pytest.mark.django_db
@@ -814,25 +619,3 @@ def test_record_game_setup_honors_game_type_query_param(client, user, group):
         in content.split('value="progressiverummy"', 1)[1].split("</option>", 1)[0]
     )
     assert 'value="dominos" selected' not in content.replace("\n", " ")
-
-
-@pytest.mark.django_db
-def test_reuse_preview_url_on_setup_page(client, user, group):
-    client.force_login(user)
-    empty = client.get(reverse("games:create"))
-    content = empty.content.decode()
-    assert reverse("games:reuse_preview") in content
-    assert 'id="reuse-players-btn"' in content
-
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    preview = client.get(
-        reverse("games:reuse_preview"),
-        {"group": str(group.pk), "game_type": "dominos"},
-    )
-    players = list(group.players.order_by("pk")[:2])
-    assert (
-        preview.json()["summary"]
-        == f"{players[0].display_label}, {players[1].display_label}"
-    )

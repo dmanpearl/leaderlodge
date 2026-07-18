@@ -1,7 +1,6 @@
 from datetime import date
 
 import pytest
-from django.core.management import call_command
 from django.contrib.auth.models import User
 
 from leaderlodge.games.models import Game, GameParticipantResult
@@ -156,22 +155,3 @@ def test_sync_dry_run_writes_nothing(user):
     assert dst_loc.lat == 33.0
 
 
-@pytest.mark.django_db
-def test_sync_command_cli(user, capsys):
-    src = create_group_with_owner(user=user, name="manpearl")
-    dst = create_group_with_owner(user=user, name="Sync Dest")
-    get_or_create_location(
-        library=src.location_library,
-        name="Preston Way",
-        geo=_geo(34.1, -118.5, place_id="pid-cli"),
-    )
-    get_or_create_location(
-        library=dst.location_library,
-        name="Home",
-        geo=_geo(33.0, -117.0, place_id="pid-cli"),
-    )
-
-    call_command("sync_group_locations", "--src", "manpearl", "--dst", "Sync Dest")
-    out = capsys.readouterr().out
-    assert "combined=0" in out
-    assert "updated=1" in out

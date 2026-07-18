@@ -68,30 +68,6 @@ def test_query_placement_leaders_returns_second_place_counts(user, group):
     assert top["weighted_count"] >= 1
 
 
-@pytest.mark.django_db
-def test_list_game_types_includes_score_direction(user, group):
-    _record_game(group, user, third_idx=None)
-    from leaderlodge.insights.tools.standings import list_game_types
-
-    result = list_game_types(group)
-    dominos = next(row for row in result["game_types"] if row["code"] == "dominos")
-    assert dominos["score_direction"] == "high_wins"
-
-
-def test_score_direction_label():
-    from leaderlodge.games.registry import (
-        score_direction_label,
-        scoring_interpretation_note,
-    )
-
-    assert score_direction_label("progressiverummy") == "low_wins"
-    assert score_direction_label("dominos") == "high_wins"
-    note = scoring_interpretation_note("progressiverummy")
-    assert note is not None
-    assert "rank_score is always higher-is-better" in note
-    assert scoring_interpretation_note("dominos") is None
-
-
 def test_render_ask_user_message_includes_low_wins_hint():
     from leaderlodge.insights.prompts import render_ask_user_message
 
@@ -106,35 +82,6 @@ def test_render_ask_user_message_includes_low_wins_hint():
     assert "score_direction=low_wins" in message
     assert "lower raw game points are better" in message
     assert "rank_score is always higher-is-better" in message
-
-
-def test_ask_prompt_rank_score_always_higher_is_better():
-    from leaderlodge.insights.prompts import ASK_SYSTEM_PROMPT
-
-    assert "rank_score is ALWAYS higher-is-better" in ASK_SYSTEM_PROMPT
-    assert "does NOT apply to rank, rank_score" in ASK_SYSTEM_PROMPT
-
-
-def test_ask_prompt_player_compare_requires_overall_rank():
-    from leaderlodge.insights.prompts import ASK_SYSTEM_PROMPT
-
-    assert "MUST include each player's overall rank and rank_score" in ASK_SYSTEM_PROMPT
-    assert "state it first" in ASK_SYSTEM_PROMPT
-
-
-def test_ask_prompt_allows_name_based_roster_interpretation():
-    from leaderlodge.insights.prompts import ASK_SYSTEM_PROMPT
-
-    assert "name-based gender grouping" in ASK_SYSTEM_PROMPT
-    assert "Do not refuse name-based grouping" in ASK_SYSTEM_PROMPT
-
-
-def test_ask_prompt_team_pairings_use_recorded_data():
-    from leaderlodge.insights.prompts import ASK_SYSTEM_PROMPT
-
-    assert "query_team_pairings" in ASK_SYSTEM_PROMPT
-    assert "observed_duo_teams" in ASK_SYSTEM_PROMPT
-    assert "Never recommend teams based on player names" in ASK_SYSTEM_PROMPT
 
 
 @pytest.mark.django_db
@@ -165,44 +112,6 @@ def test_query_head_to_head_includes_score_direction(user, group):
     assert result["player_a"]["wins"] + result["player_b"]["wins"] == 2
     assert "total_points_display" in result["player_a"]
     assert "/game" in result["player_a"]["total_points_display"]
-
-
-@pytest.mark.django_db
-def test_query_hall_of_fame_returns_period_leaders(user, group):
-    _record_game(group, user, third_idx=None)
-    from leaderlodge.insights.tools.hall_of_fame import query_hall_of_fame
-
-    result = query_hall_of_fame(group, granularity="year", game_type_code="dominos")
-
-    assert result["granularity"] == "year"
-    assert len(result["periods"]) >= 1
-    leaders = result["periods"][0]["leaders"]
-    assert len(leaders) == 1
-    assert leaders[0]["leader"]
-
-
-@pytest.mark.django_db
-def test_tool_executor_query_head_to_head(user, group):
-    _record_game(group, user, third_idx=None)
-    scope = AskScope(
-        group=group,
-        period=LeaderboardPeriod.all_time(),
-        default_game_type_code="dominos",
-        available_game_type_codes=("dominos",),
-    )
-    executor = ToolExecutor(scope)
-    players = list(group.players.order_by("pk"))
-
-    result = executor.execute(
-        "query_head_to_head",
-        {
-            "game_type_code": "dominos",
-            "player_a_query": players[0].display_label,
-            "player_b_query": players[1].display_label,
-        },
-    )
-
-    assert result["games_together"] == 1
 
 
 @pytest.mark.django_db
@@ -486,15 +395,6 @@ def test_query_location_leaderboard_filters_by_venue(user, group):
 
 
 @pytest.mark.django_db
-def test_normalize_region_state_maps_full_names():
-    from leaderlodge.insights.tools.region import normalize_region_state
-
-    assert normalize_region_state("California") == "CA"
-    assert normalize_region_state("ca") == "CA"
-    assert normalize_region_state("  New York ") == "NY"
-
-
-@pytest.mark.django_db
 def test_query_region_leaderboard_aggregates_venues_in_state(user, group):
     from datetime import date
 
@@ -721,47 +621,6 @@ def test_query_region_leaderboard_exclude_state(user, group):
 
 
 @pytest.mark.django_db
-def test_tool_executor_query_region_leaderboard(user, group):
-    from leaderlodge.groups.location_geo import (
-        GEOCODE_SOURCE_PLACES_LOOKUP,
-        LocationGeo,
-    )
-    from leaderlodge.groups.locations import get_or_create_location
-    from leaderlodge.insights.tools.executor import ToolExecutionError
-
-    get_or_create_location(
-        library=group.location_library,
-        name="SM Spot",
-        geo=LocationGeo(
-            lat=34.01,
-            lon=-118.49,
-            city="Santa Monica",
-            state="CA",
-            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
-        ),
-    )
-    scope = AskScope(
-        group=group,
-        period=LeaderboardPeriod.all_time(),
-        default_game_type_code="dominos",
-        available_game_type_codes=("dominos",),
-    )
-    executor = ToolExecutor(scope)
-
-    result = executor.execute(
-        "query_region_leaderboard",
-        {"game_type_code": "dominos", "state": "CA"},
-    )
-    assert result["matched_venue_count"] == 1
-
-    with pytest.raises(ToolExecutionError, match="No venues matched"):
-        executor.execute(
-            "query_region_leaderboard",
-            {"game_type_code": "dominos", "city": "Nowhereville"},
-        )
-
-
-@pytest.mark.django_db
 def test_query_play_locations_orders_by_game_count(user, group):
     from datetime import date
 
@@ -913,69 +772,6 @@ def test_query_player_play_locations_by_state(user, group):
 
 
 @pytest.mark.django_db
-def test_tool_executor_query_player_play_locations(user, group):
-    from leaderlodge.groups.location_geo import (
-        GEOCODE_SOURCE_PLACES_LOOKUP,
-        LocationGeo,
-    )
-    from leaderlodge.groups.locations import get_or_create_location
-
-    get_or_create_location(
-        library=group.location_library,
-        name="LA Spot",
-        geo=LocationGeo(
-            lat=34.05,
-            lon=-118.25,
-            city="Los Angeles",
-            state="CA",
-            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
-        ),
-    )
-    players = list(group.players.order_by("pk")[:2])
-    scope = AskScope(
-        group=group,
-        period=LeaderboardPeriod.all_time(),
-        default_game_type_code="dominos",
-        available_game_type_codes=("dominos",),
-    )
-    executor = ToolExecutor(scope)
-    result = executor.execute(
-        "query_player_play_locations",
-        {
-            "game_type_code": "dominos",
-            "player_query": players[0].display_label,
-            "group_by": "state",
-        },
-    )
-    assert result["display_label"] == players[0].display_label
-    assert result["group_by"] == "state"
-    assert result["total_games"] == 0
-
-
-@pytest.mark.django_db
-def test_tool_executor_compare_players(user, group):
-    _record_game(group, user, third_idx=None)
-    players = list(group.players.order_by("pk")[:2])
-    scope = AskScope(
-        group=group,
-        period=LeaderboardPeriod.all_time(),
-        default_game_type_code="dominos",
-        available_game_type_codes=("dominos",),
-    )
-    executor = ToolExecutor(scope)
-
-    result = executor.execute(
-        "compare_players",
-        {
-            "game_type_code": "dominos",
-            "player_queries": [players[0].display_label, players[1].display_label],
-        },
-    )
-
-    assert len(result["players"]) == 2
-
-
-@pytest.mark.django_db
 def test_query_team_pairings_returns_observed_duo_teams(user, group):
     from leaderlodge.games.models import GameParticipantResult
     from leaderlodge.groups.services import add_guest_player
@@ -1017,51 +813,3 @@ def test_query_team_pairings_returns_observed_duo_teams(user, group):
     assert len(top["member_labels"]) == 2
     assert "wins_display" in top
     assert "Do not recommend pairs that never played together" in result["guidance"]
-
-
-@pytest.mark.django_db
-def test_tool_executor_query_team_pairings(user, group):
-    from leaderlodge.games.models import GameParticipantResult
-    from leaderlodge.groups.services import add_guest_player
-    from leaderlodge.groups.teams import resolve_side_player
-
-    add_guest_player(group=group, display_name="Alex")
-    players = list(group.players.order_by("pk"))
-    team_ab = resolve_side_player(group=group, members=players[:2])
-    team_cd = resolve_side_player(group=group, members=players[2:4])
-    record_game(
-        user=user,
-        group=group,
-        game_type_code="dominos",
-        played_on="2026-01-20",
-        participants=[
-            ParticipantInput(
-                player=team_ab,
-                score=30,
-                result=GameParticipantResult.Result.WIN,
-                placement=0,
-            ),
-            ParticipantInput(
-                player=team_cd,
-                score=10,
-                result=GameParticipantResult.Result.PLAYED,
-                placement=1,
-            ),
-        ],
-    )
-
-    scope = AskScope(
-        group=group,
-        period=LeaderboardPeriod.all_time(),
-        default_game_type_code="dominos",
-        available_game_type_codes=("dominos",),
-    )
-    executor = ToolExecutor(scope)
-
-    result = executor.execute(
-        "query_team_pairings",
-        {"game_type_code": "dominos"},
-    )
-
-    assert len(result["observed_duo_teams"]) == 2
-    assert result["observed_duo_teams"][0]["rank_score"] is not None

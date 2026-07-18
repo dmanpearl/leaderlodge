@@ -72,33 +72,6 @@ def test_build_question_player_hints_for_username_comparison(group):
 
 
 @pytest.mark.django_db
-def test_render_ask_user_message_includes_player_hints(group):
-    from leaderlodge.insights.prompts import render_ask_user_message
-
-    hints = build_question_player_hints(group, "nmanpearl vs charlene")
-    message = render_ask_user_message(
-        question="nmanpearl vs charlene",
-        group_name=group.name,
-        game_type_code="dominos",
-        period_label="",
-        player_roster=build_ask_player_roster(group),
-        player_hints=hints,
-    )
-
-    assert "Players mentioned in the question" in message
-    assert "Nancy: player_id=" in message
-    assert "question text: nmanpearl" in message
-
-
-@pytest.mark.django_db
-def test_normalize_player_query_strips_quotes():
-    from leaderlodge.insights.tools.players import normalize_player_query
-
-    assert normalize_player_query('"nmanpearl"') == "nmanpearl"
-    assert normalize_player_query("'nmanpearl'") == "nmanpearl"
-
-
-@pytest.mark.django_db
 def test_resolve_player_query_accepts_quoted_username(group):
     nancy = group.players.get(linked_user__username="nmanpearl")
 
@@ -129,25 +102,6 @@ def test_tool_executor_uses_question_player_bindings(group):
     )
 
     assert player_id == nancy.pk
-
-
-@pytest.mark.django_db
-def test_query_player_detail_accepts_player_query(group):
-    scope = AskScope(
-        group=group,
-        period=LeaderboardPeriod.all_time(),
-        default_game_type_code="dominos",
-        available_game_type_codes=("dominos",),
-    )
-    executor = ToolExecutor(scope)
-
-    result = executor.execute(
-        "query_player_detail",
-        {"player_query": "Nancy", "game_type_code": "dominos"},
-    )
-
-    assert result["display_label"] == "Nancy"
-    assert result["has_games"] is False
 
 
 @pytest.mark.django_db

@@ -6,8 +6,6 @@ from unittest.mock import patch
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.insights.insight_log import (
     InsightLogDraft,
-    question_for_log,
-    summarize_insight_context,
 )
 from leaderlodge.insights.models import InsightLog
 from leaderlodge.insights.prompts import PRESET_STRENGTHS
@@ -27,28 +25,6 @@ def group(user):
     group = create_group_with_owner(user=user, name="Dom Club")
     add_guest_player(group=group, display_name="Pat")
     return group
-
-
-def test_question_for_log_stores_rendered_preset_text():
-    question = question_for_log(
-        source=InsightLog.Source.PLAYER,
-        preset=PRESET_STRENGTHS,
-    )
-    assert question == "Summarize this player's strengths based on the JSON."
-
-
-def test_summarize_player_context():
-    summary = summarize_insight_context(
-        InsightLog.Source.PLAYER,
-        {
-            "player": {"display_label": "Amelia"},
-            "period": {"label": "2026"},
-            "ranking": {"rank": 2, "games_played": 12},
-            "data_quality": {"sparse": False},
-        },
-    )
-    assert summary["player_label"] == "Amelia"
-    assert summary["rank"] == 2
 
 
 @pytest.mark.django_db

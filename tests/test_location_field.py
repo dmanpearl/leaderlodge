@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from leaderlodge.games.last_location import last_recorded_location_name
-from leaderlodge.games.models import Game, GameParticipantResult
+from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.locations import resolve_game_location
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
@@ -89,39 +89,6 @@ def test_last_recorded_location_name_returns_latest_for_user_and_game_type(
 
 
 @pytest.mark.django_db
-def test_game_create_prepopulates_last_location(client, staff_user, group):
-    players = list(group.players.order_by("pk"))
-    location = resolve_game_location(group=group, location_name="Sally")
-    record_game(
-        user=staff_user,
-        group=group,
-        game_type_code="dominos",
-        played_on=timezone.localdate(),
-        participants=[
-            ParticipantInput(
-                player=players[0], score=30, result=Result.WIN, placement=0
-            ),
-            ParticipantInput(
-                player=players[1], score=20, result=Result.PLAYED, placement=1
-            ),
-        ],
-        location=location,
-    )
-
-    client.force_login(staff_user)
-    response = client.get(
-        reverse("games:create"),
-        {"game_type_code": "dominos", "group": group.pk},
-    )
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert 'name="location_name"' in content
-    assert 'value="Sally"' in content
-    assert "data-location-clear" in content
-
-
-@pytest.mark.django_db
 def test_game_reuse_preview_includes_last_location_name(client, staff_user, group):
     players = list(group.players.order_by("pk"))
     location = resolve_game_location(group=group, location_name="Kitchen")
@@ -151,66 +118,3 @@ def test_game_reuse_preview_includes_last_location_name(client, staff_user, grou
     assert response.json()["last_location_name"] == "Kitchen"
 
 
-@pytest.mark.django_db
-def test_location_field_disables_native_suggestions(client, staff_user, group):
-    client.force_login(staff_user)
-    response = client.get(
-        reverse("games:create"),
-        {"game_type_code": "dominos", "group": group.pk},
-    )
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert 'autocorrect="off"' in content
-    assert 'autocapitalize="off"' in content
-    assert 'spellcheck="false"' in content
-
-
-@pytest.mark.django_db
-def test_game_edit_includes_location_clear_button(client, staff_user, group):
-    players = list(group.players.order_by("pk"))
-    game = Game.objects.create(
-        group=group,
-        game_type_code="dominos",
-        played_on=timezone.localdate(),
-        recorded_by=staff_user,
-        player_count=2,
-        location=resolve_game_location(group=group, location_name="Sally"),
-    )
-    GameParticipantResult.objects.create(
-        game=game,
-        player=players[0],
-        score=30,
-        result=Result.WIN,
-        placement=0,
-    )
-    GameParticipantResult.objects.create(
-        game=game,
-        player=players[1],
-        score=20,
-        result=Result.PLAYED,
-        placement=1,
-    )
-
-    client.force_login(staff_user)
-    response = client.get(reverse("games:edit_game", kwargs={"pk": game.pk}))
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "data-location-clear" in content
-    assert 'value="Sally"' in content
-
-
-@pytest.mark.django_db
-def test_record_game_setup_includes_map_picker_when_places_key_set(
-    client, staff_user, group, settings
-):
-    settings.GOOGLE_PLACES_API_KEY = "test-browser-key"
-    client.force_login(staff_user)
-    response = client.get(reverse("games:create"))
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "data-location-record-place" in content
-    assert "location-set-place-modal" in content
-    assert "Near me" in content

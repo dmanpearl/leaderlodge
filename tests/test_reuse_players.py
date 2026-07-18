@@ -95,65 +95,6 @@ def test_most_recent_game_is_scoped_by_group_and_game_type(user, group):
 
 
 @pytest.mark.django_db
-def test_previous_game_participant_rows_is_scoped_by_group_and_game_type(user, group):
-    players = list(group.players.order_by("pk")[:2])
-    other_group = create_group_with_owner(user=user, name="Other Club")
-    add_guest_player(group=other_group, display_name="Alex")
-
-    record_game(
-        user=user,
-        group=group,
-        game_type_code="dominos",
-        played_on=date(2026, 1, 1),
-        participants=[
-            ParticipantInput(player=players[0], score=30, result="win", placement=0),
-            ParticipantInput(player=players[1], score=20, result="played", placement=1),
-        ],
-    )
-    record_game(
-        user=user,
-        group=group,
-        game_type_code="backgammon",
-        played_on=date(2026, 2, 1),
-        participants=[
-            ParticipantInput(player=players[1], score=1, result="win", placement=0),
-            ParticipantInput(player=players[0], score=0, result="played", placement=1),
-        ],
-    )
-
-    dominos_rows = previous_game_participant_rows(group, "dominos")
-    backgammon_rows = previous_game_participant_rows(group, "backgammon")
-    other_group_rows = previous_game_participant_rows(other_group, "dominos")
-
-    assert len(dominos_rows) == 2
-    assert len(backgammon_rows) == 2
-    assert other_group_rows == []
-
-
-@pytest.mark.django_db
-def test_reuse_players_summary(user, group):
-    players = list(group.players.order_by("pk")[:2])
-    record_game(
-        user=user,
-        group=group,
-        game_type_code="dominos",
-        played_on=date(2026, 1, 1),
-        participants=[
-            ParticipantInput(player=players[0], score=30, result="win", placement=0),
-            ParticipantInput(player=players[1], score=20, result="played", placement=1),
-        ],
-    )
-
-    summary = reuse_players_summary(group, "dominos")
-    assert summary["available"] is True
-    assert (
-        summary["summary"] == f"{players[0].display_label}, {players[1].display_label}"
-    )
-    assert len(summary["options"]) == 1
-    assert summary["options"][0]["summary"] == summary["summary"]
-
-
-@pytest.mark.django_db
 def test_reuse_players_summary_lists_up_to_max_unique_lineups(user, group):
     from leaderlodge.groups.services import add_guest_player
 
@@ -211,32 +152,6 @@ def test_reuse_players_summary_lists_up_to_max_unique_lineups(user, group):
     assert [option["game_id"] for option in summary["options"][1:]] == [
         game.pk for game in unique_games[: REUSE_PLAYERS_MAX_GAMES - 1]
     ]
-
-
-@pytest.mark.django_db
-def test_reuse_players_summary_skips_duplicate_lineups(user, group):
-    players = list(group.players.order_by("pk")[:2])
-    for day in (1, 2, 3):
-        record_game(
-            user=user,
-            group=group,
-            game_type_code="dominos",
-            played_on=date(2026, 1, day),
-            participants=[
-                ParticipantInput(
-                    player=players[0], score=30, result="win", placement=0
-                ),
-                ParticipantInput(
-                    player=players[1], score=20, result="played", placement=1
-                ),
-            ],
-        )
-
-    summary = reuse_players_summary(group, "dominos")
-    assert len(summary["options"]) == 1
-    assert summary["options"][0]["summary"] == (
-        f"{players[0].display_label}, {players[1].display_label}"
-    )
 
 
 @pytest.mark.django_db

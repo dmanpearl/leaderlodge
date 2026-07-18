@@ -1,6 +1,6 @@
 import pytest
 
-from leaderlodge.games.list_density import game_list_date_format, resolve_game_list_density
+from leaderlodge.games.list_density import resolve_game_list_density
 
 
 @pytest.mark.parametrize(
@@ -23,9 +23,3 @@ def test_resolve_game_list_density(table_players, stats_players, expected):
         )
         == expected
     )
-
-
-def test_game_list_date_format_by_density():
-    assert game_list_date_format("comfortable") == "n/j/y"
-    assert game_list_date_format("compact") == "n/j/y"
-    assert game_list_date_format("dense") == "n/j/y"

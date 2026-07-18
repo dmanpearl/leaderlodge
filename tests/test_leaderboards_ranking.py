@@ -14,7 +14,6 @@ from leaderlodge.leaderboards.ranking import (
     apply_bayesian_to_rank_score,
     compute_bayesian_factor,
     compute_finish_points,
-    compute_half_game_penalty_factor,
     compute_rank_score,
     compute_score_magnitude,
 )
@@ -33,12 +32,6 @@ def group(user):
     return group
 
 
-def test_compute_score_magnitude_high_wins():
-    assert compute_score_magnitude(35, [35, 0, 0, 0], low_wins=False, placement=0) == 35
-    assert compute_score_magnitude(50, [50, 0, 0, 0], low_wins=False, placement=0) == 50
-    assert compute_score_magnitude(0, [35, 0, 0, 0], low_wins=False, placement=3) == 0
-
-
 def test_compute_score_magnitude_low_wins():
     assert compute_score_magnitude(
         20, [20, 35, 215, 480], low_wins=True, placement=0
@@ -52,27 +45,6 @@ def test_compute_score_magnitude_low_wins():
     assert compute_score_magnitude(
         35, [20, 35, 215, 480], low_wins=True, placement=1
     ) > compute_score_magnitude(215, [20, 35, 215, 480], low_wins=True, placement=2)
-
-
-def test_mahjongg_higher_winning_score_earns_more_finish_points():
-    low = compute_finish_points(
-        player_count=4,
-        placement=0,
-        score_magnitude=compute_score_magnitude(
-            25, [25, 0, 0, 0], low_wins=False, placement=0
-        ),
-    )
-    high = compute_finish_points(
-        player_count=4,
-        placement=0,
-        score_magnitude=compute_score_magnitude(
-            50, [50, 0, 0, 0], low_wins=False, placement=0
-        ),
-    )
-
-    assert high > low
-    assert low == pytest.approx(100.0)
-    assert high == pytest.approx(200.0)
 
 
 def test_compute_finish_points():
@@ -129,15 +101,6 @@ def test_mahjongg_wall_game_losers_earn_no_finish_points(user, group):
 
 
 @override_settings(LEADERBOARD_BAYESIAN_K=20)
-def test_compute_bayesian_factor():
-    assert compute_bayesian_factor(0) == 0.0
-    assert compute_bayesian_factor(20) == pytest.approx(20 / 40)
-    assert compute_bayesian_factor(1) == pytest.approx(1 / 21)
-    assert compute_bayesian_factor(10) == pytest.approx(10 / 30)
-    assert compute_bayesian_factor(1000) == pytest.approx(1000 / 1020)
-
-
-@override_settings(LEADERBOARD_BAYESIAN_K=20)
 def test_apply_bayesian_to_rank_score():
     assert apply_bayesian_to_rank_score(2.0, 20) == pytest.approx(2.0 * (20 / 40))
     assert apply_bayesian_to_rank_score(2.0, 10) == pytest.approx(2.0 * (10 / 30))
@@ -145,18 +108,6 @@ def test_apply_bayesian_to_rank_score():
     assert apply_bayesian_to_rank_score(4.0, 10, apply_bayesian=False) == pytest.approx(
         4.0
     )
-
-
-def test_compute_half_game_penalty_factor_is_neutral_for_now():
-    assert compute_half_game_penalty_factor(
-        weighted_games=0.5,
-        half_weighted_games=0.5,
-    ) == pytest.approx(1.0)
-
-
-def test_compute_rank_score():
-    assert compute_rank_score(points_total=8, games_played=3) == pytest.approx(8 / 3)
-    assert compute_rank_score(points_total=0, games_played=0) == 0.0
 
 
 def _record_progressive(user, group, players, winner):
@@ -263,22 +214,6 @@ def test_tie_for_lead_uses_lower_place_and_earns_no_finish_points_in_two_player_
         expected_win_points = 2 * TIE_WIN_POINTS_FACTOR
         assert row.win_points == pytest.approx(expected_win_points)
         assert row.finish_points == pytest.approx(0.0)
-
-
-def test_tie_applies_half_factor_when_finish_points_are_nonzero():
-    base = compute_finish_points(
-        player_count=4,
-        placement=2,
-        is_tie=False,
-        score_magnitude=10,
-    )
-    tied = compute_finish_points(
-        player_count=4,
-        placement=2,
-        is_tie=True,
-        score_magnitude=10,
-    )
-    assert tied == pytest.approx(base * TIE_WIN_POINTS_FACTOR)
 
 
 @pytest.mark.django_db

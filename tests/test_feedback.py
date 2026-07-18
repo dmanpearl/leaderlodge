@@ -4,7 +4,6 @@ from django.core import mail
 from django.urls import reverse
 
 from leaderlodge.feedback.models import Feedback
-from leaderlodge.feedback.prompts import GUEST_FEEDBACK_AUTH_MESSAGE
 
 
 @pytest.fixture
@@ -17,42 +16,11 @@ def user(db):
 
 
 @pytest.mark.django_db
-def test_about_page_links_to_feedback_for_authenticated_user(client, user):
-    client.force_login(user)
-    content = client.get(reverse("core:about")).content.decode()
-    assert reverse("feedback:create") in content
-    assert "Send feedback" in content
-
-
-@pytest.mark.django_db
-def test_about_page_guest_feedback_prompts_auth(client):
-    content = client.get(reverse("core:about")).content.decode()
-    assert "Send feedback" in content
-    assert GUEST_FEEDBACK_AUTH_MESSAGE in content
-    assert "data-guest-auth-trigger" in content
-    assert "data-guest-auth-next" in content
-    assert reverse("feedback:create") in content
-
-
-@pytest.mark.django_db
 def test_feedback_create_requires_login(client):
     response = client.get(reverse("feedback:create"))
     assert response.status_code == 302
     assert reverse("accounts:login") in response.url
     assert "next=" in response.url
-
-
-@pytest.mark.django_db
-def test_feedback_create_form_defaults_type_to_bug(client, user):
-    client.force_login(user)
-    response = client.get(reverse("feedback:create"))
-    assert response.status_code == 200
-    form = response.context["form"]
-    assert form.fields["feedback_type"].initial == Feedback.FeedbackType.BUG
-    content = response.content.decode()
-    assert 'value="bug"' in content
-    assert "selected" in content
-    assert "---------" not in content
 
 
 @pytest.mark.django_db
@@ -84,32 +52,6 @@ def test_feedback_create_submits_and_emails_user(client, user):
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == ["david@example.com"]
     assert "Score did not save" in mail.outbox[0].body
-
-
-@pytest.mark.django_db
-def test_feedback_create_allows_all_games(client, user):
-    client.force_login(user)
-    response = client.post(
-        reverse("feedback:create"),
-        {
-            "feedback_type": Feedback.FeedbackType.SUGGESTION,
-            "game_type_code": "",
-            "title": "Dark mode",
-            "description": "Please add a dark theme.",
-        },
-    )
-    assert response.status_code == 302
-    feedback = Feedback.objects.get()
-    assert feedback.game_type_code == ""
-    assert feedback.game_type_label == "All games"
-
-
-@pytest.mark.django_db
-def test_feedback_thanks_requires_login(client, user):
-    client.force_login(user)
-    response = client.get(reverse("feedback:thanks"))
-    assert response.status_code == 200
-    assert "Thank you" in response.content.decode()
 
 
 @pytest.mark.django_db

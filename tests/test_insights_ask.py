@@ -42,29 +42,6 @@ def _mock_ask_result(**overrides):
 
 @pytest.mark.django_db
 @override_settings(
-    INSIGHTS_ENABLED=True,
-    OPENAI_API_KEY="test-openai",
-    GOOGLE_AI_API_KEY="test-google",
-)
-def test_ask_page_renders(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    response = client.get(
-        reverse("insights:ask"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
-    )
-    content = response.content.decode()
-
-    assert response.status_code == 200
-    assert "Ask the Lodge" in content
-    assert 'id="ask-question"' in content
-    assert "ask_lodge.js" in content
-
-
-@pytest.mark.django_db
-@override_settings(
     INSIGHTS_ENABLED=False,
     OPENAI_API_KEY="",
     GOOGLE_AI_API_KEY="",

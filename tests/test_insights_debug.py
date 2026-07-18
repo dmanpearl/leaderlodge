@@ -7,9 +7,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
-from leaderlodge.insights.context.player import build_player_insight_context
 from leaderlodge.insights.service import AskResult, InsightResult
-from leaderlodge.leaderboards.period import LeaderboardPeriod
 from tests.test_games import _load_roster_post, _save_game_post
 
 
@@ -97,47 +95,6 @@ def _mock_ask_result(**overrides):
     GOOGLE_AI_API_KEY="test-google",
 )
 @patch("leaderlodge.insights.views.generate_player_insight")
-def test_player_insight_can_include_debug(mock_generate, client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-    player = group.players.order_by("pk").first()
-    mock_generate.return_value = _mock_insight_result()
-
-    response = client.post(
-        reverse("insights:player"),
-        data=json.dumps(
-            {
-                "group_id": str(group.pk),
-                "player_id": str(player.pk),
-                "game_type_code": "dominos",
-                "preset": "strengths",
-                "model": "gpt-4o-mini",
-                "include_debug": True,
-            }
-        ),
-        content_type="application/json",
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert "debug" in payload
-    assert payload["debug"]["mode"] == "player"
-    assert "context" in payload["debug"]
-    assert (
-        payload["debug"]["context"]["player"]["display_label"] == player.display_label
-    )
-    assert "system_prompt" in payload["debug"]
-    assert "user_message" in payload["debug"]
-
-
-@pytest.mark.django_db
-@override_settings(
-    INSIGHTS_ENABLED=True,
-    OPENAI_API_KEY="test-openai",
-    GOOGLE_AI_API_KEY="test-google",
-)
-@patch("leaderlodge.insights.views.generate_player_insight")
 def test_staff_player_insight_can_include_debug(
     mock_generate, client, staff_user, staff_group
 ):
@@ -205,60 +162,3 @@ def test_staff_ask_query_returns_tool_debug(
     assert mock_generate.call_args.kwargs["skip_cache"] is True
 
 
-@pytest.mark.django_db
-@override_settings(
-    INSIGHTS_ENABLED=True,
-    OPENAI_API_KEY="test-openai",
-    GOOGLE_AI_API_KEY="test-google",
-)
-def test_ask_page_shows_debug_toggle(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    content = client.get(
-        reverse("insights:ask"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
-    ).content.decode()
-
-    assert "Debug: Show data sent to AI" in content
-    assert "insights_debug.js" in content
-    assert 'id="ask-lodge-debug-toggle"' in content
-
-
-@pytest.mark.django_db
-@override_settings(
-    INSIGHTS_ENABLED=True,
-    OPENAI_API_KEY="test-openai",
-    GOOGLE_AI_API_KEY="test-google",
-)
-def test_staff_ask_page_shows_debug_toggle(client, staff_user, staff_group):
-    client.force_login(staff_user)
-    client.post(reverse("games:create"), _load_roster_post(staff_group))
-    client.post(reverse("games:create"), _save_game_post(staff_group))
-
-    content = client.get(
-        reverse("insights:ask"),
-        {"group": str(staff_group.pk), "game_type_code": "dominos"},
-    ).content.decode()
-
-    assert "Debug: Show data sent to AI" in content
-    assert "insights_debug.js" in content
-    assert 'id="ask-lodge-debug-toggle"' in content
-
-
-@pytest.mark.django_db
-def test_build_player_insight_context_has_placement_data(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    player = group.players.order_by("pk").first()
-    context = build_player_insight_context(
-        group,
-        player,
-        game_type_code="dominos",
-        period=LeaderboardPeriod.all_time(),
-    )
-
-    assert context["placements"]

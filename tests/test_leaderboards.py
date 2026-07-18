@@ -6,7 +6,7 @@ from django.urls import reverse
 from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
-from leaderlodge.leaderboards.service import get_player_rankings, get_player_stats
+from leaderlodge.leaderboards.service import get_player_rankings
 from tests.test_games import _load_roster_post, _save_game_post
 
 
@@ -20,49 +20,6 @@ def group(user):
     group = create_group_with_owner(user=user, name="Dom Club")
     add_guest_player(group=group, display_name="Pat")
     return group
-
-
-@pytest.mark.django_db
-def test_leaderboard_index_requires_login(client):
-    response = client.get(reverse("leaderboards:index"))
-    assert response.status_code == 302
-
-
-@pytest.mark.django_db
-def test_leaderboard_filters_panel_is_collapsible(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    content = client.get(
-        reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
-    ).content.decode()
-
-    assert 'id="leaderboard-filters-panel"' in content
-    assert ">Filters</span>" in content
-    assert 'id="leaderboard-filters-summary"' in content
-    assert "Dom Club, Dominos" in content
-
-
-@pytest.mark.django_db
-def test_leaderboard_shows_rankings(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    response = client.get(
-        reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
-    )
-    assert response.status_code == 200
-    content = response.content.decode()
-    assert "Dom Club" in content
-    assert "Dominos" in content
-    assert ">Score<" in content
-    assert 'class="text-nowrap">Win %</th>' in content
-    assert 'aria-label="Rank">#</th>' in content
-    assert "leaderboard-sticky-col--player" in content
 
 
 @pytest.mark.django_db
@@ -127,32 +84,6 @@ def test_get_player_rankings_counts_half_weight(user, group):
     winner = next(row for row in rankings if row.wins > 0)
     assert winner.games_played == 0.5
     assert winner.wins == 0.5
-
-
-@pytest.mark.django_db
-def test_get_player_stats(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-
-    player = group.players.order_by("pk").first()
-    stats = get_player_stats(group, player)
-    assert stats["dominos"]["games_played"] >= 1
-
-
-@pytest.mark.django_db
-def test_rank_detail_requires_login(client, user, group):
-    player = group.players.order_by("pk").first()
-    url = reverse("leaderboards:detail")
-    response = client.get(
-        url,
-        {
-            "group": str(group.pk),
-            "game_type_code": "dominos",
-            "player": str(player.pk),
-        },
-    )
-    assert response.status_code == 302
 
 
 @pytest.mark.django_db

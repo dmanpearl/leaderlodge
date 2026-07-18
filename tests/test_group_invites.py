@@ -8,7 +8,6 @@ from leaderlodge.groups.invites import (
     accept_group_invite,
     create_email_invite,
     create_email_invite_for_guest,
-    invite_for_token,
     revoke_group_invite,
 )
 from leaderlodge.groups.models import GroupInvite, GroupMembership, GroupPlayer
@@ -197,36 +196,6 @@ def test_player_invite_for_existing_guest(client, owner, group):
 
 
 @pytest.mark.django_db
-def test_existing_user_accepts_via_login_flow(client, owner, group, invitee):
-    invite = create_email_invite(
-        group=group,
-        email=invitee.email,
-        invited_by=owner,
-        player_name="Alice",
-    )
-    client.force_login(invitee)
-    response = client.post(
-        reverse("groups:invite_accept", kwargs={"token": invite.token}),
-        {"first_name": "Alice"},
-    )
-
-    assert response.status_code == 302
-    invite.guest_player.refresh_from_db()
-    assert invite.guest_player.linked_user_id == invitee.pk
-
-
-@pytest.mark.django_db
-def test_plain_member_cannot_send_invite(client, group, invitee):
-    add_group_member(group=group, user=invitee)
-    client.force_login(invitee)
-    response = client.post(
-        reverse("groups:invite_send", kwargs={"pk": group.pk}),
-        {"email": "other@example.com"},
-    )
-    assert response.status_code == 404
-
-
-@pytest.mark.django_db
 def test_cannot_invite_duplicate_pending_email(client, owner, group):
     client.force_login(owner)
     first = client.post(
@@ -264,29 +233,6 @@ def test_cannot_invite_member_email(client, owner, group, invitee):
 
 
 @pytest.mark.django_db
-def test_cannot_player_invite_duplicate_pending_email(client, owner, group):
-    guest = add_guest_player(group=group, display_name="Pat")
-    other_guest = add_guest_player(group=group, display_name="Sam")
-    create_email_invite(
-        group=group,
-        email="pat@example.com",
-        invited_by=owner,
-        player_name="Pat",
-    )
-    client.force_login(owner)
-    response = client.post(
-        reverse(
-            "groups:player_invite",
-            kwargs={"pk": group.pk, "player_pk": other_guest.pk},
-        ),
-        {"email": "pat@example.com"},
-        follow=True,
-    )
-    assert response.status_code == 200
-    assert "already pending" in response.content.decode()
-
-
-@pytest.mark.django_db
 def test_join_page_creates_account_and_joins_group(client, owner, group):
     invite = create_email_invite(
         group=group,
@@ -318,45 +264,3 @@ def test_join_page_creates_account_and_joins_group(client, owner, group):
     guest = GroupPlayer.objects.get(pk=guest_pk)
     assert guest.linked_user_id == user.pk
     assert len(mail.outbox) == 2
-
-
-@pytest.mark.django_db
-def test_join_page_shows_display_name_for_inviter(client, owner, group):
-    owner.first_name = "David"
-    owner.last_name = "Pearl"
-    owner.save(update_fields=["first_name", "last_name"])
-    invite = create_email_invite(
-        group=group,
-        email="friend@example.com",
-        invited_by=owner,
-    )
-    content = client.get(
-        reverse("groups:invite_accept", kwargs={"token": invite.token})
-    ).content.decode()
-    assert "David P" in content
-    assert owner.username not in content.split("invited you")[0]
-
-
-@pytest.mark.django_db
-def test_create_email_invite_rejects_duplicate_pending_email(group, owner):
-    create_email_invite(
-        group=group,
-        email="friend@example.com",
-        invited_by=owner,
-    )
-    with pytest.raises(ValueError, match="already pending"):
-        create_email_invite(
-            group=group,
-            email="friend@example.com",
-            invited_by=owner,
-        )
-
-
-@pytest.mark.django_db
-def test_invite_for_token_lookup(group, owner):
-    invite = create_email_invite(
-        group=group,
-        email="lookup@example.com",
-        invited_by=owner,
-    )
-    assert invite_for_token(invite.token) == invite

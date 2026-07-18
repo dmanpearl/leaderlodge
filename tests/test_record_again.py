@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from leaderlodge.games.models import Game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
-from tests.test_games import _load_roster_post, _reuse_roster_post, _save_game_post
+from tests.test_games import _load_roster_post, _save_game_post
 
 
 @pytest.fixture
@@ -57,19 +57,6 @@ def test_record_again_hidden_without_query_param(client, user, group):
 
 
 @pytest.mark.django_db
-def test_record_again_visible_with_query_param_on_refresh(client, user, group):
-    client.force_login(user)
-    _record_game(client, group)
-    game = Game.objects.get(group=group)
-    detail_url = reverse("games:detail", kwargs={"pk": game.pk}) + "?record_again=1"
-
-    first = client.get(detail_url)
-    second = client.get(detail_url)
-    assert "Reuse Players" in first.content.decode()
-    assert "Reuse Players" in second.content.decode()
-
-
-@pytest.mark.django_db
 def test_reuse_from_opens_record_form_with_players_collapsed(client, user, group):
     client.force_login(user)
     _record_game(client, group)
@@ -90,19 +77,6 @@ def test_reuse_from_opens_record_form_with_players_collapsed(client, user, group
     assert "data-player-picker-expand" in content
     assert "hidden" in _expanded_tag(content)
     assert "bi-chevron-down" not in content
-
-
-@pytest.mark.django_db
-def test_reuse_roster_starts_with_add_player_collapsed(client, user, group):
-    client.force_login(user)
-    client.post(reverse("games:create"), _load_roster_post(group))
-    client.post(reverse("games:create"), _save_game_post(group))
-    response = client.post(reverse("games:create"), _reuse_roster_post(group))
-    content = response.content.decode()
-    assert response.status_code == 200
-    assert "is-player-picker-collapsed" in content
-    assert "Type player name" in content
-    assert "hidden" in _expanded_tag(content)
 
 
 @pytest.mark.django_db

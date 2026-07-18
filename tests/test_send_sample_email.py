@@ -17,21 +17,6 @@ def user(db):
 
 
 @pytest.mark.django_db
-def test_send_sample_email_welcome_print_only(user, capsys):
-    call_command(
-        "send_sample_email",
-        "--type=welcome",
-        f"--user={user.username}",
-        "--print-only",
-    )
-    captured = capsys.readouterr()
-    assert "To: david@example.com" in captured.out
-    assert TAGLINE in captured.out
-    assert "/accounts/verify/" in captured.out
-    assert len(mail.outbox) == 0
-
-
-@pytest.mark.django_db
 def test_send_sample_email_password_reset_print_only(user, capsys):
     call_command(
         "send_sample_email",

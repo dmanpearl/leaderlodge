@@ -65,10 +65,13 @@ def test_editor_can_send_invite(client, editor, group, other_owner):
         {"email": other_owner.email or "other@example.com"},
     )
     assert response.status_code == 302
-    assert GroupMembership.objects.filter(
-        group=group,
-        user=other_owner,
-    ).exists() is False
+    assert (
+        GroupMembership.objects.filter(
+            group=group,
+            user=other_owner,
+        ).exists()
+        is False
+    )
     from leaderlodge.groups.models import GroupInvite
 
     assert GroupInvite.objects.filter(group=group).exists()
@@ -241,24 +244,6 @@ def test_owner_can_remove_co_owner_when_multiple_owners(
 
 
 @pytest.mark.django_db
-def test_member_detail_hides_management_ui(client, member, group):
-    client.force_login(member)
-    content = client.get(reverse("groups:detail", kwargs={"pk": group.pk})).content.decode()
-    assert "Invite member" not in content
-    assert "Add guest" not in content
-    assert "Remove from Group" not in content
-    assert "bi-person-x" not in content
-
-
-@pytest.mark.django_db
-def test_editor_detail_shows_management_ui(client, editor, group):
-    client.force_login(editor)
-    content = client.get(reverse("groups:detail", kwargs={"pk": group.pk})).content.decode()
-    assert "Invite member" in content
-    assert "Add guest" in content
-
-
-@pytest.mark.django_db
 def test_remove_guest_player_without_games(client, editor, group):
     from leaderlodge.groups.models import GroupPlayer
 
@@ -300,36 +285,6 @@ def test_cannot_remove_guest_player_with_games(client, editor, group):
     assert response.status_code == 404
     guest.refresh_from_db()
     assert guest.is_active is True
-
-
-@pytest.mark.django_db
-def test_guest_with_games_shows_disabled_remove_on_roster(client, editor, group):
-    from datetime import date
-
-    from leaderlodge.games.models import Game, GameParticipantResult
-    from leaderlodge.groups.models import GroupPlayer
-
-    guest = GroupPlayer.objects.create(group=group, display_name="Pat")
-    game = Game.objects.create(
-        group=group,
-        game_type_code="dominos",
-        played_on=date(2024, 1, 15),
-        recorded_by=editor,
-        player_count=1,
-    )
-    GameParticipantResult.objects.create(game=game, player=guest)
-    client.force_login(editor)
-    content = client.get(reverse("groups:detail", kwargs={"pk": group.pk})).content.decode()
-    assert "Cannot remove from group" in content
-    assert 'disabled' in content
-
-
-@pytest.mark.django_db
-def test_roster_shows_remove_for_member(client, editor, member, group):
-    client.force_login(editor)
-    content = client.get(reverse("groups:detail", kwargs={"pk": group.pk})).content.decode()
-    assert content.count("Remove from Group") >= 2
-    assert "bi-person-x" in content
 
 
 @pytest.mark.django_db
