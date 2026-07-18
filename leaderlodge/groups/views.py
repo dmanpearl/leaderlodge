@@ -894,6 +894,117 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@demo_or_login_required
+def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
+    from django.db.models import Count, Max
+
+    from leaderlodge.games.models import Game
+    from leaderlodge.games.registry import GAME_TYPES
+    from leaderlodge.groups.locations import (
+        GAME_CODE_SHORT,
+        ensure_group_location_library,
+    )
+
+    group = get_object_or_404(Group, pk=pk)
+    if not can_view_group(request.user, group):
+        raise Http404
+
+    library = ensure_group_location_library(group)
+    location = get_object_or_404(Location, pk=loc_pk, library=library)
+    can_manage = can_manage_group_members(request.user, group)
+    is_geocoded = location.lat is not None and location.lon is not None
+
+    games_qs = Game.objects.filter(group=group, location=location).select_related(
+        "group"
+    )
+    game_count = games_qs.count()
+    last_played = games_qs.aggregate(last=Max("played_on"))["last"]
+    recent_games = list(games_qs.order_by("-played_on", "-pk")[:12])
+
+    seen_codes: set[str] = set()
+    game_pills = []
+    for code in (
+        games_qs.order_by("game_type_code")
+        .values_list("game_type_code", flat=True)
+        .distinct()
+    ):
+        short = GAME_CODE_SHORT.get(code, code[:2].upper())
+        if short in seen_codes:
+            continue
+        seen_codes.add(short)
+        full_name = GAME_TYPES[code].name if code in GAME_TYPES else code
+        game_pills.append({"code": short, "name": full_name})
+    game_pills.sort(key=lambda p: p["code"])
+
+    other_locations = list(
+        library.locations.exclude(pk=location.pk)
+        .annotate(game_count=Count("games"))
+        .order_by("name")
+        .values("pk", "name", "lat", "lon", "game_count")
+    )
+    location_data = [
+        {
+            "pk": location.pk,
+            "name": location.name,
+            "lat": location.lat,
+            "lon": location.lon,
+            "game_count": game_count,
+            "is_geocoded": is_geocoded,
+        },
+        *[
+            {
+                "pk": row["pk"],
+                "name": row["name"],
+                "lat": row["lat"],
+                "lon": row["lon"],
+                "game_count": row["game_count"],
+                "is_geocoded": row["lat"] is not None and row["lon"] is not None,
+            }
+            for row in other_locations
+        ],
+    ]
+
+    address_parts = [
+        part
+        for part in (
+            location.street_address,
+            ", ".join(p for p in (location.city, location.state) if p),
+            location.postal_code,
+            location.country,
+        )
+        if part
+    ]
+
+    return render(
+        request,
+        "groups/location_detail.html",
+        {
+            "group": group,
+            "location": location,
+            "game_count": game_count,
+            "last_played": last_played,
+            "game_pills": game_pills,
+            "is_geocoded": is_geocoded,
+            "address_line": " · ".join(address_parts),
+            "recent_games": recent_games,
+            "can_manage_locations": can_manage,
+            "location_data": location_data,
+            "other_location_count": len(other_locations),
+            "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),
+            "games_list_url": (
+                f"{reverse('games:list')}?group={group.pk}&location={location.pk}"
+            ),
+        },
+    )
+
+
+def _location_post_redirect(request: HttpRequest, group: Group) -> HttpResponse:
+    next_raw = (request.POST.get("next") or "").strip()
+    if next_raw.startswith("/") and not next_raw.startswith("//"):
+        return redirect(next_raw)
+    return redirect("groups:location_manage", pk=group.pk)
+
+
 @login_required
 def location_rename(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
     from leaderlodge.groups.locations import (
@@ -920,7 +1031,7 @@ def location_rename(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
         errors = form.errors.get("name", form.non_field_errors())
         if errors:
             messages.error(request, errors[0])
-    return redirect("groups:location_manage", pk=group.pk)
+    return _location_post_redirect(request, group)
 
 
 @login_required
@@ -952,7 +1063,7 @@ def location_combine(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse
             messages.error(request, str(exc))
     else:
         messages.error(request, "Could not combine locations.")
-    return redirect("groups:location_manage", pk=group.pk)
+    return _location_post_redirect(request, group)
 
 
 @login_required

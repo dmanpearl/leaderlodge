@@ -16,6 +16,11 @@ urlpatterns = [
         name="location_manage",
     ),
     path(
+        "<int:pk>/locations/<int:loc_pk>/",
+        views.location_detail,
+        name="location_detail",
+    ),
+    path(
         "<int:pk>/locations/<int:loc_pk>/rename/",
         views.location_rename,
         name="location_rename",

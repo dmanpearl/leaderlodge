@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ location.name }} | Locations | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/groups.css' %}" />
+  {% if google_places_api_key %}
+    <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  {{ location_data|json_script:"location-data" }}
+
+  <nav aria-label="breadcrumb" class="mb-2">
+    <ol class="breadcrumb mb-0">
+      <li class="breadcrumb-item"><a href="{% url 'groups:list' %}">Groups</a></li>
+      <li class="breadcrumb-item">
+        <a href="{% url 'groups:detail' group.pk %}">{{ group.name }}</a>
+      </li>
+      <li class="breadcrumb-item">
+        {% if can_manage_locations %}
+          <a href="{% url 'groups:location_manage' group.pk %}">Locations</a>
+        {% else %}
+          Locations
+        {% endif %}
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">{{ location.name }}</li>
+    </ol>
+  </nav>
+
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">
+        {{ location.name }}
+        {% if is_geocoded %}
+          <span class="badge text-bg-success location-geocoded-badge align-middle" title="Pin set">
+            <i class="bi bi-pin-fill" aria-hidden="true"></i>
+            <span class="visually-hidden">Pin set</span>
+          </span>
+        {% endif %}
+      </h1>
+      <p class="text-muted mb-0">
+        {{ game_count }} game{{ game_count|pluralize }}
+        {% if last_played %}
+          &middot; Last played {{ last_played|date:"M j, Y" }}
+        {% endif %}
+        {% if game_pills %}
+          &middot;
+          {% for pill in game_pills %}
+            <span class="badge rounded-pill location-game-pill" title="{{ pill.name }}">{{ pill.code }}</span>
+          {% endfor %}
+        {% endif %}
+      </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{{ games_list_url }}" class="btn btn-primary btn-sm">View games</a>
+      {% if can_manage_locations %}
+        <a href="{% url 'groups:location_manage' group.pk %}" class="btn btn-outline-secondary btn-sm">
+          All locations
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Place</h2>
+          {% if address_line %}
+            <p class="mb-2">{{ address_line }}</p>
+          {% else %}
+            <p class="text-muted mb-2">No address fields yet.</p>
+          {% endif %}
+          {% if is_geocoded %}
+            <p class="small text-muted mb-0 font-monospace">
+              {{ location.lat }}, {{ location.lon }}
+              {% if location.geocode_source %}
+                &middot; {{ location.geocode_source }}
+              {% endif %}
+            </p>
+          {% endif %}
+
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            {% if can_manage_locations and google_places_api_key %}
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                data-location-set-place
+                data-set-place-url="{% url 'groups:location_set_place' group.pk location.pk %}"
+                data-location-name="{{ location.name }}"
+                data-game-count="{{ game_count }}"
+                {% if location.lat %}data-lat="{{ location.lat }}"{% endif %}
+                {% if location.lon %}data-lon="{{ location.lon }}"{% endif %}
+              >
+                <i class="bi bi-map" aria-hidden="true"></i>
+                Set place
+              </button>
+            {% elif is_geocoded and google_places_api_key %}
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                data-location-show-place
+                data-location-name="{{ location.name }}"
+                data-city="{{ location.city }}"
+                data-state="{{ location.state }}"
+                data-lat="{{ location.lat }}"
+                data-lon="{{ location.lon }}"
+              >
+                <i class="bi bi-map" aria-hidden="true"></i>
+                Show map
+              </button>
+            {% endif %}
+            {% if can_manage_locations %}
+              <button
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                data-location-rename
+                data-location-pk="{{ location.pk }}"
+                data-location-name="{{ location.name }}"
+                data-rename-url="{% url 'groups:location_rename' group.pk location.pk %}"
+              >
+                Rename
+              </button>
+              {% if other_location_count > 0 %}
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  data-location-combine
+                  data-location-pk="{{ location.pk }}"
+                  data-location-name="{{ location.name }}"
+                  data-combine-url="{% url 'groups:location_combine' group.pk location.pk %}"
+                >
+                  Combine
+                </button>
+              {% endif %}
+              {% if game_count == 0 %}
+                <form
+                  method="post"
+                  action="{% url 'groups:location_delete' group.pk location.pk %}"
+                  class="m-0"
+                  onsubmit="return confirm('Delete this location?');"
+                >
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <h2 class="h5 mb-0">Recent games</h2>
+            {% if game_count > recent_games|length %}
+              <a href="{{ games_list_url }}" class="small">See all</a>
+            {% endif %}
+          </div>
+          {% if recent_games %}
+            <ul class="list-group list-group-flush">
+              {% for game in recent_games %}
+                <li class="list-group-item px-0 d-flex justify-content-between gap-2">
+                  <a href="{% url 'games:detail' game.pk %}">
+                    {{ game.game_type.name }}
+                  </a>
+                  <span class="text-muted text-nowrap">{{ game.played_on|date:"M j, Y" }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">No games at this location yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if can_manage_locations %}
+    {% if google_places_api_key %}
+      {% include "groups/includes/location_set_place_modal.html" %}
+    {% endif %}
+
+    <div
+      class="modal fade"
+      id="location-rename-modal"
+      tabindex="-1"
+      aria-labelledby="location-rename-modal-label"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="post" id="location-rename-form">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'groups:location_detail' group.pk location.pk %}" />
+            <div class="modal-header">
+              <h2 class="modal-title h5" id="location-rename-modal-label">
+                Rename location
+              </h2>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <label for="location-rename-input" class="form-label">New name</label>
+              <input
+                type="text"
+                name="name"
+                id="location-rename-input"
+                class="form-control"
+                required
+                maxlength="200"
+                autocomplete="off"
+              />
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="location-combine-modal"
+      tabindex="-1"
+      aria-labelledby="location-combine-modal-label"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="post" id="location-combine-form">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'groups:location_detail' group.pk location.pk %}" />
+            <div class="modal-header">
+              <h2 class="modal-title h5" id="location-combine-modal-label">
+                Combine locations
+              </h2>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-3">
+                Keep <strong id="location-combine-keeper-name"></strong> and merge
+                another location into it. All games from the merged location will be
+                re-pointed to the keeper. The merged location will be deleted.
+              </p>
+              <label for="location-combine-input" class="form-label"
+                >Merge away and delete</label
+              >
+              <div class="invite-name-field">
+                <input
+                  type="text"
+                  id="location-combine-input"
+                  class="form-control"
+                  autocomplete="off"
+                  placeholder="Type to search…"
+                  role="combobox"
+                  aria-autocomplete="list"
+                  aria-expanded="false"
+                  aria-controls="location-combine-dropdown"
+                />
+                <ul
+                  id="location-combine-dropdown"
+                  class="invite-name-dropdown"
+                  role="listbox"
+                  hidden
+                ></ul>
+                <input
+                  type="hidden"
+                  name="source"
+                  id="location-combine-source-hidden"
+                />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-danger" id="location-combine-submit">
+                Combine
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% elif is_geocoded and google_places_api_key %}
+    {% include "groups/includes/location_show_place_modal.html" %}
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  {% if can_manage_locations %}
+    {% if google_places_api_key %}
+      <script src="{% static 'js/location_map.js' %}?v=3"></script>
+      <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
+    {% endif %}
+    <script>
+      (function () {
+        var locationData = JSON.parse(
+          document.getElementById("location-data").textContent
+        );
+
+        function foldAccents(value) {
+          return String(value || "")
+            .normalize("NFD")
+            .replace(/\p{M}/gu, "");
+        }
+
+        function normalizeForMatch(s) {
+          var folded = foldAccents(s).trim().toLowerCase();
+          folded = folded.replace(/[\u2018\u2019\u201A\u201B`´']/g, "'");
+          folded = folded.replace(/[^a-z0-9\s']/g, "");
+          return folded.replace(/\s+/g, " ").trim();
+        }
+
+        var renameModalEl = document.getElementById("location-rename-modal");
+        if (renameModalEl) {
+          var renameModal = new bootstrap.Modal(renameModalEl);
+          document.querySelectorAll("[data-location-rename]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              document.getElementById("location-rename-form").action =
+                this.dataset.renameUrl;
+              document.getElementById("location-rename-input").value =
+                this.dataset.locationName;
+              renameModal.show();
+            });
+          });
+        }
+
+        var combineModalEl = document.getElementById("location-combine-modal");
+        if (!combineModalEl) return;
+
+        var combineModal = new bootstrap.Modal(combineModalEl);
+        var combineInput = document.getElementById("location-combine-input");
+        var combineHidden = document.getElementById(
+          "location-combine-source-hidden"
+        );
+        var combineList = document.getElementById("location-combine-dropdown");
+        var combineSubmit = document.getElementById("location-combine-submit");
+        var combineCandidates = [];
+        var activeSuggestions = [];
+        var activeIndex = -1;
+
+        function filterCandidates(query) {
+          var q = normalizeForMatch(query);
+          if (!q) return combineCandidates.slice();
+          return combineCandidates.filter(function (loc) {
+            return normalizeForMatch(loc.name).includes(q);
+          });
+        }
+
+        function renderList() {
+          combineList.innerHTML = "";
+          activeSuggestions.forEach(function (loc, i) {
+            var item = document.createElement("li");
+            item.setAttribute("role", "option");
+            item.id = "location-combine-dropdown-opt-" + i;
+            item.className =
+              "invite-name-option" +
+              (i === activeIndex ? " invite-name-option--active" : "");
+            item.textContent = loc.name;
+            item.setAttribute(
+              "aria-selected",
+              i === activeIndex ? "true" : "false"
+            );
+            if (i === activeIndex) {
+              combineInput.setAttribute("aria-activedescendant", item.id);
+            }
+            item.addEventListener("mousedown", function (e) {
+              e.preventDefault();
+              selectLocation(loc);
+            });
+            combineList.appendChild(item);
+          });
+        }
+
+        function openList() {
+          combineList.hidden = false;
+          combineInput.setAttribute("aria-expanded", "true");
+        }
+
+        function closeList() {
+          combineList.hidden = true;
+          combineList.innerHTML = "";
+          combineInput.setAttribute("aria-expanded", "false");
+          combineInput.removeAttribute("aria-activedescendant");
+          activeIndex = -1;
+          activeSuggestions = [];
+        }
+
+        function refreshSuggestions() {
+          activeSuggestions = filterCandidates(combineInput.value);
+          activeIndex = -1;
+          if (!activeSuggestions.length) {
+            closeList();
+            return;
+          }
+          openList();
+          renderList();
+        }
+
+        function selectLocation(loc) {
+          combineInput.value = loc.name;
+          combineHidden.value = loc.pk;
+          combineSubmit.disabled = false;
+          closeList();
+        }
+
+        function clearSelection() {
+          combineHidden.value = "";
+          combineSubmit.disabled = true;
+        }
+
+        combineInput.addEventListener("input", function (e) {
+          if (!e.isTrusted) return;
+          clearSelection();
+          refreshSuggestions();
+        });
+        combineInput.addEventListener("focus", refreshSuggestions);
+        combineInput.addEventListener("blur", function () {
+          setTimeout(closeList, 150);
+        });
+        combineInput.addEventListener("keydown", function (e) {
+          if (!combineList.hidden) {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              activeIndex = activeSuggestions.length
+                ? (activeIndex + 1) % activeSuggestions.length
+                : 0;
+              renderList();
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              activeIndex = activeSuggestions.length
+                ? (activeIndex - 1 + activeSuggestions.length) %
+                  activeSuggestions.length
+                : 0;
+              renderList();
+            } else if (e.key === "Enter" && activeIndex >= 0) {
+              e.preventDefault();
+              selectLocation(activeSuggestions[activeIndex]);
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              closeList();
+            }
+          } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            refreshSuggestions();
+          }
+        });
+
+        document
+          .getElementById("location-combine-form")
+          .addEventListener("submit", function (e) {
+            if (!combineHidden.value) {
+              e.preventDefault();
+              combineInput.focus();
+            }
+          });
+
+        combineModalEl.addEventListener("shown.bs.modal", function () {
+          combineInput.focus();
+        });
+        combineModalEl.addEventListener("hidden.bs.modal", function () {
+          closeList();
+          combineInput.value = "";
+          combineHidden.value = "";
+          combineSubmit.disabled = true;
+        });
+
+        document
+          .querySelectorAll("[data-location-combine]")
+          .forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              var keeperPk = parseInt(this.dataset.locationPk, 10);
+              document.getElementById("location-combine-form").action =
+                this.dataset.combineUrl;
+              document.getElementById(
+                "location-combine-keeper-name"
+              ).textContent = this.dataset.locationName;
+              combineCandidates = locationData.filter(function (loc) {
+                return loc.pk !== keeperPk;
+              });
+              combineInput.value = "";
+              combineHidden.value = "";
+              combineSubmit.disabled = true;
+              combineModal.show();
+            });
+          });
+      })();
+    </script>
+  {% elif is_geocoded and google_places_api_key %}
+    <script src="{% static 'js/location_show_place.js' %}?v=1"></script>
+  {% endif %}
+{% endblock %}

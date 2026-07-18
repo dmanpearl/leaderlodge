@@ -21,6 +21,10 @@
   max-width: 24rem;
 }
 
+.location-list-row {
+  cursor: pointer;
+}
+
 .location-duplicates-list .btn {
   max-width: 16rem;
   white-space: normal;

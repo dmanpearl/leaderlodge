@@ -504,6 +504,81 @@ def test_location_manage_shows_find_duplicates(client, user):
 
 
 @pytest.mark.django_db
+def test_location_detail_renders_for_owner(client, user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = _raw_location(
+        group.location_library,
+        "Zinque",
+        city="Venice",
+        state="CA",
+        lat=33.985,
+        lon=-118.469,
+    )
+    client.force_login(user)
+    url = reverse(
+        "groups:location_detail",
+        kwargs={"pk": group.pk, "loc_pk": location.pk},
+    )
+    response = client.get(url)
+    assert response.status_code == 200
+    assert b"Zinque" in response.content
+    assert b"Venice" in response.content
+    assert response.context["can_manage_locations"] is True
+    assert response.context["is_geocoded"] is True
+
+
+@pytest.mark.django_db
+def test_location_detail_hidden_from_outsider(client, user):
+    outsider = User.objects.create_user(username="outsider", password="test-pass-123")
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = _raw_location(group.location_library, "Zinque")
+    client.force_login(outsider)
+    url = reverse(
+        "groups:location_detail",
+        kwargs={"pk": group.pk, "loc_pk": location.pk},
+    )
+    response = client.get(url)
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_location_manage_rows_link_to_detail(client, user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = _raw_location(group.location_library, "Zinque")
+    client.force_login(user)
+    response = client.get(reverse("groups:location_manage", kwargs={"pk": group.pk}))
+    assert response.status_code == 200
+    detail_path = reverse(
+        "groups:location_detail",
+        kwargs={"pk": group.pk, "loc_pk": location.pk},
+    )
+    assert detail_path.encode() in response.content
+    assert b'data-href="' in response.content
+
+
+@pytest.mark.django_db
+def test_location_rename_respects_next_redirect(client, user):
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = _raw_location(group.location_library, "Zinque")
+    detail_url = reverse(
+        "groups:location_detail",
+        kwargs={"pk": group.pk, "loc_pk": location.pk},
+    )
+    client.force_login(user)
+    response = client.post(
+        reverse(
+            "groups:location_rename",
+            kwargs={"pk": group.pk, "loc_pk": location.pk},
+        ),
+        {"name": "Zinque Venice", "next": detail_url},
+    )
+    assert response.status_code == 302
+    assert response["Location"].endswith(detail_url)
+    location.refresh_from_db()
+    assert location.name == "Zinque Venice"
+
+
+@pytest.mark.django_db
 def test_resolve_game_location_accepts_geo(user):
     from leaderlodge.groups.location_geo import (
         GEOCODE_SOURCE_PLACES_LOOKUP,

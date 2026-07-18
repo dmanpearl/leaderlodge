@@ -98,7 +98,14 @@
           </thead>
           <tbody>
             {% for row in location_rows %}
-              <tr data-location-row data-location-name="{{ row.location.name }}">
+              <tr
+                class="location-list-row"
+                role="link"
+                tabindex="0"
+                data-location-row
+                data-location-name="{{ row.location.name }}"
+                data-href="{% url 'groups:location_detail' group.pk row.location.pk %}"
+              >
                 <td>{{ row.location.name }}</td>
                 <td class="text-center">
                   {% if row.is_geocoded %}
@@ -598,6 +605,24 @@
       });
 
       restoreScrollIfNeeded();
+
+      document.querySelectorAll(".location-list-row[data-href]").forEach(function (row) {
+        function navigate() {
+          window.location = row.dataset.href;
+        }
+        row.addEventListener("click", function (event) {
+          if (event.target.closest("a, button, .dropdown-menu, form")) {
+            return;
+          }
+          navigate();
+        });
+        row.addEventListener("keydown", function (event) {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            navigate();
+          }
+        });
+      });
 
       var renameModal = new bootstrap.Modal(
         document.getElementById("location-rename-modal")
