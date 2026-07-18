@@ -1,5 +1,6 @@
 /**
  * Games map viewer: Google Maps + Supercluster pins for geocoded locations.
+ * Refetches pins for the visible map area (bbox) after the first fit.
  */
 (function () {
   const featuresEl = document.getElementById("game-map-features");
@@ -28,6 +29,10 @@
   let infoWindow = null;
   let markers = [];
   let clusterIndex = null;
+  let initialFitDone = false;
+  let fetchTimer = null;
+  let lastBboxKey = "";
+  let fetchSeq = 0;
 
   function setStatus(message) {
     if (statusEl) statusEl.textContent = message || "";
@@ -90,7 +95,7 @@
   }
 
   function cityState(props) {
-    const parts = [props.city, props.state].filter(Boolean);
+    const parts = [props.city, props.state, props.country].filter(Boolean);
     return parts.join(", ");
   }
 
@@ -214,6 +219,82 @@
     });
   }
 
+  function loadClusterIndex(nextFeatures) {
+    features = nextFeatures || [];
+    clusterIndex = new Supercluster({
+      radius: 56,
+      maxZoom: 16,
+    });
+    clusterIndex.load(features);
+  }
+
+  function paddedBboxParam() {
+    const bounds = map.getBounds();
+    if (!bounds) return "";
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    let lonMin = sw.lng();
+    let latMin = sw.lat();
+    let lonMax = ne.lng();
+    let latMax = ne.lat();
+    const lonPad = Math.max((lonMax - lonMin) * 0.15, 0.01);
+    const latPad = Math.max((latMax - latMin) * 0.15, 0.01);
+    lonMin = Math.max(lonMin - lonPad, -180);
+    latMin = Math.max(latMin - latPad, -90);
+    lonMax = Math.min(lonMax + lonPad, 180);
+    latMax = Math.min(latMax + latPad, 90);
+    return [lonMin, latMin, lonMax, latMax]
+      .map((n) => n.toFixed(6))
+      .join(",");
+  }
+
+  function apiUrlWithBbox(bbox) {
+    const url = new URL(config.apiUrl, window.location.origin);
+    if (config.query) {
+      const base = new URLSearchParams(config.query);
+      base.forEach((value, key) => {
+        url.searchParams.set(key, value);
+      });
+    }
+    url.searchParams.set("bbox", bbox);
+    return url.toString();
+  }
+
+  async function fetchViewportFeatures() {
+    if (!config.apiUrl || !map) {
+      renderClusters();
+      return;
+    }
+    const bbox = paddedBboxParam();
+    if (!bbox || bbox === lastBboxKey) {
+      renderClusters();
+      return;
+    }
+    lastBboxKey = bbox;
+    const seq = ++fetchSeq;
+    setStatus("Updating map…");
+    try {
+      const response = await fetch(apiUrlWithBbox(bbox), {
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error("Map data request failed.");
+      const payload = await response.json();
+      if (seq !== fetchSeq) return;
+      loadClusterIndex(payload.features || []);
+      renderClusters();
+      setStatus(
+        features.length === 1
+          ? "1 place in view"
+          : `${features.length} places in view`,
+      );
+    } catch (err) {
+      if (seq !== fetchSeq) return;
+      console.warn("[game-map]", err);
+      setStatus(err?.message || "Could not update map places.");
+      renderClusters();
+    }
+  }
+
   function fitToFeatures() {
     if (!features.length) return;
     const gmaps = window.google.maps;
@@ -227,6 +308,8 @@
       if (features.length === 1) {
         map.setZoom(Math.min(map.getZoom() || 14, 14));
       }
+      initialFitDone = true;
+      renderClusters();
     });
   }
 
@@ -252,14 +335,16 @@
         fullscreenControl: true,
       });
       infoWindow = new gmaps.InfoWindow();
+      loadClusterIndex(features);
 
-      clusterIndex = new Supercluster({
-        radius: 56,
-        maxZoom: 16,
+      map.addListener("idle", () => {
+        if (!initialFitDone) {
+          renderClusters();
+          return;
+        }
+        window.clearTimeout(fetchTimer);
+        fetchTimer = window.setTimeout(fetchViewportFeatures, 250);
       });
-      clusterIndex.load(features);
-
-      map.addListener("idle", renderClusters);
       fitToFeatures();
       setStatus(
         features.length === 1 ? "1 place" : `${features.length} places`,

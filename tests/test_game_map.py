@@ -63,6 +63,7 @@ def test_build_map_features_includes_geocoded_venues(user, group):
             lon=-118.25,
             city="Los Angeles",
             state="CA",
+            country="US",
             geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
         ),
     )
@@ -83,6 +84,98 @@ def test_build_map_features_includes_geocoded_venues(user, group):
 
 
 @pytest.mark.django_db
+def test_build_map_features_filters_by_country_and_bbox(user, group):
+    ca = get_or_create_location(
+        library=group.location_library,
+        name="LA Spot",
+        geo=LocationGeo(
+            lat=34.05,
+            lon=-118.25,
+            city="Los Angeles",
+            state="CA",
+            country="US",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    on = get_or_create_location(
+        library=group.location_library,
+        name="Toronto Spot",
+        geo=LocationGeo(
+            lat=43.65,
+            lon=-79.38,
+            city="Toronto",
+            state="ON",
+            country="CA",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    _make_game(user, group, ca)
+    _make_game(user, group, on)
+
+    us_only = build_map_features(group=group, country="US")
+    assert len(us_only) == 1
+    assert us_only[0]["properties"]["name"] == "LA Spot"
+
+    bbox_la = build_map_features(
+        group=group,
+        bbox=(-119.0, 33.0, -117.0, 35.0),
+    )
+    assert len(bbox_la) == 1
+    assert bbox_la[0]["properties"]["name"] == "LA Spot"
+
+
+@pytest.mark.django_db
+def test_map_api_accepts_bbox_and_country(client, user, group, settings):
+    from leaderlodge.games.map_data import map_country_choices, map_geo_cascade_tree
+
+    settings.GOOGLE_PLACES_API_KEY = "test-browser-key"
+    parlor = get_or_create_location(
+        library=group.location_library,
+        name="The Parlor",
+        geo=LocationGeo(
+            lat=34.05,
+            lon=-118.25,
+            city="Los Angeles",
+            state="CA",
+            country="US",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    _make_game(user, group, parlor)
+
+    assert map_country_choices(group) == ["US"]
+    tree = map_geo_cascade_tree(group)
+    assert tree["US"]["CA"] == ["Los Angeles"]
+
+    client.force_login(user)
+    page = client.get(reverse("games:map"), {"group": group.pk})
+    assert page.status_code == 200
+    assert b'id="map-country-select"' in page.content
+    assert b"map-geo-cascade-tree" in page.content
+
+    api = client.get(
+        reverse("map_locations"),
+        {
+            "group": group.pk,
+            "country": "US",
+            "bbox": "-119,33,-117,35",
+        },
+    )
+    assert api.status_code == 200
+    assert len(api.json()["features"]) == 1
+
+    empty = client.get(
+        reverse("map_locations"),
+        {
+            "group": group.pk,
+            "bbox": "0,0,1,1",
+        },
+    )
+    assert empty.status_code == 200
+    assert empty.json()["features"] == []
+
+
+@pytest.mark.django_db
 def test_game_map_page_and_api(client, user, group, settings):
     settings.GOOGLE_PLACES_API_KEY = "test-browser-key"
     parlor = get_or_create_location(
@@ -93,6 +186,7 @@ def test_game_map_page_and_api(client, user, group, settings):
             lon=-118.25,
             city="Los Angeles",
             state="CA",
+            country="US",
             geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
         ),
     )

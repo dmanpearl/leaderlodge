@@ -12,11 +12,15 @@ from leaderlodge.accounts.game_selection import all_game_type_codes
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.map_data import (
     build_map_features,
+    expand_map_bbox,
     group_location_counts,
     map_city_choices,
+    map_country_choices,
+    map_geo_cascade_tree,
     map_geojson_collection,
     map_location_name_choices,
     map_state_choices,
+    parse_map_bbox,
     resolve_map_group,
 )
 from leaderlodge.games.models import Game, GameParticipantResult
@@ -32,7 +36,7 @@ def _map_params(request: HttpRequest) -> dict[str, str]:
         "player": (request.GET.get("player") or "").strip(),
         "city": (request.GET.get("city") or "").strip(),
         "state": (request.GET.get("state") or "").strip(),
-        "country": (request.GET.get("country") or "").strip(),
+        "country": (request.GET.get("country") or "").strip().upper(),
         "location_name": (request.GET.get("location_name") or "").strip(),
         "year": (request.GET.get("year") or "").strip(),
         "month": (request.GET.get("month") or "").strip(),
@@ -183,18 +187,28 @@ def game_map(request: HttpRequest) -> HttpResponse:
     features: list = []
     geocoded_count = 0
     location_count = 0
+    country_choices: list[str] = []
     state_choices: list[str] = []
     city_choices: list[str] = []
     location_name_choices: list[str] = []
+    geo_cascade_tree: dict = {}
     players = []
     game_type_options: list[tuple[str, str]] = []
     can_manage_locations = False
 
     if selected_group is not None:
         location_count, geocoded_count = group_location_counts(selected_group)
-        state_choices = map_state_choices(selected_group)
-        city_choices = map_city_choices(selected_group, state=params.get("state", ""))
+        country_choices = map_country_choices(selected_group)
+        state_choices = map_state_choices(
+            selected_group, country=params.get("country", "")
+        )
+        city_choices = map_city_choices(
+            selected_group,
+            country=params.get("country", ""),
+            state=params.get("state", ""),
+        )
         location_name_choices = map_location_name_choices(selected_group)
+        geo_cascade_tree = map_geo_cascade_tree(selected_group)
         players = list(_player_choices_for_map(selected_group, params["game_type"]))
         game_type_options = _game_type_options_for_map(selected_group)
         can_manage_locations = can_manage_group_members(request.user, selected_group)
@@ -202,6 +216,17 @@ def game_map(request: HttpRequest) -> HttpResponse:
             str(p.pk) == params["player"] for p in players
         ):
             params["player"] = ""
+        if params.get("country") and params["country"].upper() not in {
+            c.upper() for c in country_choices
+        }:
+            params["country"] = ""
+        if params.get("state") and params["state"] not in state_choices:
+            params["state"] = ""
+            city_choices = map_city_choices(
+                selected_group,
+                country=params.get("country", ""),
+                state="",
+            )
         features = build_map_features(
             group=selected_group,
             game_type_code=params["game_type"],
@@ -228,9 +253,11 @@ def game_map(request: HttpRequest) -> HttpResponse:
             "params": params,
             "game_type_options": game_type_options,
             "players": players,
+            "country_choices": country_choices,
             "state_choices": state_choices,
             "city_choices": city_choices,
             "location_name_choices": location_name_choices,
+            "geo_cascade_tree": geo_cascade_tree,
             "features": features,
             "feature_count": len(features),
             "geocoded_count": geocoded_count,
@@ -263,6 +290,9 @@ def map_locations_api(request: HttpRequest) -> JsonResponse:
         params["game_type"],
         params,
     )
+    bbox = parse_map_bbox(request.GET.get("bbox", ""))
+    if bbox is not None:
+        bbox = expand_map_bbox(bbox)
     features = build_map_features(
         group=selected_group,
         game_type_code=params["game_type"],
@@ -272,5 +302,6 @@ def map_locations_api(request: HttpRequest) -> JsonResponse:
         state=params["state"],
         country=params["country"],
         location_name=params["location_name"],
+        bbox=bbox,
     )
     return JsonResponse(map_geojson_collection(features))

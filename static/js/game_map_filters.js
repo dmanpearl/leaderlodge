@@ -1,19 +1,101 @@
 /**
- * Fuzzy type-ahead for Games Map Location filter.
+ * Games Map filters: location type-ahead + country/state/city cascade.
  */
 (function () {
   const input = document.getElementById("map-location-name-input");
   const listEl = document.getElementById("map-location-name-list");
   const choicesEl = document.getElementById("map-location-name-choices");
-  if (!input || !listEl || !choicesEl) return;
+  const countrySelect = document.getElementById("map-country-select");
+  const stateSelect = document.getElementById("map-state-select");
+  const cityInput = document.getElementById("map-city-input");
+  const cityDatalist = document.getElementById("map-city-datalist");
+  const cascadeEl = document.getElementById("map-geo-cascade-tree");
 
   let names = [];
-  try {
-    names = JSON.parse(choicesEl.textContent) || [];
-  } catch (_err) {
-    names = [];
+  if (choicesEl) {
+    try {
+      names = JSON.parse(choicesEl.textContent) || [];
+    } catch (_err) {
+      names = [];
+    }
   }
-  if (!names.length) return;
+
+  let cascadeTree = {};
+  if (cascadeEl) {
+    try {
+      cascadeTree = JSON.parse(cascadeEl.textContent) || {};
+    } catch (_err) {
+      cascadeTree = {};
+    }
+  }
+
+  function rebuildStateOptions() {
+    if (!stateSelect) return;
+    const country = (countrySelect?.value || "").trim().toUpperCase();
+    const previous = stateSelect.value;
+    const states = country
+      ? Object.keys(cascadeTree[country] || {}).sort()
+      : Array.from(
+          new Set(
+            Object.values(cascadeTree).flatMap((statesMap) =>
+              Object.keys(statesMap || {}),
+            ),
+          ),
+        ).sort();
+
+    stateSelect.innerHTML = "";
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = "All states";
+    stateSelect.appendChild(allOpt);
+    states.forEach((state) => {
+      const opt = document.createElement("option");
+      opt.value = state;
+      opt.textContent = state;
+      stateSelect.appendChild(opt);
+    });
+    stateSelect.value = states.includes(previous) ? previous : "";
+  }
+
+  function rebuildCityOptions() {
+    if (!cityDatalist || !cityInput) return;
+    const country = (countrySelect?.value || "").trim().toUpperCase();
+    const state = (stateSelect?.value || "").trim();
+    let cities = [];
+    if (country && state) {
+      cities = [...((cascadeTree[country] || {})[state] || [])];
+    } else if (country) {
+      cities = Object.values(cascadeTree[country] || {}).flat();
+    } else if (state) {
+      cities = Object.values(cascadeTree).flatMap(
+        (statesMap) => statesMap[state] || [],
+      );
+    } else {
+      cities = Object.values(cascadeTree).flatMap((statesMap) =>
+        Object.values(statesMap || {}).flat(),
+      );
+    }
+    cities = Array.from(new Set(cities)).sort((a, b) => a.localeCompare(b));
+    cityDatalist.innerHTML = "";
+    cities.forEach((city) => {
+      const opt = document.createElement("option");
+      opt.value = city;
+      cityDatalist.appendChild(opt);
+    });
+    if (cityInput.value && !cities.includes(cityInput.value)) {
+      cityInput.value = "";
+    }
+  }
+
+  if (countrySelect && stateSelect) {
+    countrySelect.addEventListener("change", () => {
+      rebuildStateOptions();
+      rebuildCityOptions();
+    });
+    stateSelect.addEventListener("change", rebuildCityOptions);
+  }
+
+  if (!input || !listEl || !names.length) return;
 
   let activeIndex = -1;
   let matches = [];

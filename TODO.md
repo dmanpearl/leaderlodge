@@ -146,6 +146,8 @@
 
 ## Open Items
 
+- [ ] Location List View: Click on location row to open a location detail view
+- [ ] Map View: Location modal includes link to Location Detail View. Also rename 'View Games' > 'View Game'.
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other. I prefer the larger system size, but I want to follow the path of least resistance
 - [ ] Record Game: Make it easier to go back and set location during user selections

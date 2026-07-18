@@ -111,6 +111,21 @@
               </div>
 
               <div class="game-map-filter-field">
+                <label for="map-country-select" class="form-label">Country</label>
+                <select name="country" id="map-country-select" class="form-select">
+                  <option value="">All countries</option>
+                  {% for country in country_choices %}
+                    <option
+                      value="{{ country }}"
+                      {% if params.country|upper == country|upper %}selected{% endif %}
+                    >
+                      {{ country }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="game-map-filter-field">
                 <label for="map-state-select" class="form-label">State</label>
                 <select name="state" id="map-state-select" class="form-select">
                   <option value="">All states</option>
@@ -166,10 +181,7 @@
                 </div>
               </div>
               {{ location_name_choices|json_script:"map-location-name-choices" }}
-
-              {% if params.country %}
-                <input type="hidden" name="country" value="{{ params.country }}" />
-              {% endif %}
+              {{ geo_cascade_tree|json_script:"map-geo-cascade-tree" }}
             {% endif %}
 
             <div class="game-map-filter-actions">
@@ -239,10 +251,10 @@
 {% block extra_js %}
   {% if groups and google_places_api_key %}
     <script src="{% static 'js/period_filters.js' %}?v=2"></script>
-    <script src="{% static 'js/game_map_filters.js' %}?v=1"></script>
+    <script src="{% static 'js/game_map_filters.js' %}?v=2"></script>
   {% endif %}
   {% if groups and google_places_api_key and feature_count > 0 %}
     <script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
-    <script src="{% static 'js/game_map.js' %}?v=2"></script>
+    <script src="{% static 'js/game_map.js' %}?v=3"></script>
   {% endif %}
 {% endblock %}

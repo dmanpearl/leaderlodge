@@ -158,7 +158,10 @@ individual leaderboard credit still applied
 - Fuzzy location name auto-complete on game recording forms
 - **Set place** map picker for group managers (Edit game, Game detail, Locations list): search, drop pin, pin lookup, assign geo to a location row
 - **Map** on Record Game setup: same picker in record mode writes name + pin onto the game form (Near me and Search stay available)
-- **Games Map** (`/games/map/`): browse geocoded venues with filters and clusters; anonymous Demo access when demo mode is on
+- **Games Map** (`/games/map/`): browse geocoded venues with filters
+  (country, then state, then city cascade; period; player; venue type-ahead),
+  Supercluster pins, and viewport refetch as the map pans; anonymous Demo
+  access when demo mode is on
 - Leaderboard **Location** filter for venue-scoped rankings
 - Ask the Lodge: venue leaders (`query_location_leaderboard`), city/state
   leaders (`query_region_leaderboard`), where-we-play-most

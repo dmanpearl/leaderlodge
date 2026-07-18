@@ -68,21 +68,91 @@ def map_location_name_choices(group: Group) -> list[str]:
     )
 
 
-def map_state_choices(group: Group) -> list[str]:
+def map_country_choices(group: Group) -> list[str]:
     return list(
         geocoded_locations_for_group(group)
-        .exclude(state="")
-        .values_list("state", flat=True)
+        .exclude(country="")
+        .values_list("country", flat=True)
         .distinct()
-        .order_by("state")
+        .order_by("country")
     )
 
 
-def map_city_choices(group: Group, *, state: str = "") -> list[str]:
+def map_state_choices(group: Group, *, country: str = "") -> list[str]:
+    qs = geocoded_locations_for_group(group).exclude(state="")
+    if country.strip():
+        qs = qs.filter(country__iexact=country.strip())
+    return list(qs.values_list("state", flat=True).distinct().order_by("state"))
+
+
+def map_city_choices(group: Group, *, country: str = "", state: str = "") -> list[str]:
     qs = geocoded_locations_for_group(group).exclude(city="")
-    if state:
+    if country.strip():
+        qs = qs.filter(country__iexact=country.strip())
+    if state.strip():
         qs = qs.filter(state__iexact=state.strip())
     return list(qs.values_list("city", flat=True).distinct().order_by("city"))
+
+
+def map_geo_cascade_tree(group: Group) -> dict[str, dict[str, list[str]]]:
+    """Country -> state -> cities for client-side filter cascading."""
+    tree: dict[str, dict[str, set[str]]] = {}
+    rows = (
+        geocoded_locations_for_group(group)
+        .exclude(country="")
+        .values_list("country", "state", "city")
+    )
+    for country, state, city in rows:
+        country_key = (country or "").strip().upper()
+        state_key = (state or "").strip()
+        city_key = (city or "").strip()
+        if not country_key:
+            continue
+        states = tree.setdefault(country_key, {})
+        if not state_key:
+            continue
+        cities = states.setdefault(state_key, set())
+        if city_key:
+            cities.add(city_key)
+    return {
+        country: {state: sorted(cities) for state, cities in sorted(states.items())}
+        for country, states in sorted(tree.items())
+    }
+
+
+def parse_map_bbox(raw: str) -> tuple[float, float, float, float] | None:
+    """Parse bbox=lon_min,lat_min,lon_max,lat_max. Returns None if invalid."""
+    parts = [part.strip() for part in str(raw or "").split(",")]
+    if len(parts) != 4:
+        return None
+    try:
+        lon_min, lat_min, lon_max, lat_max = (float(part) for part in parts)
+    except ValueError:
+        return None
+    if not (
+        -180.0 <= lon_min <= 180.0
+        and -180.0 <= lon_max <= 180.0
+        and -90.0 <= lat_min <= 90.0
+        and -90.0 <= lat_max <= 90.0
+    ):
+        return None
+    if lon_min > lon_max or lat_min > lat_max:
+        return None
+    return lon_min, lat_min, lon_max, lat_max
+
+
+def expand_map_bbox(
+    bbox: tuple[float, float, float, float], *, pad_ratio: float = 0.15
+) -> tuple[float, float, float, float]:
+    lon_min, lat_min, lon_max, lat_max = bbox
+    lon_pad = max((lon_max - lon_min) * pad_ratio, 0.01)
+    lat_pad = max((lat_max - lat_min) * pad_ratio, 0.01)
+    return (
+        max(lon_min - lon_pad, -180.0),
+        max(lat_min - lat_pad, -90.0),
+        min(lon_max + lon_pad, 180.0),
+        min(lat_max + lat_pad, 90.0),
+    )
 
 
 def _filtered_games_for_map(
@@ -121,6 +191,7 @@ def build_map_features(
     state: str = "",
     country: str = "",
     location_name: str = "",
+    bbox: tuple[float, float, float, float] | None = None,
 ) -> list[dict[str, Any]]:
     """Return GeoJSON Feature dicts for geocoded venues matching filters."""
     games_qs = _filtered_games_for_map(
@@ -143,6 +214,14 @@ def build_map_features(
         games_qs = games_qs.filter(location__country__iexact=country)
     if location_name:
         games_qs = games_qs.filter(location__name__icontains=location_name)
+    if bbox is not None:
+        lon_min, lat_min, lon_max, lat_max = bbox
+        games_qs = games_qs.filter(
+            location__lon__gte=lon_min,
+            location__lon__lte=lon_max,
+            location__lat__gte=lat_min,
+            location__lat__lte=lat_max,
+        )
 
     counts: dict[int, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     location_ids: set[int] = set()
