@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />
-  <link rel="stylesheet" href="{% static 'css/game_map.css' %}?v=4" />
+  <link rel="stylesheet" href="{% static 'css/game_map.css' %}?v=5" />
 {% endblock %}
 
 {% block content %}
@@ -258,6 +258,7 @@
               "apiKey": "{{ google_places_api_key|escapejs }}",
               "apiUrl": "{% url 'map_locations' %}",
               "gamesListUrl": "{{ games_list_url|escapejs }}",
+              "locationDetailUrlTemplate": "{{ location_detail_url_template|escapejs }}",
               "groupId": "{% if selected_group %}{{ selected_group.pk }}{% endif %}",
               "query": "{{ map_api_query|escapejs }}"
             }
@@ -275,6 +276,6 @@
   {% endif %}
   {% if groups and google_places_api_key and feature_count > 0 %}
     <script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>
-    <script src="{% static 'js/game_map.js' %}?v=3"></script>
+    <script src="{% static 'js/game_map.js' %}?v=4"></script>
   {% endif %}
 {% endblock %}

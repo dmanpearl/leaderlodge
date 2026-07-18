@@ -175,8 +175,8 @@ Authenticated members (and anonymous Demo when demo mode is on) open
   `game_map_filters.js`
 
 Empty states cover no groups, missing Maps key, ungeocoded libraries,
-and no matches for current filters. Pin popups link to the Games list
-filtered by that venue.
+and no matches for current filters. Pin popups link to Location detail
+and to the Games list filtered by that venue.
 
 ### Filters
 

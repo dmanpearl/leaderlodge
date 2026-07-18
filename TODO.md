@@ -143,11 +143,11 @@
 - [x] e257530 Location: Record Game Map picker (record mode; Near me / Search kept)
 - [x] 8b34372 Location: Phase 4 Games Map viewer + leaderboard venue filter (Demo map for anonymous)
 - [x] 7e73826 Location: AI Insights/Ask city/state region leaderboard + play-locations tools
-- [x] Location List View: Click on location row to open a location detail view
+- [x] c865a27 Location List View: Click on location row to open a location detail view
+- [x] Map View: Location modal includes link to Location Detail View. Also rename 'View Games' > 'View Game'.
 
 ## Open Items
 
-- [ ] Map View: Location modal includes link to Location Detail View. Also rename 'View Games' > 'View Game'.
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other. I prefer the larger system size, but I want to follow the path of least resistance
 - [ ] Record Game: Make it easier to go back and set location during user selections

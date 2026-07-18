@@ -197,6 +197,13 @@ def test_game_map_page_and_api(client, user, group, settings):
     assert page.status_code == 200
     assert b"game-map-canvas" in page.content
     assert b"The Parlor" in page.content
+    detail_template = page.context["location_detail_url_template"]
+    assert "__LOC__" in detail_template
+    assert str(group.pk) in detail_template
+    assert reverse(
+        "groups:location_detail",
+        kwargs={"pk": group.pk, "loc_pk": parlor.pk},
+    ) == detail_template.replace("__LOC__", str(parlor.pk))
 
     api = client.get(reverse("map_locations"), {"group": group.pk})
     assert api.status_code == 200

@@ -240,6 +240,12 @@ def game_map(request: HttpRequest) -> HttpResponse:
 
     api_query = _map_filter_query(params)
     games_list_base = reverse("games:list")
+    location_detail_url_template = ""
+    if selected_group is not None:
+        location_detail_url_template = reverse(
+            "groups:location_detail",
+            kwargs={"pk": selected_group.pk, "loc_pk": 999999999},
+        ).replace("999999999", "__LOC__")
     empty_no_pins = (
         selected_group is not None and location_count > 0 and geocoded_count == 0
     )
@@ -266,6 +272,7 @@ def game_map(request: HttpRequest) -> HttpResponse:
             "can_manage_locations": can_manage_locations,
             "map_api_query": api_query,
             "games_list_url": games_list_base,
+            "location_detail_url_template": location_detail_url_template,
             "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),
             **period_ctx,
         },

@@ -107,6 +107,12 @@
     return `${config.gamesListUrl}${query ? `?${query}` : ""}`;
   }
 
+  function locationDetailHref(locationId) {
+    const template = config.locationDetailUrlTemplate || "";
+    if (!template || locationId == null || locationId === "") return "";
+    return template.replace("__LOC__", String(locationId));
+  }
+
   function buildPopupContent(props) {
     const root = document.createElement("div");
     root.className = "game-map-popup";
@@ -138,11 +144,25 @@
     });
     root.appendChild(list);
 
-    const link = document.createElement("a");
-    link.className = "btn btn-sm btn-outline-primary";
-    link.href = gamesListHref(props.location_id);
-    link.textContent = "View games";
-    root.appendChild(link);
+    const actions = document.createElement("div");
+    actions.className = "game-map-popup-actions";
+
+    const detailHref = locationDetailHref(props.location_id);
+    if (detailHref) {
+      const detailLink = document.createElement("a");
+      detailLink.className = "btn btn-sm btn-primary";
+      detailLink.href = detailHref;
+      detailLink.textContent = "View location";
+      actions.appendChild(detailLink);
+    }
+
+    const gamesLink = document.createElement("a");
+    gamesLink.className = "btn btn-sm btn-outline-primary";
+    gamesLink.href = gamesListHref(props.location_id);
+    gamesLink.textContent = "View Game";
+    actions.appendChild(gamesLink);
+
+    root.appendChild(actions);
     return root;
   }
 

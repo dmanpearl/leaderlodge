@@ -193,6 +193,12 @@
   gap: 0.75rem;
 }
 
+.game-map-popup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .game-map-cluster {
   display: flex;
   align-items: center;
