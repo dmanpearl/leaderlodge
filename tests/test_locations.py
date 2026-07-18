@@ -525,6 +525,13 @@ def test_location_detail_renders_for_owner(client, user):
     assert b"Venice" in response.content
     assert response.context["can_manage_locations"] is True
     assert response.context["is_geocoded"] is True
+    assert b"location-detail-map-canvas" in response.content
+    assert b"Open Games Map" in response.content
+    assert "location_name=Zinque" in response.context["games_map_url"]
+    assert f"group={group.pk}" in response.context["games_map_url"]
+    assert "city=" not in response.context["games_map_url"]
+    assert "state=" not in response.context["games_map_url"]
+    assert "country=" not in response.context["games_map_url"]
 
 
 @pytest.mark.django_db

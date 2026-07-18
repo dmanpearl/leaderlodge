@@ -25,6 +25,18 @@
   cursor: pointer;
 }
 
+.location-detail-map-canvas.location-map-canvas {
+  height: 280px;
+}
+
+.location-detail-map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
 .location-duplicates-list .btn {
   max-width: 16rem;
   white-space: normal;

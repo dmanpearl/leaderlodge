@@ -41,9 +41,48 @@
 .game-map-filter-form .form-select,
 .game-map-filter-form .form-control,
 .game-map-filter-form .input-group,
-.game-map-filter-form .game-map-location-typeahead {
+.game-map-filter-form .game-map-location-typeahead,
+.game-map-filter-form .game-map-filter-clearable {
   min-width: 0;
   width: 100%;
+}
+
+.game-map-filter-clearable {
+  position: relative;
+}
+
+.game-map-filter-clearable .form-control {
+  padding-right: 2.25rem;
+}
+
+.game-map-filter-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.2rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--bs-secondary-color, #6c757d);
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.game-map-filter-clear:hover,
+.game-map-filter-clear:focus-visible {
+  color: var(--bs-body-color, #212529);
+  background-color: var(--bs-secondary-bg, #e9ecef);
+}
+
+.game-map-filter-clear:focus-visible {
+  outline: 2px solid var(--bs-focus-ring-color, rgba(13, 110, 253, 0.5));
+  outline-offset: 1px;
 }
 
 .game-map-location-typeahead {

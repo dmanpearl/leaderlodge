@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}" />
-  <link rel="stylesheet" href="{% static 'css/game_map.css' %}?v=3" />
+  <link rel="stylesheet" href="{% static 'css/game_map.css' %}?v=4" />
 {% endblock %}
 
 {% block content %}
@@ -139,16 +139,27 @@
 
               <div class="game-map-filter-field">
                 <label for="map-city-input" class="form-label">City</label>
-                <input
-                  type="text"
-                  name="city"
-                  id="map-city-input"
-                  class="form-control"
-                  value="{{ params.city }}"
-                  list="map-city-datalist"
-                  autocomplete="off"
-                  placeholder="Any city"
-                />
+                <div class="game-map-filter-clearable">
+                  <input
+                    type="text"
+                    name="city"
+                    id="map-city-input"
+                    class="form-control"
+                    value="{{ params.city }}"
+                    list="map-city-datalist"
+                    autocomplete="off"
+                    placeholder="Any city"
+                  />
+                  <button
+                    type="button"
+                    class="game-map-filter-clear"
+                    data-clear-input="#map-city-input"
+                    aria-label="Clear city"
+                    {% if not params.city %}hidden{% endif %}
+                  >
+                    <i class="bi bi-x" aria-hidden="true"></i>
+                  </button>
+                </div>
                 <datalist id="map-city-datalist">
                   {% for city in city_choices %}
                     <option value="{{ city }}"></option>
@@ -158,7 +169,7 @@
 
               <div class="game-map-filter-field">
                 <label for="map-location-name-input" class="form-label">Location</label>
-                <div class="game-map-location-typeahead">
+                <div class="game-map-location-typeahead game-map-filter-clearable">
                   <input
                     type="text"
                     name="location_name"
@@ -172,6 +183,15 @@
                     aria-expanded="false"
                     aria-controls="map-location-name-list"
                   />
+                  <button
+                    type="button"
+                    class="game-map-filter-clear"
+                    data-clear-input="#map-location-name-input"
+                    aria-label="Clear location"
+                    {% if not params.location_name %}hidden{% endif %}
+                  >
+                    <i class="bi bi-x" aria-hidden="true"></i>
+                  </button>
                   <ul
                     id="map-location-name-list"
                     class="game-map-location-typeahead-list"
@@ -251,7 +271,7 @@
 {% block extra_js %}
   {% if groups and google_places_api_key %}
     <script src="{% static 'js/period_filters.js' %}?v=2"></script>
-    <script src="{% static 'js/game_map_filters.js' %}?v=2"></script>
+    <script src="{% static 'js/game_map_filters.js' %}?v=4"></script>
   {% endif %}
   {% if groups and google_places_api_key and feature_count > 0 %}
     <script src="https://cdn.jsdelivr.net/npm/supercluster@8.0.1/dist/supercluster.min.js"></script>

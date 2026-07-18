@@ -64,7 +64,7 @@
     </div>
   </div>
 
-  <div class="row g-3">
+  <div class="row g-3 mb-3">
     <div class="col-lg-6">
       <div class="card h-100">
         <div class="card-body">
@@ -81,6 +81,8 @@
                 &middot; {{ location.geocode_source }}
               {% endif %}
             </p>
+          {% else %}
+            <p class="text-muted small mb-0">No map pin yet.</p>
           {% endif %}
 
           <div class="d-flex flex-wrap gap-2 mt-3">
@@ -95,22 +97,8 @@
                 {% if location.lat %}data-lat="{{ location.lat }}"{% endif %}
                 {% if location.lon %}data-lon="{{ location.lon }}"{% endif %}
               >
-                <i class="bi bi-map" aria-hidden="true"></i>
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>
                 Set place
-              </button>
-            {% elif is_geocoded and google_places_api_key %}
-              <button
-                type="button"
-                class="btn btn-outline-primary btn-sm"
-                data-location-show-place
-                data-location-name="{{ location.name }}"
-                data-city="{{ location.city }}"
-                data-state="{{ location.state }}"
-                data-lat="{{ location.lat }}"
-                data-lon="{{ location.lon }}"
-              >
-                <i class="bi bi-map" aria-hidden="true"></i>
-                Show map
               </button>
             {% endif %}
             {% if can_manage_locations %}
@@ -156,28 +144,75 @@
     <div class="col-lg-6">
       <div class="card h-100">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
-            <h2 class="h5 mb-0">Recent games</h2>
-            {% if game_count > recent_games|length %}
-              <a href="{{ games_list_url }}" class="small">See all</a>
-            {% endif %}
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+            <h2 class="h5 mb-0">Map</h2>
+            <a href="{{ games_map_url }}" class="small">Open Games Map</a>
           </div>
-          {% if recent_games %}
-            <ul class="list-group list-group-flush">
-              {% for game in recent_games %}
-                <li class="list-group-item px-0 d-flex justify-content-between gap-2">
-                  <a href="{% url 'games:detail' game.pk %}">
-                    {{ game.game_type.name }}
-                  </a>
-                  <span class="text-muted text-nowrap">{{ game.played_on|date:"M j, Y" }}</span>
-                </li>
-              {% endfor %}
-            </ul>
+          {% if is_geocoded and google_places_api_key %}
+            <div
+              id="location-detail-map-canvas"
+              class="location-map-canvas location-detail-map-canvas"
+              role="application"
+              aria-label="Map of {{ location.name }}"
+              data-api-key="{{ google_places_api_key }}"
+              data-lat="{{ location.lat }}"
+              data-lon="{{ location.lon }}"
+            ></div>
+            <div
+              id="location-detail-map-status"
+              class="location-map-status text-muted"
+              aria-live="polite"
+            ></div>
+          {% elif is_geocoded %}
+            <p class="text-muted mb-0">
+              Pin is set ({{ location.lat }}, {{ location.lon }}), but map display
+              is unavailable without a Places API key.
+            </p>
+            <div class="location-detail-map-actions">
+              <a href="{{ games_map_url }}" class="btn btn-outline-primary btn-sm">
+                Open Games Map
+              </a>
+            </div>
           {% else %}
-            <p class="text-muted mb-0">No games at this location yet.</p>
+            <p class="text-muted mb-0">
+              No pin yet.
+              {% if can_manage_locations and google_places_api_key %}
+                Use Set place to assign one.
+              {% endif %}
+            </p>
+            <div class="location-detail-map-actions">
+              <a href="{{ games_map_url }}" class="btn btn-outline-secondary btn-sm">
+                Open Games Map
+              </a>
+            </div>
           {% endif %}
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+        <h2 class="h5 mb-0">Recent games</h2>
+        {% if game_count > recent_games|length %}
+          <a href="{{ games_list_url }}" class="small">See all</a>
+        {% endif %}
+      </div>
+      {% if recent_games %}
+        <ul class="list-group list-group-flush">
+          {% for game in recent_games %}
+            <li class="list-group-item px-0 d-flex justify-content-between gap-2">
+              <a href="{% url 'games:detail' game.pk %}">
+                {{ game.game_type.name }}
+              </a>
+              <span class="text-muted text-nowrap">{{ game.played_on|date:"M j, Y" }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted mb-0">No games at this location yet.</p>
+      {% endif %}
     </div>
   </div>
 
@@ -309,17 +344,22 @@
         </div>
       </div>
     </div>
-  {% elif is_geocoded and google_places_api_key %}
-    {% include "groups/includes/location_show_place_modal.html" %}
   {% endif %}
 {% endblock %}
 
 {% block extra_js %}
-  {% if can_manage_locations %}
-    {% if google_places_api_key %}
+  {% if google_places_api_key %}
+    {% if is_geocoded or can_manage_locations %}
       <script src="{% static 'js/location_map.js' %}?v=3"></script>
+    {% endif %}
+    {% if is_geocoded %}
+      <script src="{% static 'js/location_detail_map.js' %}?v=1"></script>
+    {% endif %}
+    {% if can_manage_locations %}
       <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
     {% endif %}
+  {% endif %}
+  {% if can_manage_locations %}
     <script>
       (function () {
         var locationData = JSON.parse(
@@ -513,7 +553,5 @@
           });
       })();
     </script>
-  {% elif is_geocoded and google_places_api_key %}
-    <script src="{% static 'js/location_show_place.js' %}?v=1"></script>
   {% endif %}
 {% endblock %}

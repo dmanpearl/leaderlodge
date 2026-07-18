@@ -85,7 +85,38 @@
     if (cityInput.value && !cities.includes(cityInput.value)) {
       cityInput.value = "";
     }
+    syncClearButtons();
   }
+
+  function syncClearButtons() {
+    document.querySelectorAll("[data-clear-input]").forEach((btn) => {
+      const target = document.querySelector(btn.dataset.clearInput || "");
+      if (!target) return;
+      btn.hidden = !String(target.value || "").trim();
+    });
+  }
+
+  function clearInput(selector) {
+    const target = document.querySelector(selector);
+    if (!target) return;
+    target.value = "";
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+    syncClearButtons();
+    target.focus();
+  }
+
+  document.querySelectorAll("[data-clear-input]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      clearInput(btn.dataset.clearInput);
+    });
+  });
+
+  [cityInput, input].forEach((field) => {
+    if (!field) return;
+    field.addEventListener("input", syncClearButtons);
+  });
+  syncClearButtons();
 
   if (countrySelect && stateSelect) {
     countrySelect.addEventListener("change", () => {
@@ -154,6 +185,7 @@
   function selectName(name) {
     input.value = name;
     closeList();
+    syncClearButtons();
     input.focus();
   }
 

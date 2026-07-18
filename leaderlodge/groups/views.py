@@ -896,6 +896,8 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
 
 @demo_or_login_required
 def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
+    from urllib.parse import urlencode
+
     from django.db.models import Count, Max
 
     from leaderlodge.games.models import Game
@@ -975,6 +977,8 @@ def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
         if part
     ]
 
+    map_query = {"group": str(group.pk), "location_name": location.name}
+
     return render(
         request,
         "groups/location_detail.html",
@@ -994,6 +998,7 @@ def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
             "games_list_url": (
                 f"{reverse('games:list')}?group={group.pk}&location={location.pk}"
             ),
+            "games_map_url": f"{reverse('games:map')}?{urlencode(map_query)}",
         },
     )
 
