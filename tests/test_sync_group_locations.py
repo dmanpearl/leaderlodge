@@ -57,7 +57,7 @@ def _record_at(user, group, location, player):
 @pytest.mark.django_db
 def test_sync_overwrites_name_and_geo(user):
     src = create_group_with_owner(user=user, name="manpearl")
-    dst = create_group_with_owner(user=user, name="Demo")
+    dst = create_group_with_owner(user=user, name="Sync Dest")
 
     src_loc = get_or_create_location(
         library=src.location_library,
@@ -84,7 +84,7 @@ def test_sync_overwrites_name_and_geo(user):
 @pytest.mark.django_db
 def test_sync_skips_missing_dst_location(user):
     src = create_group_with_owner(user=user, name="manpearl")
-    dst = create_group_with_owner(user=user, name="Demo")
+    dst = create_group_with_owner(user=user, name="Sync Dest")
     get_or_create_location(
         library=src.location_library,
         name="Only In Src",
@@ -102,7 +102,7 @@ def test_sync_skips_missing_dst_location(user):
 @pytest.mark.django_db
 def test_sync_combines_multiple_dst_matches(user):
     src = create_group_with_owner(user=user, name="manpearl")
-    dst = create_group_with_owner(user=user, name="Demo")
+    dst = create_group_with_owner(user=user, name="Sync Dest")
     player = add_guest_player(group=dst, display_name="Pat")
 
     get_or_create_location(
@@ -135,7 +135,7 @@ def test_sync_combines_multiple_dst_matches(user):
 @pytest.mark.django_db
 def test_sync_dry_run_writes_nothing(user):
     src = create_group_with_owner(user=user, name="manpearl")
-    dst = create_group_with_owner(user=user, name="Demo")
+    dst = create_group_with_owner(user=user, name="Sync Dest")
     get_or_create_location(
         library=src.location_library,
         name="Preston Way",
@@ -159,7 +159,7 @@ def test_sync_dry_run_writes_nothing(user):
 @pytest.mark.django_db
 def test_sync_command_cli(user, capsys):
     src = create_group_with_owner(user=user, name="manpearl")
-    dst = create_group_with_owner(user=user, name="Demo")
+    dst = create_group_with_owner(user=user, name="Sync Dest")
     get_or_create_location(
         library=src.location_library,
         name="Preston Way",
@@ -171,7 +171,7 @@ def test_sync_command_cli(user, capsys):
         geo=_geo(33.0, -117.0, place_id="pid-cli"),
     )
 
-    call_command("sync_group_locations", "--src", "manpearl", "--dst", "Demo")
+    call_command("sync_group_locations", "--src", "manpearl", "--dst", "Sync Dest")
     out = capsys.readouterr().out
     assert "combined=0" in out
     assert "updated=1" in out
