@@ -1,9 +1,40 @@
 from django.contrib import admin
+from django.db.models import Max
 from django.forms.models import BaseInlineFormSet
 
 from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.validators import validate_participant_results
+from leaderlodge.groups.models import Group
+
+RECENT_ACTIVE_GROUP_FILTER_LIMIT = 15
+
+
+class RecentActiveGroupFilter(admin.SimpleListFilter):
+    title = "group (recent)"
+    parameter_name = "group"
+
+    def lookups(self, request, model_admin):
+        ranked_group_ids = (
+            Game.objects.values("group_id")
+            .annotate(
+                latest_played_on=Max("played_on"),
+                latest_created_at=Max("created_at"),
+            )
+            .order_by("-latest_played_on", "-latest_created_at", "group_id")
+            .values_list("group_id", flat=True)[:RECENT_ACTIVE_GROUP_FILTER_LIMIT]
+        )
+        groups = Group.objects.in_bulk(ranked_group_ids)
+        return [
+            (str(group_id), groups[group_id].name)
+            for group_id in ranked_group_ids
+            if group_id in groups
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(group_id=self.value())
+        return queryset
 
 
 class GameParticipantResultInlineFormSet(BaseInlineFormSet):
@@ -106,7 +137,11 @@ class GameAdmin(admin.ModelAdmin):
         "player_count",
         "recorded_by",
     )
-    list_filter = ("game_type_code", "played_on")
+    list_filter = ("game_type_code", "played_on", RecentActiveGroupFilter)
+    search_fields = (
+        "group__name",
+        "group__pk",
+    )
     inlines = [GameParticipantResultInline]
 
 

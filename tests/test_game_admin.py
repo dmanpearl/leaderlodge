@@ -1,10 +1,17 @@
 import pytest
+from django.contrib.admin.sites import AdminSite
 from django.contrib.auth.models import User
 from django.forms import inlineformset_factory
+from django.test import RequestFactory
 from django.urls import reverse
 from django.utils import timezone
 
-from leaderlodge.games.admin import GameParticipantResultInlineFormSet
+from leaderlodge.games.admin import (
+    RECENT_ACTIVE_GROUP_FILTER_LIMIT,
+    GameAdmin,
+    GameParticipantResultInlineFormSet,
+    RecentActiveGroupFilter,
+)
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 
@@ -185,3 +192,73 @@ def test_game_participant_result_clean_keeps_loss_for_progressive_rummy(
     )
     participant.clean()
     assert participant.result == Result.LOSS
+
+
+def _create_group_with_game(admin_user, *, name, played_on):
+    group = create_group_with_owner(user=admin_user, name=name)
+    Game.objects.create(
+        group=group,
+        game_type_code="dominos",
+        played_on=played_on,
+        recorded_by=admin_user,
+        player_count=2,
+    )
+    return group
+
+
+@pytest.mark.django_db
+def test_recent_active_group_filter_limits_lookups(admin_user):
+    total_groups = RECENT_ACTIVE_GROUP_FILTER_LIMIT + 3
+    for index in range(total_groups):
+        _create_group_with_game(
+            admin_user,
+            name=f"Club {index:02d}",
+            played_on=timezone.localdate().replace(year=2020, month=1, day=1)
+            + timezone.timedelta(days=index),
+        )
+
+    model_admin = GameAdmin(Game, AdminSite())
+    group_filter = RecentActiveGroupFilter(
+        RequestFactory().get("/admin/games/game/"),
+        {},
+        Game,
+        model_admin,
+    )
+    lookups = group_filter.lookups(RequestFactory().get("/"), model_admin)
+
+    assert len(lookups) == RECENT_ACTIVE_GROUP_FILTER_LIMIT
+    newest_group = Game.objects.order_by("-played_on", "-created_at").first().group
+    assert (str(newest_group.pk), newest_group.name) in lookups
+    oldest_group = Game.objects.order_by("played_on", "created_at").first().group
+    assert (str(oldest_group.pk), oldest_group.name) not in lookups
+
+
+@pytest.mark.django_db
+def test_game_admin_group_filter_and_search(client, admin_user, group):
+    other_group = _create_group_with_game(
+        admin_user,
+        name="Other Lodge",
+        played_on=timezone.localdate(),
+    )
+    Game.objects.create(
+        group=group,
+        game_type_code="dominos",
+        played_on=timezone.localdate(),
+        recorded_by=admin_user,
+        player_count=2,
+    )
+
+    client.force_login(admin_user)
+    changelist_url = reverse("admin:games_game_changelist")
+
+    filtered = client.get(changelist_url, {"group": group.pk})
+    assert filtered.status_code == 200
+    filtered_results = list(filtered.context["cl"].result_list)
+    assert len(filtered_results) == 1
+    assert filtered_results[0].group_id == group.pk
+
+    searched = client.get(changelist_url, {"q": other_group.name})
+    assert searched.status_code == 200
+    search_results = list(searched.context["cl"].result_list)
+    assert len(search_results) == 1
+    assert search_results[0].group_id == other_group.pk
