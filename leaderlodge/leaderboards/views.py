@@ -24,6 +24,10 @@ from leaderlodge.leaderboards.period import (
     build_leaderboard_query,
     leaderboard_filter_summary,
 )
+from leaderlodge.leaderboards.game_filters import (
+    game_filter_context,
+    resolve_leaderboard_game_filters,
+)
 from leaderlodge.leaderboards.hall_of_fame import (
     GRANULARITY_MONTH,
     GRANULARITY_YEAR,
@@ -212,6 +216,10 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         request,
     )
     selected_game_size = game_size_ctx["selected_game_size"]
+    game_filters = resolve_leaderboard_game_filters(
+        request.GET,
+        game_type_code=selected_game_type_code,
+    )
 
     if _leaderboard_needs_redirect(
         request,
@@ -223,6 +231,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             game_type_code=selected_game_type_code,
             period=selected_period,
             game_size=selected_game_size,
+            game_filters=game_filters,
         )
         url = reverse("leaderboards:index")
         if query:
@@ -230,6 +239,10 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         return redirect(url)
 
     player_type = normalize_player_type(request.GET.get("player_type", ""))
+    game_filter_ctx = game_filter_context(
+        game_type_code=selected_game_type_code,
+        selected_filters=game_filters,
+    )
     locations = list(
         _location_choices_for_leaderboard(selected_group, selected_game_type_code)
     )
@@ -250,6 +263,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             game_size=selected_game_size,
             player_type=player_type,
             location_id=selected_location_id,
+            game_filters=game_filters,
         )
         if rankings:
             apply_label_overrides([r.player for r in rankings])
@@ -267,6 +281,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         game_size=selected_game_size,
         player_type=player_type,
         location_id=selected_location_id,
+        game_filters=game_filters,
     )
     game_size_label = ""
     if selected_game_size is not None:
@@ -295,6 +310,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             game_size_label=game_size_label,
             player_type_label=player_type_label,
             location_name=location_name,
+            game_filter_labels=game_filter_ctx["game_filter_labels"],
         )
 
     return render(
@@ -331,6 +347,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "selected_location": selected_location,
             **period_ctx,
             **game_size_ctx,
+            **game_filter_ctx,
             **_insights_template_context(request),
         },
     )
@@ -477,6 +494,10 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     selected_period = period_ctx["selected_period"]
     game_size_ctx = _game_size_context(selected_group, game_type_code, request)
     selected_game_size = game_size_ctx["selected_game_size"]
+    game_filters = resolve_leaderboard_game_filters(
+        request.GET,
+        game_type_code=game_type_code,
+    )
 
     detail = get_player_rank_detail(
         selected_group,
@@ -484,6 +505,7 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
         game_type_code=game_type_code,
         period=selected_period,
         game_size=selected_game_size,
+        game_filters=game_filters,
     )
     if detail is None:
         return HttpResponseNotFound()
@@ -500,7 +522,7 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     game_type = get_game_type(game_type_code)
     leaderboard_url = (
         f"{reverse('leaderboards:index')}"
-        f"?{build_leaderboard_query(group_id=str(selected_group.pk), game_type_code=game_type_code, period=selected_period, game_size=selected_game_size)}"
+        f"?{build_leaderboard_query(group_id=str(selected_group.pk), game_type_code=game_type_code, period=selected_period, game_size=selected_game_size, game_filters=game_filters)}"
     )
     period_label = selected_period.display_label()
     game_size_label = ""

@@ -1,0 +1,18 @@
+{% for feature in game_feature_filters %}
+  <div class="col-12 col-sm-6 col-lg-4 col-xl">
+    <label for="{{ feature.select_id }}" class="form-label">{{ feature.title }}</label>
+    <select
+      id="{{ feature.select_id }}"
+      name="{{ feature.key }}"
+      class="form-select{% if select_class %} {{ select_class }}{% endif %}"
+      onchange="this.form.submit()"
+    >
+      <option value="" {% if not feature.selected %}selected{% endif %}>{{ feature.all_option_label }}</option>
+      {% for option in feature.options %}
+        <option value="{{ option.code }}" {% if feature.selected == option.code %}selected{% endif %}>
+          {{ option.label }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+{% endfor %}

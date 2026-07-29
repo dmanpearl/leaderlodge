@@ -84,6 +84,7 @@
             </div>
             {% include "includes/leaderboard_period_filters.html" with year_select_id="leaderboard-year" month_select_id="leaderboard-month" %}
             {% include "includes/game_size_filter.html" with select_id="leaderboard-game-size" %}
+            {% include "includes/leaderboard_game_option_filters.html" %}
             {% if locations %}
               <div class="col-12 col-sm-6 col-lg-4 col-xl">
                 <label for="leaderboard-location" class="form-label">Location</label>

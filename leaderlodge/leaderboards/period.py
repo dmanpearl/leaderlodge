@@ -344,6 +344,7 @@ def build_leaderboard_query(
     game_size: int | None = None,
     player_type: str = "",
     location_id: int | None = None,
+    game_filters=None,
     extra: dict[str, str] | None = None,
 ) -> str:
     params: dict[str, str] = {}
@@ -359,6 +360,8 @@ def build_leaderboard_query(
         params["player_type"] = player_type
     if location_id is not None:
         params["location"] = str(location_id)
+    if game_filters is not None:
+        params.update(game_filters.query_params())
     if extra:
         params.update(extra)
     return urlencode(params)
@@ -372,6 +375,7 @@ def leaderboard_filter_summary(
     game_size_label: str = "",
     player_type_label: str = "",
     location_name: str = "",
+    game_filter_labels: list[str] | None = None,
 ) -> str:
     parts = [group_name]
     if game_type_name:
@@ -384,4 +388,6 @@ def leaderboard_filter_summary(
         parts.append(player_type_label)
     if location_name:
         parts.append(location_name)
+    if game_filter_labels:
+        parts.extend(game_filter_labels)
     return ", ".join(parts)

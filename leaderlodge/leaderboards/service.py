@@ -21,6 +21,7 @@ from django.db.models.functions import Cast
 from leaderlodge.games.list_stats import humanize_date_range
 from leaderlodge.games.registry import GAME_TYPES, ScoreDirection, get_game_type
 from leaderlodge.games.standings import standings_weight_expression
+from leaderlodge.leaderboards.game_filters import apply_game_filters_to_results_qs
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
     filter_results_by_period,
@@ -43,6 +44,7 @@ from leaderlodge.leaderboards.ranking import (
 if TYPE_CHECKING:
     from leaderlodge.games.models import Game
     from leaderlodge.groups.models import Group, GroupPlayer
+    from leaderlodge.leaderboards.game_filters import LeaderboardGameFilters
 
 
 @dataclass(frozen=True)
@@ -179,6 +181,7 @@ def get_player_rank_detail(
     location_ids: list[int] | None = None,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
 ) -> PlayerRankDetail | None:
     from django.conf import settings
 
@@ -205,6 +208,12 @@ def get_player_rank_detail(
     )
     if game_size is not None:
         results_qs = results_qs.filter(game__player_count=game_size)
+    if game_filters is not None:
+        results_qs = apply_game_filters_to_results_qs(
+            results_qs,
+            game_filters,
+            game_type_code=game_type_code,
+        )
     results_qs = filter_results_by_period(results_qs, period)
 
     if not results_qs.exists():
@@ -436,6 +445,7 @@ def get_player_rankings(
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
     player_type: str = "",
+    game_filters: LeaderboardGameFilters | None = None,
 ) -> list[PlayerRanking]:
     """
     Return ranked players for a group, ordered by vested rank score.
@@ -466,6 +476,7 @@ def get_player_rankings(
             period=period,
             game_size=game_size,
             player_type=player_type,
+            game_filters=game_filters,
         )
         active = [row for row in standings if row.games_played > 0]
         low_wins = get_game_type(code).score_direction == ScoreDirection.LOW_WINS
@@ -723,6 +734,7 @@ def _standings_for_game_type(
     game_size: int | None = None,
     results_qs=None,
     player_type: str = "",
+    game_filters: LeaderboardGameFilters | None = None,
 ) -> list[PlayerRanking]:
     from leaderlodge.games.models import GameParticipantResult
     from leaderlodge.groups.teams import (
@@ -747,6 +759,12 @@ def _standings_for_game_type(
         )
         if game_size is not None:
             results_qs = results_qs.filter(game__player_count=game_size)
+        if game_filters is not None:
+            results_qs = apply_game_filters_to_results_qs(
+                results_qs,
+                game_filters,
+                game_type_code=game_type_code,
+            )
         results_qs = filter_results_by_period(results_qs, period)
 
     results = list(
