@@ -4,6 +4,7 @@ from leaderlodge.games.features import (
     feature_catalog_for_game_type,
     features_for_game_type,
     resolve_feature_selections,
+    resolve_feature_selections_from_tool_args,
 )
 
 
@@ -42,3 +43,37 @@ def test_feature_catalog_includes_ask_aliases():
     )
     assert "normal" in regular["ask_aliases"]
     assert dominos_catalog[0]["title"] == "Game length"
+
+
+def test_resolve_feature_selections_from_tool_args():
+    selections = resolve_feature_selections_from_tool_args(
+        {"score_type": "rally"},
+        game_type_code="pickleball",
+    )
+    assert selections == {"score_type": "rally"}
+
+    selections = resolve_feature_selections_from_tool_args(
+        {"double_game": True},
+        game_type_code="dominos",
+    )
+    assert selections == {"double_game": "1"}
+
+    selections = resolve_feature_selections_from_tool_args(
+        {"half_game": False},
+        game_type_code="progressiverummy",
+    )
+    assert selections == {"half_game": "0"}
+
+
+def test_resolve_feature_selections_from_tool_args_rejects_invalid():
+    with pytest.raises(ValueError, match="score_type must be one of"):
+        resolve_feature_selections_from_tool_args(
+            {"score_type": "invalid"},
+            game_type_code="pickleball",
+        )
+
+    with pytest.raises(ValueError, match="double_game must be true or false"):
+        resolve_feature_selections_from_tool_args(
+            {"double_game": "maybe"},
+            game_type_code="dominos",
+        )

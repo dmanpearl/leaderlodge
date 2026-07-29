@@ -272,6 +272,48 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
         ),
     ),
     _example(
+        "Rally pickleball standings",
+        ("Who is best at rally?", "Who leads rally scoring in pickleball?"),
+        reliability="supported",
+        game_type_code="pickleball",
+        tool_calls=(
+            AskToolCall(
+                "query_leaderboard",
+                {"score_type": "rally", "all_time": True},
+            ),
+        ),
+    ),
+    _example(
+        "Double dominos standings",
+        (
+            "Who wins the most double games in dominos?",
+            "Who leads dominos double games?",
+        ),
+        reliability="supported",
+        tool_calls=(
+            AskToolCall(
+                "query_leaderboard",
+                {"double_game": True, "all_time": True},
+            ),
+        ),
+    ),
+    _example(
+        "Half-game Progressive Rummy",
+        (
+            "Who is the worst half-game player?",
+            "Who struggles most in half games?",
+        ),
+        reliability="supported",
+        game_type_code="progressiverummy",
+        tool_calls=(
+            AskToolCall(
+                "query_leaderboard",
+                {"half_game": True, "all_time": True, "limit": 10},
+                note="Sort by rank; last row is worst standing in scope.",
+            ),
+        ),
+    ),
+    _example(
         "Hall of Fame / dynasty",
         ("Who dominated across years?", "Repeat monthly winners?"),
         reliability="supported",

@@ -7,7 +7,7 @@ import re
 from datetime import date
 from typing import Any
 
-PROMPT_VERSION = 33
+PROMPT_VERSION = 34
 
 _RANK_FRAMING_RULES = """- Field-aware rank talk: if only two players have meaningful games_played, do not praise rank 2 (that is the other regular, not an achievement).
 - Never call last place a podium. With three players, 3rd is last, not podium.
@@ -42,6 +42,13 @@ _ASK_DATE_RULES = """- Today's date is provided in the scope as "Today's date".
 
 _ASK_GAME_TYPE_RULES = """- Common game name variants: "Mahjong", "Mah-Jongg", "Mah Jongg", "MahJongg" all map to game_type_code="mahjongg"; "Rummy", "Progressive Rummy" map to "progressiverummy"; "Backgammon" maps to "backgammon"; "Dominos", "Dominoes" map to "dominos"; "Pickleball" maps to "pickleball".
 - When the user names a game that is not the default, map it to a code using the list above. If you are still unsure, call list_game_types to see available codes for this group before answering."""
+
+_ASK_GAME_FEATURE_RULES = """- Some game types support optional feature filters on leaderboard-style tools: score_type (pickleball), double_game (dominos), half_game (progressive rummy). These match the Leaderboards page filters.
+- Resolve game_type_code first. Words like "normal" or "regular" are type-specific: pickleball traditional scoring is not the same as dominos regular games. Never guess cross-type.
+- Call list_game_types and read features[].values[].ask_aliases before mapping natural language (e.g. rally, double, half) to tool args.
+- Pass only the feature keys that apply to the game type in scope. Omit unsupported keys rather than passing them with null.
+- When a question is scoped to a feature (Who is best at rally?, worst half-game player?, most double-game wins in dominos?), pass the matching filter on query_leaderboard, query_player_detail, compare_players, query_placement_leaders, query_loss_leaders, query_head_to_head, query_date_range_leaderboard, query_location_leaderboard, query_region_leaderboard, or query_team_pairings as appropriate.
+- Tool results may include game_features with the applied filter labels; cite them when they clarify scope."""
 
 _ASK_COMPARISON_RULES = """- When comparing two players, you MUST include each player's overall rank and rank_score for the game type and period in scope. Overall standing is the most important comparison: state it first (who ranks higher, each player's rank number, and rank_score). Higher rank_score is always better; lower rank number (1 is best) is better.
 - Call query_player_detail for each player when rank is not already in tool results. query_head_to_head covers shared-table stats only; it does not replace overall rank unless player rows already include rank and rank_score.
@@ -114,6 +121,7 @@ Rules:
 - Use ONLY facts returned by tools for game statistics. Do not invent games, players, or numbers.
 {_ASK_DATE_RULES}
 {_ASK_GAME_TYPE_RULES}
+{_ASK_GAME_FEATURE_RULES}
 {_ASK_ROSTER_INTERPRETATION_RULES}
 {_ASK_SCORE_DIRECTION_RULES}
 {_ASK_TEAM_RULES}

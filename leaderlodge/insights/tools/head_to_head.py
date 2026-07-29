@@ -14,9 +14,30 @@ from leaderlodge.insights.tools.rate_display import (
     add_outcome_display_fields,
     add_points_display_fields,
 )
+from leaderlodge.leaderboards.game_filters import LeaderboardGameFilters
 from leaderlodge.leaderboards.period import LeaderboardPeriod, filter_results_by_period
 from leaderlodge.leaderboards.ranking import compute_percentage
 from leaderlodge.leaderboards.service import get_player_rank_detail
+from leaderlodge.games.features import (
+    apply_feature_selections_to_games_qs,
+    game_features_response_payload,
+)
+
+
+def _attach_head_to_head_features(
+    payload: dict,
+    *,
+    game_type_code: str,
+    game_filters: LeaderboardGameFilters | None,
+) -> dict:
+    if game_filters is not None and game_filters.is_active():
+        payload.update(
+            game_features_response_payload(
+                game_filters.as_selections(),
+                game_type_code=game_type_code,
+            )
+        )
+    return payload
 
 
 def _overall_rank_fields(
@@ -26,6 +47,7 @@ def _overall_rank_fields(
     game_type_code: str,
     period: LeaderboardPeriod,
     game_size: int | None,
+    game_filters: LeaderboardGameFilters | None = None,
 ) -> dict:
     detail = get_player_rank_detail(
         group,
@@ -33,6 +55,7 @@ def _overall_rank_fields(
         game_type_code=game_type_code,
         period=period,
         game_size=game_size,
+        game_filters=game_filters,
     )
     if detail is None:
         return {"rank": None, "rank_score": None}
@@ -49,11 +72,18 @@ def _shared_table_games_qs(
     player_ids: tuple[int, int],
     period: LeaderboardPeriod,
     game_size: int | None,
+    game_filters: LeaderboardGameFilters | None = None,
 ):
     qs = Game.objects.filter(group=group, game_type_code=game_type_code)
     if game_size is not None:
         qs = qs.filter(player_count=game_size)
     qs = filter_results_by_period(qs, period, game_prefix="")
+    if game_filters is not None and game_filters.is_active():
+        qs = apply_feature_selections_to_games_qs(
+            qs,
+            game_filters.as_selections(),
+            game_type_code=game_type_code,
+        )
     return qs.annotate(
         matched_players=Count(
             "participant_results__player",
@@ -109,6 +139,7 @@ def query_head_to_head(
     player_b_id: int,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
 ) -> dict:
     if player_a_id == player_b_id:
         return {"error": "Head-to-head requires two different players."}
@@ -135,6 +166,7 @@ def query_head_to_head(
         player_ids=player_ids,
         period=period,
         game_size=game_size,
+        game_filters=game_filters,
     )
     stats = build_game_list_stats(games_qs=games_qs, game_type_code=game_type_code)
     if stats is None:
@@ -147,6 +179,7 @@ def query_head_to_head(
                 game_type_code=game_type_code,
                 period=period,
                 game_size=game_size,
+                game_filters=game_filters,
             )
         )
         player_b_row.update(
@@ -156,17 +189,22 @@ def query_head_to_head(
                 game_type_code=game_type_code,
                 period=period,
                 game_size=game_size,
+                game_filters=game_filters,
             )
         )
-        return _head_to_head_payload(
+        return _attach_head_to_head_features(
+            _head_to_head_payload(
+                game_type_code=game_type_code,
+                game_type_name=game_type.name,
+                game_size=game_size,
+                period=period,
+                games_together=0,
+                player_a=player_a_row,
+                player_b=player_b_row,
+                supports_loser=game_type.supports_loser,
+            ),
             game_type_code=game_type_code,
-            game_type_name=game_type.name,
-            game_size=game_size,
-            period=period,
-            games_together=0,
-            player_a=player_a_row,
-            player_b=player_b_row,
-            supports_loser=game_type.supports_loser,
+            game_filters=game_filters,
         )
 
     stats_by_id = {row.player.pk: row for row in stats.players}
@@ -182,6 +220,7 @@ def query_head_to_head(
             game_type_code=game_type_code,
             period=period,
             game_size=game_size,
+            game_filters=game_filters,
         )
     )
     player_b_row.update(
@@ -191,18 +230,23 @@ def query_head_to_head(
             game_type_code=game_type_code,
             period=period,
             game_size=game_size,
+            game_filters=game_filters,
         )
     )
 
-    return _head_to_head_payload(
+    return _attach_head_to_head_features(
+        _head_to_head_payload(
+            game_type_code=game_type_code,
+            game_type_name=game_type.name,
+            game_size=game_size,
+            period=period,
+            games_together=stats.total_games,
+            player_a=player_a_row,
+            player_b=player_b_row,
+            supports_loser=game_type.supports_loser,
+        ),
         game_type_code=game_type_code,
-        game_type_name=game_type.name,
-        game_size=game_size,
-        period=period,
-        games_together=stats.total_games,
-        player_a=player_a_row,
-        player_b=player_b_row,
-        supports_loser=game_type.supports_loser,
+        game_filters=game_filters,
     )
 
 

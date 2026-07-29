@@ -146,13 +146,13 @@
 - [x] c865a27 Location List View: Click on location row to open a location detail view
 - [x] 57acd3c Map View: Location modal includes link to Location Detail View. Also rename 'View Games' > 'View Game'.
 - [x] 1d6a6d8 Edit Game needs the ability to edit special fields, e.g. traditional or rally scoring type for Pickleball (https://leaderlodge.com/admin/feedback/feedback/16/change/)
-- [x] Leaderboard: Filtering supported by extra game-specific fields score_type, double_game, half_game. Only show if supported by selected game-type
+- [x] fb91dcc Leaderboard: Filtering supported by extra game-specific fields score_type, double_game, half_game. Only show if supported by selected game-type
 
 ## Open Items
 
 - [ ] Admin Games View: Add filter by group
-- [ ] Ask the Lodge: Requests supported for extra game-specific fields score_type, double_game, half_game. 'Who is best at Rally?', 'Who is the worst half game player?', 'Who wins the most double-games in Dominos?'
-- [ ] Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. This can elevate brand new players to the top of the leaderboard by winning a single pair-game with an accomplished teammate
+- [x] Ask the Lodge: Requests supported for extra game-specific fields score_type, double_game, half_game. 'Who is best at Rally?', 'Who is the worst half game player?', 'Who wins the most double-games in Dominos?' (see `leaderlodge/games/features.py`)
+- [ ] Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. This can elevate brand new players to the top of the leaderboard by winning a single pair-game with an accomplished teammate. Team experience should be the sum of the players, players should individually get docked for lack of experience
 - [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14/change/)
 - [ ] Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15/change/)
 - [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17/change/)

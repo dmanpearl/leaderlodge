@@ -12,12 +12,30 @@ from leaderlodge.insights.tools.rate_display import (
     add_avg_score_display_fields,
     add_outcome_display_fields,
 )
+from leaderlodge.leaderboards.game_filters import LeaderboardGameFilters
 from leaderlodge.leaderboards.period import LeaderboardPeriod
 from leaderlodge.leaderboards.ranking import compute_percentage
 from leaderlodge.leaderboards.service import (
     get_player_rank_detail,
     get_player_rankings,
 )
+from leaderlodge.games.features import feature_catalog_for_game_type, game_features_response_payload
+
+
+def _attach_game_features(
+    payload: dict,
+    *,
+    game_type_code: str,
+    game_filters: LeaderboardGameFilters | None,
+) -> dict:
+    if game_filters is not None and game_filters.is_active():
+        payload.update(
+            game_features_response_payload(
+                game_filters.as_selections(),
+                game_type_code=game_type_code,
+            )
+        )
+    return payload
 
 
 def _ranking_row(row) -> dict:
@@ -40,6 +58,7 @@ def query_leaderboard(
     game_size: int | None = None,
     location_id: int | None = None,
     location_ids: list[int] | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
     limit: int = 10,
 ) -> dict:
     if period is None:
@@ -53,6 +72,7 @@ def query_leaderboard(
         game_size=game_size,
         location_id=location_id,
         location_ids=location_ids,
+        game_filters=game_filters,
     )
     payload = {
         "game_type_code": game_type_code,
@@ -66,7 +86,11 @@ def query_leaderboard(
         payload["location_id"] = location_id
     if location_ids is not None:
         payload["location_ids"] = list(location_ids)
-    return payload
+    return _attach_game_features(
+        payload,
+        game_type_code=game_type_code,
+        game_filters=game_filters,
+    )
 
 
 def query_location_leaderboard(
@@ -77,6 +101,7 @@ def query_location_leaderboard(
     location_name: str,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
     limit: int = 10,
 ) -> dict:
     payload = query_leaderboard(
@@ -85,6 +110,7 @@ def query_location_leaderboard(
         period=period,
         game_size=game_size,
         location_id=location_id,
+        game_filters=game_filters,
         limit=limit,
     )
     payload["location_name"] = location_name
@@ -100,6 +126,7 @@ def query_region_leaderboard(
     exclude: bool = False,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
     limit: int = 10,
 ) -> dict:
     from leaderlodge.insights.tools.region import (
@@ -114,6 +141,7 @@ def query_region_leaderboard(
         period=period,
         game_size=game_size,
         location_ids=match.location_ids,
+        game_filters=game_filters,
         limit=limit,
     )
     payload.update(region_match_payload(match))
@@ -408,6 +436,7 @@ def query_date_range_leaderboard(
     end_date: date,
     period_preset: str | None = None,
     game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
     limit: int = 10,
 ) -> dict:
     period = LeaderboardPeriod(
@@ -420,6 +449,7 @@ def query_date_range_leaderboard(
         game_type_code=game_type_code,
         period=period,
         game_size=game_size,
+        game_filters=game_filters,
         limit=limit,
     )
     payload["start_date"] = start_date.isoformat()
@@ -434,6 +464,7 @@ def query_player_detail(
     game_type_code: str,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
 ) -> dict:
     if period is None:
         period = LeaderboardPeriod.all_time()
@@ -448,6 +479,7 @@ def query_player_detail(
         game_type_code=game_type_code,
         period=period,
         game_size=game_size,
+        game_filters=game_filters,
     )
     if detail is None:
         return {
@@ -523,12 +555,15 @@ def query_player_detail(
         "supports_loser": game_type.supports_loser,
     }
     payload = add_outcome_display_fields(payload, total=games_played)
-    return add_avg_score_display_fields(payload)
+    return _attach_game_features(
+        add_avg_score_display_fields(payload),
+        game_type_code=game_type_code,
+        game_filters=game_filters,
+    )
 
 
 def list_game_types(group: Group) -> dict:
     from leaderlodge.games.models import Game
-    from leaderlodge.games.registry import get_game_type
 
     codes = list(
         Game.objects.filter(group=group)
@@ -544,6 +579,7 @@ def list_game_types(group: Group) -> dict:
                 "code": code,
                 "name": get_game_type(code).name,
                 "score_direction": score_direction_label(code),
+                "features": feature_catalog_for_game_type(code),
             }
             for code in codes
         ],

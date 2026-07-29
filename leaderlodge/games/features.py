@@ -220,6 +220,92 @@ def _weight_value_from_code(code: str) -> int:
     return 2 if code == "1" else 1
 
 
+def apply_feature_selections_to_games_qs(
+    games_qs: QuerySet,
+    selections: dict[str, str],
+    *,
+    game_type_code: str,
+) -> QuerySet:
+    for feature in features_for_game_type(game_type_code):
+        code = selections.get(feature.key)
+        if not code:
+            continue
+        if feature.binding_kind == FeatureBindingKind.STRING_FIELD:
+            games_qs = games_qs.filter(**{feature.storage_field: code})
+        elif feature.binding_kind == FeatureBindingKind.WEIGHT_FIELD:
+            games_qs = games_qs.filter(
+                **{feature.storage_field: _weight_value_from_code(code)}
+            )
+    return games_qs
+
+
+def _normalize_weight_tool_arg(raw: object) -> str | None:
+    if isinstance(raw, bool):
+        return "1" if raw else "0"
+    text = str(raw).strip().lower()
+    if text in {"1", "true", "yes"}:
+        return "1"
+    if text in {"0", "false", "no"}:
+        return "0"
+    return None
+
+
+def resolve_feature_selections_from_tool_args(
+    arguments: dict,
+    *,
+    game_type_code: str,
+) -> dict[str, str]:
+    """Resolve Ask tool args to feature selection codes; raises ValueError."""
+    selections: dict[str, str] = {}
+    errors: list[str] = []
+    for feature in features_for_game_type(game_type_code):
+        if feature.key not in arguments:
+            continue
+        raw = arguments.get(feature.key)
+        if raw is None:
+            continue
+        if feature.binding_kind == FeatureBindingKind.STRING_FIELD:
+            code = str(raw).strip()
+            if code not in feature.valid_codes():
+                valid = ", ".join(sorted(feature.valid_codes()))
+                errors.append(f"{feature.key} must be one of: {valid}.")
+            else:
+                selections[feature.key] = code
+            continue
+        code = _normalize_weight_tool_arg(raw)
+        if code is None or code not in feature.valid_codes():
+            errors.append(
+                f"{feature.key} must be true or false "
+                f"(double/regular or half/full for {feature.title})."
+            )
+        else:
+            selections[feature.key] = code
+    if errors:
+        raise ValueError(" ".join(errors))
+    return selections
+
+
+def game_features_response_payload(
+    selections: dict[str, str],
+    *,
+    game_type_code: str,
+) -> dict:
+    if not selections:
+        return {}
+    return {
+        "game_features": [
+            {
+                "key": feature.key,
+                "title": feature.title,
+                "value_code": selections[feature.key],
+                "value_label": feature.value_label(selections[feature.key]),
+            }
+            for feature in features_for_game_type(game_type_code)
+            if feature.key in selections
+        ]
+    }
+
+
 def apply_feature_selections_to_results_qs(
     results_qs: QuerySet,
     selections: dict[str, str],

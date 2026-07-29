@@ -6,8 +6,13 @@ from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.registry import get_game_type, score_direction_label
 from leaderlodge.games.standings import standings_weight_expression
 from leaderlodge.groups.models import Group, GroupPlayer
+from leaderlodge.leaderboards.game_filters import LeaderboardGameFilters
 from leaderlodge.leaderboards.period import LeaderboardPeriod, filter_results_by_period
 from leaderlodge.leaderboards.ranking import ordinal_place_label
+from leaderlodge.games.features import (
+    apply_feature_selections_to_results_qs,
+    game_features_response_payload,
+)
 
 
 def query_placement_leaders(
@@ -17,6 +22,7 @@ def query_placement_leaders(
     placement: int,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
     limit: int = 10,
 ) -> dict:
     if period is None:
@@ -31,6 +37,12 @@ def query_placement_leaders(
     )
     if game_size is not None:
         results_qs = results_qs.filter(game__player_count=game_size)
+    if game_filters is not None and game_filters.is_active():
+        results_qs = apply_feature_selections_to_results_qs(
+            results_qs,
+            game_filters.as_selections(),
+            game_type_code=game_type_code,
+        )
     results_qs = filter_results_by_period(results_qs, period)
 
     rows = list(
@@ -68,4 +80,12 @@ def query_placement_leaders(
         "game_size": game_size,
         "period": period.query_params() or {"all_time": True},
         "leaders": leaders,
+        **(
+            game_features_response_payload(
+                game_filters.as_selections(),
+                game_type_code=game_type_code,
+            )
+            if game_filters is not None and game_filters.is_active()
+            else {}
+        ),
     }

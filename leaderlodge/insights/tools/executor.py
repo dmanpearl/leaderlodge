@@ -128,6 +128,20 @@ class ToolExecutor:
             )
         return resolved
 
+    def _resolve_game_filters(self, arguments: dict[str, Any], game_type_code: str):
+        from leaderlodge.leaderboards.game_filters import (
+            resolve_leaderboard_game_filters_from_tool_args,
+        )
+
+        try:
+            filters = resolve_leaderboard_game_filters_from_tool_args(
+                arguments,
+                game_type_code=game_type_code,
+            )
+        except ValueError as exc:
+            raise ToolExecutionError(str(exc)) from exc
+        return filters if filters.is_active() else None
+
     def _resolve_limit(self, arguments: dict[str, Any]) -> int:
         raw = arguments.get("limit", 10)
         try:
@@ -241,6 +255,7 @@ class ToolExecutor:
             game_type_code=game_type_code,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )
 
@@ -259,6 +274,7 @@ class ToolExecutor:
             placement=placement,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )
 
@@ -318,6 +334,7 @@ class ToolExecutor:
             game_type_code=game_type_code,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
         )
 
     def _query_player_play_locations(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -351,6 +368,7 @@ class ToolExecutor:
             player_b_id=player_b_id,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
         )
 
     def _query_hall_of_fame(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -378,6 +396,7 @@ class ToolExecutor:
             game_type_code=game_type_code,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )
 
@@ -390,6 +409,7 @@ class ToolExecutor:
             game_type_code=game_type_code,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
         )
 
     def _query_date_range_leaderboard(
@@ -424,6 +444,7 @@ class ToolExecutor:
             end_date=end_date,
             period_preset=preset or None,
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )
 
@@ -445,6 +466,7 @@ class ToolExecutor:
             location_name=location.name,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )
 
@@ -464,6 +486,7 @@ class ToolExecutor:
                 exclude=self._resolve_region_exclude(arguments),
                 period=self._resolve_period(arguments, game_type_code),
                 game_size=self._resolve_game_size(arguments, game_type_code),
+                game_filters=self._resolve_game_filters(arguments, game_type_code),
                 limit=self._resolve_limit(arguments),
             )
         except ValueError as exc:
@@ -494,5 +517,6 @@ class ToolExecutor:
             game_type_code=game_type_code,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
             limit=self._resolve_limit(arguments),
         )

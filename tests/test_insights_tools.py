@@ -813,3 +813,138 @@ def test_query_team_pairings_returns_observed_duo_teams(user, group):
     assert len(top["member_labels"]) == 2
     assert "wins_display" in top
     assert "Do not recommend pairs that never played together" in result["guidance"]
+
+
+@pytest.mark.django_db
+def test_list_game_types_includes_features(user, group):
+    from leaderlodge.insights.tools.standings import list_game_types
+
+    _record_game(group, user, third_idx=None)
+    result = list_game_types(group)
+    dominos = next(item for item in result["game_types"] if item["code"] == "dominos")
+    assert dominos["features"][0]["key"] == "double_game"
+    assert "normal" in dominos["features"][0]["values"][1]["ask_aliases"]
+
+
+@pytest.mark.django_db
+def test_tool_executor_filters_leaderboard_by_score_type(user, group):
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.insights.tools.executor import ToolExecutionError
+
+    players = list(group.players.order_by("pk"))
+
+    def record_pickleball(*, winner_idx, score_type):
+        rows = [
+            {"player": players[winner_idx], "score": 11},
+            {"player": players[1 - winner_idx], "score": 7},
+        ]
+        assign_results_from_scores(rows, "pickleball")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="pickleball",
+            played_on="2026-01-15",
+            score_type=score_type,
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    record_pickleball(winner_idx=0, score_type="traditional")
+    record_pickleball(winner_idx=1, score_type="rally")
+
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="pickleball",
+        available_game_type_codes=("pickleball",),
+    )
+    executor = ToolExecutor(scope)
+    result = executor.execute(
+        "query_leaderboard",
+        {
+            "game_type_code": "pickleball",
+            "score_type": "rally",
+            "all_time": True,
+        },
+    )
+
+    assert result["game_features"] == [
+        {
+            "key": "score_type",
+            "title": "Score type",
+            "value_code": "rally",
+            "value_label": "Rally",
+        }
+    ]
+    winner = next(row for row in result["rankings"] if row["wins"] > 0)
+    assert winner["player_id"] == players[1].pk
+    assert winner["games_played"] == 1
+
+    with pytest.raises(ToolExecutionError, match="score_type must be one of"):
+        executor.execute(
+            "query_leaderboard",
+            {
+                "game_type_code": "pickleball",
+                "score_type": "invalid",
+                "all_time": True,
+            },
+        )
+
+
+@pytest.mark.django_db
+def test_tool_executor_filters_leaderboard_by_double_game(user, group):
+    players = list(group.players.order_by("pk"))
+
+    def record_dominos(*, winner_score):
+        rows = [
+            {"player": players[0], "score": winner_score},
+            {"player": players[1], "score": 20},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on="2026-01-15",
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    record_dominos(winner_score=35)
+    record_dominos(winner_score=65)
+
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+    result = executor.execute(
+        "query_leaderboard",
+        {
+            "game_type_code": "dominos",
+            "double_game": True,
+            "all_time": True,
+        },
+    )
+
+    assert result["game_features"][0]["value_label"] == "Double"
+    winner = next(row for row in result["rankings"] if row["wins"] > 0)
+    assert winner["player_id"] == players[0].pk
+    assert winner["games_played"] == 2.0

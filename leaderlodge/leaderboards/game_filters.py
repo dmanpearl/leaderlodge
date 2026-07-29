@@ -5,10 +5,13 @@ from typing import TYPE_CHECKING
 
 from leaderlodge.games.features import (
     apply_feature_selections_to_results_qs,
+    feature_catalog_for_game_type,
     feature_summary_labels,
+    game_features_response_payload,
     leaderboard_fields_to_selections,
     leaderboard_filter_rows,
     resolve_feature_selections,
+    resolve_feature_selections_from_tool_args,
     selections_to_leaderboard_fields,
 )
 
@@ -42,6 +45,23 @@ def resolve_leaderboard_game_filters(
     game_type_code: str | None,
 ) -> LeaderboardGameFilters:
     selections = resolve_feature_selections(params, game_type_code=game_type_code)
+    fields = selections_to_leaderboard_fields(selections)
+    return LeaderboardGameFilters(
+        score_type=fields["score_type"],
+        double_game=fields["double_game"],
+        half_game=fields["half_game"],
+    )
+
+
+def resolve_leaderboard_game_filters_from_tool_args(
+    arguments: dict,
+    *,
+    game_type_code: str,
+) -> LeaderboardGameFilters:
+    selections = resolve_feature_selections_from_tool_args(
+        arguments,
+        game_type_code=game_type_code,
+    )
     fields = selections_to_leaderboard_fields(selections)
     return LeaderboardGameFilters(
         score_type=fields["score_type"],

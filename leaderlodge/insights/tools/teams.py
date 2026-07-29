@@ -13,8 +13,10 @@ from leaderlodge.groups.teams import (
 )
 from leaderlodge.insights.tools.rate_display import add_outcome_display_fields
 from leaderlodge.insights.tools.standings import _ranking_row
+from leaderlodge.leaderboards.game_filters import LeaderboardGameFilters
 from leaderlodge.leaderboards.period import LeaderboardPeriod
 from leaderlodge.leaderboards.service import get_player_rankings
+from leaderlodge.games.features import game_features_response_payload
 
 MAX_TEAM_SIZE = 2
 
@@ -44,6 +46,7 @@ def query_team_pairings(
     game_type_code: str,
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
     limit: int = 10,
 ) -> dict:
     """Observed two-player teams and individual standings for pairing questions."""
@@ -57,6 +60,7 @@ def query_team_pairings(
         period=period,
         game_size=game_size,
         player_type=PLAYER_TYPE_PEOPLE,
+        game_filters=game_filters,
     )
     team_rankings = get_player_rankings(
         group,
@@ -64,6 +68,7 @@ def query_team_pairings(
         period=period,
         game_size=game_size,
         player_type=PLAYER_TYPE_TEAM,
+        game_filters=game_filters,
     )
 
     observed_duo_teams: list[dict] = []
@@ -101,4 +106,11 @@ def query_team_pairings(
     note = scoring_interpretation_note(game_type_code)
     if note:
         payload["scoring_note"] = note
+    if game_filters is not None and game_filters.is_active():
+        payload.update(
+            game_features_response_payload(
+                game_filters.as_selections(),
+                game_type_code=game_type_code,
+            )
+        )
     return payload

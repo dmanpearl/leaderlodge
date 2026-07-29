@@ -35,12 +35,40 @@ _PERIOD_PROPERTIES = {
     },
 }
 
+_GAME_FEATURE_PROPERTIES = {
+    "score_type": {
+        "type": "string",
+        "description": (
+            "Pickleball only. traditional or rally. Call list_game_types for "
+            "features and ask_aliases when the user says normal or rally scoring."
+        ),
+    },
+    "double_game": {
+        "type": "boolean",
+        "description": (
+            "Dominos only. true for double games (winner scored 60+), false "
+            "for regular. Call list_game_types for ask_aliases like double or normal."
+        ),
+    },
+    "half_game": {
+        "type": "boolean",
+        "description": (
+            "Progressive Rummy only. true for half games, false for full. "
+            "Call list_game_types for ask_aliases."
+        ),
+    },
+}
+
 ASK_TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
             "name": "list_game_types",
-            "description": "List game types that have recorded games in this group.",
+            "description": (
+                "List game types that have recorded games in this group. Each "
+                "type includes features (score_type, double_game, half_game) "
+                "with value codes and ask_aliases for natural-language filters."
+            ),
             "parameters": {"type": "object", "properties": {}, "required": []},
         },
     },
@@ -73,6 +101,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                         "type": "integer",
                         "description": "Optional player count filter (2, 3, 4, etc.).",
                     },
+                    **_GAME_FEATURE_PROPERTIES,
                     "limit": {
                         "type": "integer",
                         "description": "Max rows to return (default 10).",
@@ -100,6 +129,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     },
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                     "limit": {"type": "integer"},
                 },
                 "required": ["game_type_code", "placement"],
@@ -184,6 +214,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     "game_type_code": {"type": "string"},
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                 },
                 "required": ["game_type_code"],
             },
@@ -252,6 +283,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     },
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                 },
                 "required": ["game_type_code"],
             },
@@ -301,6 +333,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     "game_type_code": {"type": "string"},
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                     "limit": {"type": "integer"},
                 },
                 "required": ["game_type_code"],
@@ -335,6 +368,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     },
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                 },
                 "required": ["game_type_code"],
             },
@@ -369,6 +403,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                         "description": "Inclusive end date (YYYY-MM-DD).",
                     },
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                     "limit": {"type": "integer"},
                 },
                 "required": ["game_type_code"],
@@ -395,6 +430,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     },
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                     "limit": {"type": "integer"},
                 },
                 "required": ["game_type_code"],
@@ -438,6 +474,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     },
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                     "limit": {"type": "integer"},
                 },
                 "required": ["game_type_code"],
@@ -491,6 +528,7 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     "game_type_code": {"type": "string"},
                     **_PERIOD_PROPERTIES,
                     "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
                     "limit": {"type": "integer"},
                 },
                 "required": ["game_type_code"],
