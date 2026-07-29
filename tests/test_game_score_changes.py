@@ -326,3 +326,69 @@ def test_game_edit_played_on_via_form(client, staff_user, dominos_game):
     assert dominos_game.played_on == new_date
     log = GameScoreChangeLog.objects.get(game=dominos_game)
     assert log.new_snapshot["played_on"] == new_date.isoformat()
+
+
+@pytest.fixture
+def progressiverummy_game(staff_user, group):
+    players = list(group.players.order_by("pk"))
+    game = Game.objects.create(
+        group=group,
+        game_type_code="progressiverummy",
+        played_on=timezone.localdate(),
+        recorded_by=staff_user,
+        player_count=3,
+        half_weight=1,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[0],
+        score=10,
+        result=Result.WIN,
+        placement=0,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[1],
+        score=20,
+        result=Result.LOSS,
+        placement=2,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[2],
+        score=30,
+        result=Result.LOSS,
+        placement=2,
+    )
+    return game
+
+
+@pytest.mark.django_db
+def test_edit_progressive_rummy_half_game(client, staff_user, progressiverummy_game):
+    client.force_login(staff_user)
+    game = progressiverummy_game
+    participants = list(game.participant_results.order_by("pk"))
+    url = reverse("games:edit_game", kwargs={"pk": game.pk})
+
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "Half game" in response.content.decode()
+
+    response = client.post(
+        url,
+        {
+            "played_on": game.played_on.isoformat(),
+            "is_half_game": "on",
+            **{
+                f"score_{participant.pk}": participant.score
+                for participant in participants
+            },
+            "notes": "Played a shortened round.",
+        },
+    )
+    assert response.status_code == 302
+    game.refresh_from_db()
+    assert game.half_weight == 2
+    log = GameScoreChangeLog.objects.get(game=game)
+    assert log.old_snapshot["half_weight"] == 1
+    assert log.new_snapshot["half_weight"] == 2

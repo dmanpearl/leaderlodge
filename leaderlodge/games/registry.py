@@ -32,6 +32,7 @@ class GameTypeDefinition:
     win_target_score: int | None
     icon_filename: str
     score_types: tuple[ScoreType, ...] = ()
+    supports_half_game: bool = False
 
 
 def _load_registry() -> dict[str, GameTypeDefinition]:
@@ -55,6 +56,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             score_direction=ScoreDirection.LOW_WINS,
             win_target_score=None,
             icon_filename="progressiverummy.png",
+            supports_half_game=True,
         ),
         "backgammon": GameTypeDefinition(
             code="backgammon",
@@ -127,6 +129,14 @@ def game_type_choices() -> list[tuple[str, str]]:
 
 def game_type_has_score_type(code: str) -> bool:
     return bool(get_game_type(code).score_types)
+
+
+def game_type_supports_half_game(code: str) -> bool:
+    return get_game_type(code).supports_half_game
+
+
+def normalize_half_weight(*, is_half: bool) -> int:
+    return 2 if is_half else 1
 
 
 def score_type_choices_for(code: str) -> list[tuple[str, str]]:

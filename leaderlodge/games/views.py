@@ -1064,15 +1064,20 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
         form = GameEditForm(request.POST, game=game)
         if form.is_valid():
             try:
-                summary = apply_game_edits(
-                    game=game,
-                    user=request.user,
-                    notes=form.cleaned_data["notes"],
-                    score_updates=form.score_updates(),
-                    participant_removals=form.participant_removals(),
-                    new_location=form.resolved_location(),
-                    new_played_on=form.cleaned_data["played_on"],
-                )
+                edit_kwargs = {
+                    "game": game,
+                    "user": request.user,
+                    "notes": form.cleaned_data["notes"],
+                    "score_updates": form.score_updates(),
+                    "participant_removals": form.participant_removals(),
+                    "new_location": form.resolved_location(),
+                    "new_played_on": form.cleaned_data["played_on"],
+                }
+                if form.has_score_type_field():
+                    edit_kwargs["new_score_type"] = form.cleaned_score_type()
+                if form.has_half_game_field():
+                    edit_kwargs["new_half_weight"] = form.cleaned_half_weight()
+                summary = apply_game_edits(**edit_kwargs)
             except ValidationError as exc:
                 messages.error(request, str(exc))
             else:
@@ -1115,6 +1120,7 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "results": results,
             "participant_form_rows": participant_form_rows,
             "is_double": game.double_weight == 2,
+            "is_half": game.half_weight == 2,
             "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),
             "can_set_place": can_set_place,
             "location_game_count": location_game_count,

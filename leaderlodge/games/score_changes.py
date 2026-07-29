@@ -10,6 +10,7 @@ from django.db import transaction
 
 from leaderlodge.core.admin_notifications import notify_admin_game_change
 from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
+from leaderlodge.games.registry import normalize_score_type
 from leaderlodge.games.scoring import assign_results_from_scores, compute_double_weight
 from leaderlodge.groups.models import GroupPlayer, Location
 
@@ -24,6 +25,8 @@ class RecalculateSummary:
     double_weight_changed: bool
     location_changed: bool = False
     date_changed: bool = False
+    score_type_changed: bool = False
+    half_weight_changed: bool = False
     participants_removed: int = 0
 
     @property
@@ -77,6 +80,8 @@ def _game_snapshot(
     location: Location | None | object = _UNCHANGED,
     double_weight: int | object = _UNCHANGED,
     played_on: date | object = _UNCHANGED,
+    score_type: str | object = _UNCHANGED,
+    half_weight: int | object = _UNCHANGED,
 ) -> dict[str, Any]:
     if rows is None:
         rows = _participant_row_dicts(game)
@@ -85,6 +90,10 @@ def _game_snapshot(
         game.double_weight if double_weight is _UNCHANGED else double_weight
     )
     resolved_played_on = game.played_on if played_on is _UNCHANGED else played_on
+    resolved_score_type = game.score_type if score_type is _UNCHANGED else score_type
+    resolved_half_weight = (
+        game.half_weight if half_weight is _UNCHANGED else half_weight
+    )
     participants = sorted(
         [
             {
@@ -105,9 +114,9 @@ def _game_snapshot(
         "game_type_code": game.game_type_code,
         "played_on": resolved_played_on.isoformat(),
         "player_count": game.player_count,
-        "score_type": game.score_type,
+        "score_type": resolved_score_type,
         "double_weight": resolved_double_weight,
-        "half_weight": game.half_weight,
+        "half_weight": resolved_half_weight,
         "location": (
             {"id": resolved_location.pk, "name": resolved_location.name}
             if resolved_location
@@ -220,6 +229,8 @@ def apply_game_edits(
     participant_removals: set[int] | None = None,
     new_location: Location | None | object = _UNCHANGED,
     new_played_on: date | object = _UNCHANGED,
+    new_score_type: str | object = _UNCHANGED,
+    new_half_weight: int | object = _UNCHANGED,
     dry_run: bool = False,
 ) -> RecalculateSummary:
     notes = _require_notes(notes)
@@ -230,10 +241,37 @@ def apply_game_edits(
     removals = set(participant_removals or [])
     location_changed = new_location is not _UNCHANGED and game.location != new_location
     date_changed = new_played_on is not _UNCHANGED and game.played_on != new_played_on
+    current_score_type = game.score_type or normalize_score_type(
+        game.game_type_code, ""
+    )
+    resolved_score_type = current_score_type
+    score_type_changed = False
+    if new_score_type is not _UNCHANGED:
+        resolved_score_type = normalize_score_type(
+            game.game_type_code,
+            new_score_type,
+        )
+        score_type_changed = resolved_score_type != current_score_type
 
-    if not updates and not removals and not location_changed and not date_changed:
+    half_weight_changed = False
+    resolved_half_weight = game.half_weight
+    if new_half_weight is not _UNCHANGED:
+        if new_half_weight not in (1, 2):
+            raise ValidationError("Half weight must be 1 or 2.")
+        resolved_half_weight = new_half_weight
+        half_weight_changed = resolved_half_weight != game.half_weight
+
+    if (
+        not updates
+        and not removals
+        and not location_changed
+        and not date_changed
+        and not score_type_changed
+        and not half_weight_changed
+    ):
         raise ValidationError(
-            "Change at least one score, the date, or the location before saving."
+            "Change at least one score, the date, the location, "
+            "or game settings before saving."
         )
 
     old_snapshot = _game_snapshot(game)
@@ -271,6 +309,8 @@ def apply_game_edits(
         location=resolved_location,
         double_weight=new_double_weight,
         played_on=resolved_played_on,
+        score_type=resolved_score_type,
+        half_weight=resolved_half_weight,
     )
     log = _build_change_log(
         game=game,
@@ -289,6 +329,8 @@ def apply_game_edits(
             double_weight_changed=double_weight_changed,
             location_changed=location_changed,
             date_changed=date_changed,
+            score_type_changed=score_type_changed,
+            half_weight_changed=half_weight_changed,
             participants_removed=participants_removed,
         )
 
@@ -308,6 +350,14 @@ def apply_game_edits(
         game.played_on = new_played_on
         game.save(update_fields=["played_on"])
 
+    if score_type_changed:
+        game.score_type = resolved_score_type
+        game.save(update_fields=["score_type"])
+
+    if half_weight_changed:
+        game.half_weight = resolved_half_weight
+        game.save(update_fields=["half_weight"])
+
     if log is not None:
         log.save()
         notify_admin_game_change(log=log)
@@ -319,6 +369,8 @@ def apply_game_edits(
         double_weight_changed=double_weight_changed,
         location_changed=location_changed,
         date_changed=date_changed,
+        score_type_changed=score_type_changed,
+        half_weight_changed=half_weight_changed,
         participants_removed=participants_removed,
     )
 

@@ -104,6 +104,35 @@
         </div>
       </div>
 
+      {% if form.score_type %}
+        <div class="row align-items-center mb-2 g-2">
+          <label for="{{ form.score_type.id_for_label }}" class="col-4 col-form-label">{{ form.score_type.label }}</label>
+          <div class="col-8">
+            {{ form.score_type }}
+            {% if form.score_type.errors %}
+              <div class="invalid-feedback d-block">{{ form.score_type.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if form.is_half_game %}
+        <div class="row align-items-start mb-2 g-2">
+          <div class="col-4 col-form-label">{{ form.is_half_game.label }}</div>
+          <div class="col-8">
+            <div class="form-check">
+              {{ form.is_half_game }}
+              <label class="form-check-label" for="{{ form.is_half_game.id_for_label }}">
+                Counts as half a game for standings
+              </label>
+            </div>
+            {% if form.is_half_game.errors %}
+              <div class="invalid-feedback d-block">{{ form.is_half_game.errors }}</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
       {% for row in participant_form_rows %}
         <div class="row align-items-center mb-2 g-2 game-edit-player-row" data-participant-row="{{ row.result.pk }}">
           <label class="col-4 col-form-label" for="{{ row.score_field.id_for_label }}">{{ row.score_field.label }}</label>

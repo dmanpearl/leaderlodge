@@ -8,7 +8,13 @@ from leaderlodge.games.location_field import (
     location_name_form_field,
 )
 from leaderlodge.games.models import Game, GameParticipantResult
-from leaderlodge.games.registry import game_type_choices, get_game_type
+from leaderlodge.games.registry import (
+    game_type_choices,
+    get_game_type,
+    normalize_half_weight,
+    normalize_score_type,
+    score_type_choices_for,
+)
 from leaderlodge.games.scoring import assign_results_from_scores, player_count_is_valid
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.player_search import resolve_participant_player
@@ -191,6 +197,22 @@ class GameEditForm(forms.Form):
         self.fields["played_on"].initial = game.played_on
         if game.location_id:
             self.fields["location_name"].initial = game.location.name
+        game_type = get_game_type(game.game_type_code)
+        if game_type.score_types:
+            choices = score_type_choices_for(game.game_type_code)
+            self.fields["score_type"] = forms.ChoiceField(
+                label="Score type",
+                choices=choices,
+                initial=game.score_type or choices[0][0],
+                widget=forms.Select(attrs={"class": "form-select"}),
+            )
+        if game_type.supports_half_game:
+            self.fields["is_half_game"] = forms.BooleanField(
+                label="Half game",
+                required=False,
+                initial=game.half_weight == 2,
+                widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            )
         for participant in game.participant_results.select_related("player").order_by(
             "pk"
         ):
@@ -236,6 +258,40 @@ class GameEditForm(forms.Form):
             return False
         return self.cleaned_data["played_on"] != self.game.played_on
 
+    def has_score_type_field(self) -> bool:
+        return "score_type" in self.fields
+
+    def cleaned_score_type(self) -> str | None:
+        if not self.has_score_type_field() or self.game is None:
+            return None
+        return normalize_score_type(
+            self.game.game_type_code,
+            self.cleaned_data.get("score_type", ""),
+        )
+
+    def score_type_changed(self) -> bool:
+        if not self.has_score_type_field() or self.game is None:
+            return False
+        current = self.game.score_type or normalize_score_type(
+            self.game.game_type_code, ""
+        )
+        return self.cleaned_score_type() != current
+
+    def has_half_game_field(self) -> bool:
+        return "is_half_game" in self.fields
+
+    def cleaned_half_weight(self) -> int | None:
+        if not self.has_half_game_field() or self.game is None:
+            return None
+        return normalize_half_weight(
+            is_half=bool(self.cleaned_data.get("is_half_game"))
+        )
+
+    def half_weight_changed(self) -> bool:
+        if not self.has_half_game_field() or self.game is None:
+            return False
+        return self.cleaned_half_weight() != self.game.half_weight
+
     def participant_removals(self) -> set[int]:
         if self.game is None:
             return set()
@@ -276,8 +332,11 @@ class GameEditForm(forms.Form):
             and not removals
             and not self.location_changed()
             and not self.played_on_changed()
+            and not self.score_type_changed()
+            and not self.half_weight_changed()
         ):
             raise ValidationError(
-                "Change at least one score, the date, or the location before saving."
+                "Change at least one score, the date, the location, "
+                "or game settings before saving."
             )
         return cleaned
