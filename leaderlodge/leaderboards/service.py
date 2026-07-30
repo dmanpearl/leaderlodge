@@ -38,8 +38,8 @@ from leaderlodge.leaderboards.ranking import (
     compute_half_game_penalty_factor,
     compute_percentage,
     compute_rank_score,
-    rank_score_magnitude_for_result,
     ordinal_place_label,
+    rank_score_magnitude_for_result,
     rank_score_sort_key,
     team_member_finish_credit,
 )
@@ -104,6 +104,7 @@ class PartnerBreakdown:
     """One individual's record when paired with a specific teammate."""
 
     partner_label: str
+    partner_rank_label: str
     games_played: float
     wins: float
     win_pct: float
@@ -470,11 +471,18 @@ def get_player_rank_detail(
             )
         )
 
+    def _partner_rank_label(entry_players: list) -> str:
+        if len(entry_players) != 1:
+            return ""
+        partner_rank = rank_by_player.get(entry_players[0].pk)
+        return ordinal_place_label(partner_rank - 1) if partner_rank else ""
+
     partner_breakdown = tuple(
         sorted(
             (
                 PartnerBreakdown(
                     partner_label=team_display_name(entry["players"]),
+                    partner_rank_label=_partner_rank_label(entry["players"]),
                     games_played=float(entry["games_played"]),
                     wins=float(entry["wins"]),
                     win_pct=compute_percentage(

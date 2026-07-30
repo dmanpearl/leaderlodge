@@ -455,6 +455,8 @@ def test_rookie_gets_reduced_individual_credit_from_team_win(group, user):
 
 @pytest.mark.django_db
 def test_rank_detail_partner_breakdown_shows_record_per_teammate(group, user):
+    from leaderlodge.leaderboards.ranking import ordinal_place_label
+
     owner, nancy, zach, _ = _people(group)
     opponent = add_guest_player(group=group, display_name="Opponent")
 
@@ -520,3 +522,12 @@ def test_rank_detail_partner_breakdown_shows_record_per_teammate(group, user):
     assert by_partner["Zach"].win_pct == pytest.approx(0.0)
     # Sorted by games played first, so the more frequent partner appears first.
     assert detail.partner_breakdown[0].partner_label == "Nancy"
+
+    all_rankings = get_player_rankings(group, game_type_code="dominos")
+    rank_by_label = {row.player.display_label: row.rank for row in all_rankings}
+    assert by_partner["Nancy"].partner_rank_label == ordinal_place_label(
+        rank_by_label["Nancy"] - 1
+    )
+    assert by_partner["Zach"].partner_rank_label == ordinal_place_label(
+        rank_by_label["Zach"] - 1
+    )

@@ -130,7 +130,12 @@
       <ul class="list-group list-group-flush">
         {% for row in detail.partner_breakdown %}
           <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
-            <span>{{ row.partner_label }}</span>
+            <span>
+              {{ row.partner_label }}
+              {% if row.partner_rank_label %}
+                <span class="badge text-bg-light border fw-normal ms-1">{{ row.partner_rank_label }}</span>
+              {% endif %}
+            </span>
             <span class="text-end text-nowrap">
               {{ row.wins|floatformat:-1 }} win{{ row.wins|pluralize }} of {{ row.games_played|floatformat:-1 }}
               <span class="text-muted">({{ row.win_pct|floatformat:0 }}%)</span>
