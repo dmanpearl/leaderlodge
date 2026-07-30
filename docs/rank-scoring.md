@@ -248,9 +248,13 @@ rank_score = raw_rank_score
 **All-time leaderboard, team entity row:**
 
 ```
-collective_games = average(member_games_played for each team member)
-rank_score = raw_rank_score × bayesian_factor(collective_games)
+rank_score = raw_rank_score × bayesian_factor(team_games_played)
 ```
+
+`team_games_played` is the team's own weighted games as that pair (1 for one
+David+Karen game, 3 for three David+Sara games). Member career totals are not
+used here. Among teams with the same raw average and win rate, more team games
+means a higher Bayesian factor and a higher rank score.
 
 **All-time leaderboard, individual person:**
 
@@ -336,7 +340,22 @@ rank_score ≈ 57.1 × (21/41) + 1.5 ≈ 30.7
 ```
 
 Zach no longer inherits Nancy's full 60-point side credit on the individual
-leaderboard. The team row `"Nancy+Zach"` still carries the full 60.
+leaderboard. The team row `"Nancy+Zach"` still carries the full 60 with
+Bayesian factor `1 / (1 + 20)` from **one team game**, not member career totals.
+
+---
+
+## Worked example: pickleball teams with equal win rate
+
+David+Karen: 1 team win. David+Sara: 3 team wins. Both have raw average 2.0
+(win-only magnitude, 2-side pickleball).
+
+| Team | Team games | Raw | Bayesian factor | Rank score |
+|------|------------|-----|-----------------|------------|
+| David+Karen | 1 | 2.0 | 1/21 ≈ 0.048 | ≈ 0.10 |
+| David+Sara | 3 | 2.0 | 3/23 ≈ 0.130 | ≈ 0.26 |
+
+David+Sara ranks higher: same win rate and raw average, more games as a pair.
 
 ---
 

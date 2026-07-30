@@ -219,7 +219,7 @@ def test_player_type_people_excludes_teams(group, user):
 
 
 @pytest.mark.django_db
-def test_team_bayesian_uses_average_member_games_played(group, user):
+def test_team_bayesian_uses_team_games_played(group, user):
     from leaderlodge.leaderboards.ranking import (
         apply_bayesian_to_rank_score,
         compute_rank_score,
@@ -293,23 +293,92 @@ def test_team_bayesian_uses_average_member_games_played(group, user):
     team_row = rankings[0]
     assert team_row.player.pk == team.pk
     assert team_row.games_played == 1.0
-    # Nancy has 21 games, Zach has 2; Bayesian uses average = 11.5.
+    # Team row Bayesian uses team games (1), not member career totals (21 and 2).
     expected = apply_bayesian_to_rank_score(
+        compute_rank_score(
+            points_total=team_row.finish_points,
+            games_played=team_row.games_played,
+        ),
+        team_row.games_played,
+    )
+    assert team_row.rank_score == pytest.approx(expected)
+    member_average = apply_bayesian_to_rank_score(
         compute_rank_score(
             points_total=team_row.finish_points,
             games_played=team_row.games_played,
         ),
         11.5,
     )
-    assert team_row.rank_score == pytest.approx(expected)
-    not_team_only = apply_bayesian_to_rank_score(
-        compute_rank_score(
-            points_total=team_row.finish_points,
-            games_played=team_row.games_played,
-        ),
-        1.0,
+    assert team_row.rank_score != pytest.approx(member_average)
+
+
+@pytest.mark.django_db
+def test_team_with_more_games_ranks_above_same_raw_one_game_team(group, user):
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.leaderboards.ranking import compute_rank_score
+
+    owner, nancy, zach, _ = _people(group)
+    team_once = resolve_side_player(group=group, members=[nancy, zach])
+    for _ in range(3):
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=timezone.localdate(),
+            participants=[
+                ParticipantInput(
+                    player=team_once,
+                    score=30,
+                    result=GameParticipantResult.Result.WIN,
+                    placement=0,
+                ),
+                ParticipantInput(
+                    player=owner,
+                    score=10,
+                    result=GameParticipantResult.Result.PLAYED,
+                    placement=1,
+                ),
+            ],
+        )
+
+    team_one = resolve_side_player(group=group, members=[owner, nancy])
+    rows = [
+        {"player": team_one, "score": 30},
+        {"player": zach, "score": 10},
+    ]
+    assign_results_from_scores(rows, "dominos")
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ],
     )
-    assert team_row.rank_score != pytest.approx(not_team_only)
+
+    rankings = get_player_rankings(group, game_type_code="dominos", player_type="team")
+    by_team = {row.player.display_label: row for row in rankings}
+    raw_once = compute_rank_score(
+        points_total=by_team[team_once.display_label].finish_points,
+        games_played=by_team[team_once.display_label].games_played,
+    )
+    raw_one = compute_rank_score(
+        points_total=by_team[team_one.display_label].finish_points,
+        games_played=by_team[team_one.display_label].games_played,
+    )
+    assert raw_once == pytest.approx(raw_one)
+    assert (
+        by_team[team_once.display_label].rank_score
+        > by_team[team_one.display_label].rank_score
+    )
 
 
 @pytest.mark.django_db

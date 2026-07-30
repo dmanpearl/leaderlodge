@@ -178,21 +178,10 @@ def effective_games_played_for_player(
     """
     Weighted games used for Bayesian adjustment.
 
-    People use their own total. Teams use the average member games played
-    (collective experience).
+    People use their own total (solo plus all team games credited to them).
+    Team entities use their own team games played as a pair, not member totals.
     """
-    own = float(games_played_by_id.get(player.pk, 0.0))
-    if not player.is_team:
-        return own
-    members = team_member_players(player)
-    member_counts = [
-        float(games_played_by_id[member.pk])
-        for member in members
-        if member.pk in games_played_by_id
-    ]
-    if not member_counts:
-        return own
-    return sum(member_counts) / len(member_counts)
+    return float(games_played_by_id.get(player.pk, 0.0))
 
 
 def results_queryset_for_player_credit(player: GroupPlayer):

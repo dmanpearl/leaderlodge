@@ -31,6 +31,7 @@ from leaderlodge.leaderboards.ranking import (
     SORTABLE_COLUMNS,
     TIE_WIN_POINTS_FACTOR,
     FinishPointsCredit,
+    compute_bayesian_factor,
     compute_display_rank_score,
     compute_finish_points,
     compute_half_game_penalty_factor,
@@ -102,7 +103,9 @@ class PlayerRankDetail:
     ranking: PlayerRanking
     raw_rank_score: float
     bayesian_factor: float
+    bayesian_games_played: float
     bayesian_k: int
+    rank_score_uses_simple_bayesian: bool
     half_game_penalty: float
     placements: tuple[PlacementBreakdown, ...]
     loss_game_count: float
@@ -362,11 +365,26 @@ def get_player_rank_detail(
         points_total=ranking.finish_points,
         games_played=ranking.games_played,
     )
-    bayesian_factor = (
-        (ranking.rank_score / raw_rank_score)
-        if period.apply_bayesian and raw_rank_score > 0
-        else 1.0
+    from leaderlodge.groups.teams import effective_games_played_for_player
+
+    games_played_by_id = {row.player.pk: row.games_played for row in standings}
+    bayesian_games_played = effective_games_played_for_player(
+        player, games_played_by_id
     )
+    if period.apply_bayesian and raw_rank_score > 0:
+        simple_factor = compute_bayesian_factor(bayesian_games_played)
+        simple_rank_score = raw_rank_score * simple_factor
+        rank_score_uses_simple_bayesian = (
+            player.is_team or abs(simple_rank_score - ranking.rank_score) < 0.001
+        )
+        bayesian_factor = (
+            simple_factor
+            if rank_score_uses_simple_bayesian
+            else ranking.rank_score / raw_rank_score
+        )
+    else:
+        rank_score_uses_simple_bayesian = True
+        bayesian_factor = 1.0
     half_game_penalty = compute_half_game_penalty_factor(
         weighted_games=weighted_games,
         half_weighted_games=half_weighted_games,
@@ -415,7 +433,9 @@ def get_player_rank_detail(
         ranking=ranking,
         raw_rank_score=raw_rank_score,
         bayesian_factor=bayesian_factor,
+        bayesian_games_played=bayesian_games_played,
         bayesian_k=settings.LEADERBOARD_BAYESIAN_K,
+        rank_score_uses_simple_bayesian=rank_score_uses_simple_bayesian,
         half_game_penalty=half_game_penalty,
         placements=tuple(placements),
         loss_game_count=loss_game_count,

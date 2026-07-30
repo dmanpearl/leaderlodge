@@ -76,12 +76,17 @@
         {% if selected_period.apply_bayesian %}
         <dt class="col-7 col-sm-5">Bayesian factor</dt>
         <dd class="col-5 col-sm-7">
-          {{ detail.ranking.games_played|floatformat:-1 }} / ({{ detail.ranking.games_played|floatformat:-1 }} + {{ detail.bayesian_k }}) = {{ detail.bayesian_factor|floatformat:3 }}
+          {{ detail.bayesian_games_played|floatformat:-1 }} / ({{ detail.bayesian_games_played|floatformat:-1 }} + {{ detail.bayesian_k }}) = {{ detail.bayesian_factor|floatformat:3 }}
         </dd>
 
         <dt class="col-7 col-sm-5">Adjusted score</dt>
         <dd class="col-5 col-sm-7">
+          {% if detail.rank_score_uses_simple_bayesian %}
           {{ detail.raw_rank_score|floatformat:1 }} &times; {{ detail.bayesian_factor|floatformat:3 }} = {{ detail.ranking.rank_score|floatformat:1 }}
+          {% else %}
+          {{ detail.ranking.rank_score|floatformat:1 }}
+          <span class="text-muted small d-block">Solo finish points use the Bayesian factor above; team finish points were experience-weighted at credit time.</span>
+          {% endif %}
         </dd>
         {% endif %}
 
