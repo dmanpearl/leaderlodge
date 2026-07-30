@@ -19,6 +19,7 @@ from leaderlodge.leaderboards.ranking import (
     compute_rank_score,
     compute_score_magnitude,
     compute_team_bayesian_factor,
+    partner_rank_pill_class,
     rank_score_magnitude_for_result,
     team_member_finish_credit,
 )
@@ -137,6 +138,15 @@ def test_apply_bayesian_to_rank_score():
     assert apply_bayesian_to_rank_score(4.0, 10, apply_bayesian=False) == pytest.approx(
         4.0
     )
+
+
+def test_partner_rank_pill_class_graduates_by_rank():
+    assert partner_rank_pill_class(None) == "partner-rank-pill"
+    assert partner_rank_pill_class(1) == "partner-rank-pill partner-rank-pill--1"
+    assert partner_rank_pill_class(3) == "partner-rank-pill partner-rank-pill--3"
+    assert partner_rank_pill_class(5) == "partner-rank-pill partner-rank-pill--5"
+    assert partner_rank_pill_class(6) == "partner-rank-pill partner-rank-pill--lower"
+    assert partner_rank_pill_class(18) == "partner-rank-pill partner-rank-pill--lower"
 
 
 @override_settings(LEADERBOARD_TEAM_BAYESIAN_K=8)

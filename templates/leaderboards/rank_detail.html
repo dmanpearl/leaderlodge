@@ -4,6 +4,7 @@
 {% block title %}{{ detail.ranking.player.display_label }} rank detail | LeaderLodge{% endblock %}
 
 {% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/leaderboards.css' %}" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
@@ -133,7 +134,7 @@
             <span>
               {{ row.partner_label }}
               {% if row.partner_rank_label %}
-                <span class="badge text-bg-light border fw-normal ms-1">{{ row.partner_rank_label }}</span>
+                <span class="badge fw-normal ms-1 {{ row.partner_rank_pill_class }}">{{ row.partner_rank_label }}</span>
               {% endif %}
             </span>
             <span class="text-end text-nowrap">

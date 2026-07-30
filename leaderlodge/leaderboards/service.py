@@ -39,6 +39,7 @@ from leaderlodge.leaderboards.ranking import (
     compute_percentage,
     compute_rank_score,
     ordinal_place_label,
+    partner_rank_pill_class,
     rank_score_magnitude_for_result,
     rank_score_sort_key,
     team_member_finish_credit,
@@ -104,7 +105,9 @@ class PartnerBreakdown:
     """One individual's record when paired with a specific teammate."""
 
     partner_label: str
+    partner_rank: int | None
     partner_rank_label: str
+    partner_rank_pill_class: str
     games_played: float
     wins: float
     win_pct: float
@@ -471,31 +474,39 @@ def get_player_rank_detail(
             )
         )
 
-    def _partner_rank_label(entry_players: list) -> str:
+    def _partner_rank_info(entry_players: list) -> tuple[int | None, str]:
         if len(entry_players) != 1:
-            return ""
+            return None, ""
         partner_rank = rank_by_player.get(entry_players[0].pk)
-        return ordinal_place_label(partner_rank - 1) if partner_rank else ""
+        if not partner_rank:
+            return None, ""
+        return partner_rank, ordinal_place_label(partner_rank - 1)
+
+    partner_rows: list[PartnerBreakdown] = []
+    for entry in partner_stats.values():
+        partner_rank, partner_rank_label = _partner_rank_info(entry["players"])
+        partner_rows.append(
+            PartnerBreakdown(
+                partner_label=team_display_name(entry["players"]),
+                partner_rank=partner_rank,
+                partner_rank_label=partner_rank_label,
+                partner_rank_pill_class=partner_rank_pill_class(partner_rank),
+                games_played=float(entry["games_played"]),
+                wins=float(entry["wins"]),
+                win_pct=compute_percentage(
+                    float(entry["wins"]), float(entry["games_played"])
+                ),
+                finish_points=float(entry["finish_points"]),
+                avg_finish_points=compute_rank_score(
+                    points_total=float(entry["finish_points"]),
+                    games_played=float(entry["games_played"]),
+                ),
+            )
+        )
 
     partner_breakdown = tuple(
         sorted(
-            (
-                PartnerBreakdown(
-                    partner_label=team_display_name(entry["players"]),
-                    partner_rank_label=_partner_rank_label(entry["players"]),
-                    games_played=float(entry["games_played"]),
-                    wins=float(entry["wins"]),
-                    win_pct=compute_percentage(
-                        float(entry["wins"]), float(entry["games_played"])
-                    ),
-                    finish_points=float(entry["finish_points"]),
-                    avg_finish_points=compute_rank_score(
-                        points_total=float(entry["finish_points"]),
-                        games_played=float(entry["games_played"]),
-                    ),
-                )
-                for entry in partner_stats.values()
-            ),
+            partner_rows,
             key=lambda row: (
                 -row.games_played,
                 -row.win_pct,

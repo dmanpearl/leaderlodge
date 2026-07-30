@@ -82,3 +82,45 @@
       var(--hall-of-fame-sticky-edge-shadow);
   }
 }
+
+/* Partner rank pills on rank detail "Record by partner" (dark text on light fills). */
+.partner-rank-pill {
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+
+.partner-rank-pill--1 {
+  background-color: #f5e6a8;
+  border-color: #d4b84a;
+  color: #4a3800;
+}
+
+.partner-rank-pill--2 {
+  background-color: #e2e8ee;
+  border-color: #b8c4ce;
+  color: #2c3640;
+}
+
+.partner-rank-pill--3 {
+  background-color: #fdebd0;
+  border-color: #d4a574;
+  color: #4a2f1a;
+}
+
+.partner-rank-pill--4 {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e3a5f;
+}
+
+.partner-rank-pill--5 {
+  background-color: #e0e7ff;
+  border-color: #a5b4fc;
+  color: #312e81;
+}
+
+.partner-rank-pill--lower {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
+}

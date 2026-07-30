@@ -151,6 +151,7 @@
 - [x] 7cf09f5 Admin Games View: Add filter by group
 - [x] 624635f Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. Option B: experience-weighted team credit for individuals; team rows use average member games for Bayesian. See `docs/rank-scoring.md`.
 - [x] 7c58939 Team Scoring: Add separate, smaller `LEADERBOARD_TEAM_BAYESIAN_K` (8) for team-context shrinkage (team rows' own score and individual credit from team wins), distinct from the solo `LEADERBOARD_BAYESIAN_K` (20). Fixes teams being pushed too far down after the prior Bayesian fix, since a specific pairing accumulates its own games far more slowly than an individual who rotates partners. See `docs/rank-scoring.md`.
+- [x] Leaderboard Detail View 'Record by Partner' table use graduated colors for the rank pills based on the rank number. Avoid contrast issue between text color and pill background color
 
 ## Open Items
 

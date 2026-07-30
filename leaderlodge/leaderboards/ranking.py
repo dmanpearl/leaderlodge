@@ -30,6 +30,21 @@ def ordinal_place_label(placement: int) -> str:
     return f"{place}{suffix}"
 
 
+def partner_rank_pill_class(rank: int | None) -> str:
+    """
+    CSS classes for a partner rank pill on the rank detail page.
+
+    Graduated by rank (1st through 5th, then lower). Each tier pairs a
+    background with a dark text color for readable contrast.
+    """
+    base = "partner-rank-pill"
+    if rank is None:
+        return base
+    if rank <= 5:
+        return f"{base} {base}--{rank}"
+    return f"{base} {base}--lower"
+
+
 def compute_score_magnitude(
     score: float,
     game_scores: list[float],

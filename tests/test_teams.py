@@ -455,7 +455,10 @@ def test_rookie_gets_reduced_individual_credit_from_team_win(group, user):
 
 @pytest.mark.django_db
 def test_rank_detail_partner_breakdown_shows_record_per_teammate(group, user):
-    from leaderlodge.leaderboards.ranking import ordinal_place_label
+    from leaderlodge.leaderboards.ranking import (
+        ordinal_place_label,
+        partner_rank_pill_class,
+    )
 
     owner, nancy, zach, _ = _people(group)
     opponent = add_guest_player(group=group, display_name="Opponent")
@@ -530,4 +533,9 @@ def test_rank_detail_partner_breakdown_shows_record_per_teammate(group, user):
     )
     assert by_partner["Zach"].partner_rank_label == ordinal_place_label(
         rank_by_label["Zach"] - 1
+    )
+    assert by_partner["Nancy"].partner_rank == rank_by_label["Nancy"]
+    assert by_partner["Zach"].partner_rank == rank_by_label["Zach"]
+    assert by_partner["Nancy"].partner_rank_pill_class == partner_rank_pill_class(
+        rank_by_label["Nancy"]
     )
