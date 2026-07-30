@@ -109,6 +109,38 @@
     </div>
   </div>
 
+  {% if detail.partner_breakdown %}
+    <div class="card mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span>Record by partner</span>
+        <button
+          type="button"
+          class="btn btn-link btn-sm p-0 text-muted rank-detail-rules-btn"
+          data-bs-toggle="popover"
+          data-bs-trigger="focus hover"
+          data-bs-placement="bottom"
+          data-bs-html="true"
+          title="About this breakdown"
+          data-bs-content="Team games mix your own play with your partner's. A lopsided record here (strong with one partner, weak with another) often reflects who you were paired with more than a change in your own skill."
+          aria-label="About this breakdown"
+        >
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+        </button>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for row in detail.partner_breakdown %}
+          <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+            <span>{{ row.partner_label }}</span>
+            <span class="text-end text-nowrap">
+              {{ row.wins|floatformat:-1 }} win{{ row.wins|pluralize }} of {{ row.games_played|floatformat:-1 }}
+              <span class="text-muted">({{ row.win_pct|floatformat:0 }}%)</span>
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
   <div class="card mb-3">
     <div class="card-header">Activity</div>
     <div class="card-body">

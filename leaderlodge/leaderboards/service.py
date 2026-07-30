@@ -100,6 +100,18 @@ class ScoreHighlight:
 
 
 @dataclass(frozen=True)
+class PartnerBreakdown:
+    """One individual's record when paired with a specific teammate."""
+
+    partner_label: str
+    games_played: float
+    wins: float
+    win_pct: float
+    finish_points: float
+    avg_finish_points: float
+
+
+@dataclass(frozen=True)
 class PlayerRankDetail:
     ranking: PlayerRanking
     raw_rank_score: float
@@ -131,6 +143,7 @@ class PlayerRankDetail:
     podium_count: int
     podium_pct: float
     finish_points_exponent: float
+    partner_breakdown: tuple[PartnerBreakdown, ...] = ()
 
 
 def _update_score_highlight(
@@ -196,7 +209,11 @@ def get_player_rank_detail(
     low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
     if period is None:
         period = LeaderboardPeriod.all_time()
-    from leaderlodge.groups.teams import results_queryset_for_player_credit
+    from leaderlodge.groups.teams import (
+        results_queryset_for_player_credit,
+        team_display_name,
+        team_member_players,
+    )
 
     results_qs = (
         results_queryset_for_player_credit(player)
@@ -271,6 +288,7 @@ def get_player_rank_detail(
     weighted_score_total = 0.0
     best_score: ScoreHighlight | None = None
     worst_score: ScoreHighlight | None = None
+    partner_stats: dict[tuple[int, ...], dict[str, object]] = {}
 
     for result in results_qs:
         game = result.game
@@ -281,6 +299,30 @@ def get_player_rank_detail(
         player_count = game.player_count
         placement = result.placement if result.placement is not None else 0
         game_count += 1
+
+        partner_entry = None
+        if result.player_id != player.pk:
+            partners = [
+                member
+                for member in team_member_players(result.player)
+                if member.pk != player.pk
+            ]
+            if partners:
+                partner_key = tuple(sorted(member.pk for member in partners))
+                partner_entry = partner_stats.setdefault(
+                    partner_key,
+                    {
+                        "players": partners,
+                        "games_played": 0.0,
+                        "wins": 0.0,
+                        "finish_points": 0.0,
+                    },
+                )
+                partner_entry["games_played"] = (
+                    float(partner_entry["games_played"]) + weight
+                )
+                if result.result == GameParticipantResult.Result.WIN:
+                    partner_entry["wins"] = float(partner_entry["wins"]) + weight
 
         if first_game_date is None or played_on < first_game_date:
             first_game_date = played_on
@@ -345,6 +387,10 @@ def get_player_rank_detail(
                 finish_points,
                 member_games_played=ranking.games_played,
                 apply_experience_weight=True,
+            )
+        if partner_entry is not None:
+            partner_entry["finish_points"] = (
+                float(partner_entry["finish_points"]) + finish_points
             )
         bucket["finish_points"] = float(bucket["finish_points"]) + finish_points
         by_size = bucket["by_size"]
@@ -424,6 +470,32 @@ def get_player_rank_detail(
             )
         )
 
+    partner_breakdown = tuple(
+        sorted(
+            (
+                PartnerBreakdown(
+                    partner_label=team_display_name(entry["players"]),
+                    games_played=float(entry["games_played"]),
+                    wins=float(entry["wins"]),
+                    win_pct=compute_percentage(
+                        float(entry["wins"]), float(entry["games_played"])
+                    ),
+                    finish_points=float(entry["finish_points"]),
+                    avg_finish_points=compute_rank_score(
+                        points_total=float(entry["finish_points"]),
+                        games_played=float(entry["games_played"]),
+                    ),
+                )
+                for entry in partner_stats.values()
+            ),
+            key=lambda row: (
+                -row.games_played,
+                -row.win_pct,
+                row.partner_label.lower(),
+            ),
+        )
+    )
+
     loss_games_by_field_size = tuple(
         FieldSizeGameCount(
             player_count=size,
@@ -469,6 +541,7 @@ def get_player_rank_detail(
         podium_count=podium_count,
         podium_pct=compute_percentage(podium_count, game_count),
         finish_points_exponent=FINISH_POINTS_EXPONENT,
+        partner_breakdown=partner_breakdown,
     )
 
 

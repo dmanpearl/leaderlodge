@@ -13,7 +13,7 @@ from leaderlodge.groups.teams import (
     team_display_name,
     team_member_players,
 )
-from leaderlodge.leaderboards.service import get_player_rankings
+from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
 @pytest.fixture
@@ -451,3 +451,72 @@ def test_rookie_gets_reduced_individual_credit_from_team_win(group, user):
     )
     assert nancy_row.finish_points > side_finish_points * compute_bayesian_factor(1.0)
     assert zach_row.rank_score < nancy_row.rank_score
+
+
+@pytest.mark.django_db
+def test_rank_detail_partner_breakdown_shows_record_per_teammate(group, user):
+    owner, nancy, zach, _ = _people(group)
+    opponent = add_guest_player(group=group, display_name="Opponent")
+
+    def _play(team_side, *, wins, losses):
+        for _ in range(wins):
+            record_game(
+                user=user,
+                group=group,
+                game_type_code="dominos",
+                played_on=timezone.localdate(),
+                participants=[
+                    ParticipantInput(
+                        player=team_side,
+                        score=30,
+                        result=GameParticipantResult.Result.WIN,
+                        placement=0,
+                    ),
+                    ParticipantInput(
+                        player=opponent,
+                        score=10,
+                        result=GameParticipantResult.Result.PLAYED,
+                        placement=1,
+                    ),
+                ],
+            )
+        for _ in range(losses):
+            record_game(
+                user=user,
+                group=group,
+                game_type_code="dominos",
+                played_on=timezone.localdate(),
+                participants=[
+                    ParticipantInput(
+                        player=opponent,
+                        score=30,
+                        result=GameParticipantResult.Result.WIN,
+                        placement=0,
+                    ),
+                    ParticipantInput(
+                        player=team_side,
+                        score=10,
+                        result=GameParticipantResult.Result.PLAYED,
+                        placement=1,
+                    ),
+                ],
+            )
+
+    team_with_nancy = resolve_side_player(group=group, members=[owner, nancy])
+    team_with_zach = resolve_side_player(group=group, members=[owner, zach])
+    _play(team_with_nancy, wins=3, losses=0)
+    _play(team_with_zach, wins=0, losses=1)
+
+    detail = get_player_rank_detail(group, owner, game_type_code="dominos")
+
+    assert detail is not None
+    by_partner = {row.partner_label: row for row in detail.partner_breakdown}
+    assert set(by_partner) == {"Nancy", "Zach"}
+    assert by_partner["Nancy"].games_played == pytest.approx(3.0)
+    assert by_partner["Nancy"].wins == pytest.approx(3.0)
+    assert by_partner["Nancy"].win_pct == pytest.approx(100.0)
+    assert by_partner["Zach"].games_played == pytest.approx(1.0)
+    assert by_partner["Zach"].wins == pytest.approx(0.0)
+    assert by_partner["Zach"].win_pct == pytest.approx(0.0)
+    # Sorted by games played first, so the more frequent partner appears first.
+    assert detail.partner_breakdown[0].partner_label == "Nancy"
