@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from leaderlodge.games.matchup import build_matchup_view
 from leaderlodge.games.registry import ScoreDirection, get_game_type
+from leaderlodge.games.shutouts import is_shutout_game
 from leaderlodge.insights.context.player import InsightContextError, _round
 from leaderlodge.leaderboards.period import LeaderboardPeriod
 from leaderlodge.leaderboards.service import get_player_rank_detail
@@ -160,23 +161,26 @@ def build_matchup_insight_context(game: Game) -> dict[str, Any]:
     )
     sparse = min_games < MIN_RECOMMENDED_GAMES
 
+    results = list(game.participant_results.all())
+    shutout = is_shutout_game(game.game_type_code, results)
+    game_payload: dict[str, Any] = {
+        "id": game.pk,
+        "played_on": game.played_on.isoformat(),
+        "location": game.location.name if game.location_id else None,
+        "location_city": ((game.location.city or None) if game.location_id else None),
+        "location_state": ((game.location.state or None) if game.location_id else None),
+        "is_double": game.double_weight == 2,
+        "is_half": game.half_weight == 2,
+        "is_shutout": shutout,
+    }
+    if game_type.shutout is not None:
+        game_payload["shutout_label"] = game_type.shutout.label
+
     return {
         "schema_version": SCHEMA_VERSION,
         "scope": "game_set",
         "group": {"id": game.group.pk, "name": game.group.name},
-        "game": {
-            "id": game.pk,
-            "played_on": game.played_on.isoformat(),
-            "location": game.location.name if game.location_id else None,
-            "location_city": (
-                (game.location.city or None) if game.location_id else None
-            ),
-            "location_state": (
-                (game.location.state or None) if game.location_id else None
-            ),
-            "is_double": game.double_weight == 2,
-            "is_half": game.half_weight == 2,
-        },
+        "game": game_payload,
         "game_type": {
             "code": game_type.code,
             "name": game_type.name,

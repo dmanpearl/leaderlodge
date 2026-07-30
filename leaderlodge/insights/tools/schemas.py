@@ -57,6 +57,15 @@ _GAME_FEATURE_PROPERTIES = {
             "Call list_game_types for ask_aliases."
         ),
     },
+    "shutout_only": {
+        "type": "boolean",
+        "description": (
+            "When true, only shutout games (one winner, every opponent scored 0). "
+            "Use for active winner questions: who pickled, shut out, or won shutout "
+            "games. Rank by wins. Not for got pickled / was pickled (loser side; "
+            "not tracked). See list_game_types shutout metadata."
+        ),
+    },
 }
 
 ASK_TOOL_SCHEMAS: list[dict] = [
@@ -67,7 +76,9 @@ ASK_TOOL_SCHEMAS: list[dict] = [
             "description": (
                 "List game types that have recorded games in this group. Each "
                 "type includes features (score_type, double_game, half_game) "
-                "with value codes and ask_aliases for natural-language filters."
+                "with value codes and ask_aliases for natural-language filters. "
+                "Types that support shutouts also include a shutout object "
+                "with ask_aliases (e.g. pickle, shutout)."
             ),
             "parameters": {"type": "object", "properties": {}, "required": []},
         },

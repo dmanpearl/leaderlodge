@@ -219,7 +219,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
     game_filters = resolve_leaderboard_game_filters(
         request.GET,
         game_type_code=selected_game_type_code,
-    )
+    ).without_shutout_scope()
 
     if _leaderboard_needs_redirect(
         request,
@@ -497,7 +497,7 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     game_filters = resolve_leaderboard_game_filters(
         request.GET,
         game_type_code=game_type_code,
-    )
+    ).without_shutout_scope()
 
     detail = get_player_rank_detail(
         selected_group,

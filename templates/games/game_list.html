@@ -103,6 +103,7 @@
         </div>
         {% include "includes/game_size_filter.html" with select_id="filter-game-size" select_class="game-list-filter-select" %}
         {% include "includes/leaderboard_period_filters.html" with year_select_id="filter-year" month_select_id="filter-month" preset_select_id="filter-period-preset" start_date_id="filter-start-date" end_date_id="filter-end-date" %}
+        {% include "includes/shutout_filter.html" with shutout_filter=shutout_filter %}
         <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-sort" class="form-label">Sort</label>
           <select id="filter-sort" name="sort" class="form-select game-list-filter-select" onchange="this.form.submit()">
@@ -241,6 +242,14 @@
                       <span class="badge text-bg-secondary game-list-weight-badge">½</span>
                     {% elif row.game.score_type == "rally" %}
                       <span class="badge text-bg-secondary game-list-weight-badge">R</span>
+                    {% endif %}
+                    {% if row.is_shutout and shutout_icon_url %}
+                      <img
+                        src="{{ shutout_icon_url }}"
+                        class="game-list-shutout-icon"
+                        alt="{{ selected_game_type.shutout.label }}"
+                        title="{{ selected_game_type.shutout.label }}"
+                      />
                     {% endif %}
                   </td>
                 {% endif %}

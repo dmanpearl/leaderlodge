@@ -35,6 +35,46 @@
   box-shadow: 0 0 0 2px #ff6b81;
 }
 
+.result-badge--shutout {
+  background-color: #e8f5e9;
+  border: 1px solid #81c784;
+  color: #1b5e20;
+  font-weight: 500;
+}
+
+.game-detail-result-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.game-detail-result-shutout-icon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.result-badge-shutout-icon,
+.game-list-shutout-icon {
+  width: 1rem;
+  height: 1rem;
+  object-fit: contain;
+  vertical-align: -0.15em;
+}
+
+.result-badge--shutout .result-badge-shutout-icon {
+  margin-right: 0.2rem;
+}
+
+.game-list-shutout-icon {
+  margin-left: 0.15rem;
+}
+
+.game-list-weight-col .game-list-shutout-icon {
+  display: inline-block;
+}
+
 .game-list-row {
   cursor: pointer;
 }

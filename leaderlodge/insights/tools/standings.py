@@ -4,6 +4,7 @@ from datetime import date
 
 from leaderlodge.games.registry import (
     get_game_type,
+    game_type_shutout_config,
     score_direction_label,
     scoring_interpretation_note,
 )
@@ -19,7 +20,11 @@ from leaderlodge.leaderboards.service import (
     get_player_rank_detail,
     get_player_rankings,
 )
-from leaderlodge.games.features import feature_catalog_for_game_type, game_features_response_payload
+from leaderlodge.games.features import (
+    feature_catalog_for_game_type,
+    game_features_response_payload,
+    shutout_catalog_for_game_type,
+)
 
 
 def _attach_game_features(
@@ -35,11 +40,22 @@ def _attach_game_features(
                 game_type_code=game_type_code,
             )
         )
+        if game_filters.shutout_only:
+            config = game_type_shutout_config(game_type_code)
+            if config is not None:
+                payload.setdefault("game_features", []).append(
+                    {
+                        "key": "shutout_only",
+                        "title": config.label,
+                        "value_code": "1",
+                        "value_label": config.label,
+                    }
+                )
     return payload
 
 
-def _ranking_row(row) -> dict:
-    return {
+def _ranking_row(row, *, shutout_scope: bool = False) -> dict:
+    data = {
         "player_id": row.player.pk,
         "display_label": row.player.display_label,
         "rank": row.rank,
@@ -48,6 +64,12 @@ def _ranking_row(row) -> dict:
         "wins": round(row.wins, 2),
         "win_pct": round(row.win_pct, 1),
     }
+    if shutout_scope:
+        data["shutout_wins"] = data["wins"]
+        data["wins_note"] = (
+            "Winner-side shutout count only; team pair credit stays on the team row."
+        )
+    return data
 
 
 def query_leaderboard(
@@ -74,13 +96,16 @@ def query_leaderboard(
         location_ids=location_ids,
         game_filters=game_filters,
     )
+    shutout_scope = bool(game_filters and game_filters.shutout_only)
     payload = {
         "game_type_code": game_type_code,
         "game_type_name": game_type.name,
         "score_direction": score_direction_label(game_type_code),
         "game_size": game_size,
         "period": period.query_params() or {"all_time": True},
-        "rankings": [_ranking_row(row) for row in rankings[:limit]],
+        "rankings": [
+            _ranking_row(row, shutout_scope=shutout_scope) for row in rankings[:limit]
+        ],
     }
     if location_id is not None:
         payload["location_id"] = location_id
@@ -580,6 +605,11 @@ def list_game_types(group: Group) -> dict:
                 "name": get_game_type(code).name,
                 "score_direction": score_direction_label(code),
                 "features": feature_catalog_for_game_type(code),
+                **(
+                    {"shutout": shutout_entry}
+                    if (shutout_entry := shutout_catalog_for_game_type(code))
+                    else {}
+                ),
             }
             for code in codes
         ],

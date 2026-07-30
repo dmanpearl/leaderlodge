@@ -43,12 +43,21 @@ _ASK_DATE_RULES = """- Today's date is provided in the scope as "Today's date".
 _ASK_GAME_TYPE_RULES = """- Common game name variants: "Mahjong", "Mah-Jongg", "Mah Jongg", "MahJongg" all map to game_type_code="mahjongg"; "Rummy", "Progressive Rummy" map to "progressiverummy"; "Backgammon" maps to "backgammon"; "Dominos", "Dominoes" map to "dominos"; "Pickleball" maps to "pickleball".
 - When the user names a game that is not the default, map it to a code using the list above. If you are still unsure, call list_game_types to see available codes for this group before answering."""
 
-_ASK_GAME_FEATURE_RULES = """- Some game types support optional feature filters on leaderboard-style tools: score_type (pickleball), double_game (dominos), half_game (progressive rummy). These match the Leaderboards page filters.
+_ASK_GAME_FEATURE_RULES = """- Some game types support optional feature filters on leaderboard-style tools: score_type (pickleball), double_game (dominos), half_game (progressive rummy), and shutout_only (game types with shutout games, e.g. pickleball). shutout_only matches the Games list shutout filter, not a leaderboard column.
 - Resolve game_type_code first. Words like "normal" or "regular" are type-specific: pickleball traditional scoring is not the same as dominos regular games. Never guess cross-type.
-- Call list_game_types and read features[].values[].ask_aliases before mapping natural language (e.g. rally, double, half) to tool args.
+- Call list_game_types and read features[].values[].ask_aliases and shutout metadata before mapping natural language (e.g. rally, double, half, pickle, pickled, shutout) to tool args.
 - Pass only the feature keys that apply to the game type in scope. Omit unsupported keys rather than passing them with null.
-- When a question is scoped to a feature (Who is best at rally?, worst half-game player?, most double-game wins in dominos?), pass the matching filter on query_leaderboard, query_player_detail, compare_players, query_placement_leaders, query_loss_leaders, query_head_to_head, query_date_range_leaderboard, query_location_leaderboard, query_region_leaderboard, or query_team_pairings as appropriate.
+- When a question is scoped to a non-shutout feature (Who is best at rally?, worst half-game player?, most double-game wins in dominos?), pass the matching filter on query_leaderboard, query_player_detail, compare_players, query_placement_leaders, query_loss_leaders, query_head_to_head, query_date_range_leaderboard, query_location_leaderboard, query_region_leaderboard, or query_team_pairings as appropriate.
 - Tool results may include game_features with the applied filter labels; cite them when they clarify scope."""
+
+_ASK_SHUTOUT_RULES = """- Pickleball shutout grammar (other shutout-capable game types follow the same winner/loser split):
+- Active (winner shut out every opponent): "pickled", "shut out", "shutout win", "pickled their opponents", "Who pickled the most opponents?". The subject is the winning side.
+- Passive (losing side scored 0 in a shutout game): "got pickled", "was pickled", "got shut out", "Who got pickled the most?". The subject is the losing side.
+- LeaderLodge tracks shutout wins only (winner side). It does not track how many times a player got pickled.
+- For active pickled questions: call query_leaderboard (or query_player_detail for one named player) with shutout_only=true and all_time or the period in scope. Rank by wins or shutout_wins in those results (same value: winner-side shutout count only). Team shutouts credit the team row only, not individual members. Say so in the answer (e.g. "Harper+Lucy pickled opponents in 4 shutout games").
+- For passive got-pickled questions: do not call tools expecting a got-pickled count. Say clearly that loser-side pickled stats are not tracked yet. Do not use shutout_only wins as a proxy for got pickled.
+- Synonyms like shutout and shut out map to the same active (winner) path unless the question clearly uses got/was passive wording.
+- In answers, mirror the user's grammar: use pickled for active winner questions; use got pickled only when explaining that stat is unavailable."""
 
 _ASK_COMPARISON_RULES = """- When comparing two players, you MUST include each player's overall rank and rank_score for the game type and period in scope. Overall standing is the most important comparison: state it first (who ranks higher, each player's rank number, and rank_score). Higher rank_score is always better; lower rank number (1 is best) is better.
 - Call query_player_detail for each player when rank is not already in tool results. query_head_to_head covers shared-table stats only; it does not replace overall rank unless player rows already include rank and rank_score.
@@ -122,6 +131,7 @@ Rules:
 {_ASK_DATE_RULES}
 {_ASK_GAME_TYPE_RULES}
 {_ASK_GAME_FEATURE_RULES}
+{_ASK_SHUTOUT_RULES}
 {_ASK_ROSTER_INTERPRETATION_RULES}
 {_ASK_SCORE_DIRECTION_RULES}
 {_ASK_TEAM_RULES}

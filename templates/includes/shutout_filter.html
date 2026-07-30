@@ -1,0 +1,18 @@
+{% if shutout_filter %}
+  <div class="col-12 col-sm-6 col-lg-4 col-xl">
+    <div class="form-check mb-0">
+      <input
+        type="checkbox"
+        class="form-check-input"
+        id="{{ shutout_filter.input_id }}"
+        name="shutout"
+        value="1"
+        {% if shutout_filter.checked %}checked{% endif %}
+        onchange="this.form.submit()"
+      />
+      <label class="form-check-label" for="{{ shutout_filter.input_id }}">
+        {{ shutout_filter.label }}
+      </label>
+    </div>
+  </div>
+{% endif %}

@@ -18,7 +18,7 @@ from leaderlodge.games.forms import (
     prepare_participant_rows,
 )
 from leaderlodge.groups.player_search import roster_for_group
-from leaderlodge.games.game_type_icons import game_type_icon_url
+from leaderlodge.games.game_type_icons import game_type_icon_url, shutout_icon_url
 from leaderlodge.games.list_density import (
     game_list_date_format,
     resolve_game_list_density,
@@ -103,6 +103,7 @@ def _game_list_params(request: HttpRequest) -> dict:
         "period_preset": request.GET.get("period_preset", "").strip(),
         "start_date": request.GET.get("start_date", "").strip(),
         "end_date": request.GET.get("end_date", "").strip(),
+        "shutout": request.GET.get("shutout", "").strip(),
         "sort": sort,
     }
 
@@ -141,6 +142,7 @@ def _resolve_game_list_params(
         "period_preset": params.get("period_preset", ""),
         "start_date": params.get("start_date", ""),
         "end_date": params.get("end_date", ""),
+        "shutout": params.get("shutout", ""),
         "sort": params["sort"],
     }
     return resolved
@@ -277,6 +279,15 @@ def _filtered_games_queryset(user, params: dict[str, str], period=None):
     if isinstance(period, LeaderboardPeriod) and period.is_filtered:
         games_qs = filter_results_by_period(games_qs, period, game_prefix="")
 
+    from leaderlodge.leaderboards.game_filters import apply_shutout_filter_to_games_qs
+
+    if params.get("shutout") in ("1", "true", "on"):
+        games_qs = apply_shutout_filter_to_games_qs(
+            games_qs,
+            game_type_code=params["game_type"],
+            shutout_only=True,
+        )
+
     if params["sort"] == "asc":
         return games_qs.order_by("played_on", "created_at")
     return games_qs.order_by("-played_on", "-created_at")
@@ -353,6 +364,7 @@ def _game_list_has_filters(params: dict[str, str]) -> bool:
             "period_preset",
             "start_date",
             "end_date",
+            "shutout",
         )
         if key != "player_type" or params[key]
     )
@@ -399,6 +411,13 @@ def _game_list_filter_summary(
 
     if params.get("period_label"):
         labels.append(params["period_label"])
+
+    if params.get("shutout") in ("1", "true", "on") and params.get("game_type"):
+        from leaderlodge.games.registry import game_type_shutout_config
+
+        config = game_type_shutout_config(params["game_type"])
+        if config is not None:
+            labels.append(config.label)
 
     return ", ".join(labels)
 
@@ -554,6 +573,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
     params = _sanitize_game_list_params(params, locations, players, game_size_options)
     games_qs = _filtered_games_queryset(request.user, params, period=selected_period)
     selected_game_type = get_game_type(params["game_type"])
+    shutout_config = selected_game_type.shutout
     list_stats = build_game_list_stats(
         games_qs=games_qs,
         game_type_code=params["game_type"],
@@ -622,6 +642,18 @@ def game_list(request: HttpRequest) -> HttpResponse:
                 game_type_code=params["game_type"],
             ),
             "show_location_column": not params["location"],
+            "shutout_filter": (
+                {
+                    "label": shutout_config.label,
+                    "checked": params.get("shutout") in ("1", "true", "on"),
+                    "input_id": "filter-shutout-only",
+                }
+                if shutout_config is not None
+                else None
+            ),
+            "shutout_icon_url": (
+                shutout_icon_url(params["game_type"]) if shutout_config else ""
+            ),
             **period_ctx,
         },
     )
@@ -1005,6 +1037,13 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
         can_edit_group(request.user, game.group)
         and request.GET.get("record_again") == "1"
     )
+    from leaderlodge.games.shutouts import is_shutout_game, shutout_winner_result
+
+    is_shutout = is_shutout_game(game.game_type_code, results)
+    shutout_winner = shutout_winner_result(game.game_type_code, results)
+    shutout_winner_player_id = (
+        shutout_winner.player_id if shutout_winner is not None else None
+    )
     result_rows = [
         {
             "result": r,
@@ -1013,6 +1052,11 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
                 is_email_verified(r.player.linked_user)
                 if r.player.linked_user is not None
                 else False
+            ),
+            "is_shutout_winner": (
+                is_shutout
+                and shutout_winner_player_id is not None
+                and r.player_id == shutout_winner_player_id
             ),
         }
         for r in results
@@ -1025,9 +1069,11 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "game": game,
             "game_type": game_type,
             "game_type_icon_url": game_type_icon_url(game.game_type_code),
+            "shutout_icon_url": shutout_icon_url(game.game_type_code),
             "result_rows": result_rows,
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
+            "is_shutout": is_shutout,
             "insights_enabled": insights_ui_enabled(),
             "insight_models": tuple(MODEL_REGISTRY.values()),
             "selected_insight_model": preferred_insight_model_id(request),

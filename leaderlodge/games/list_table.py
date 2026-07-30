@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from leaderlodge.games.models import Game, GameParticipantResult
+from leaderlodge.games.shutouts import is_shutout_game
 
 WEIGHT_GAME_TYPES = frozenset({"dominos", "progressiverummy", "pickleball"})
 
@@ -23,6 +24,7 @@ class GameListScoreCell:
 class GameListRow:
     game: Game
     cells: list[GameListScoreCell]
+    is_shutout: bool = False
 
 
 def result_cell_class(*, result: str, is_double: bool) -> str:
@@ -63,6 +65,8 @@ def build_game_list_table(games: list[Game]) -> tuple[list, list[GameListRow]]:
     for game in games:
         game_results = results_by_game.get(game.pk, {})
         is_double = game.double_weight == 2
+        participant_rows = list(game_results.values())
+        shutout = is_shutout_game(game.game_type_code, participant_rows)
         cells = []
         for player in player_columns:
             participant = game_results.get(player.pk)
@@ -78,6 +82,6 @@ def build_game_list_table(games: list[Game]) -> tuple[list, list[GameListRow]]:
                         ),
                     )
                 )
-        rows.append(GameListRow(game=game, cells=cells))
+        rows.append(GameListRow(game=game, cells=cells, is_shutout=shutout))
 
     return player_columns, rows

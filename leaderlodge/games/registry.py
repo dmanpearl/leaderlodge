@@ -22,6 +22,14 @@ SCORE_TYPE_LABELS: dict[ScoreType, str] = {
 
 
 @dataclass(frozen=True)
+class ShutoutConfig:
+    """Per-game-type shutout display (e.g. Pickleball uses label Pickled)."""
+
+    label: str
+    icon_filename: str
+
+
+@dataclass(frozen=True)
 class GameTypeDefinition:
     code: str
     name: str
@@ -34,6 +42,7 @@ class GameTypeDefinition:
     score_types: tuple[ScoreType, ...] = ()
     supports_half_game: bool = False
     rank_uses_score_magnitude: bool = True
+    shutout: ShutoutConfig | None = None
 
 
 def _load_registry() -> dict[str, GameTypeDefinition]:
@@ -90,6 +99,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             icon_filename="pickleball.png",
             score_types=(ScoreType.TRADITIONAL, ScoreType.RALLY),
             rank_uses_score_magnitude=False,
+            shutout=ShutoutConfig(label="Pickled", icon_filename="pickle.png"),
         ),
     }
 
@@ -139,6 +149,14 @@ def game_type_supports_half_game(code: str) -> bool:
 
 def game_type_rank_uses_score_magnitude(code: str) -> bool:
     return get_game_type(code).rank_uses_score_magnitude
+
+
+def game_type_supports_shutout(code: str) -> bool:
+    return get_game_type(code).shutout is not None
+
+
+def game_type_shutout_config(code: str) -> ShutoutConfig | None:
+    return get_game_type(code).shutout
 
 
 def normalize_half_weight(*, is_half: bool) -> int:

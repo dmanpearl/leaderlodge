@@ -20,6 +20,8 @@ from django.db.models.functions import Cast
 
 from leaderlodge.games.list_stats import humanize_date_range
 from leaderlodge.games.registry import GAME_TYPES, ScoreDirection, get_game_type
+from leaderlodge.games.registry import game_type_supports_shutout, get_game_type
+from leaderlodge.games.shutouts import shutout_counts_by_player
 from leaderlodge.games.standings import standings_weight_expression
 from leaderlodge.leaderboards.game_filters import apply_game_filters_to_results_qs
 from leaderlodge.leaderboards.period import (
@@ -961,6 +963,13 @@ def _standings_for_game_type(
         games_played_by_id=games_played_by_id,
         apply_experience_weight=period.apply_bayesian,
     )
+    shutout_wins_by_player: dict[int, float] = {}
+    if (
+        game_filters is not None
+        and game_filters.shutout_only
+        and game_type_supports_shutout(game_type_code)
+    ):
+        shutout_wins_by_player = shutout_counts_by_player(game_type_code, results)
 
     rows: list[PlayerRanking] = []
     for player_id, row in stats.items():
@@ -970,6 +979,8 @@ def _standings_for_game_type(
         games_played = row["games_played"]
         effective_games = effective_games_played_for_player(player, games_played_by_id)
         wins = row["wins"]
+        if shutout_wins_by_player:
+            wins = shutout_wins_by_player.get(player.pk, 0.0)
         losses = row["losses"]
         win_points = row["win_points"]
         credit = finish_points_by_player.get(player.pk, FinishPointsCredit())

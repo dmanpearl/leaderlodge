@@ -126,7 +126,17 @@
               </td>
               <td>{{ result.score }}</td>
               <td>
-                {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}
+                <span class="game-detail-result-badges">
+                  {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}
+                  {% if row.is_shutout_winner and shutout_icon_url %}
+                    <img
+                      src="{{ shutout_icon_url }}"
+                      class="game-detail-result-shutout-icon"
+                      alt="{{ game_type.shutout.label }}"
+                      title="{{ game_type.shutout.label }}"
+                    />
+                  {% endif %}
+                </span>
               </td>
               {% if can_invite_guests %}
                 <td class="text-end group-list-actions-col">

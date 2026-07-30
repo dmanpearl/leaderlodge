@@ -284,6 +284,36 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
         ),
     ),
     _example(
+        "Pickleball pickled (winner)",
+        (
+            "Who pickled the most opponents?",
+            "Who wins the most shutout games in pickleball?",
+        ),
+        reliability="supported",
+        game_type_code="pickleball",
+        tool_calls=(
+            AskToolCall(
+                "query_leaderboard",
+                {"shutout_only": True, "all_time": True},
+            ),
+        ),
+        limitation=(
+            "Pickled here means the winning side shut out every opponent. "
+            "Rank by wins with shutout_only=true."
+        ),
+    ),
+    _example(
+        "Got pickled (loser)",
+        (
+            "Who got pickled the most?",
+            "Who was pickled the most in pickleball?",
+        ),
+        reliability="not_supported",
+        game_type_code="pickleball",
+        limitation="Loser-side got-pickled counts are not tracked. Ask can only answer winner-side pickled (shutout wins).",
+        try_it_enabled=True,
+    ),
+    _example(
         "Double dominos standings",
         (
             "Who wins the most double games in dominos?",

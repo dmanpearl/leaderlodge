@@ -151,14 +151,14 @@
 - [x] 7cf09f5 Admin Games View: Add filter by group
 - [x] 624635f Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. Option B: experience-weighted team credit for individuals; team rows use average member games for Bayesian. See `docs/rank-scoring.md`.
 - [x] 7c58939 Team Scoring: Add separate, smaller `LEADERBOARD_TEAM_BAYESIAN_K` (8) for team-context shrinkage (team rows' own score and individual credit from team wins), distinct from the solo `LEADERBOARD_BAYESIAN_K` (20). Fixes teams being pushed too far down after the prior Bayesian fix, since a specific pairing accumulates its own games far more slowly than an individual who rotates partners. See `docs/rank-scoring.md`.
-- [x] Leaderboard Detail View 'Record by Partner' table use graduated colors for the rank pills based on the rank number. Avoid contrast issue between text color and pill background color
+- [x] 72cc10e Leaderboard Detail View 'Record by Partner' table use graduated colors for the rank pills based on the rank number. Avoid contrast issue between text color and pill background color
+- [x] Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15/change/)
 
 ## Open Items
 
 - [ ] Score Description: Make a page the explains the ranking system smilar to rank-score.md. Share content if possible
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14/change/)
-- [ ] Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15/change/)
 - [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17/change/)
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other. I prefer the larger system size, but I want to follow the path of least resistance

@@ -161,6 +161,43 @@ def feature_catalog_for_game_type(game_type_code: str) -> list[dict]:
     ]
 
 
+def shutout_catalog_for_game_type(game_type_code: str) -> dict | None:
+    """JSON-friendly shutout metadata for Ask discovery tools."""
+    from leaderlodge.games.registry import game_type_shutout_config
+
+    config = game_type_shutout_config(game_type_code)
+    if config is None:
+        return None
+
+    label = config.label
+    label_lower = label.lower()
+    aliases = {label_lower, "shutout", "shutouts", "pickle", "pickled", "pickles"}
+
+    return {
+        "key": "shutout_only",
+        "title": label,
+        "description": (
+            f"When true, only shutout games (one winner, every opponent scored 0). "
+            f"Active winner phrasing (pickled, shut out): rank by wins. "
+            f"Passive got pickled is not tracked."
+        ),
+        "grammar": {
+            "active_winner": [
+                "pickled",
+                "shut out",
+                "shutout win",
+                "pickled opponents",
+            ],
+            "passive_loser_not_tracked": [
+                "got pickled",
+                "was pickled",
+                "got shut out",
+            ],
+        },
+        "ask_aliases": sorted(aliases),
+    }
+
+
 def resolve_feature_selections(
     params,
     *,

@@ -19,3 +19,12 @@ def game_type_icon_url(game_type_code: str) -> str:
     if not image_path:
         return ""
     return static(image_path)
+
+
+def shutout_icon_url(game_type_code: str) -> str:
+    from leaderlodge.games.registry import game_type_shutout_config
+
+    config = game_type_shutout_config(game_type_code)
+    if config is None:
+        return ""
+    return static(f"{GAME_TYPE_ICON_IMAGE_PREFIX}{config.icon_filename}")
