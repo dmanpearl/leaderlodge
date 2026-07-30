@@ -148,11 +148,12 @@
 - [x] 1d6a6d8 Edit Game needs the ability to edit special fields, e.g. traditional or rally scoring type for Pickleball (https://leaderlodge.com/admin/feedback/feedback/16/change/)
 - [x] fb91dcc Leaderboard: Filtering supported by extra game-specific fields score_type, double_game, half_game. Only show if supported by selected game-type
 - [x] 0d12512 Ask the Lodge: Requests supported for extra game-specific fields score_type, double_game, half_game. 'Who is best at Rally?', 'Who is the worst half game player?', 'Who wins the most double-games in Dominos?' (see `leaderlodge/games/features.py`)
-- [x] Admin Games View: Add filter by group
+- [x] 7cf09f5 Admin Games View: Add filter by group
+- [x] Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. Option B: experience-weighted team credit for individuals; team rows use average member games for Bayesian. See `docs/rank-scoring.md`.
 
 ## Open Items
 
-- [ ] Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. This can elevate brand new players to the top of the leaderboard by winning a single pair-game with an accomplished teammate. Team experience should be the sum of the players, players should individually get docked for lack of experience
+- [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14/change/)
 - [ ] Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15/change/)
 - [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17/change/)

@@ -46,8 +46,14 @@ def query_rank_trends(
         Q(game__played_on__gte=prior_start) & Q(game__played_on__lt=recent_start)
     )
 
-    recent_points = _finish_points_by_player(recent_qs, low_wins=low_wins)
-    prior_points = _finish_points_by_player(prior_qs, low_wins=low_wins)
+    recent_credits = _finish_points_by_player(recent_qs, low_wins=low_wins)
+    prior_credits = _finish_points_by_player(prior_qs, low_wins=low_wins)
+    recent_points = {
+        player_id: credit.total for player_id, credit in recent_credits.items()
+    }
+    prior_points = {
+        player_id: credit.total for player_id, credit in prior_credits.items()
+    }
     recent_games = _weighted_games_by_player(recent_qs)
     prior_games = _weighted_games_by_player(prior_qs)
 
@@ -143,14 +149,14 @@ def query_month_leaders(
         results_qs = results_qs.filter(game__player_count=game_size)
 
     low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
-    finish_points = _finish_points_by_player(results_qs, low_wins=low_wins)
+    finish_credits = _finish_points_by_player(results_qs, low_wins=low_wins)
     games_by_player = _weighted_games_by_player(results_qs)
     rows = []
-    for player_id, points in finish_points.items():
+    for player_id, credit in finish_credits.items():
         games_played = games_by_player.get(player_id, 0.0)
         if games_played <= 0:
             continue
-        score = compute_rank_score(points_total=points, games_played=games_played)
+        score = compute_rank_score(points_total=credit.total, games_played=games_played)
         wins = _weighted_wins_for_player(results_qs.filter(player_id=player_id))
         rows.append(
             {

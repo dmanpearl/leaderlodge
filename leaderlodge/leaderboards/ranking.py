@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 TIE_WIN_POINTS_FACTOR = 0.5
 FINISH_POINTS_EXPONENT = 1.0
 LOW_WINS_REFERENCE_SCORE = 500
@@ -129,6 +131,65 @@ def apply_bayesian_to_rank_score(
         return 0.0
 
     return raw_rank_score * factor
+
+
+@dataclass
+class FinishPointsCredit:
+    """Finish points credited to one leaderboard row, split by source."""
+
+    solo: float = 0.0
+    team: float = 0.0
+
+    @property
+    def total(self) -> float:
+        return self.solo + self.team
+
+
+def team_member_finish_credit(
+    side_finish_points: float,
+    *,
+    member_games_played: float,
+    apply_experience_weight: bool,
+) -> float:
+    """
+    Experience-weighted finish credit for an individual from a team side.
+
+    When enabled, scales side finish points by the member's Bayesian factor
+    so rookies receive less individual credit from team wins.
+    """
+    if not apply_experience_weight:
+        return side_finish_points
+    return side_finish_points * compute_bayesian_factor(member_games_played)
+
+
+def compute_display_rank_score(
+    *,
+    credit: FinishPointsCredit,
+    games_played: float,
+    player_is_team: bool,
+    effective_games_for_bayesian: float,
+    apply_bayesian: bool,
+) -> float:
+    """
+    Final rank score for display and sort order.
+
+    Individuals: Bayesian applies to solo-sourced points only; team-sourced
+    points are pre-weighted at credit time. Team entities: full side credit
+    with Bayesian on collective member experience.
+    """
+    if games_played <= 0:
+        return 0.0
+    if not apply_bayesian:
+        return credit.total / games_played
+    if player_is_team:
+        raw_rank_score = credit.total / games_played
+        return apply_bayesian_to_rank_score(
+            raw_rank_score,
+            effective_games_for_bayesian,
+        )
+    solo_raw = credit.solo / games_played
+    team_raw = credit.team / games_played
+    return solo_raw * compute_bayesian_factor(games_played) + team_raw
 
 
 def rank_score_sort_key(

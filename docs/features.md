@@ -42,8 +42,9 @@ and leaderboards for social games played by groups of people.
 - Per-game-type leaderboards scoped to each group
 - Rank score formula: field-weighted finish placement points accounting for
   player count, placement distance, game weight, and score magnitude
-- Bayesian adjustment: rank scores are weighted by games / (games + k) so
-  players with few games cannot dominate the leaderboard on lucky early results
+- Bayesian adjustment: solo finish points are weighted by games / (games + k);
+  team-sourced individual credit is scaled at credit time by the same factor.
+  See [rank-scoring.md](./rank-scoring.md).
 - Provisional badge: players below the game threshold are marked "New" on the
   all-time leaderboard for transparency
 - Filtering by period: all time, year, month, quick ranges (today, yesterday, last 7 days, last weekend, last week), or custom from/to dates (same filters on Games list and Ask)
@@ -73,7 +74,7 @@ and leaderboards for social games played by groups of people.
 - Combine two roster players in the same group (owners and staff); not allowed if they have played in the same game
 - Hide individual players from game stats
 - Team support: pairs of players appear as a combined roster entry with
-individual leaderboard credit still applied
+  experience-weighted individual credit and a separate team leaderboard row
 
 ## Invitations
 

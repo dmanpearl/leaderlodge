@@ -30,8 +30,8 @@ from leaderlodge.leaderboards.ranking import (
     FINISH_POINTS_EXPONENT,
     SORTABLE_COLUMNS,
     TIE_WIN_POINTS_FACTOR,
-    apply_bayesian_to_rank_score,
-    compute_bayesian_factor,
+    FinishPointsCredit,
+    compute_display_rank_score,
     compute_finish_points,
     compute_half_game_penalty_factor,
     compute_percentage,
@@ -39,6 +39,7 @@ from leaderlodge.leaderboards.ranking import (
     compute_score_magnitude,
     ordinal_place_label,
     rank_score_sort_key,
+    team_member_finish_credit,
 )
 
 if TYPE_CHECKING:
@@ -219,6 +220,28 @@ def get_player_rank_detail(
     if not results_qs.exists():
         return None
 
+    standings = _standings_for_game_type(
+        group,
+        game_type_code,
+        location_id=location_id,
+        location_ids=location_ids,
+        period=period,
+        game_size=game_size,
+        game_filters=game_filters,
+    )
+    ranking_row = next((row for row in standings if row.player.pk == player.pk), None)
+    if ranking_row is None:
+        return None
+
+    rankings = _assign_ranks(
+        [row for row in standings if row.games_played > 0],
+        low_wins=low_wins,
+    )
+    rank_by_player = {row.player.pk: row.rank for row in rankings}
+    ranking = replace(ranking_row, rank=rank_by_player.get(player.pk))
+
+    apply_team_finish_weight = period.apply_bayesian and not player.is_team
+
     placement_stats: dict[int, dict[str, object]] = defaultdict(
         lambda: {
             "weighted_count": 0.0,
@@ -313,6 +336,12 @@ def get_player_rank_detail(
                 placement=placement,
             ),
         )
+        if apply_team_finish_weight and result.player.is_team:
+            finish_points = team_member_finish_credit(
+                finish_points,
+                member_games_played=ranking.games_played,
+                apply_experience_weight=True,
+            )
         bucket["finish_points"] = float(bucket["finish_points"]) + finish_points
         by_size = bucket["by_size"]
         by_size[player_count] = by_size[player_count] + weight
@@ -329,36 +358,14 @@ def get_player_rank_detail(
         else ""
     )
 
-    standings = _standings_for_game_type(
-        group,
-        game_type_code,
-        location_id=location_id,
-        location_ids=location_ids,
-        period=period,
-        game_size=game_size,
-    )
-    ranking_row = next((row for row in standings if row.player.pk == player.pk), None)
-    if ranking_row is None:
-        return None
-
-    rankings = _assign_ranks(
-        [row for row in standings if row.games_played > 0],
-        low_wins=low_wins,
-    )
-    rank_by_player = {row.player.pk: row.rank for row in rankings}
-    ranking = replace(ranking_row, rank=rank_by_player.get(player.pk))
-
-    from leaderlodge.groups.teams import effective_games_played_for_player
-
-    games_played_by_id = {row.player.pk: row.games_played for row in standings}
-    effective_games = effective_games_played_for_player(player, games_played_by_id)
-
     raw_rank_score = compute_rank_score(
         points_total=ranking.finish_points,
         games_played=ranking.games_played,
     )
     bayesian_factor = (
-        compute_bayesian_factor(effective_games) if period.apply_bayesian else 1.0
+        (ranking.rank_score / raw_rank_score)
+        if period.apply_bayesian and raw_rank_score > 0
+        else 1.0
     )
     half_game_penalty = compute_half_game_penalty_factor(
         weighted_games=weighted_games,
@@ -448,15 +455,15 @@ def get_player_rankings(
     game_filters: LeaderboardGameFilters | None = None,
 ) -> list[PlayerRanking]:
     """
-    Return ranked players for a group, ordered by vested rank score.
+    Return ranked players for a group, ordered by rank score.
 
     When game_type_code is set, only that game type is included.
     When game_type_code is None, all game types with recorded games are
     included. The same player may appear multiple times (once per game type).
 
-    Players with no recorded games are omitted. Low game counts reduce the
-    displayed rank score via the vesting multiplier in settings.
-    Team participant results credit the team entity and each member fully.
+    Players with no recorded games are omitted. Team sides credit the team
+    entity at full value and each member at an experience-weighted share; solo
+    results credit full finish points. See docs/rank-scoring.md.
     """
     if game_type_code is not None:
         game_type_codes = [game_type_code]
@@ -625,9 +632,11 @@ def _finish_points_by_player(
     results_qs,
     *,
     low_wins: bool,
-) -> dict[int, float]:
+    games_played_by_id: dict[int, float] | None = None,
+    apply_experience_weight: bool = False,
+) -> dict[int, FinishPointsCredit]:
     from leaderlodge.games.models import GameParticipantResult
-    from leaderlodge.groups.teams import leaderboard_credit_players
+    from leaderlodge.groups.teams import team_member_players
 
     results = list(
         results_qs.select_related("player", "game").prefetch_related(
@@ -641,7 +650,7 @@ def _finish_points_by_player(
     for result in results:
         game_scores[result.game_id].append(result.score)
 
-    totals: dict[int, float] = defaultdict(float)
+    totals: dict[int, FinishPointsCredit] = defaultdict(FinishPointsCredit)
     for result in results:
         weight = result.game.double_weight / result.game.half_weight
         points = compute_finish_points(
@@ -656,8 +665,26 @@ def _finish_points_by_player(
                 placement=result.placement if result.placement is not None else 0,
             ),
         )
-        for credited in leaderboard_credit_players(result.player):
-            totals[credited.pk] += points
+        if result.player.is_team:
+            team_credit = totals[result.player.pk]
+            team_credit.solo += points
+            for member in team_member_players(result.player):
+                member_games = (
+                    float(games_played_by_id.get(member.pk, 0.0))
+                    if games_played_by_id is not None
+                    else 0.0
+                )
+                member_credit = totals[member.pk]
+                member_credit.team += team_member_finish_credit(
+                    points,
+                    member_games_played=member_games,
+                    apply_experience_weight=apply_experience_weight,
+                )
+            continue
+
+        solo_credit = totals[result.player.pk]
+        solo_credit.solo += points
+
     return dict(totals)
 
 
@@ -775,7 +802,6 @@ def _standings_for_game_type(
             "player__team_members__member__linked_user",
         )
     )
-    finish_points_by_player = _finish_points_by_player(results_qs, low_wins=low_wins)
 
     stats: dict[int, dict[str, float]] = defaultdict(
         lambda: {
@@ -808,6 +834,13 @@ def _standings_for_game_type(
     games_played_by_id = {
         player_id: row["games_played"] for player_id, row in stats.items()
     }
+    finish_points_by_player = _finish_points_by_player(
+        results_qs,
+        low_wins=low_wins,
+        games_played_by_id=games_played_by_id,
+        apply_experience_weight=period.apply_bayesian,
+    )
+
     rows: list[PlayerRanking] = []
     for player_id, row in stats.items():
         player = players_by_id[player_id]
@@ -818,7 +851,8 @@ def _standings_for_game_type(
         wins = row["wins"]
         losses = row["losses"]
         win_points = row["win_points"]
-        finish_points = finish_points_by_player.get(player.pk, 0.0)
+        credit = finish_points_by_player.get(player.pk, FinishPointsCredit())
+        finish_points = credit.total
         raw_rank_score = compute_rank_score(
             points_total=finish_points,
             games_played=games_played,
@@ -827,9 +861,11 @@ def _standings_for_game_type(
             weighted_games=games_played,
             half_weighted_games=row["half_weighted_games"],
         )
-        rank_score = apply_bayesian_to_rank_score(
-            raw_rank_score,
-            effective_games,
+        rank_score = compute_display_rank_score(
+            credit=credit,
+            games_played=games_played,
+            player_is_team=player.is_team,
+            effective_games_for_bayesian=effective_games,
             apply_bayesian=period.apply_bayesian,
         )
         rows.append(

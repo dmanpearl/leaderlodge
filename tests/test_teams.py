@@ -219,7 +219,7 @@ def test_player_type_people_excludes_teams(group, user):
 
 
 @pytest.mark.django_db
-def test_team_bayesian_uses_lowest_member_games_played(group, user):
+def test_team_bayesian_uses_average_member_games_played(group, user):
     from leaderlodge.leaderboards.ranking import (
         apply_bayesian_to_rank_score,
         compute_rank_score,
@@ -293,13 +293,13 @@ def test_team_bayesian_uses_lowest_member_games_played(group, user):
     team_row = rankings[0]
     assert team_row.player.pk == team.pk
     assert team_row.games_played == 1.0
-    # Nancy has 21 games, Zach has 2; Bayesian uses min = 2, not team games = 1.
+    # Nancy has 21 games, Zach has 2; Bayesian uses average = 11.5.
     expected = apply_bayesian_to_rank_score(
         compute_rank_score(
             points_total=team_row.finish_points,
             games_played=team_row.games_played,
         ),
-        2.0,
+        11.5,
     )
     assert team_row.rank_score == pytest.approx(expected)
     not_team_only = apply_bayesian_to_rank_score(
@@ -310,3 +310,83 @@ def test_team_bayesian_uses_lowest_member_games_played(group, user):
         1.0,
     )
     assert team_row.rank_score != pytest.approx(not_team_only)
+
+
+@pytest.mark.django_db
+def test_rookie_gets_reduced_individual_credit_from_team_win(group, user):
+    from leaderlodge.leaderboards.ranking import (
+        compute_bayesian_factor,
+        team_member_finish_credit,
+    )
+
+    owner, nancy, zach, _ = _people(group)
+    for _ in range(20):
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=timezone.localdate(),
+            participants=[
+                ParticipantInput(
+                    player=nancy,
+                    score=30,
+                    result=GameParticipantResult.Result.WIN,
+                    placement=0,
+                ),
+                ParticipantInput(
+                    player=owner,
+                    score=10,
+                    result=GameParticipantResult.Result.PLAYED,
+                    placement=1,
+                ),
+            ],
+        )
+
+    team = resolve_side_player(group=group, members=[nancy, zach])
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=team,
+                score=30,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=owner,
+                score=10,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+
+    rankings = get_player_rankings(
+        group, game_type_code="dominos", player_type="people"
+    )
+    by_label = {row.player.display_label: row for row in rankings}
+    nancy_row = by_label["Nancy"]
+    zach_row = by_label["Zach"]
+
+    team_rankings = get_player_rankings(
+        group, game_type_code="dominos", player_type="team"
+    )
+    team_row = next(
+        row for row in team_rankings if row.player.display_label == "Nancy+Zach"
+    )
+
+    side_finish_points = 60.0
+    assert team_row.finish_points == pytest.approx(side_finish_points)
+    assert nancy_row.finish_points > zach_row.finish_points
+    assert zach_row.finish_points == pytest.approx(
+        team_member_finish_credit(
+            side_finish_points,
+            member_games_played=1.0,
+            apply_experience_weight=True,
+        )
+    )
+    assert nancy_row.finish_points > side_finish_points * compute_bayesian_factor(1.0)
+    assert zach_row.rank_score < nancy_row.rank_score

@@ -11,11 +11,14 @@ from leaderlodge.leaderboards.ranking import (
     FINISH_POINTS_EXPONENT,
     LOW_WINS_REFERENCE_SCORE,
     TIE_WIN_POINTS_FACTOR,
+    FinishPointsCredit,
     apply_bayesian_to_rank_score,
     compute_bayesian_factor,
+    compute_display_rank_score,
     compute_finish_points,
     compute_rank_score,
     compute_score_magnitude,
+    team_member_finish_credit,
 )
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
@@ -108,6 +111,38 @@ def test_apply_bayesian_to_rank_score():
     assert apply_bayesian_to_rank_score(4.0, 10, apply_bayesian=False) == pytest.approx(
         4.0
     )
+
+
+@override_settings(LEADERBOARD_BAYESIAN_K=20)
+def test_team_member_finish_credit_scales_by_member_games():
+    side_points = 60.0
+    rookie_credit = team_member_finish_credit(
+        side_points,
+        member_games_played=1.0,
+        apply_experience_weight=True,
+    )
+    veteran_credit = team_member_finish_credit(
+        side_points,
+        member_games_played=20.0,
+        apply_experience_weight=True,
+    )
+    assert rookie_credit == pytest.approx(side_points * compute_bayesian_factor(1.0))
+    assert veteran_credit == pytest.approx(side_points * compute_bayesian_factor(20.0))
+    assert veteran_credit > rookie_credit
+
+
+@override_settings(LEADERBOARD_BAYESIAN_K=20)
+def test_compute_display_rank_score_splits_solo_and_team_bayesian():
+    credit = FinishPointsCredit(solo=100.0, team=10.0)
+    score = compute_display_rank_score(
+        credit=credit,
+        games_played=10.0,
+        player_is_team=False,
+        effective_games_for_bayesian=10.0,
+        apply_bayesian=True,
+    )
+    expected = (100.0 / 10.0) * compute_bayesian_factor(10.0) + (10.0 / 10.0)
+    assert score == pytest.approx(expected)
 
 
 def _record_progressive(user, group, players, winner):
