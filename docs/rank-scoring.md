@@ -137,28 +137,44 @@ For pickleball, two wins at different recorded scores (11 vs 15) each contribute
 
 ## Step 4: Bayesian factor (experience)
 
-Default prior strength:
+There are **two** prior strengths, because a specific team pairing accumulates
+its own games far more slowly than an individual who pools games across every
+partner. Using one shared `k` for both would either be too lenient for
+individuals or too harsh for teams; two constants let each context mature at
+its own realistic rate.
 
 ```
-k = LEADERBOARD_BAYESIAN_K   (default 20)
+k          = LEADERBOARD_BAYESIAN_K        (default 20, solo-context)
+team_k     = LEADERBOARD_TEAM_BAYESIAN_K   (default 8, team-context)
 ```
 
 For a given weighted games count `g`:
 
 ```
-bayesian_factor(g) = g / (g + k)
+bayesian_factor(g)      = g / (g + k)
+team_bayesian_factor(g) = g / (g + team_k)
 ```
 
-When `g = 0`, `bayesian_factor = 0`.
+When `g = 0`, both are `0`.
 
-Examples with `k = 20`:
+Examples:
 
-| `g` | `bayesian_factor(g)` |
-|-----|----------------------|
-| 1 | 1/21 ≈ 0.048 |
-| 10 | 10/30 ≈ 0.333 |
-| 20 | 20/40 = 0.5 |
-| 100 | 100/120 ≈ 0.833 |
+| `g` | `bayesian_factor(g)`, `k=20` | `team_bayesian_factor(g)`, `team_k=8` |
+|-----|-------------------------------|------------------------------------------|
+| 1 | 1/21 ≈ 0.048 | 1/9 ≈ 0.111 |
+| 3 | 3/23 ≈ 0.130 | 3/11 ≈ 0.273 |
+| 10 | 10/30 ≈ 0.333 | 10/18 ≈ 0.556 |
+| 20 | 20/40 = 0.5 | 20/28 ≈ 0.714 |
+| 100 | 100/120 ≈ 0.833 | 100/108 ≈ 0.926 |
+
+**Solo-context** (`k=20`, `compute_bayesian_factor`): a person's own rank
+score from solo-sourced points, and the Bayesian applied to an individual's
+solo-sourced share in Step 8.
+
+**Team-context** (`team_k=8`, `compute_team_bayesian_factor`): a team entity's
+own rank score (Step 8), and how much individual credit a member earns from a
+team win (Step 5). Both use the pairing's own weighted games as `g`, never a
+member's total games or a member average.
 
 This replaced an older **vesting** formula (roughly `raw × (games/threshold)²`).
 The **"New" badge** on the all-time leaderboard is UI-only (`games_played < 10`);
@@ -191,8 +207,12 @@ team_entity_solo_finish_points += side_finish_points
 Each **member** receives experience-weighted credit (all-time only):
 
 ```
-member_team_finish_points += side_finish_points × bayesian_factor(member_games_played)
+member_team_finish_points += side_finish_points × team_bayesian_factor(member_games_played)
 ```
+
+This uses `team_bayesian_factor` (`team_k=8`), not the solo `bayesian_factor`
+(`k=20`), so a group's most active player is not perpetually treated as a
+rookie just because their absolute game count is modest.
 
 `member_games_played` is that member's total weighted games in scope (solo plus
 team), computed before this step.
@@ -248,13 +268,15 @@ rank_score = raw_rank_score
 **All-time leaderboard, team entity row:**
 
 ```
-rank_score = raw_rank_score × bayesian_factor(team_games_played)
+rank_score = raw_rank_score × team_bayesian_factor(team_games_played)
 ```
 
 `team_games_played` is the team's own weighted games as that pair (1 for one
 David+Karen game, 3 for three David+Sara games). Member career totals are not
 used here. Among teams with the same raw average and win rate, more team games
-means a higher Bayesian factor and a higher rank score.
+means a higher Bayesian factor and a higher rank score. `team_bayesian_factor`
+uses `team_k=8`, gentler than the solo `k=20`, since a specific pairing rarely
+accumulates as many games as an individual who rotates partners.
 
 **All-time leaderboard, individual person:**
 
@@ -341,21 +363,26 @@ rank_score ≈ 57.1 × (21/41) + 1.5 ≈ 30.7
 
 Zach no longer inherits Nancy's full 60-point side credit on the individual
 leaderboard. The team row `"Nancy+Zach"` still carries the full 60 with
-Bayesian factor `1 / (1 + 20)` from **one team game**, not member career totals.
+team Bayesian factor `1 / (1 + 8)` from **one team game**, not member career
+totals.
 
 ---
 
 ## Worked example: pickleball teams with equal win rate
 
 David+Karen: 1 team win. David+Sara: 3 team wins. Both have raw average 2.0
-(win-only magnitude, 2-side pickleball).
+(win-only magnitude, 2-side pickleball). Team-context shrinkage uses `team_k=8`.
 
-| Team | Team games | Raw | Bayesian factor | Rank score |
-|------|------------|-----|-----------------|------------|
-| David+Karen | 1 | 2.0 | 1/21 ≈ 0.048 | ≈ 0.10 |
-| David+Sara | 3 | 2.0 | 3/23 ≈ 0.130 | ≈ 0.26 |
+| Team | Team games | Raw | Team Bayesian factor | Rank score |
+|------|------------|-----|-----------------------|------------|
+| David+Karen | 1 | 2.0 | 1/9 ≈ 0.111 | ≈ 0.22 |
+| David+Sara | 3 | 2.0 | 3/11 ≈ 0.273 | ≈ 0.55 |
 
 David+Sara ranks higher: same win rate and raw average, more games as a pair.
+With `team_k=8` (rather than the solo `k=20`), David+Sara's 3-0 record now
+lands close to a strong individual's rank score instead of being buried near
+the bottom of a combined leaderboard, since a specific pairing naturally
+accumulates far fewer games than an individual who rotates partners.
 
 ---
 
@@ -383,6 +410,6 @@ entities. Both use the formulas above.
 |------|--------|-----------|
 | Magnitude and side points | `leaderlodge/leaderboards/ranking.py` | `rank_score_magnitude_for_result`, `compute_score_magnitude`, `compute_finish_points` |
 | Game-type flags | `leaderlodge/games/registry.py` | `GameTypeDefinition.rank_uses_score_magnitude`, `game_type_rank_uses_score_magnitude` |
-| Experience weight and rank score | `leaderlodge/leaderboards/ranking.py` | `team_member_finish_credit`, `compute_display_rank_score`, `compute_bayesian_factor` |
+| Experience weight and rank score | `leaderlodge/leaderboards/ranking.py` | `team_member_finish_credit`, `compute_display_rank_score`, `compute_bayesian_factor`, `compute_team_bayesian_factor` |
 | Aggregation | `leaderlodge/leaderboards/service.py` | `_finish_points_by_player`, `_standings_for_game_type` |
 | Team expansion | `leaderlodge/groups/teams.py` | `leaderboard_credit_players`, `effective_games_played_for_player` |

@@ -221,8 +221,8 @@ def test_player_type_people_excludes_teams(group, user):
 @pytest.mark.django_db
 def test_team_bayesian_uses_team_games_played(group, user):
     from leaderlodge.leaderboards.ranking import (
-        apply_bayesian_to_rank_score,
         compute_rank_score,
+        compute_team_bayesian_factor,
     )
 
     owner, nancy, zach, _ = _people(group)
@@ -294,21 +294,13 @@ def test_team_bayesian_uses_team_games_played(group, user):
     assert team_row.player.pk == team.pk
     assert team_row.games_played == 1.0
     # Team row Bayesian uses team games (1), not member career totals (21 and 2).
-    expected = apply_bayesian_to_rank_score(
-        compute_rank_score(
-            points_total=team_row.finish_points,
-            games_played=team_row.games_played,
-        ),
-        team_row.games_played,
+    raw_rank_score = compute_rank_score(
+        points_total=team_row.finish_points,
+        games_played=team_row.games_played,
     )
+    expected = raw_rank_score * compute_team_bayesian_factor(team_row.games_played)
     assert team_row.rank_score == pytest.approx(expected)
-    member_average = apply_bayesian_to_rank_score(
-        compute_rank_score(
-            points_total=team_row.finish_points,
-            games_played=team_row.games_played,
-        ),
-        11.5,
-    )
+    member_average = raw_rank_score * compute_team_bayesian_factor(11.5)
     assert team_row.rank_score != pytest.approx(member_average)
 
 

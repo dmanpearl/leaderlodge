@@ -150,9 +150,11 @@
 - [x] 0d12512 Ask the Lodge: Requests supported for extra game-specific fields score_type, double_game, half_game. 'Who is best at Rally?', 'Who is the worst half game player?', 'Who wins the most double-games in Dominos?' (see `leaderlodge/games/features.py`)
 - [x] 7cf09f5 Admin Games View: Add filter by group
 - [x] 624635f Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. Option B: experience-weighted team credit for individuals; team rows use average member games for Bayesian. See `docs/rank-scoring.md`.
+- [ ] Team Scoring: Add separate, smaller `LEADERBOARD_TEAM_BAYESIAN_K` (8) for team-context shrinkage (team rows' own score and individual credit from team wins), distinct from the solo `LEADERBOARD_BAYESIAN_K` (20). Fixes teams being pushed too far down after the prior Bayesian fix, since a specific pairing accumulates its own games far more slowly than an individual who rotates partners. See `docs/rank-scoring.md`.
 
 ## Open Items
 
+- [ ] Score Description: Make a page the explains the ranking system smilar to rank-score.md. Share content if possible
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14/change/)
 - [ ] Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15/change/)

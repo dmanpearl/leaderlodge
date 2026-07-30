@@ -177,3 +177,49 @@ def test_pickleball_rank_score_ignores_winning_score_margin(user, group):
     assert winner.player.pk == players[0].pk
     assert winner.finish_points == pytest.approx(4.0)
     assert winner.games_played == pytest.approx(2.0)
+
+
+@pytest.mark.django_db
+def test_undefeated_team_is_not_buried_by_bayesian_shrinkage(user, group):
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.groups.teams import resolve_side_player
+    from leaderlodge.leaderboards.service import get_player_rankings
+
+    owner = group.players.get(linked_user=user)
+    sara = add_guest_player(group=group, display_name="Sara")
+    opponent = add_guest_player(group=group, display_name="Opponent")
+    team = resolve_side_player(group=group, members=[owner, sara])
+
+    for _ in range(3):
+        rows = [
+            {"player": team, "score": 11},
+            {"player": opponent, "score": 5},
+        ]
+        assign_results_from_scores(rows, "pickleball")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="pickleball",
+            played_on="2026-01-15",
+            score_type="traditional",
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    team_row = get_player_rankings(
+        group, game_type_code="pickleball", player_type="team"
+    )[0]
+    assert team_row.player.pk == team.pk
+    assert team_row.games_played == pytest.approx(3.0)
+    # Team-context shrinkage (LEADERBOARD_TEAM_BAYESIAN_K) keeps a clean 3-0
+    # pair competitive instead of collapsing it toward zero the way the
+    # individual-context LEADERBOARD_BAYESIAN_K (k=20) would.
+    assert team_row.rank_score > 0.5

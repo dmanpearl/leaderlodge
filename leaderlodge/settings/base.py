@@ -193,6 +193,11 @@ DEMO_MODE_ENABLED = os.environ.get("DEMO_MODE_ENABLED", "true").lower() in (
 
 MIN_GAMES_FOR_LEADERBOARD = 1
 LEADERBOARD_BAYESIAN_K = 20
+# Team pairings accumulate their own game count far more slowly than an
+# individual pooling games across every partner, so team-context shrinkage
+# (a team row's own score, and an individual's credit from a team win) uses
+# a smaller k than solo-context shrinkage.
+LEADERBOARD_TEAM_BAYESIAN_K = 8
 LEADERBOARD_PROVISIONAL_THRESHOLD = 10
 
 # AI Insights — see docs/ai-insights.md

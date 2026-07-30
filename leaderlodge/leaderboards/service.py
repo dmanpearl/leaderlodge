@@ -33,6 +33,7 @@ from leaderlodge.leaderboards.ranking import (
     FinishPointsCredit,
     compute_bayesian_factor,
     compute_display_rank_score,
+    compute_team_bayesian_factor,
     compute_finish_points,
     compute_half_game_penalty_factor,
     compute_percentage,
@@ -372,7 +373,11 @@ def get_player_rank_detail(
         player, games_played_by_id
     )
     if period.apply_bayesian and raw_rank_score > 0:
-        simple_factor = compute_bayesian_factor(bayesian_games_played)
+        simple_factor = (
+            compute_team_bayesian_factor(bayesian_games_played)
+            if player.is_team
+            else compute_bayesian_factor(bayesian_games_played)
+        )
         simple_rank_score = raw_rank_score * simple_factor
         rank_score_uses_simple_bayesian = (
             player.is_team or abs(simple_rank_score - ranking.rank_score) < 0.001
@@ -434,7 +439,11 @@ def get_player_rank_detail(
         raw_rank_score=raw_rank_score,
         bayesian_factor=bayesian_factor,
         bayesian_games_played=bayesian_games_played,
-        bayesian_k=settings.LEADERBOARD_BAYESIAN_K,
+        bayesian_k=(
+            settings.LEADERBOARD_TEAM_BAYESIAN_K
+            if player.is_team
+            else settings.LEADERBOARD_BAYESIAN_K
+        ),
         rank_score_uses_simple_bayesian=rank_score_uses_simple_bayesian,
         half_game_penalty=half_game_penalty,
         placements=tuple(placements),

@@ -18,6 +18,7 @@ from leaderlodge.leaderboards.ranking import (
     compute_finish_points,
     compute_rank_score,
     compute_score_magnitude,
+    compute_team_bayesian_factor,
     rank_score_magnitude_for_result,
     team_member_finish_credit,
 )
@@ -138,7 +139,7 @@ def test_apply_bayesian_to_rank_score():
     )
 
 
-@override_settings(LEADERBOARD_BAYESIAN_K=20)
+@override_settings(LEADERBOARD_TEAM_BAYESIAN_K=8)
 def test_team_member_finish_credit_scales_by_member_games():
     side_points = 60.0
     rookie_credit = team_member_finish_credit(
@@ -151,8 +152,12 @@ def test_team_member_finish_credit_scales_by_member_games():
         member_games_played=20.0,
         apply_experience_weight=True,
     )
-    assert rookie_credit == pytest.approx(side_points * compute_bayesian_factor(1.0))
-    assert veteran_credit == pytest.approx(side_points * compute_bayesian_factor(20.0))
+    assert rookie_credit == pytest.approx(
+        side_points * compute_team_bayesian_factor(1.0)
+    )
+    assert veteran_credit == pytest.approx(
+        side_points * compute_team_bayesian_factor(20.0)
+    )
     assert veteran_credit > rookie_credit
 
 

@@ -69,10 +69,13 @@ Tied scores use lower-place tie ranking. Ties multiply finish credit by 0.5. Raw
 rank score is total finish points divided by weighted games played.
 
 All game types: raw rank score is multiplied by a Bayesian factor
-(`games / (games + k)`) where `k = LEADERBOARD_BAYESIAN_K` (default 20). For
-individuals, Bayesian applies to solo-sourced finish points only; team-sourced
-points are scaled at credit time. Team rows use average member games for
-Bayesian. See [rank-scoring.md](./rank-scoring.md).
+(`games / (games + k)`). Individuals use `k = LEADERBOARD_BAYESIAN_K` (default
+20) against their own total games; Bayesian applies to solo-sourced finish
+points only, since team-sourced points are scaled at credit time. Team rows use
+a smaller `k = LEADERBOARD_TEAM_BAYESIAN_K` (default 8) against the pairing's
+own games, not member career totals or a member average, since a specific pair
+accumulates games far more slowly than an individual who rotates partners. See
+[rank-scoring.md](./rank-scoring.md).
 
 All players with at least one recorded game appear on the leaderboard.
 The group detail roster shows every active player; unranked rows have no games.

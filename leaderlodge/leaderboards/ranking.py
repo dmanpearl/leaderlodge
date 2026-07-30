@@ -134,6 +134,20 @@ def compute_bayesian_factor(
     return games_played / (games_played + k)
 
 
+def compute_team_bayesian_factor(games_played: float) -> float:
+    """
+    Bayesian factor for team-context shrinkage (a team row's own experience,
+    or an individual's credit from a team win).
+
+    Uses LEADERBOARD_TEAM_BAYESIAN_K, smaller than the solo LEADERBOARD_BAYESIAN_K,
+    because a specific pairing accumulates its own games far more slowly than
+    an individual pooling games across every partner.
+    """
+    from django.conf import settings
+
+    return compute_bayesian_factor(games_played, k=settings.LEADERBOARD_TEAM_BAYESIAN_K)
+
+
 def compute_half_game_penalty_factor(
     *,
     weighted_games: float,
@@ -190,7 +204,7 @@ def team_member_finish_credit(
     """
     if not apply_experience_weight:
         return side_finish_points
-    return side_finish_points * compute_bayesian_factor(member_games_played)
+    return side_finish_points * compute_team_bayesian_factor(member_games_played)
 
 
 def compute_display_rank_score(
@@ -214,10 +228,8 @@ def compute_display_rank_score(
         return credit.total / games_played
     if player_is_team:
         raw_rank_score = credit.total / games_played
-        return apply_bayesian_to_rank_score(
-            raw_rank_score,
-            effective_games_for_bayesian,
-        )
+        factor = compute_team_bayesian_factor(effective_games_for_bayesian)
+        return raw_rank_score * factor if factor > 0 else 0.0
     solo_raw = credit.solo / games_played
     team_raw = credit.team / games_played
     return solo_raw * compute_bayesian_factor(games_played) + team_raw
