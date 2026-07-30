@@ -18,6 +18,7 @@ from leaderlodge.leaderboards.ranking import (
     compute_finish_points,
     compute_rank_score,
     compute_score_magnitude,
+    rank_score_magnitude_for_result,
     team_member_finish_credit,
 )
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
@@ -48,6 +49,30 @@ def test_compute_score_magnitude_low_wins():
     assert compute_score_magnitude(
         35, [20, 35, 215, 480], low_wins=True, placement=1
     ) > compute_score_magnitude(215, [20, 35, 215, 480], low_wins=True, placement=2)
+
+
+def test_rank_score_magnitude_pickleball_uses_unity():
+    assert rank_score_magnitude_for_result(
+        15,
+        [15, 7],
+        game_type_code="pickleball",
+        placement=0,
+    ) == pytest.approx(1.0)
+    assert rank_score_magnitude_for_result(
+        11,
+        [11, 3],
+        game_type_code="pickleball",
+        placement=0,
+    ) == pytest.approx(1.0)
+
+
+def test_rank_score_magnitude_dominos_uses_recorded_score():
+    assert rank_score_magnitude_for_result(
+        30,
+        [30, 10],
+        game_type_code="dominos",
+        placement=0,
+    ) == pytest.approx(30.0)
 
 
 def test_compute_finish_points():

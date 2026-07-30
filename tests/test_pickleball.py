@@ -136,3 +136,44 @@ def test_game_list_shows_rally_badge(client, user, group):
     assert "game-types/pickleball.png" in games_table
     assert ">R</span>" in games_table
     assert games_table.count("game-list-weight-badge") == 1
+
+
+@pytest.mark.django_db
+def test_pickleball_rank_score_ignores_winning_score_margin(user, group):
+    from leaderlodge.games.scoring import assign_results_from_scores
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.leaderboards.service import get_player_rankings
+
+    players = list(group.players.order_by("pk"))
+    add_guest_player(group=group, display_name="Sam")
+
+    def record_win(*, winner_idx, winner_score, loser_score):
+        rows = [
+            {"player": players[winner_idx], "score": winner_score},
+            {"player": players[1 - winner_idx], "score": loser_score},
+        ]
+        assign_results_from_scores(rows, "pickleball")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="pickleball",
+            played_on="2026-01-15",
+            score_type="traditional",
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    record_win(winner_idx=0, winner_score=11, loser_score=3)
+    record_win(winner_idx=0, winner_score=15, loser_score=12)
+
+    winner = get_player_rankings(group, game_type_code="pickleball")[0]
+    assert winner.player.pk == players[0].pk
+    assert winner.finish_points == pytest.approx(4.0)
+    assert winner.games_played == pytest.approx(2.0)

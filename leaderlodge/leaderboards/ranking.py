@@ -53,6 +53,37 @@ def compute_score_magnitude(
     return score
 
 
+def rank_score_magnitude_for_result(
+    score: float,
+    game_scores: list[float],
+    *,
+    game_type_code: str,
+    placement: int,
+) -> float:
+    """
+    Score magnitude for rank credit on one finish.
+
+    When the game type sets rank_uses_score_magnitude=False (pickleball), returns
+    1.0 so wins and placement drive rank score without margin of victory.
+    """
+    from leaderlodge.games.registry import (
+        ScoreDirection,
+        game_type_rank_uses_score_magnitude,
+        get_game_type,
+    )
+
+    if not game_type_rank_uses_score_magnitude(game_type_code):
+        return 1.0
+    game_type = get_game_type(game_type_code)
+    low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
+    return compute_score_magnitude(
+        score,
+        game_scores,
+        low_wins=low_wins,
+        placement=placement,
+    )
+
+
 def compute_finish_points(
     *,
     player_count: float,

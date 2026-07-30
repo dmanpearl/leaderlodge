@@ -149,7 +149,7 @@
 - [x] fb91dcc Leaderboard: Filtering supported by extra game-specific fields score_type, double_game, half_game. Only show if supported by selected game-type
 - [x] 0d12512 Ask the Lodge: Requests supported for extra game-specific fields score_type, double_game, half_game. 'Who is best at Rally?', 'Who is the worst half game player?', 'Who wins the most double-games in Dominos?' (see `leaderlodge/games/features.py`)
 - [x] 7cf09f5 Admin Games View: Add filter by group
-- [x] Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. Option B: experience-weighted team credit for individuals; team rows use average member games for Bayesian. See `docs/rank-scoring.md`.
+- [x] 624635f Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. Option B: experience-weighted team credit for individuals; team rows use average member games for Bayesian. See `docs/rank-scoring.md`.
 
 ## Open Items
 

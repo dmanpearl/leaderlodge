@@ -35,6 +35,7 @@ Each `GameParticipantResult` row supplies:
 | `double_weight` | 2 when the game counts as a double (Dominos winner scored 60+), else 1. |
 | `half_weight` | 2 when the game counts as a half (Progressive Rummy), else 1. |
 | `low_wins` | Game-type flag. When true (Progressive Rummy), lower raw scores are better. |
+| `rank_uses_score_magnitude` | Game-type flag on `GameTypeDefinition`. When false (pickleball), rank credit ignores recorded scores (see Step 2). |
 
 Game weight (used in several steps):
 
@@ -50,15 +51,27 @@ Examples: a normal game has `weight = 1`. A double dominos game has
 ## Step 2: Score magnitude (one result)
 
 `score_magnitude` converts the raw score into a single non-negative number where
-**larger is always better**, regardless of game type.
+**larger is always better**, regardless of game type. It is used **only for rank
+credit**. Recorded scores on game rows and in stats views are unchanged.
 
-**High-wins games** (dominos, mahjongg, pickleball, etc.):
+**Win-only rank credit** (`rank_uses_score_magnitude = false`, pickleball):
+
+```
+score_magnitude = 1
+```
+
+Every win earns the same placement credit regardless of margin of victory (11–3
+vs 11–9 vs rally to 15). Losses and ties still use placement; last place still
+earns zero.
+
+**High-wins games with score in rank** (dominos, mahjongg, backgammon, etc.):
 
 ```
 score_magnitude = score
 ```
 
-**Low-wins games** (Progressive Rummy), winner (`placement = 0`):
+**Low-wins games** (Progressive Rummy; always uses score in rank), winner
+(`placement = 0`):
 
 ```
 score_magnitude = max(500 - score, 0)
@@ -74,6 +87,11 @@ score_magnitude = max(field_max - score, 0)
 ```
 
 A close second earns more magnitude than a distant second.
+
+The registry helper `game_type_rank_uses_score_magnitude(code)` selects between
+win-only (`false`) and the formulas above (`true`). Code calls
+`rank_score_magnitude_for_result()`; there are no game-type `if` branches in
+the ranking service.
 
 ---
 
@@ -102,14 +120,18 @@ The exponent on `placement_ratio` is `FINISH_POINTS_EXPONENT` (currently `1`).
 
 **Ties** multiply the result by `0.5` (`TIE_WIN_POINTS_FACTOR`).
 
-**Examples** (no tie, `weight = 1`, high-wins, winner score 30):
+**Examples** (no tie, `weight = 1`, winner):
 
-| Field | `player_count` | `placement` | `placement_ratio` | `score_magnitude` | `side_finish_points` |
-|-------|----------------|-------------|-------------------|-------------------|----------------------|
-| 2-side win | 2 | 0 | 1.0 | 30 | 1.0 × 2 × 1 × 30 = **60** |
-| 5-player win | 5 | 0 | 1.0 | 30 | 1.0 × 5 × 1 × 30 = **150** |
-| 5-player 2nd | 5 | 1 | 0.75 | 25 | 0.75 × 5 × 1 × 25 = **93.75** |
-| 2-side loss | 2 | 1 | 0.0 | 10 | **0** |
+| Field | `player_count` | `placement` | `score_magnitude` | `side_finish_points` |
+|-------|----------------|-------------|-------------------|----------------------|
+| Pickleball win | 2 | 0 | 1 (win-only) | 1.0 × 2 × 1 × 1 = **2** |
+| Dominos win, score 30 | 2 | 0 | 30 | 1.0 × 2 × 1 × 30 = **60** |
+| 5-player win, score 30 | 5 | 0 | 30 | 1.0 × 5 × 1 × 30 = **150** |
+| 5-player 2nd, score 25 | 5 | 1 | 25 | 0.75 × 5 × 1 × 25 = **93.75** |
+| 2-side loss | 2 | 1 | (any) | **0** (placement_ratio = 0) |
+
+For pickleball, two wins at different recorded scores (11 vs 15) each contribute
+**2** side finish points in a 2-side game.
 
 ---
 
@@ -340,7 +362,8 @@ entities. Both use the formulas above.
 
 | Step | Module | Functions |
 |------|--------|-----------|
-| Magnitude and side points | `leaderlodge/leaderboards/ranking.py` | `compute_score_magnitude`, `compute_finish_points` |
+| Magnitude and side points | `leaderlodge/leaderboards/ranking.py` | `rank_score_magnitude_for_result`, `compute_score_magnitude`, `compute_finish_points` |
+| Game-type flags | `leaderlodge/games/registry.py` | `GameTypeDefinition.rank_uses_score_magnitude`, `game_type_rank_uses_score_magnitude` |
 | Experience weight and rank score | `leaderlodge/leaderboards/ranking.py` | `team_member_finish_credit`, `compute_display_rank_score`, `compute_bayesian_factor` |
 | Aggregation | `leaderlodge/leaderboards/service.py` | `_finish_points_by_player`, `_standings_for_game_type` |
 | Team expansion | `leaderlodge/groups/teams.py` | `leaderboard_credit_players`, `effective_games_played_for_player` |

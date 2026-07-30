@@ -33,6 +33,7 @@ class GameTypeDefinition:
     icon_filename: str
     score_types: tuple[ScoreType, ...] = ()
     supports_half_game: bool = False
+    rank_uses_score_magnitude: bool = True
 
 
 def _load_registry() -> dict[str, GameTypeDefinition]:
@@ -88,6 +89,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             win_target_score=None,
             icon_filename="pickleball.png",
             score_types=(ScoreType.TRADITIONAL, ScoreType.RALLY),
+            rank_uses_score_magnitude=False,
         ),
     }
 
@@ -133,6 +135,10 @@ def game_type_has_score_type(code: str) -> bool:
 
 def game_type_supports_half_game(code: str) -> bool:
     return get_game_type(code).supports_half_game
+
+
+def game_type_rank_uses_score_magnitude(code: str) -> bool:
+    return get_game_type(code).rank_uses_score_magnitude
 
 
 def normalize_half_weight(*, is_half: bool) -> int:

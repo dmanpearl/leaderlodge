@@ -36,7 +36,7 @@ from leaderlodge.leaderboards.ranking import (
     compute_half_game_penalty_factor,
     compute_percentage,
     compute_rank_score,
-    compute_score_magnitude,
+    rank_score_magnitude_for_result,
     ordinal_place_label,
     rank_score_sort_key,
     team_member_finish_credit,
@@ -326,13 +326,13 @@ def get_player_rank_detail(
             placement=placement,
             weight=weight,
             is_tie=result.result == GameParticipantResult.Result.TIE,
-            score_magnitude=compute_score_magnitude(
+            score_magnitude=rank_score_magnitude_for_result(
                 result.score,
                 [
                     participant.score
                     for participant in result.game.participant_results.all()
                 ],
-                low_wins=low_wins,
+                game_type_code=game_type_code,
                 placement=placement,
             ),
         )
@@ -631,7 +631,7 @@ def _standings_weight_factors():
 def _finish_points_by_player(
     results_qs,
     *,
-    low_wins: bool,
+    game_type_code: str,
     games_played_by_id: dict[int, float] | None = None,
     apply_experience_weight: bool = False,
 ) -> dict[int, FinishPointsCredit]:
@@ -658,10 +658,10 @@ def _finish_points_by_player(
             placement=result.placement if result.placement is not None else 0,
             weight=weight,
             is_tie=result.result == GameParticipantResult.Result.TIE,
-            score_magnitude=compute_score_magnitude(
+            score_magnitude=rank_score_magnitude_for_result(
                 result.score,
                 game_scores[result.game_id],
-                low_wins=low_wins,
+                game_type_code=game_type_code,
                 placement=result.placement if result.placement is not None else 0,
             ),
         )
@@ -836,7 +836,7 @@ def _standings_for_game_type(
     }
     finish_points_by_player = _finish_points_by_player(
         results_qs,
-        low_wins=low_wins,
+        game_type_code=game_type_code,
         games_played_by_id=games_played_by_id,
         apply_experience_weight=period.apply_bayesian,
     )

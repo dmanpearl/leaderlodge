@@ -6,7 +6,6 @@ from django.db.models import Q, Sum
 
 from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.registry import (
-    ScoreDirection,
     get_game_type,
     score_direction_label,
 )
@@ -29,7 +28,6 @@ def query_rank_trends(
     limit: int = 10,
 ) -> dict:
     game_type = get_game_type(game_type_code)
-    low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
     today = date.today()
     recent_start = today - timedelta(days=days)
     prior_start = today - timedelta(days=days * 2)
@@ -46,8 +44,8 @@ def query_rank_trends(
         Q(game__played_on__gte=prior_start) & Q(game__played_on__lt=recent_start)
     )
 
-    recent_credits = _finish_points_by_player(recent_qs, low_wins=low_wins)
-    prior_credits = _finish_points_by_player(prior_qs, low_wins=low_wins)
+    recent_credits = _finish_points_by_player(recent_qs, game_type_code=game_type_code)
+    prior_credits = _finish_points_by_player(prior_qs, game_type_code=game_type_code)
     recent_points = {
         player_id: credit.total for player_id, credit in recent_credits.items()
     }
@@ -148,8 +146,7 @@ def query_month_leaders(
     if game_size is not None:
         results_qs = results_qs.filter(game__player_count=game_size)
 
-    low_wins = game_type.score_direction == ScoreDirection.LOW_WINS
-    finish_credits = _finish_points_by_player(results_qs, low_wins=low_wins)
+    finish_credits = _finish_points_by_player(results_qs, game_type_code=game_type_code)
     games_by_player = _weighted_games_by_player(results_qs)
     rows = []
     for player_id, credit in finish_credits.items():
