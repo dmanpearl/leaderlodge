@@ -419,7 +419,8 @@
   padding: 0.5rem 0.75rem;
 }
 
-.game-list-density--compact .game-list-filter-select {
+.game-list-density--compact #game-list-filters .form-select,
+.game-list-density--compact #game-list-filters .form-control {
   font-size: 0.8125rem;
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
@@ -479,10 +480,16 @@
   font-size: inherit;
 }
 
-.game-list-density--dense .game-list-filter-select {
+.game-list-density--dense #game-list-filters .form-select {
   font-size: 0.6875rem;
   min-height: 1.5rem;
   padding: 0.1rem 1.5rem 0.1rem 0.3rem;
+}
+
+.game-list-density--dense #game-list-filters .form-control {
+  font-size: 0.6875rem;
+  min-height: 1.5rem;
+  padding: 0.1rem 0.3rem;
 }
 
 .game-list-density--dense #game-list-filters {
