@@ -52,12 +52,25 @@
         if (entry.username) {
           bestScore = Math.max(bestScore, scoreMatch(query, entry.username));
         }
+        if (entry.kind === "team" && Array.isArray(entry.members)) {
+          entry.members.forEach((member) => {
+            bestScore = Math.max(bestScore, scoreMatch(query, member.label));
+            if (member.username) {
+              bestScore = Math.max(bestScore, scoreMatch(query, member.username));
+            }
+          });
+        }
         return { entry, score: bestScore };
       })
       .filter((item) => item.score >= 0)
       .sort((a, b) => {
         if (b.score !== a.score) {
           return b.score - a.score;
+        }
+        const aRecency = a.entry.recency ?? Number.MAX_SAFE_INTEGER;
+        const bRecency = b.entry.recency ?? Number.MAX_SAFE_INTEGER;
+        if (aRecency !== bRecency) {
+          return aRecency - bRecency;
         }
         return a.entry.label.localeCompare(b.entry.label);
       })
@@ -87,6 +100,129 @@
       }
     });
     return keys;
+  }
+
+  function playersAlreadyInGame(tbody) {
+    const ids = new Set();
+    tbody.querySelectorAll("[data-game-row]").forEach((row) => {
+      const primaryHidden = row.querySelector('[name="participant_player_id"]');
+      const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
+      if (primaryValue) {
+        ids.add(Number(primaryValue));
+      } else {
+        const primaryId = row.dataset.playerId;
+        if (primaryId && !primaryId.startsWith("guest:")) {
+          ids.add(Number(primaryId));
+        }
+      }
+
+      const teammateHidden = row.querySelector(
+        '[name="participant_teammate_player_id"]'
+      );
+      const teammateValue = teammateHidden ? teammateHidden.value.trim() : "";
+      if (teammateValue) {
+        ids.add(Number(teammateValue));
+      }
+    });
+    return ids;
+  }
+
+  function memberIdsForRosterEntry(entry, roster) {
+    if (Array.isArray(entry.members) && entry.members.length > 0) {
+      return entry.members
+        .map((member) => Number(member.id))
+        .filter((id) => !Number.isNaN(id));
+    }
+
+    if (entry.kind === "team" && Array.isArray(roster)) {
+      const fullEntry = roster.find(
+        (candidate) => candidate.id === entry.id && candidate.kind === "team"
+      );
+      if (Array.isArray(fullEntry?.members) && fullEntry.members.length > 0) {
+        return fullEntry.members
+          .map((member) => Number(member.id))
+          .filter((id) => !Number.isNaN(id));
+      }
+    }
+
+    if (entry.id) {
+      const id = Number(entry.id);
+      return Number.isNaN(id) ? [] : [id];
+    }
+    return [];
+  }
+
+  function entrySharesPlayerWithGame(tbody, entry, roster) {
+    const playerIds = playersAlreadyInGame(tbody);
+    if (playerIds.size === 0) {
+      return false;
+    }
+    return memberIdsForRosterEntry(entry, roster).some((id) => playerIds.has(id));
+  }
+
+  function teamSideAlreadyAdded(tbody, entry) {
+    if (!entry.members || entry.members.length < 2) {
+      return false;
+    }
+    const memberIds = new Set(
+      memberIdsForRosterEntry(entry, []).map((id) => Number(id))
+    );
+    return Array.from(tbody.querySelectorAll("[data-game-row]")).some((row) => {
+      const rowMemberIds = new Set();
+      const primaryHidden = row.querySelector('[name="participant_player_id"]');
+      const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
+      if (primaryValue) {
+        rowMemberIds.add(Number(primaryValue));
+      } else {
+        const primaryId = row.dataset.playerId;
+        if (primaryId && !primaryId.startsWith("guest:")) {
+          rowMemberIds.add(Number(primaryId));
+        }
+      }
+      const teammateHidden = row.querySelector(
+        '[name="participant_teammate_player_id"]'
+      );
+      const teammateValue = teammateHidden ? teammateHidden.value.trim() : "";
+      if (teammateValue) {
+        rowMemberIds.add(Number(teammateValue));
+      }
+      if (rowMemberIds.size !== memberIds.size) {
+        return false;
+      }
+      for (const memberId of memberIds) {
+        if (!rowMemberIds.has(memberId)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  function entryIsIneligible(tbody, entry, existing, roster) {
+    if (entry.kind === "team" && teamSideAlreadyAdded(tbody, entry)) {
+      return true;
+    }
+    if (entry.id && existing.has(rowKeyForEntry({ id: entry.id }))) {
+      return true;
+    }
+    return entrySharesPlayerWithGame(tbody, entry, roster);
+  }
+
+  function rosterEntryMatchesLabel(entry, label) {
+    if (labelsMatch(entry.label, label)) {
+      return true;
+    }
+    if (entry.username && labelsMatch(entry.username, label)) {
+      return true;
+    }
+    if (entry.kind === "team" && Array.isArray(entry.members)) {
+      return entry.members.some(
+        (member) =>
+          labelsMatch(member.label, label) ||
+          (member.username && labelsMatch(member.username, label))
+      );
+    }
+    return false;
   }
 
   function buildRowEntry({ entry, guestName }) {
@@ -145,6 +281,9 @@
       rowEntry.id ? { id: rowEntry.id } : { guestName: rowEntry.guestName }
     );
     if (existingRowKeys(tbody).has(rowKey)) {
+      return false;
+    }
+    if (rowEntry.id && playersAlreadyInGame(tbody).has(Number(rowEntry.id))) {
       return false;
     }
 
@@ -219,6 +358,43 @@
     return true;
   }
 
+  function appendTeamRow(tbody, entry, defaultParticipantScore, focusEl) {
+    const members = entry.members;
+    if (!members || members.length < 2) {
+      return false;
+    }
+    if (teamSideAlreadyAdded(tbody, entry)) {
+      return false;
+    }
+    if (entrySharesPlayerWithGame(tbody, entry, null)) {
+      return false;
+    }
+
+    const primaryEntry = buildRowEntry({ entry: members[0] });
+    const teammateEntry = buildRowEntry({ entry: members[1] });
+    const added = appendParticipantRow(
+      tbody,
+      primaryEntry,
+      defaultParticipantScore,
+      null
+    );
+    if (!added) {
+      return false;
+    }
+
+    const row = tbody.querySelector(
+      `[data-game-row][data-row-key="${rowKeyForEntry({ id: members[0].id })}"]`
+    );
+    if (!row) {
+      return false;
+    }
+    assignTeammate(row, teammateEntry);
+    if (focusEl) {
+      focusEl.focus();
+    }
+    return true;
+  }
+
   function assignTeammate(row, rowEntry) {
     const teammateId = rowEntry.id ? String(rowEntry.id) : "";
     const teammateGuest = rowEntry.guestName || "";
@@ -229,6 +405,15 @@
       return false;
     }
     const tbody = row.closest("tbody");
+    if (tbody && rowEntry.id && playersAlreadyInGame(tbody).has(Number(rowEntry.id))) {
+      const primaryId = row.dataset.playerId;
+      const onThisRow =
+        (primaryId && Number(primaryId) === Number(rowEntry.id)) ||
+        row.dataset.rowKey === teammateKey;
+      if (!onThisRow) {
+        return false;
+      }
+    }
     if (tbody && existingRowKeys(tbody).has(teammateKey) && row.dataset.rowKey !== teammateKey) {
       // Teammate already on another side.
       const alreadyOnSide = Array.from(tbody.querySelectorAll("[data-game-row]")).some(
@@ -349,6 +534,17 @@
             this.clearTeammateTarget();
           }
           row.remove();
+          this.scheduleSuggestionRefresh();
+        }
+      });
+    }
+
+    scheduleSuggestionRefresh() {
+      window.requestAnimationFrame(() => {
+        if (this.input.value.trim()) {
+          this.refreshSuggestions();
+        } else {
+          this.close();
         }
       });
     }
@@ -405,7 +601,9 @@
     onInput() {
       if (this.skipRefresh) {
         this.skipRefresh = false;
-        return;
+        if (!this.input.value.trim()) {
+          return;
+        }
       }
       this.refreshSuggestions();
     }
@@ -470,15 +668,16 @@
       const matches = filterRoster(this.roster, query);
       const existing = this.existingRowKeys();
       this.suggestions = matches
-        .filter((entry) => !existing.has(rowKeyForEntry({ id: entry.id })))
+        .filter(
+          (entry) =>
+            !entryIsIneligible(this.tbody, entry, existing, this.roster)
+        )
         .map((entry) => ({ type: "player", entry }));
 
       const trimmed = query.trim();
       if (trimmed) {
-        const exactRosterMatch = this.roster.some(
-          (entry) =>
-            labelsMatch(entry.label, trimmed) ||
-            (entry.username && labelsMatch(entry.username, trimmed))
+        const exactRosterMatch = this.roster.some((entry) =>
+          rosterEntryMatchesLabel(entry, trimmed)
         );
         const guestKey = rowKeyForEntry({ guestName: trimmed });
         if (
@@ -517,11 +716,14 @@
           option.textContent = `Add guest "${item.entry.guestName}"`;
         } else {
           const entry = item.entry;
-          const detail = entry.username
-            ? entry.username
-            : entry.kind === "guest"
-              ? "guest"
-              : "";
+          const detail =
+            entry.kind === "team"
+              ? "team"
+              : entry.username
+                ? entry.username
+                : entry.kind === "guest"
+                  ? "guest"
+                  : "";
           option.innerHTML = `<span>${entry.label}</span>${
             detail
               ? ` <span class="text-muted small">${detail}</span>`
@@ -565,10 +767,11 @@
       if (!trimmed) {
         return;
       }
+      const existing = this.existingRowKeys();
       const rosterMatch = this.roster.find(
         (entry) =>
-          labelsMatch(entry.label, trimmed) ||
-          (entry.username && labelsMatch(entry.username, trimmed))
+          rosterEntryMatchesLabel(entry, trimmed) &&
+          !entryIsIneligible(this.tbody, entry, existing, this.roster)
       );
       if (rosterMatch) {
         this.addParticipant({ entry: rosterMatch });
@@ -581,8 +784,32 @@
     }
 
     addParticipant({ entry, guestName }) {
-      const rowEntry = buildRowEntry({ entry, guestName });
       const teammateRow = this.teammateTargetRow;
+      if (entry?.kind === "team") {
+        if (teammateRow && teammateRow.isConnected) {
+          this.clearTeammateTarget();
+        }
+        if (
+          entryIsIneligible(
+            this.tbody,
+            entry,
+            this.existingRowKeys(),
+            this.roster
+          )
+        ) {
+          return;
+        }
+        appendTeamRow(
+          this.tbody,
+          entry,
+          this.defaultParticipantScore,
+          this.input
+        );
+        this.scheduleSuggestionRefresh();
+        return;
+      }
+
+      const rowEntry = buildRowEntry({ entry, guestName });
       if (teammateRow && teammateRow.isConnected) {
         const ok = assignTeammate(teammateRow, rowEntry);
         this.clearTeammateTarget();
@@ -594,15 +821,32 @@
           window.setTimeout(() => {
             this.input.setAttribute("placeholder", "Type player name");
           }, 1500);
+        } else {
+          this.scheduleSuggestionRefresh();
         }
         return;
       }
-      appendParticipantRow(
-        this.tbody,
-        rowEntry,
-        this.defaultParticipantScore,
-        this.input
-      );
+      if (
+        entry &&
+        entryIsIneligible(
+          this.tbody,
+          entry,
+          this.existingRowKeys(),
+          this.roster
+        )
+      ) {
+        return;
+      }
+      if (
+        appendParticipantRow(
+          this.tbody,
+          rowEntry,
+          this.defaultParticipantScore,
+          this.input
+        )
+      ) {
+        this.scheduleSuggestionRefresh();
+      }
     }
 
     setPickerLabelText(text) {

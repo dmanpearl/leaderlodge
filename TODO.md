@@ -154,12 +154,12 @@
 - [x] 72cc10e Leaderboard Detail View 'Record by Partner' table use graduated colors for the rank pills based on the rank number. Avoid contrast issue between text color and pill background color
 - [x] 099f52b Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15)
 - [x] afe8502 Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other
-- [x] Game view table cells should be aligned center-vertical (https://leaderlodge.com/admin/feedback/feedback/19)
+- [x] 1923fb0 Game view table cells should be aligned center-vertical (https://leaderlodge.com/admin/feedback/feedback/19)
+- [x] Record Game: Player name type-ahead should include teams (https://leaderlodge.com/admin/feedback/feedback/18)
 
 ## Open Items
 
-- [ ] Record Game: Player name type-ahead should include teams (https://leaderlodge.com/admin/feedback/feedback/18)
-- [ ] Score Description: Make a page the explains the ranking system smilar to rank-score.md. Share content if possible
+- [ ] Score Description: Make a page that explains the ranking system smilar to rank-score.md. Share content between the page and the docs if possible
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14)
 - [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17)
