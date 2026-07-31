@@ -153,7 +153,7 @@
 - [x] 7c58939 Team Scoring: Add separate, smaller `LEADERBOARD_TEAM_BAYESIAN_K` (8) for team-context shrinkage (team rows' own score and individual credit from team wins), distinct from the solo `LEADERBOARD_BAYESIAN_K` (20). Fixes teams being pushed too far down after the prior Bayesian fix, since a specific pairing accumulates its own games far more slowly than an individual who rotates partners. See `docs/rank-scoring.md`.
 - [x] 72cc10e Leaderboard Detail View 'Record by Partner' table use graduated colors for the rank pills based on the rank number. Avoid contrast issue between text color and pill background color
 - [x] 099f52b Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15/change/)
-- [x] Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other
+- [x] afe8502 Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other
 
 ## Open Items
 

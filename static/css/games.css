@@ -167,6 +167,37 @@
   margin-right: 0.25rem;
 }
 
+.game-list-table thead th,
+.game-list-table-foot th,
+.game-list-stats-table thead th {
+  vertical-align: middle;
+}
+
+.game-list-player-col-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+
+.game-list-player-col-header .player-type-icon {
+  margin-right: 0;
+  flex-shrink: 0;
+}
+
+.game-list-player-col-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.game-list-player-col-label-line {
+  display: block;
+}
+
 .game-list-stats-table .game-list-stats-col--all {
   background-color: #e9ecef;
 }
@@ -315,9 +346,15 @@
 }
 
 /* Game list layout density tiers */
-.game-list .game-list-player-col,
+.game-list tbody .game-list-player-col,
 .game-list .game-list-nowrap-col {
   white-space: nowrap;
+}
+
+.game-list thead .game-list-player-col,
+.game-list tfoot .game-list-player-col,
+.game-list-stats-table thead .game-list-player-col {
+  white-space: normal;
 }
 
 .game-list .game-list-player-col {

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static display_names %}
 
 {% block title %}{{ selected_game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=4" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=5" />
 {% endblock %}
 
 {% block content %}
@@ -152,7 +152,7 @@
                   </th>
                   {% for player_stat in list_stats.players %}
                     <th scope="col" class="text-center game-list-player-col">
-                      {% include "includes/player_type_icon.html" with player=player_stat.player %}{{ player_stat.player.display_label }}
+                      {% include "includes/game_list_player_col_header.html" with player=player_stat.player %}
                     </th>
                   {% endfor %}
                   {% if list_stats.show_all_column %}
@@ -215,7 +215,7 @@
               {% endif %}
               {% for player in player_columns %}
                 <th scope="col" class="text-center game-list-player-col">
-                  {% include "includes/player_type_icon.html" with player=player %}{{ player.display_label }}
+                  {% include "includes/game_list_player_col_header.html" with player=player %}
                 </th>
               {% endfor %}
             </tr>
@@ -307,7 +307,7 @@
               {% endif %}
               {% for player in player_columns %}
                 <th scope="col" class="text-center game-list-player-col">
-                  {% include "includes/player_type_icon.html" with player=player %}{{ player.display_label }}
+                  {% include "includes/game_list_player_col_header.html" with player=player %}
                 </th>
               {% endfor %}
             </tr>

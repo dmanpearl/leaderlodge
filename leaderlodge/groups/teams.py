@@ -74,6 +74,14 @@ def team_display_name(members: list[GroupPlayer]) -> str:
     return "+".join(player.display_label for player in _sorted_members(members))
 
 
+def game_list_column_label_lines(player: GroupPlayer) -> list[str]:
+    """Return one or more header lines for a games list player column."""
+    label = player.display_label
+    if player.is_team and "+" in label:
+        return label.split("+")
+    return [label]
+
+
 def _member_key(members: list[GroupPlayer]) -> tuple[int, ...]:
     return tuple(sorted(player.pk for player in members))
 

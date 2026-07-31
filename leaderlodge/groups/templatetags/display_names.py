@@ -1,8 +1,14 @@
 from django import template
 
 from leaderlodge.groups.names import format_user_display_name
+from leaderlodge.groups.teams import game_list_column_label_lines
 
 register = template.Library()
+
+
+@register.filter
+def game_list_column_label_lines_filter(player) -> list[str]:
+    return game_list_column_label_lines(player)
 
 
 @register.filter

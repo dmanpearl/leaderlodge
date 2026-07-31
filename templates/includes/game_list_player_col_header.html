@@ -1,0 +1,9 @@
+{% load display_names %}
+<span class="game-list-player-col-header">
+  {% include "includes/player_type_icon.html" with player=player %}
+  <span class="game-list-player-col-label">
+    {% for line in player|game_list_column_label_lines_filter %}
+      <span class="game-list-player-col-label-line">{{ line }}</span>
+    {% endfor %}
+  </span>
+</span>

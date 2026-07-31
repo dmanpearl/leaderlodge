@@ -9,6 +9,7 @@ from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.groups.teams import (
     MAX_TEAM_SIZE,
+    game_list_column_label_lines,
     resolve_side_player,
     team_display_name,
     team_member_players,
@@ -32,6 +33,14 @@ def _people(group):
     zach = add_guest_player(group=group, display_name="Zach")
     izzy = add_guest_player(group=group, display_name="Izzy")
     return owner, nancy, zach, izzy
+
+
+@pytest.mark.django_db
+def test_game_list_column_label_lines_splits_team_names(group, user):
+    _, nancy, zach, _ = _people(group)
+    team = resolve_side_player(group=group, members=[nancy, zach])
+    assert game_list_column_label_lines(team) == ["Nancy", "Zach"]
+    assert game_list_column_label_lines(nancy) == ["Nancy"]
 
 
 @pytest.mark.django_db
