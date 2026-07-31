@@ -108,3 +108,18 @@ def test_rank_detail_shows_breakdown(client, user, group):
     assert "Scores" in content
     assert "Finish placements" in content
     assert player.display_label in content
+    assert reverse("core:about_scoring") in content
+
+
+@pytest.mark.django_db
+def test_leaderboard_links_to_scoring_explainer(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.get(
+        reverse("leaderboards:index"),
+        {"group": str(group.pk), "game_type_code": "dominos"},
+    )
+    assert response.status_code == 200
+    assert reverse("core:about_scoring") in response.content.decode()

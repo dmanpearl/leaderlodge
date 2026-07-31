@@ -1,0 +1,64 @@
+.about-scoring-doc h2 {
+  font-size: 1.25rem;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.about-scoring-doc h2:first-child {
+  margin-top: 0;
+}
+
+.about-scoring-doc h3 {
+  font-size: 1.0625rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.about-scoring-doc p {
+  margin-bottom: 0.75rem;
+}
+
+.about-scoring-doc hr {
+  margin: 1.5rem 0;
+}
+
+.about-scoring-doc code {
+  font-size: 0.875em;
+}
+
+.about-scoring-doc pre {
+  background-color: var(--bs-tertiary-bg, #f8f9fa);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+}
+
+.about-scoring-doc pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.about-scoring-doc table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.about-scoring-doc th,
+.about-scoring-doc td {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  text-align: left;
+}
+
+.about-scoring-doc th {
+  background-color: var(--bs-tertiary-bg, #f8f9fa);
+}
+
+.about-scoring-doc ul,
+.about-scoring-doc ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}

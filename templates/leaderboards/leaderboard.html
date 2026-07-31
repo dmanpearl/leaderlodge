@@ -140,9 +140,19 @@
     <div class="card">
       <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <span>{{ selected_group.name }} &middot; {{ selected_game_type.name }}{% if period_label %} &middot; {{ period_label }}{% endif %}{% if game_size_label %} &middot; {{ game_size_label }}{% endif %}</span>
-        {% if insights_enabled %}
-          {% include "includes/btn_insights.html" with btn_size="sm" offcanvas_target="#leaderboard-insights-panel" offcanvas_controls="leaderboard-insights-panel" %}
-        {% endif %}
+        <span class="d-flex align-items-center gap-2">
+          <a
+            href="{% url 'core:about_scoring' %}"
+            class="btn btn-link btn-sm p-0 text-muted"
+            title="How ranking works"
+            aria-label="How ranking works"
+          >
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+          </a>
+          {% if insights_enabled %}
+            {% include "includes/btn_insights.html" with btn_size="sm" offcanvas_target="#leaderboard-insights-panel" offcanvas_controls="leaderboard-insights-panel" %}
+          {% endif %}
+        </span>
       </div>
       <div class="table-responsive">
         <table class="table table-striped table-hover mb-0 leaderboard-table">

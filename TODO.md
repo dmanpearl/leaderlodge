@@ -155,11 +155,12 @@
 - [x] 099f52b Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15)
 - [x] afe8502 Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other
 - [x] 1923fb0 Game view table cells should be aligned center-vertical (https://leaderlodge.com/admin/feedback/feedback/19)
-- [x] Record Game: Player name type-ahead should include teams (https://leaderlodge.com/admin/feedback/feedback/18)
+- [x] ccd4e0c Record Game: Player name type-ahead should include teams (https://leaderlodge.com/admin/feedback/feedback/18)
+- [x] Score Description: Make a page that explains the ranking system smilar to rank-score.md. Share content between the page and the docs if possible
 
 ## Open Items
 
-- [ ] Score Description: Make a page that explains the ranking system smilar to rank-score.md. Share content between the page and the docs if possible
+- [ ] Game View: Player or team name in Header should be a link to the Player or Team detail view. Caution: This will impact the currently hardcoded breakcrumb trail and 'Back to Leaderboard' button
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14)
 - [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17)

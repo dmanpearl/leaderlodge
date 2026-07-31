@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}How Ranking Works | LeaderLodge{% endblock %}
+{% block meta_description %}How LeaderLodge computes player rank scores from recorded games: finish points, score magnitude, team credit, and the Bayesian experience adjustment.{% endblock %}
+{% block og_title %}How Ranking Works in LeaderLodge{% endblock %}
+{% block og_description %}How LeaderLodge computes player rank scores from recorded games: finish points, score magnitude, team credit, and the Bayesian experience adjustment.{% endblock %}
+{% block twitter_title %}How Ranking Works in LeaderLodge{% endblock %}
+{% block twitter_description %}How LeaderLodge computes player rank scores from recorded games.{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/about.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/about_scoring.css' %}" />
+{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+      <h1 class="h3 mb-1">How ranking works</h1>
+      <p class="text-muted mb-4">
+        Every rank score is computed from your recorded games. This page walks through the
+        same logic used on the leaderboard, step by step.
+      </p>
+
+      <div class="card mb-4">
+        <div class="card-body about-scoring-doc">
+          {{ scoring_doc_html|safe }}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

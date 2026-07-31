@@ -10,6 +10,8 @@ each step in order, using the same variable names as the code in
 Rank assignment is **higher is better**: a larger `rank_score` means a better
 standing. Rank 1 is the best.
 
+<!-- rank-scoring:public-start -->
+
 ---
 
 ## Scope
@@ -403,6 +405,8 @@ for display and insights but **not** used in `rank_score` or sort order.
 
 The people leaderboard shows individuals only. The team leaderboard shows team
 entities. Both use the formulas above.
+
+<!-- rank-scoring:public-end -->
 
 ### Code reference
 

@@ -41,11 +41,11 @@
         type="button"
         class="btn btn-link btn-sm p-0 text-muted rank-detail-rules-btn"
         data-bs-toggle="popover"
-        data-bs-trigger="focus hover"
+        data-bs-trigger="click"
         data-bs-placement="bottom"
         data-bs-html="true"
         title="Scoring rules"
-        data-bs-content="Each finish earns field-weighted placement credit (distance from last place times player count) multiplied by in-game score magnitude (raw score for high-wins games; reference minus score for Progressive Rummy winners, field max minus score for other low-wins finishers). Score is the average finish points per weighted game, adjusted by a Bayesian factor (games / (games + {{ detail.bayesian_k }})) that dampens results for players with fewer games. Wins, losses, and games above use weighted counts (half games count as 0.5) to match the leaderboard."
+        data-bs-content="Each finish earns field-weighted placement credit (distance from last place times player count) multiplied by in-game score magnitude (raw score for high-wins games; reference minus score for Progressive Rummy winners, field max minus score for other low-wins finishers). Score is the average finish points per weighted game, adjusted by a Bayesian factor (games / (games + {{ detail.bayesian_k }})) that dampens results for players with fewer games. Wins, losses, and games above use weighted counts (half games count as 0.5) to match the leaderboard. &lt;a href=&quot;{% url 'core:about_scoring' %}&quot;&gt;Full explanation&lt;/a&gt;"
         aria-label="Scoring rules"
       >
         <i class="bi bi-info-circle" aria-hidden="true"></i>
@@ -86,7 +86,7 @@
           {{ detail.raw_rank_score|floatformat:1 }} &times; {{ detail.bayesian_factor|floatformat:3 }} = {{ detail.ranking.rank_score|floatformat:1 }}
           {% else %}
           {{ detail.ranking.rank_score|floatformat:1 }}
-          <span class="text-muted small d-block">Solo finish points use the Bayesian factor above; team finish points were experience-weighted at credit time.</span>
+          <span class="text-muted small d-block">Finish points use Bayesian factor for experience-weighting.</span>
           {% endif %}
         </dd>
         {% endif %}
@@ -118,7 +118,7 @@
           type="button"
           class="btn btn-link btn-sm p-0 text-muted rank-detail-rules-btn"
           data-bs-toggle="popover"
-          data-bs-trigger="focus hover"
+          data-bs-trigger="click"
           data-bs-placement="bottom"
           data-bs-html="true"
           title="About this breakdown"
@@ -272,7 +272,7 @@
           type="button"
           class="btn btn-link btn-sm p-0 text-muted rank-detail-rules-btn"
           data-bs-toggle="popover"
-          data-bs-trigger="focus hover"
+          data-bs-trigger="click"
           data-bs-placement="bottom"
           data-bs-html="true"
           title="About losses"
@@ -313,9 +313,30 @@
 
 {% block extra_js %}
   <script>
-    document.querySelectorAll(".rank-detail-rules-btn").forEach((button) => {
-      bootstrap.Popover.getOrCreateInstance(button);
-    });
+    (function () {
+      const buttons = Array.from(
+        document.querySelectorAll(".rank-detail-rules-btn")
+      );
+      buttons.forEach((button) => {
+        bootstrap.Popover.getOrCreateInstance(button);
+        button.addEventListener("click", () => {
+          buttons.forEach((other) => {
+            if (other !== button) {
+              bootstrap.Popover.getInstance(other)?.hide();
+            }
+          });
+        });
+      });
+
+      document.addEventListener("click", (event) => {
+        if (event.target.closest(".rank-detail-rules-btn, .popover")) {
+          return;
+        }
+        buttons.forEach((button) => {
+          bootstrap.Popover.getInstance(button)?.hide();
+        });
+      });
+    })();
   </script>
   {% if insights_enabled %}
     {% include "includes/insights_result_script.html" %}

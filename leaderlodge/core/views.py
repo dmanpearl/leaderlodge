@@ -220,6 +220,16 @@ def about_insights(request):
     return render(request, "core/about_insights.html")
 
 
+def about_scoring(request):
+    from leaderlodge.core.docs import rank_scoring_explainer_html
+
+    return render(
+        request,
+        "core/about_scoring.html",
+        {"scoring_doc_html": rank_scoring_explainer_html()},
+    )
+
+
 def robots_txt(request):
     lines = [
         "User-agent: *",

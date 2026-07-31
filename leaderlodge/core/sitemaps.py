@@ -10,6 +10,7 @@ class StaticPageSitemap(Sitemap):
         ("core:dashboard", 0.9),
         ("core:about", 0.8),
         ("core:about_insights", 0.7),
+        ("core:about_scoring", 0.7),
     ]
 
     def items(self):

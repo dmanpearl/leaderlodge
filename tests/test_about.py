@@ -34,6 +34,32 @@ def test_about_insights_links_to_ask_when_enabled(client):
 
 
 @pytest.mark.django_db
+def test_about_scoring_page_is_public(client):
+    response = client.get(reverse("core:about_scoring"))
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    assert "How ranking works" in content
+    assert "Bayesian factor" in content
+    assert "Code reference" not in content
+    assert reverse("core:about") in content
+
+
+@pytest.mark.django_db
+def test_about_page_links_to_scoring_explainer(client):
+    content = client.get(reverse("core:about")).content.decode()
+
+    assert reverse("core:about_scoring") in content
+
+
+@pytest.mark.django_db
+def test_site_footer_links_to_scoring_explainer(client):
+    content = client.get(reverse("core:about")).content.decode()
+
+    assert f'href="{reverse("core:about_scoring")}"' in content
+
+
+@pytest.mark.django_db
 def test_about_page_guest_feedback_uses_auth_dialog(client):
     content = client.get(reverse("core:about")).content.decode()
 
