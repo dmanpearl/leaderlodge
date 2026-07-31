@@ -168,8 +168,11 @@
 }
 
 .game-list-table thead th,
+.game-list-table tbody td,
 .game-list-table-foot th,
-.game-list-stats-table thead th {
+.game-list-stats-table thead th,
+.game-list-stats-table tbody td,
+.game-list-stats-table tbody th {
   vertical-align: middle;
 }
 

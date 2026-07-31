@@ -100,8 +100,8 @@
 - [x] 99ba443 AI: Log Ask questions and answers that users type in to any interface.
 - [x] 3bca1f7 Bug: Record Game: When entering this view, the location menu gets pre-expanded. It should not be opened unless clicked. We already fixed a similar bug in the Edit Game screen
 - [x] 8c8c0ca Honeypot bot signup detection: Provide additional bot provided information, such as first and last name, in the notification email and event log
-- [x] d73db49 Feat: Feedback type should be defaulted into a value (https://leaderlodge.com/admin/feedback/feedback/4/change/)
-- [x] f8b3cbd Bug: Location type-ahead conflict (https://leaderlodge.com/admin/feedback/feedback/3/change/)
+- [x] d73db49 Feat: Feedback type should be defaulted into a value (https://leaderlodge.com/admin/feedback/feedback/4)
+- [x] f8b3cbd Bug: Location type-ahead conflict (https://leaderlodge.com/admin/feedback/feedback/3)
 - [x] 9da64cc, 4a17e25 Auth Events should be location aware based on IP address or other available information. Location information should be in notifications and logs
 - [x] 02bf369 Players: Create a tool to combine 2 players into one player. Fail if not already in same Group. Fail if both players have a 'linked user'. Merge all data including games, groups, linked user into one of the players and delete the other player. Provide a confirmation screen. Tool is available to Staff. Tool is available to Group owner for members of owned Group. UX is accessible from Group Detail view via '...' context menu: 'Combine'.
 - [x] 024fe2d Display name: When displaying <first-name> <last-initial> do not end with a dot/period (remove trailing dot)
@@ -120,17 +120,17 @@
 - [x] 1ecfcd5 Location View: Add 'Date' column for most recent date played.
 - [x] 91331e3 Location View: Add Asc/Dsc Sort controls for Date, Name, Count fields. Save persistently in user preferences.
 - [x] b02f936 Location View: If a location has zero games played, add a delete item to the context menu
-- [x] 8eb0044 Game detail screen needs an Again or Record Another button (https://leaderlodge.com/admin/feedback/feedback/8/change/)
+- [x] 8eb0044 Game detail screen needs an Again or Record Another button (https://leaderlodge.com/admin/feedback/feedback/8)
 - [x] 8eb0044 Record Game with Reuse Players: When entering the new game view via the 'Reuse Players' button, the 'Add Player' field should be hidden/collapsed. Replace it with a "+" button in the reuse-players funnel. The "+" should be placed directly under the table of participants. Pressing "+" opens up the "Add Player" UX same as a normal Record Game screen.
 - [x] 8874818 Record Game > Pickleball > Score type: label and field should be on same line.
 - [x] db7dffd, 1cd8072 Record Game View: Player Table alignment. All columns should be the same width. Currently, some players are more narrow than others, causing the 'Add Teamate' button to be different horizontal alignment than the others
-- [x] 8c9660c Game change email notification text should include before and after snapshots and navigable links to game and admin views (https://leaderlodge.com/admin/feedback/feedback/10/change/)
+- [x] 8c9660c Game change email notification text should include before and after snapshots and navigable links to game and admin views (https://leaderlodge.com/admin/feedback/feedback/10)
 - [x] 0e566cf Record game: If there is only one group avaiable, do not show '-----' option. Pre-select that single group.
-- [x] 38140e8 Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9/change/)
+- [x] 38140e8 Feedback should allow empty details field (https://leaderlodge.com/admin/feedback/feedback/9)
 - [x] f897397 Bug: CRSF error on refresh
-- [x] 45c21d0 Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5/change/)
-- [x] 5fa5e9a Record Game: 'Add Teammate' UI color differentiated from 'Add Player'. This means that after the user presses 'Add Teammate' (or '+ Teammate') and the 'Add Player' label changes to 'Add Teammate', also change the color of the add-player/teammate label and input field from primary blue to a secondary green (https://leaderlodge.com/admin/feedback/feedback/11/change/)
-- [x] 704cd8b Record Game: Reuse allows pick from multiple sets of players/teammates recent games instead of only the most recent (https://leaderlodge.com/admin/feedback/feedback/12/change/)
+- [x] 45c21d0 Feat: Game recording location field should be location aware (https://leaderlodge.com/admin/feedback/feedback/5)
+- [x] 5fa5e9a Record Game: 'Add Teammate' UI color differentiated from 'Add Player'. This means that after the user presses 'Add Teammate' (or '+ Teammate') and the 'Add Player' label changes to 'Add Teammate', also change the color of the add-player/teammate label and input field from primary blue to a secondary green (https://leaderlodge.com/admin/feedback/feedback/11)
+- [x] 704cd8b Record Game: Reuse allows pick from multiple sets of players/teammates recent games instead of only the most recent (https://leaderlodge.com/admin/feedback/feedback/12)
 - [x] 0f35103 Fine tune 'Locate' function to discover parks (ie city parks) and reduce radius from 800m to 600m
 - [x] 8dbfe9b Date filtering for Games and Leaderboards adds day granularity: Shared period presets + optional date range for Games and Leaderboards; Ask reuses the same resolver
 - [x] 5e27505 Feedback notification email url should be working link instead of relative path (ex. /admin/feedback/feedback/13). Also determine if '/change/' portion of url is necessary and best practice (https://leaderlodge.com/admin/feedback/feedback/13)
@@ -145,22 +145,24 @@
 - [x] 7e73826 Location: AI Insights/Ask city/state region leaderboard + play-locations tools
 - [x] c865a27 Location List View: Click on location row to open a location detail view
 - [x] 57acd3c Map View: Location modal includes link to Location Detail View. Also rename 'View Games' > 'View Game'.
-- [x] 1d6a6d8 Edit Game needs the ability to edit special fields, e.g. traditional or rally scoring type for Pickleball (https://leaderlodge.com/admin/feedback/feedback/16/change/)
+- [x] 1d6a6d8 Edit Game needs the ability to edit special fields, e.g. traditional or rally scoring type for Pickleball (https://leaderlodge.com/admin/feedback/feedback/16)
 - [x] fb91dcc Leaderboard: Filtering supported by extra game-specific fields score_type, double_game, half_game. Only show if supported by selected game-type
 - [x] 0d12512 Ask the Lodge: Requests supported for extra game-specific fields score_type, double_game, half_game. 'Who is best at Rally?', 'Who is the worst half game player?', 'Who wins the most double-games in Dominos?' (see `leaderlodge/games/features.py`)
 - [x] 7cf09f5 Admin Games View: Add filter by group
 - [x] 624635f Score Rank Algorithm: Team players are getting too much individual credit for their co-wins. Option B: experience-weighted team credit for individuals; team rows use average member games for Bayesian. See `docs/rank-scoring.md`.
 - [x] 7c58939 Team Scoring: Add separate, smaller `LEADERBOARD_TEAM_BAYESIAN_K` (8) for team-context shrinkage (team rows' own score and individual credit from team wins), distinct from the solo `LEADERBOARD_BAYESIAN_K` (20). Fixes teams being pushed too far down after the prior Bayesian fix, since a specific pairing accumulates its own games far more slowly than an individual who rotates partners. See `docs/rank-scoring.md`.
 - [x] 72cc10e Leaderboard Detail View 'Record by Partner' table use graduated colors for the rank pills based on the rank number. Avoid contrast issue between text color and pill background color
-- [x] 099f52b Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15/change/)
+- [x] 099f52b Shutout Tracking 'Pickled' (https://leaderlodge.com/admin/feedback/feedback/15)
 - [x] afe8502 Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other
+- [x] Game view table cells should be aligned center-vertical (https://leaderlodge.com/admin/feedback/feedback/19)
 
 ## Open Items
 
+- [ ] Record Game: Player name type-ahead should include teams (https://leaderlodge.com/admin/feedback/feedback/18)
 - [ ] Score Description: Make a page the explains the ranking system smilar to rank-score.md. Share content if possible
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
-- [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14/change/)
-- [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17/change/)
+- [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14)
+- [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17)
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Record Game: Make it easier to go back and set location during user selections
 - [ ] Add Favicon
