@@ -157,13 +157,12 @@
 - [x] 1923fb0 Game view table cells should be aligned center-vertical (https://leaderlodge.com/admin/feedback/feedback/19)
 - [x] ccd4e0c Record Game: Player name type-ahead should include teams (https://leaderlodge.com/admin/feedback/feedback/18)
 - [x] 00054c5 Score Description: Make a page that explains the ranking system smilar to rank-score.md. Share content between the page and the docs if possible
-- [x] Game View: Player or team name in Header should be a link to the Player or Team detail view. Caution: This will impact the currently hardcoded breadcrumb trail and 'Back to Leaderboard' button
+- [x] beb7f7b Game View: Player or team name in Header should be a link to the Player or Team detail view. Caution: This will impact the currently hardcoded breadcrumb trail and 'Back to Leaderboard' button
+- [x] Evauate and remove all Breadcrumb controls throughout the app for possible removal (9: groups:create, groups:edit, groups:location_manage, groups: location_detail, groups:player_combine, insights:ask_examples, insights:ask_example_detail, core:about_insights)
 
 ## Open Items
 
-- [ ] Evauate all Breadcrumb controls throughout the app for possible removal (9: groups:create, groups:edit, groups:location_manage, groups: location_detail, groups:player_combine, insights:ask_examples, insights:ask_example_detail, core:about_insights)
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
-- [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14)
 - [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17)
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Record Game: Make it easier to go back and set location during user selections

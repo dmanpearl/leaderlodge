@@ -8,14 +8,6 @@
 {% endblock %}
 
 {% block content %}
-  <nav aria-label="breadcrumb" class="mb-2">
-    <ol class="breadcrumb mb-0">
-      <li class="breadcrumb-item"><a href="{% url 'insights:ask' %}">Ask the Lodge</a></li>
-      <li class="breadcrumb-item"><a href="{% url 'insights:ask_examples' %}">Examples</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ example.category }}</li>
-    </ol>
-  </nav>
-
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-3">
     <div>
       <h1 class="h3 mb-2">{{ example.category }}</h1>

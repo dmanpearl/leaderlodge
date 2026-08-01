@@ -13,23 +13,6 @@
 {% block content %}
   {{ location_data|json_script:"location-data" }}
 
-  <nav aria-label="breadcrumb" class="mb-2">
-    <ol class="breadcrumb mb-0">
-      <li class="breadcrumb-item"><a href="{% url 'groups:list' %}">Groups</a></li>
-      <li class="breadcrumb-item">
-        <a href="{% url 'groups:detail' group.pk %}">{{ group.name }}</a>
-      </li>
-      <li class="breadcrumb-item">
-        {% if can_manage_locations %}
-          <a href="{% url 'groups:location_manage' group.pk %}">Locations</a>
-        {% else %}
-          Locations
-        {% endif %}
-      </li>
-      <li class="breadcrumb-item active" aria-current="page">{{ location.name }}</li>
-    </ol>
-  </nav>
-
   <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
     <div>
       <h1 class="h3 mb-1">

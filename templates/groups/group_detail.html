@@ -9,13 +9,6 @@
 
 {% block content %}
 <div class="group-detail-page">
-  <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{% url 'groups:list' %}">Groups</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ group.name }}</li>
-    </ol>
-  </nav>
-
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-3">
     <div>
       <h1 class="h3 mb-1">{{ group.name }}</h1>

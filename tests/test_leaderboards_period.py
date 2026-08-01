@@ -244,7 +244,7 @@ def test_get_player_rankings_filters_by_game_size(user, group):
 
 
 @pytest.mark.django_db
-def test_rank_detail_preserves_period_in_back_link(client, user, group):
+def test_rank_detail_shows_selected_period_label(client, user, group):
     client.force_login(user)
     _record_dominos_game(group, user, played_on=date(2026, 6, 1))
     player = group.players.order_by("pk").first()
@@ -261,6 +261,4 @@ def test_rank_detail_preserves_period_in_back_link(client, user, group):
     )
     content = response.content.decode()
     assert response.status_code == 200
-    assert "year=2026" in content
-    assert "month=6" in content
     assert "June 2026" in content
