@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from leaderlodge.insights.tools.rank_history import MAX_RANK_HISTORY_YEARS
+
 _PERIOD_PROPERTIES = {
     "year": {
         "type": "integer",
@@ -378,6 +380,51 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                         ),
                     },
                     **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_player_rank_history",
+            "description": (
+                "Rank and rank_score for 2 to 5 players in one game type, one row "
+                "per calendar year. Use for questions about which years, or how "
+                "many years, one player was ahead of another (or a group of "
+                "players), instead of calling query_player_detail or "
+                "compare_players once per year. Omit years to cover every year "
+                "with recorded games."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    "player_ids": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "2 to 5 player_id values from the roster.",
+                    },
+                    "player_queries": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "2 to 5 player names or usernames when player_id "
+                            "is not known."
+                        ),
+                    },
+                    "years": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": (
+                            "Calendar years to include, e.g. [2023, 2024, 2025]. "
+                            "Omit to cover every year this group has recorded "
+                            f"games for this game type (max {MAX_RANK_HISTORY_YEARS})."
+                        ),
+                    },
                     "game_size": {"type": "integer"},
                     **_GAME_FEATURE_PROPERTIES,
                 },

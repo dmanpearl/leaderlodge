@@ -54,6 +54,28 @@ def test_resolve_player_query_matches_first_name_and_username(group):
 
 
 @pytest.mark.django_db
+def test_resolve_player_query_prefers_exact_name_over_partial_username(group):
+    """An exact display-name match must win over a merely-prefix username match.
+
+    Regression for a bug where a player named "David" lost to an unrelated
+    player whose linked username happened to start with "david" (e.g.
+    "david_manpearl"), because username prefix matching ran before exact
+    display-name matching.
+    """
+    david = group.players.get(linked_user__username="dmanpearl")
+    decoy = User.objects.create_user(
+        username="david_manpearl",
+        password="test-pass-123",
+        first_name="Hotmail",
+    )
+    decoy_player = add_guest_player(group=group, display_name="Hotmail")
+    decoy_player.linked_user = decoy
+    decoy_player.save(update_fields=["linked_user"])
+
+    assert resolve_player_query(group, "David").pk == david.pk
+
+
+@pytest.mark.django_db
 def test_resolve_player_query_does_not_match_shared_username_suffix(group):
     nancy = group.players.get(linked_user__username="nmanpearl")
     with pytest.raises(ValueError, match="No player matched"):

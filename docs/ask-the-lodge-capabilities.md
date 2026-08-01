@@ -2,7 +2,7 @@
 
 > **Companion:** [ai-insights.md](./ai-insights.md) (shipped surfaces, API contract, UX, env, testing). This document tracks what Ask can answer, tool limits, and planned expansion.
 
-**Last reviewed:** 2026-06-30
+**Last reviewed:** 2026-08-01
 
 ---
 
@@ -176,6 +176,17 @@ Returns players ordered by recorded **losses** (weighted count). Only meaningful
 
 Returns one JSON payload with a `players` array of `query_player_detail` snapshots (rank, outcomes, scores, display fields). Saves tool rounds vs multiple `query_player_detail` calls.
 
+### `query_player_rank_history`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `player_ids` or `player_queries` | One of | 2 to 5 players |
+| `years` | No | List of calendar years, e.g. `[2023, 2024, 2025]`. Omit to cover every year with recorded games (max 15) |
+| `game_size` | No | |
+
+Returns one row per year (`history`) with each player's `rank`, `rank_score`, `games_played`, and `has_games`, plus a `leader` (player_id and display_label) when exactly one of the given players has the best rank that year. `leader` is `null` and `tied: true` when the given players share the best rank that year, and `null` with `tied: false` when fewer than two of them have recorded games that year. Use this instead of one `query_player_detail` or `compare_players` call per year; it answers "which years was X ahead of Y" in a single tool round.
+
 ### `query_team_pairings`
 
 | Parameter | Required | Notes |
@@ -289,6 +300,7 @@ Returns scores, placements, location, and players for one recorded game.
 | Name-based grouping | "Do boys or girls play better?" / "Do men or women play better?" / classify by first name | `list_group_players` + model name knowledge + per-player or leaderboard tools for stats |
 | Game types | "What games do we track?" | `list_game_types` |
 | Two-player career compare | "How do Amelia and Hudson stack up in dominos?" | Two `query_player_detail` calls, `query_head_to_head`, or `compare_players` |
+| Multi-year rank compare | "Which years was David ahead of Nancy in dominos?" | `query_player_rank_history` (one call covers every year) |
 | Multi-player compare | "Compare Aurora, Lucas, and Lily in Progressive Rummy" | `compare_players` (2 to 5 players) |
 | Loss leaders | "Who loses most in Progressive Rummy?" | `query_loss_leaders` |
 | Custom date span | "Who led dominos during spring break?" / "Leaders from Spring Break week" | `query_date_range_leaderboard` with `start_date` / `end_date` (model infers dates from the question) |
@@ -380,6 +392,7 @@ Optional HTTP endpoints (for matchup picker UI or marketing embeds, not required
 | Hall of Fame | `leaderlodge/insights/tools/hall_of_fame.py` |
 | Loss leaders | `leaderlodge/insights/tools/loss_leaders.py` |
 | Compare players | `leaderlodge/insights/tools/compare.py` |
+| Multi-year rank history | `leaderlodge/insights/tools/rank_history.py` |
 | Location resolution | `leaderlodge/insights/tools/locations.py` |
 | Placements | `leaderlodge/insights/tools/placements.py` |
 | Trends / month leaders | `leaderlodge/insights/tools/trends.py` |

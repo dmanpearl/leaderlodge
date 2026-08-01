@@ -250,6 +250,140 @@ def test_compare_players_returns_multiple_snapshots(user, group):
 
 
 @pytest.mark.django_db
+def test_query_player_rank_history_tracks_leader_per_year(user, group):
+    from datetime import date
+
+    from leaderlodge.insights.tools.rank_history import query_player_rank_history
+
+    players = list(group.players.order_by("pk")[:2])
+    pat, sam = players[0], players[1]
+
+    def record(year, winner, loser):
+        rows = [
+            {"player": winner, "score": 35},
+            {"player": loser, "score": 20},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=date(year, 1, 15),
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    record(2023, pat, sam)
+    record(2024, sam, pat)
+
+    result = query_player_rank_history(
+        group,
+        player_ids=[pat.pk, sam.pk],
+        game_type_code="dominos",
+    )
+
+    assert result["years"] == [2023, 2024]
+    by_year = {row["year"]: row for row in result["history"]}
+    assert by_year[2023]["leader"]["player_id"] == pat.pk
+    assert by_year[2024]["leader"]["player_id"] == sam.pk
+
+
+@pytest.mark.django_db
+def test_query_player_rank_history_handles_missing_and_tied_years(user, group):
+    from datetime import date
+
+    from leaderlodge.insights.tools.rank_history import query_player_rank_history
+
+    players = list(group.players.order_by("pk")[:2])
+    pat, sam = players[0], players[1]
+
+    rows = [
+        {"player": pat, "score": 30},
+        {"player": sam, "score": 30},
+    ]
+    assign_results_from_scores(rows, "dominos")
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2024, 6, 1),
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ],
+    )
+
+    result = query_player_rank_history(
+        group,
+        player_ids=[pat.pk, sam.pk],
+        game_type_code="dominos",
+        years=[2023, 2024],
+    )
+
+    by_year = {row["year"]: row for row in result["history"]}
+    assert by_year[2023]["leader"] is None
+    assert by_year[2023]["tied"] is False
+    assert all(not p["has_games"] for p in by_year[2023]["players"])
+    assert by_year[2024]["tied"] is True
+    assert by_year[2024]["leader"] is None
+
+
+@pytest.mark.django_db
+def test_tool_executor_rank_history_defaults_to_available_years(user, group):
+    _record_game(group, user, third_idx=None)
+    players = list(group.players.order_by("pk")[:2])
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+
+    result = executor.execute(
+        "query_player_rank_history",
+        {"game_type_code": "dominos", "player_ids": [players[0].pk, players[1].pk]},
+    )
+
+    assert result["years"] == [2026]
+
+
+@pytest.mark.django_db
+def test_tool_executor_rank_history_rejects_too_many_years(user, group):
+    _record_game(group, user, third_idx=None)
+    players = list(group.players.order_by("pk")[:2])
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+
+    with pytest.raises(Exception, match="at most"):
+        executor.execute(
+            "query_player_rank_history",
+            {
+                "game_type_code": "dominos",
+                "player_ids": [players[0].pk, players[1].pk],
+                "years": list(range(2000, 2020)),
+            },
+        )
+
+
+@pytest.mark.django_db
 def test_query_date_range_leaderboard_filters_games(user, group):
     from datetime import date
 

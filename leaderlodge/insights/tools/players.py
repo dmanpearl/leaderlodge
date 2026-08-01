@@ -309,22 +309,21 @@ def resolve_player_query(group: Group, query: str) -> GroupPlayer:
             "Use query_leaderboard to find the current leader."
         )
 
-    username_matches = [
-        player
-        for player in players
-        if (username := _username_for(player)) is not None
-        and _username_matches(lowered, username)
-    ]
-    if len(username_matches) == 1:
-        return username_matches[0]
-    if len(username_matches) > 1:
-        labels = ", ".join(sorted(player.display_label for player in username_matches))
-        raise ValueError(f"Ambiguous player {query!r}. Matches: {labels}.")
-
+    # Exact matches (username or any display-name variant) always win, checked
+    # together across every player first. This must run before the looser
+    # partial/prefix checks below: otherwise a player whose username merely
+    # starts with the query (e.g. username "david_manpearl" for a query of
+    # "david") could shadow a different player whose name is an exact match
+    # (e.g. display name "David"), even though the exact match is the
+    # obviously correct answer.
     exact_matches = [
         player
         for player in players
-        if any(variant.lower() == lowered for variant in _display_name_variants(player))
+        if (
+            (username := _username_for(player)) is not None
+            and username.lower() == lowered
+        )
+        or any(variant.lower() == lowered for variant in _display_name_variants(player))
     ]
     if len(exact_matches) == 1:
         return exact_matches[0]
@@ -337,10 +336,16 @@ def resolve_player_query(group: Group, query: str) -> GroupPlayer:
         if player is not None:
             return player
 
+    # No exact match anywhere: fall back to looser partial/prefix matching on
+    # username or display-name variants.
     partial_matches = [
         player
         for player in players
-        if any(
+        if (
+            (username := _username_for(player)) is not None
+            and _username_matches(lowered, username)
+        )
+        or any(
             _display_name_matches(lowered, variant)
             for variant in _display_name_variants(player)
         )

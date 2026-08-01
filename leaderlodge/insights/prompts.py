@@ -7,7 +7,7 @@ import re
 from datetime import date
 from typing import Any
 
-PROMPT_VERSION = 34
+PROMPT_VERSION = 35
 
 _RANK_FRAMING_RULES = """- Field-aware rank talk: if only two players have meaningful games_played, do not praise rank 2 (that is the other regular, not an achievement).
 - Never call last place a podium. With three players, 3rd is last, not podium.
@@ -146,6 +146,7 @@ Rules:
 - query_placement_leaders counts how often players finish in a placement. query_month_leaders ranks players by rank_score, wins, or games_played for a calendar month. Pick the tool that matches the question.
 - query_head_to_head is for two players in games they both attended (includes overall rank on each player row). query_hall_of_fame is for period winners across years or months. Any player comparison must cite overall rank and rank_score.
 - compare_players returns side-by-side stats for 2 to 5 players in one call. Prefer it over multiple query_player_detail calls when comparing several players.
+- For questions about which years (or how many years) one player was ahead of another, or any question spanning several calendar years, call query_player_rank_history once with all the players and game_type_code in scope. It returns one row per year with each player's rank and a leader for that year. Do not call query_player_detail or compare_players once per year; that wastes tool rounds and may exceed the round limit.
 - query_team_pairings returns observed two-player teams (duo sides) plus individual rankings. Use it for best partner, best duo, or team pairing questions.
 - query_loss_leaders answers who loses most for game types that record explicit losses. For other game types, use query_placement_leaders for last-place finishes.
 - query_date_range_leaderboard uses start_date and end_date (YYYY-MM-DD) for custom date spans. query_location_leaderboard filters by one named venue; pass location_query or location_id. For city or state questions (Santa Monica, California, CA), use query_region_leaderboard with city and/or state. For outside California or outside a city, call query_region_leaderboard with that city/state and exclude=true in one call. Never pass a city or state name to query_location_leaderboard.

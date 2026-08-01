@@ -401,6 +401,21 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
         typical_tool_rounds="1 to 2",
     ),
     _example(
+        "Multi-year rank compare",
+        (
+            "Which years was David ahead of Nancy in dominos?",
+            "How many years has Amelia led Hudson in dominos?",
+        ),
+        reliability="supported",
+        tool_calls=(
+            AskToolCall(
+                "query_player_rank_history",
+                {"player_queries": ["David", "Nancy"]},
+                note="Omit years to cover every year with recorded games.",
+            ),
+        ),
+    ),
+    _example(
         "Multi-player compare",
         "Compare Aurora, Lucas, and Lily in Progressive Rummy",
         reliability="supported",

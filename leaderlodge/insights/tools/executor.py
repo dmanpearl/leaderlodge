@@ -16,6 +16,10 @@ from leaderlodge.insights.tools.players import (
     normalize_player_query,
     resolve_player_query,
 )
+from leaderlodge.insights.tools.rank_history import (
+    MAX_RANK_HISTORY_YEARS,
+    query_player_rank_history,
+)
 from leaderlodge.insights.tools.scope import AskScope
 from leaderlodge.insights.tools.standings import (
     list_game_types,
@@ -60,6 +64,7 @@ class ToolExecutor:
             "query_hall_of_fame": self._query_hall_of_fame,
             "query_loss_leaders": self._query_loss_leaders,
             "compare_players": self._compare_players,
+            "query_player_rank_history": self._query_player_rank_history,
             "query_date_range_leaderboard": self._query_date_range_leaderboard,
             "query_location_leaderboard": self._query_location_leaderboard,
             "query_region_leaderboard": self._query_region_leaderboard,
@@ -408,6 +413,33 @@ class ToolExecutor:
             player_ids=player_ids,
             game_type_code=game_type_code,
             period=self._resolve_period(arguments, game_type_code),
+            game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
+        )
+
+    def _resolve_years_list(self, arguments: dict[str, Any]) -> list[int] | None:
+        raw_years = arguments.get("years")
+        if raw_years is None:
+            return None
+        if not isinstance(raw_years, list) or not raw_years:
+            raise ToolExecutionError("years must be a non-empty list of integers.")
+        if len(raw_years) > MAX_RANK_HISTORY_YEARS:
+            raise ToolExecutionError(
+                f"years supports at most {MAX_RANK_HISTORY_YEARS} entries."
+            )
+        try:
+            return [int(year) for year in raw_years]
+        except (TypeError, ValueError) as exc:
+            raise ToolExecutionError("years must be integers.") from exc
+
+    def _query_player_rank_history(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        player_ids = self._resolve_player_ids_list(arguments)
+        return query_player_rank_history(
+            self.scope.group,
+            player_ids=player_ids,
+            game_type_code=game_type_code,
+            years=self._resolve_years_list(arguments),
             game_size=self._resolve_game_size(arguments, game_type_code),
             game_filters=self._resolve_game_filters(arguments, game_type_code),
         )
