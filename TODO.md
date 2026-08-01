@@ -160,11 +160,11 @@
 - [x] beb7f7b Game View: Player or team name in Header should be a link to the Player or Team detail view. Caution: This will impact the currently hardcoded breadcrumb trail and 'Back to Leaderboard' button
 - [x] 908e780 Evauate and remove all Breadcrumb controls throughout the app for possible removal (9: groups:create, groups:edit, groups:location_manage, groups: location_detail, groups:player_combine, insights:ask_examples, insights:ask_example_detail, core:about_insights)
 - [x] 82b34aa Game record and game results views should show the 2X modifier for double games. In both views, this could go as a '2x' pill in the record column next to the 'Win' pill (https://leaderlodge.com/admin/feedback/feedback/20)
-- [x] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17)
+- [x] 6f6a2da Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17)
+- [x] Features Admin list add ID as first column so I can easily jump to my item of interest
 
 ## Open Items
 
-- [ ] Features Admin list add ID as first column so I can easily jump to my item of interest
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Record Game: Make it easier to go back and set location during user selections

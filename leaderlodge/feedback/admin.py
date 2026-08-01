@@ -7,6 +7,7 @@ from leaderlodge.feedback.models import Feedback
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "title",
         "feedback_type",
         "status",
@@ -18,6 +19,7 @@ class FeedbackAdmin(admin.ModelAdmin):
         "assigned_to",
         "created_at",
     )
+    list_display_links = ("id", "title")
     list_filter = (
         "feedback_type",
         "status",
