@@ -13,7 +13,7 @@
               <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
               Your email address is already confirmed.
             </p>
-            <a href="{% url 'core:dashboard' %}" class="btn btn-primary">Back to dashboard</a>
+            <a href="{% url 'core:dashboard' %}" class="btn btn-primary">Continue to dashboard</a>
           {% else %}
             <h1 class="h4 mb-3">Verify your email</h1>
             {% if email_pending %}

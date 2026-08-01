@@ -294,7 +294,6 @@ def group_create(request: HttpRequest) -> HttpResponse:
         {
             "form": form,
             "title": "Create Group",
-            "cancel_url": reverse("groups:list"),
         },
     )
 
@@ -320,7 +319,6 @@ def group_edit(request: HttpRequest, pk: int) -> HttpResponse:
         {
             "form": form,
             "title": "Edit Group",
-            "cancel_url": reverse("groups:detail", kwargs={"pk": group.pk}),
         },
     )
 
