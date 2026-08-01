@@ -156,11 +156,12 @@
 - [x] afe8502 Bug: Game View: When screen shrinks via auto-size, 'Quick Range' and 'Year' to not resize. This may be because of Native Menus. Make all filters same size as each other
 - [x] 1923fb0 Game view table cells should be aligned center-vertical (https://leaderlodge.com/admin/feedback/feedback/19)
 - [x] ccd4e0c Record Game: Player name type-ahead should include teams (https://leaderlodge.com/admin/feedback/feedback/18)
-- [x] Score Description: Make a page that explains the ranking system smilar to rank-score.md. Share content between the page and the docs if possible
+- [x] 00054c5 Score Description: Make a page that explains the ranking system smilar to rank-score.md. Share content between the page and the docs if possible
+- [x] Game View: Player or team name in Header should be a link to the Player or Team detail view. Caution: This will impact the currently hardcoded breadcrumb trail and 'Back to Leaderboard' button
 
 ## Open Items
 
-- [ ] Game View: Player or team name in Header should be a link to the Player or Team detail view. Caution: This will impact the currently hardcoded breakcrumb trail and 'Back to Leaderboard' button
+- [ ] Evauate all Breadcrumb controls throughout the app for possible removal (9: groups:create, groups:edit, groups:location_manage, groups: location_detail, groups:player_combine, insights:ask_examples, insights:ask_example_detail, core:about_insights)
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Bug: Together ties counting low (https://leaderlodge.com/admin/feedback/feedback/14)
 - [ ] Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17)
@@ -194,6 +195,7 @@
 - [ ] iOS: Build native mobile app for iPhone and iPad
 - [ ] Android: Build native mobile app for Android
 - [ ] Delete Group: Make a UI for deleting group, warn user about deleting x number of games, access from Groups View, Group Detail View, and/or Group Edit
+- [ ] If/when LeaderLodge becomes an installable PWA (`display: standalone`), design real in-app navigation chrome (back button and/or persistent nav bar), since the browser Back/URL bar disappear in standalone mode
 
 ## AI showcase
 

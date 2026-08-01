@@ -1,9 +1,24 @@
 {% load display_names %}
-<span class="game-list-player-col-header">
-  {% include "includes/player_type_icon.html" with player=player %}
-  <span class="game-list-player-col-label">
-    {% for line in player|game_list_column_label_lines_filter %}
-      <span class="game-list-player-col-label-line">{{ line }}</span>
-    {% endfor %}
+{% if game_type_code %}
+  <a
+    href="{% url 'leaderboards:detail' %}?group={{ player.group_id }}&amp;game_type_code={{ game_type_code }}&amp;player={{ player.pk }}"
+    class="game-list-player-col-header game-list-player-col-header-link"
+    title="View {{ player.display_label }} rank detail"
+  >
+    {% include "includes/player_type_icon.html" with player=player %}
+    <span class="game-list-player-col-label">
+      {% for line in player|game_list_column_label_lines_filter %}
+        <span class="game-list-player-col-label-line">{{ line }}</span>
+      {% endfor %}
+    </span>
+  </a>
+{% else %}
+  <span class="game-list-player-col-header">
+    {% include "includes/player_type_icon.html" with player=player %}
+    <span class="game-list-player-col-label">
+      {% for line in player|game_list_column_label_lines_filter %}
+        <span class="game-list-player-col-label-line">{{ line }}</span>
+      {% endfor %}
+    </span>
   </span>
-</span>
+{% endif %}

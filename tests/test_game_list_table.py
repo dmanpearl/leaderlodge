@@ -123,3 +123,36 @@ def test_game_list_splits_team_column_headers(client, user, group):
     assert '<span class="game-list-player-col-label-line">Nancy</span>' in games_table
     assert '<span class="game-list-player-col-label-line">Zach</span>' in games_table
     assert "game-list-player-col-header" in games_table
+
+    detail_url = reverse("leaderboards:detail")
+    assert (
+        f'href="{detail_url}?group={group.pk}&amp;game_type_code=pickleball&amp;player={team.pk}"'
+        in games_table
+    )
+    assert (
+        f'href="{detail_url}?group={group.pk}&amp;game_type_code=pickleball&amp;player={opponent.pk}"'
+        in games_table
+    )
+
+
+@pytest.mark.django_db
+def test_game_list_column_header_links_to_rank_detail(client, user, group):
+    pat = group.players.get(display_name="Pat")
+
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "game_type": "dominos"},
+    )
+    content = response.content.decode()
+
+    assert response.status_code == 200
+    detail_url = reverse("leaderboards:detail")
+    assert (
+        f'href="{detail_url}?group={group.pk}&amp;game_type_code=dominos&amp;player={pat.pk}"'
+        in content
+    )
+    assert "game-list-player-col-header-link" in content
