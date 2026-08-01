@@ -1,6 +1,7 @@
 {% if result == "win" %}
   {% if is_double %}
     <span class="badge result-badge result-badge--win-double">Win</span>
+    <span class="badge text-bg-secondary result-badge-modifier">2×</span>
   {% else %}
     <span class="badge result-badge result-badge--win">Win</span>
   {% endif %}
@@ -9,6 +10,7 @@
 {% elif result == "loss" %}
   {% if is_double %}
     <span class="badge result-badge result-badge--loss-double">Loss</span>
+    <span class="badge text-bg-secondary result-badge-modifier">2×</span>
   {% else %}
     <span class="badge result-badge result-badge--loss">Loss</span>
   {% endif %}

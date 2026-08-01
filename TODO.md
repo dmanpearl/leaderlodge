@@ -159,6 +159,7 @@
 - [x] 00054c5 Score Description: Make a page that explains the ranking system smilar to rank-score.md. Share content between the page and the docs if possible
 - [x] beb7f7b Game View: Player or team name in Header should be a link to the Player or Team detail view. Caution: This will impact the currently hardcoded breadcrumb trail and 'Back to Leaderboard' button
 - [x] 908e780 Evauate and remove all Breadcrumb controls throughout the app for possible removal (9: groups:create, groups:edit, groups:location_manage, groups: location_detail, groups:player_combine, insights:ask_examples, insights:ask_example_detail, core:about_insights)
+- [x] Game record and game results views should show the 2X modifier for double games. In both views, this could go as a '2x' pill in the record column next to the 'Win' pill (https://leaderlodge.com/admin/feedback/feedback/20)
 
 ## Open Items
 

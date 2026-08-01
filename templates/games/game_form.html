@@ -5,7 +5,7 @@
 
 {% block extra_css %}
   {% if show_roster %}
-    <link rel="stylesheet" href="{% static 'css/games.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
     <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=17" />
   {% else %}
     <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
@@ -320,7 +320,7 @@
 
 {% block extra_js %}
   {% if show_roster %}
-    <script src="{% static 'js/game_record_form.js' %}?v=5"></script>
+    <script src="{% static 'js/game_record_form.js' %}?v=6"></script>
     <script src="{% static 'js/player_picker.js' %}?v=13"></script>
   {% else %}
     <script>

@@ -12,10 +12,9 @@
 }
 
 .result-badge--win-double {
-  background-color: #20c997;
-  color: #000;
+  background-color: #198754;
+  color: #fff;
   font-weight: 700;
-  box-shadow: 0 0 0 2px #20c997;
 }
 
 .result-badge--loss {
@@ -29,10 +28,9 @@
 }
 
 .result-badge--loss-double {
-  background-color: #ff6b81;
+  background-color: #dc3545;
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 0 0 2px #ff6b81;
 }
 
 .result-badge--shutout {
@@ -46,6 +44,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.result-badge-modifier {
+  margin-left: 0.25rem;
 }
 
 .game-detail-result-shutout-icon {
@@ -85,8 +87,8 @@
 }
 
 .game-list-table tbody td.game-list-cell--win-double {
-  background-color: #20c997 !important;
-  color: #000 !important;
+  background-color: #198754 !important;
+  color: #fff !important;
   font-weight: 700;
 }
 
@@ -96,7 +98,7 @@
 }
 
 .game-list-table tbody td.game-list-cell--loss-double {
-  background-color: #ff6b81 !important;
+  background-color: #dc3545 !important;
   color: #fff !important;
   font-weight: 700;
 }
@@ -112,8 +114,8 @@
 }
 
 .game-list-table tbody tr:hover td.game-list-cell--win-double {
-  background-color: #1aa179 !important;
-  color: #000 !important;
+  background-color: #157347 !important;
+  color: #fff !important;
 }
 
 .game-list-table tbody tr:hover td.game-list-cell--loss {
@@ -122,7 +124,7 @@
 }
 
 .game-list-table tbody tr:hover td.game-list-cell--loss-double {
-  background-color: #e85a6f !important;
+  background-color: #bb2d3b !important;
   color: #fff !important;
 }
 

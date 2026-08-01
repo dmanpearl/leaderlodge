@@ -123,10 +123,13 @@ def test_record_dominos_double_game(client, user, group):
 
     game = Game.objects.get()
     assert game.double_weight == 2
-    assert (
-        "Double game"
-        in client.get(reverse("games:detail", kwargs={"pk": game.pk})).content.decode()
-    )
+    detail_content = client.get(
+        reverse("games:detail", kwargs={"pk": game.pk})
+    ).content.decode()
+    assert "Double game" in detail_content
+    # Dominos has no loser (supports_loser=False), so only the winner's row
+    # carries a result badge and thus the "2x" modifier pill.
+    assert detail_content.count("result-badge-modifier") == 1
 
 
 @pytest.mark.django_db

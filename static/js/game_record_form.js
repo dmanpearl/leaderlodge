@@ -103,6 +103,9 @@
     return `<span class="badge ${className}">${label}</span>`;
   }
 
+  const DOUBLE_MODIFIER_BADGE =
+    '<span class="badge text-bg-secondary result-badge-modifier">2×</span>';
+
   function renderResults(rows, evaluation) {
     rows.forEach((row) => {
       row.resultCell.textContent = "";
@@ -113,14 +116,16 @@
         const cls = evaluation.isDouble
           ? "result-badge result-badge--win-double"
           : "result-badge result-badge--win";
-        row.resultCell.innerHTML = renderBadge("Win", cls);
+        row.resultCell.innerHTML =
+          renderBadge("Win", cls) + (evaluation.isDouble ? DOUBLE_MODIFIER_BADGE : "");
       } else if (evaluation.tieIds.has(row.playerId)) {
         row.resultCell.innerHTML = renderBadge("Tie", "result-badge result-badge--tie");
       } else if (evaluation.lossIds.has(row.playerId)) {
         const cls = evaluation.isDouble
           ? "result-badge result-badge--loss-double"
           : "result-badge result-badge--loss";
-        row.resultCell.innerHTML = renderBadge("Loss", cls);
+        row.resultCell.innerHTML =
+          renderBadge("Loss", cls) + (evaluation.isDouble ? DOUBLE_MODIFIER_BADGE : "");
       }
     });
   }
