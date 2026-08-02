@@ -359,6 +359,29 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
         tool_calls=(AskToolCall("query_hall_of_fame", {"granularity": "year"}),),
     ),
     _example(
+        "Leader for every year",
+        (
+            "For every year since 2014, tell me the name of the leader",
+            "Who led dominos each year?",
+        ),
+        reliability="supported",
+        tool_calls=(
+            AskToolCall(
+                "query_hall_of_fame",
+                {"granularity": "year", "limit": 20},
+                note=(
+                    "One call for every year on record. Do not call "
+                    "compare_players or query_player_rank_history once per "
+                    "year; those tools are for specific named players only."
+                ),
+            ),
+        ),
+        limitation=(
+            "Rows are most-recent-first; pass limit=20 (the max) so a long "
+            "history is not truncated to the newest 10 years."
+        ),
+    ),
+    _example(
         "Roster discovery",
         "Who is in our group?",
         reliability="supported",

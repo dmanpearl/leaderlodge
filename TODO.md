@@ -161,10 +161,15 @@
 - [x] 908e780 Evauate and remove all Breadcrumb controls throughout the app for possible removal (9: groups:create, groups:edit, groups:location_manage, groups: location_detail, groups:player_combine, insights:ask_examples, insights:ask_example_detail, core:about_insights)
 - [x] 82b34aa Game record and game results views should show the 2X modifier for double games. In both views, this could go as a '2x' pill in the record column next to the 'Win' pill (https://leaderlodge.com/admin/feedback/feedback/20)
 - [x] 6f6a2da Ask the lodge should be able to request multiple leaderboard ranges (https://leaderlodge.com/admin/feedback/feedback/17)
-- [x] Features Admin list add ID as first column so I can easily jump to my item of interest
+- [x] 6176d80 Features Admin list add ID as first column so I can easily jump to my item of interest
+- [ ] Bug: Ask the Lodge questions about yearly performance truncates at 10 responses (ex 'For every year since 2014, tell me tell me the name of the leader' only shows 2014-2023 although there are games in 2024-2026
+- [ ] Bug: Ask the Lodge fails to find games (ex 'For every year since 2014, tell me tell me the name of the leader' responds with 'No recorded games for any players' for most of the years)
 
 ## Open Items
 
+- [ ] Player detail, you should be able to invite a guest to convert to a full user (https://leaderlodge.com/admin/feedback/feedback/22)
+- [ ] Record game look up should not show recent teams teams are not supported for that game (ie Mah Jongg) (https://leaderlodge.com/admin/feedback/feedback/21)
+- [ ] Leaderboard > Record by Partner: Order the partners by win percentage descending
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Record Game: Make it easier to go back and set location during user selections

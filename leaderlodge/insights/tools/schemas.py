@@ -324,7 +324,16 @@ ASK_TOOL_SCHEMAS: list[dict] = [
                     },
                     "limit": {
                         "type": "integer",
-                        "description": "Max period rows to return (default 10).",
+                        "description": (
+                            "Max period rows to return (default 20, the max "
+                            "allowed). Rows are most-recent-first: omit limit, "
+                            "or pass 20, for questions covering many years "
+                            "(e.g. every year since 2014) so older periods "
+                            "are not dropped. If more periods exist than the "
+                            "limit, the result includes truncated: true, "
+                            "periods_available, and a truncation_note; you "
+                            "must relay that the history is incomplete."
+                        ),
                     },
                 },
                 "required": [],

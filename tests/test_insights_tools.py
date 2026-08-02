@@ -384,6 +384,117 @@ def test_tool_executor_rank_history_rejects_too_many_years(user, group):
 
 
 @pytest.mark.django_db
+def test_tool_executor_hall_of_fame_defaults_to_full_year_range(user, group):
+    """Omitting limit must not silently drop the oldest years.
+
+    Regression for "for every year since X, tell me the leader" questions
+    truncating to the 10 most recent years (rows are most-recent-first, so a
+    limit of 10 dropped the oldest years, not the newest).
+    """
+    from datetime import date
+
+    players = list(group.players.order_by("pk")[:2])
+
+    for year in range(2010, 2025):  # 15 distinct years
+        rows = [
+            {"player": players[0], "score": 35},
+            {"player": players[1], "score": 20},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=date(year, 1, 15),
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+
+    result = executor.execute(
+        "query_hall_of_fame",
+        {"granularity": "year", "game_type_code": "dominos"},
+    )
+
+    years = {row["year"] for row in result["periods"]}
+    assert len(result["periods"]) == 15
+    assert 2010 in years
+    assert 2024 in years
+    assert result["periods_available"] == 15
+    assert result["periods_returned"] == 15
+    assert result["truncated"] is False
+
+
+@pytest.mark.django_db
+def test_query_hall_of_fame_flags_truncation_beyond_max_limit(user, group):
+    """More history than the 20-row max must be disclosed, not dropped silently."""
+    from datetime import date
+
+    players = list(group.players.order_by("pk")[:2])
+
+    for year in range(2000, 2026):  # 26 distinct years
+        rows = [
+            {"player": players[0], "score": 35},
+            {"player": players[1], "score": 20},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=date(year, 1, 15),
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+
+    result = executor.execute(
+        "query_hall_of_fame",
+        {"granularity": "year", "game_type_code": "dominos"},
+    )
+
+    years = {row["year"] for row in result["periods"]}
+    assert result["periods_available"] == 26
+    assert result["periods_returned"] == 20
+    assert result["truncated"] is True
+    assert "26" in result["truncation_note"]
+    assert "20" in result["truncation_note"]
+    # Most-recent-first: the newest 20 years are kept, the oldest 6 are omitted.
+    assert 2025 in years
+    assert 2006 in years
+    assert 2000 not in years
+    assert 2005 not in years
+
+
+@pytest.mark.django_db
 def test_query_date_range_leaderboard_filters_games(user, group):
     from datetime import date
 

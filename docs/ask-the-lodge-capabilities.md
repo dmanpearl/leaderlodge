@@ -151,9 +151,11 @@ Returns `games_together`, `score_direction`, optional `scoring_note`, and per-pl
 | --------- | -------- | ----- |
 | `granularity` | No | `year` (default) or `month` |
 | `game_type_code` | No | Filter to one game type |
-| `limit` | No | Max period rows, default 10, max 20 |
+| `limit` | No | Max period rows, default 20 (the max). Rows are most-recent-first, so a small limit drops the oldest periods, not the newest |
 
-Returns period leaders like the Hall of Fame grid: `period_label`, leader `display_label`, `rank_score` per game type.
+Returns period leaders like the Hall of Fame grid: `period_label`, leader `display_label`, `rank_score` per game type. This is the tool for open-ended "who led each year" questions with no named players; `query_player_rank_history` and `compare_players` are for specific named players only and must not be called once per year as a substitute.
+
+Always includes `periods_available` (total periods with data) and `periods_returned` (rows actually sent back). When a group has more history than the 20-row max, the response also includes `truncated: true` and a `truncation_note`; the model is required to relay that the answer is incomplete (e.g. "showing the 20 most recent of 26 years") rather than presenting a partial history as complete. There is no pagination; a group with more than 20 years (or months) of a game type will always need this caveat for "since the beginning" style questions.
 
 ### `query_loss_leaders`
 
@@ -296,6 +298,7 @@ Returns scores, placements, location, and players for one recorded game.
 | Team pairings | "Which players would make the best two-person team in pickleball?" | `query_team_pairings` |
 | Hall of Fame / dynasty | "Who dominated across years?" / "Repeat monthly winners?" | `query_hall_of_fame` |
 | Period winners by game | "Who won 2024 in each game?" | `query_hall_of_fame`, `granularity=year` |
+| Leader for every year | "For every year since 2014, tell me the leader" | `query_hall_of_fame`, `granularity=year`, `limit=20` (one call covers the whole range; rows are most-recent-first so a small limit drops the oldest years) |
 | Roster discovery | "Who is in our group?" | `list_group_players` |
 | Name-based grouping | "Do boys or girls play better?" / "Do men or women play better?" / classify by first name | `list_group_players` + model name knowledge + per-player or leaderboard tools for stats |
 | Game types | "What games do we track?" | `list_game_types` |
@@ -327,6 +330,8 @@ Returns scores, placements, location, and players for one recorded game.
 | "Most" without metric | "Who is the best in dominos?" | Model must choose rank_score vs wins vs placement |
 | Exact counts across many players | "Rank everyone by 2nd-place finishes" | 20-row cap |
 | Three or more players together | "Stats when Amelia, Hudson, and Lucas play together" | Head-to-head is two-player only; `compare_players` is career stats, not shared-table only |
+| Leader for every year (weaker models) | "For every year since 2014, tell me the leader" | Prompt directs this to one `query_hall_of_fame` call, but a weaker model may still guess player names and loop `compare_players` or `query_player_rank_history` once per year instead, which can stall partway through the range and misreport years as having no games. Check `debug.tool_rounds` if the answer looks incomplete |
+| Very long history (20+ years or months) | "Who led every year since we started, 26 years ago" | `query_hall_of_fame` caps at 20 rows (`ToolExecutor.MAX_LIMIT`); no pagination. The model must disclose the gap via `truncated` / `periods_available` / `truncation_note` rather than silently answering with only the most recent 20 |
 
 ### Not supported
 

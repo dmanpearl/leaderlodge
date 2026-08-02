@@ -7,7 +7,7 @@ import re
 from datetime import date
 from typing import Any
 
-PROMPT_VERSION = 35
+PROMPT_VERSION = 37
 
 _RANK_FRAMING_RULES = """- Field-aware rank talk: if only two players have meaningful games_played, do not praise rank 2 (that is the other regular, not an achievement).
 - Never call last place a podium. With three players, 3rd is last, not podium.
@@ -144,9 +144,11 @@ Rules:
 - When the question says all time or overall, pass all_time=true on period-aware tools even if the user message default period is filtered.
 - Placement in tools is 0-indexed: 0=1st place, 1=2nd place, 2=3rd place.
 - query_placement_leaders counts how often players finish in a placement. query_month_leaders ranks players by rank_score, wins, or games_played for a calendar month. Pick the tool that matches the question.
-- query_head_to_head is for two players in games they both attended (includes overall rank on each player row). query_hall_of_fame is for period winners across years or months. Any player comparison must cite overall rank and rank_score.
-- compare_players returns side-by-side stats for 2 to 5 players in one call. Prefer it over multiple query_player_detail calls when comparing several players.
-- For questions about which years (or how many years) one player was ahead of another, or any question spanning several calendar years, call query_player_rank_history once with all the players and game_type_code in scope. It returns one row per year with each player's rank and a leader for that year. Do not call query_player_detail or compare_players once per year; that wastes tool rounds and may exceed the round limit.
+- query_head_to_head is for two players in games they both attended (includes overall rank on each player row). Any player comparison must cite overall rank and rank_score.
+- For "who was the leader/winner/champion each year" or "for every year since X, tell me the leader" style questions that do NOT name specific players, call query_hall_of_fame once with granularity=year and game_type_code, and pass limit=20 whenever the range could span more than 10 years (rows are most-recent-first, so a small limit silently drops the oldest years). Never call query_player_detail, compare_players, or query_player_rank_history once per year for this kind of open-ended per-year question; that wastes tool rounds, may exceed the round limit, and each call only covers the specific players you name it with, not the whole group.
+- query_hall_of_fame results always include periods_available and periods_returned, and truncated: true plus a truncation_note when there is more history than the row limit (max 20) can return. When truncated is true, you MUST tell the user the data is incomplete: state periods_available and periods_returned (e.g. "I can only show the 20 most recent of 26 years on record"). Never present a truncated result as the complete history.
+- compare_players returns side-by-side stats for 2 to 5 named players in one call. Prefer it over multiple query_player_detail calls when comparing several named players.
+- For questions about which years (or how many years) one NAMED player was ahead of another NAMED player, call query_player_rank_history once with those players and game_type_code in scope. It returns one row per year with each player's rank and a leader for that year, limited to the players you pass. Do not call query_player_detail or compare_players once per year; that wastes tool rounds and may exceed the round limit. Only use this tool when the question names specific players; for group-wide per-year leaders with no named players, use query_hall_of_fame instead.
 - query_team_pairings returns observed two-player teams (duo sides) plus individual rankings. Use it for best partner, best duo, or team pairing questions.
 - query_loss_leaders answers who loses most for game types that record explicit losses. For other game types, use query_placement_leaders for last-place finishes.
 - query_date_range_leaderboard uses start_date and end_date (YYYY-MM-DD) for custom date spans. query_location_leaderboard filters by one named venue; pass location_query or location_id. For city or state questions (Santa Monica, California, CA), use query_region_leaderboard with city and/or state. For outside California or outside a city, call query_region_leaderboard with that city/state and exclude=true in one call. Never pass a city or state name to query_location_leaderboard.

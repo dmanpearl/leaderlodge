@@ -15,7 +15,7 @@ def query_hall_of_fame(
     *,
     granularity: str = GRANULARITY_YEAR,
     game_type_code: str | None = None,
-    limit: int = 10,
+    limit: int = 20,
 ) -> dict:
     resolved = resolve_hall_of_fame_granularity(granularity)
     grid = build_hall_of_fame_grid(group, granularity=resolved)
@@ -24,6 +24,7 @@ def query_hall_of_fame(
     if game_type_code is not None:
         columns = tuple(col for col in columns if col.code == game_type_code)
 
+    total_periods = len(grid.rows)
     rows = []
     for row in grid.rows[:limit]:
         cells = []
@@ -53,11 +54,27 @@ def query_hall_of_fame(
             }
         )
 
-    return {
+    payload = {
         "group_id": group.pk,
         "group_name": group.name,
         "granularity": resolved,
         "granularity_label": "Months" if resolved == GRANULARITY_MONTH else "Years",
         "game_type_code": game_type_code,
         "periods": rows,
+        "periods_returned": len(rows),
+        "periods_available": total_periods,
     }
+    if total_periods > len(rows):
+        omitted = total_periods - len(rows)
+        unit = "months" if resolved == GRANULARITY_MONTH else "years"
+        payload["truncated"] = True
+        payload["truncation_note"] = (
+            f"Periods are ordered most-recent-first. Showing the {len(rows)} "
+            f"most recent {unit} of {total_periods} total; the {omitted} "
+            f"oldest {unit} are omitted. You must tell the user this data is "
+            "incomplete and state the total and omitted counts; do not "
+            "silently answer as if this were the full history."
+        )
+    else:
+        payload["truncated"] = False
+    return payload

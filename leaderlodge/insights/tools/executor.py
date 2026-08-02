@@ -147,8 +147,8 @@ class ToolExecutor:
             raise ToolExecutionError(str(exc)) from exc
         return filters if filters.is_active() else None
 
-    def _resolve_limit(self, arguments: dict[str, Any]) -> int:
-        raw = arguments.get("limit", 10)
+    def _resolve_limit(self, arguments: dict[str, Any], *, default: int = 10) -> int:
+        raw = arguments.get("limit", default)
         try:
             limit = int(raw)
         except (TypeError, ValueError) as exc:
@@ -391,7 +391,10 @@ class ToolExecutor:
             self.scope.group,
             granularity=granularity,
             game_type_code=game_type_code,
-            limit=self._resolve_limit(arguments),
+            # Default to the max row count (not the generic 10) so "every year
+            # since X" style questions get full coverage without the model
+            # having to remember to pass an explicit limit.
+            limit=self._resolve_limit(arguments, default=self.MAX_LIMIT),
         )
 
     def _query_loss_leaders(self, arguments: dict[str, Any]) -> dict[str, Any]:
