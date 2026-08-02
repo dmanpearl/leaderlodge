@@ -532,7 +532,8 @@ def test_rank_detail_partner_breakdown_shows_record_per_teammate(group, user):
     assert by_partner["Zach"].games_played == pytest.approx(1.0)
     assert by_partner["Zach"].wins == pytest.approx(0.0)
     assert by_partner["Zach"].win_pct == pytest.approx(0.0)
-    # Sorted by games played first, so the more frequent partner appears first.
+    # Sorted by partner rank first; Nancy's undefeated record with the owner
+    # gives her a better individual rank than Zach's 0-1 record.
     assert detail.partner_breakdown[0].partner_label == "Nancy"
 
     all_rankings = get_player_rankings(group, game_type_code="dominos")
@@ -548,3 +549,111 @@ def test_rank_detail_partner_breakdown_shows_record_per_teammate(group, user):
     assert by_partner["Nancy"].partner_rank_pill_class == partner_rank_pill_class(
         rank_by_label["Nancy"]
     )
+
+
+@pytest.mark.django_db
+def test_rank_detail_partner_breakdown_rank_beats_pairing_win_pct(group, user):
+    """Partner order follows each partner's own leaderboard rank, not how well
+    they did specifically when paired with the viewed player."""
+    owner, nancy, zach, izzy = _people(group)
+    opponent = add_guest_player(group=group, display_name="Opponent")
+
+    def _play(winner, loser):
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=timezone.localdate(),
+            participants=[
+                ParticipantInput(
+                    player=winner,
+                    score=30,
+                    result=GameParticipantResult.Result.WIN,
+                    placement=0,
+                ),
+                ParticipantInput(
+                    player=loser,
+                    score=10,
+                    result=GameParticipantResult.Result.PLAYED,
+                    placement=1,
+                ),
+            ],
+        )
+
+    team_with_nancy = resolve_side_player(group=group, members=[owner, nancy])
+    team_with_zach = resolve_side_player(group=group, members=[owner, zach])
+    # Paired with the owner, Nancy wins every game and Zach loses every game.
+    for _ in range(3):
+        _play(team_with_nancy, opponent)
+    _play(opponent, team_with_zach)
+    # Outside of that pairing, Zach racks up solo wins against Izzy, giving
+    # him a much better overall rank than Nancy's team-only record.
+    for _ in range(10):
+        _play(zach, izzy)
+
+    detail = get_player_rank_detail(group, owner, game_type_code="dominos")
+    all_rankings = get_player_rankings(group, game_type_code="dominos")
+    rank_by_label = {row.player.display_label: row.rank for row in all_rankings}
+
+    assert detail is not None
+    by_partner = {row.partner_label: row for row in detail.partner_breakdown}
+    # Nancy has the better win percentage when paired with the owner...
+    assert by_partner["Nancy"].win_pct == pytest.approx(100.0)
+    assert by_partner["Zach"].win_pct == pytest.approx(0.0)
+    # ...but Zach has the better overall rank thanks to his outside wins...
+    assert rank_by_label["Zach"] < rank_by_label["Nancy"]
+    # ...so Zach is listed first, ranked ahead of Nancy despite the 0-1 record.
+    assert [row.partner_label for row in detail.partner_breakdown] == [
+        "Zach",
+        "Nancy",
+    ]
+
+
+def test_partner_breakdown_sort_key_puts_unranked_partners_last():
+    """Unit test for the sort key itself: an unranked partner (no single
+    resolvable rank, e.g. a defensive edge case outside normal 2-player teams)
+    sorts after every ranked partner regardless of win percentage."""
+    from leaderlodge.leaderboards.service import (
+        PartnerBreakdown,
+        _partner_breakdown_sort_key,
+    )
+
+    ranked_low = PartnerBreakdown(
+        partner_label="Alice",
+        partner_rank=5,
+        partner_rank_label="4th",
+        partner_rank_pill_class="",
+        games_played=10.0,
+        wins=10.0,
+        win_pct=100.0,
+        finish_points=0.0,
+        avg_finish_points=0.0,
+    )
+    unranked_high_win_pct = PartnerBreakdown(
+        partner_label="Bob",
+        partner_rank=None,
+        partner_rank_label="",
+        partner_rank_pill_class="",
+        games_played=10.0,
+        wins=10.0,
+        win_pct=100.0,
+        finish_points=0.0,
+        avg_finish_points=0.0,
+    )
+    ranked_high = PartnerBreakdown(
+        partner_label="Carol",
+        partner_rank=1,
+        partner_rank_label="1st",
+        partner_rank_pill_class="",
+        games_played=1.0,
+        wins=0.0,
+        win_pct=0.0,
+        finish_points=0.0,
+        avg_finish_points=0.0,
+    )
+
+    ordered = sorted(
+        [ranked_low, unranked_high_win_pct, ranked_high],
+        key=_partner_breakdown_sort_key,
+    )
+    assert [row.partner_label for row in ordered] == ["Carol", "Alice", "Bob"]

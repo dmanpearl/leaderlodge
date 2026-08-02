@@ -117,6 +117,19 @@ class PartnerBreakdown:
     avg_finish_points: float
 
 
+def _partner_breakdown_sort_key(
+    row: PartnerBreakdown,
+) -> tuple[bool, int, float, float, str]:
+    """Best-ranked partners first (gold at top); unranked partners last."""
+    return (
+        row.partner_rank is None,
+        row.partner_rank if row.partner_rank is not None else 0,
+        -row.win_pct,
+        -row.games_played,
+        row.partner_label.lower(),
+    )
+
+
 @dataclass(frozen=True)
 class PlayerRankDetail:
     ranking: PlayerRanking
@@ -506,16 +519,7 @@ def get_player_rank_detail(
             )
         )
 
-    partner_breakdown = tuple(
-        sorted(
-            partner_rows,
-            key=lambda row: (
-                -row.games_played,
-                -row.win_pct,
-                row.partner_label.lower(),
-            ),
-        )
-    )
+    partner_breakdown = tuple(sorted(partner_rows, key=_partner_breakdown_sort_key))
 
     loss_games_by_field_size = tuple(
         FieldSizeGameCount(
