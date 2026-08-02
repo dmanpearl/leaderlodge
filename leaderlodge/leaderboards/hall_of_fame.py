@@ -72,7 +72,8 @@ def build_hall_of_fame_query(
         params["group"] = group_id
     if granularity != GRANULARITY_YEAR:
         params["granularity"] = granularity
-    if player_type:
+    # "people" (Players) is the default; omit it from URLs.
+    if player_type and player_type != "people":
         params["player_type"] = player_type
     return urlencode(params)
 

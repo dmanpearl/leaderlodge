@@ -187,6 +187,67 @@ def test_max_team_size_is_two(group, user):
         resolve_side_player(group=group, members=[nancy, zach, izzy])
 
 
+def test_normalize_leaderboard_player_type_defaults_to_players():
+    from leaderlodge.groups.teams import (
+        LEADERBOARD_PLAYER_TYPE_CHOICES,
+        normalize_leaderboard_player_type,
+        leaderboard_player_type_filter_label,
+    )
+
+    assert normalize_leaderboard_player_type("") == "people"
+    assert normalize_leaderboard_player_type("all") == "people"
+    assert normalize_leaderboard_player_type("user") == "people"
+    assert normalize_leaderboard_player_type("guest") == "people"
+    assert normalize_leaderboard_player_type("people") == "people"
+    assert normalize_leaderboard_player_type("team") == "team"
+    assert [label for _value, label in LEADERBOARD_PLAYER_TYPE_CHOICES] == [
+        "Players",
+        "Teams",
+    ]
+    assert leaderboard_player_type_filter_label("people") == ""
+    assert leaderboard_player_type_filter_label("team") == "Teams"
+
+
+@pytest.mark.django_db
+def test_group_has_teams_helpers(group, user):
+    from leaderlodge.groups.teams import (
+        group_has_any_teams,
+        group_has_teams_for_game_type,
+    )
+
+    assert group_has_any_teams(group) is False
+    assert group_has_teams_for_game_type(group, "dominos") is False
+
+    owner, nancy, zach, _ = _people(group)
+    team = resolve_side_player(group=group, members=[nancy, zach])
+    assert group_has_any_teams(group) is True
+    # Roster team exists, but no recorded team result for this game type yet.
+    assert group_has_teams_for_game_type(group, "dominos") is False
+
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=team,
+                score=30,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=owner,
+                score=10,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+    assert group_has_teams_for_game_type(group, "dominos") is True
+    assert group_has_teams_for_game_type(group, "mahjongg") is False
+
+
 @pytest.mark.django_db
 def test_player_type_people_excludes_teams(group, user):
     from leaderlodge.groups.teams import matches_player_type

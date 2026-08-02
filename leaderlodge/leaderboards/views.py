@@ -42,9 +42,12 @@ from leaderlodge.insights.model_selection import preferred_insight_model_id
 from leaderlodge.insights.registry import MODEL_REGISTRY
 from leaderlodge.insights.views import insights_feature_enabled, insights_ui_enabled
 from leaderlodge.groups.teams import (
-    PLAYER_TYPE_CHOICES,
-    normalize_player_type,
-    player_type_filter_label,
+    LEADERBOARD_PLAYER_TYPE_CHOICES,
+    PLAYER_TYPE_PEOPLE,
+    group_has_any_teams,
+    group_has_teams_for_game_type,
+    leaderboard_player_type_filter_label,
+    normalize_leaderboard_player_type,
 )
 from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
@@ -239,7 +242,10 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             url = f"{url}?{query}"
         return redirect(url)
 
-    player_type = normalize_player_type(request.GET.get("player_type", ""))
+    player_type = normalize_leaderboard_player_type(request.GET.get("player_type", ""))
+    has_teams = group_has_teams_for_game_type(selected_group, selected_game_type_code)
+    if not has_teams:
+        player_type = PLAYER_TYPE_PEOPLE
     game_filter_ctx = game_filter_context(
         game_type_code=selected_game_type_code,
         selected_filters=game_filters,
@@ -312,7 +318,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             )
         )
     )
-    player_type_label = player_type_filter_label(player_type)
+    player_type_label = leaderboard_player_type_filter_label(player_type)
     location_name = selected_location.name if selected_location else ""
     filter_summary = ""
     if selected_group:
@@ -354,7 +360,8 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "filter_summary": filter_summary,
             "game_size_label": game_size_label,
             "player_type": player_type,
-            "player_type_choices": PLAYER_TYPE_CHOICES,
+            "player_type_choices": LEADERBOARD_PLAYER_TYPE_CHOICES,
+            "has_teams": has_teams,
             "locations": locations,
             "selected_location_id": selected_location_id,
             "selected_location": selected_location,
@@ -405,7 +412,10 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
         request.GET.get("granularity", "").strip()
     )
 
-    player_type = normalize_player_type(request.GET.get("player_type", ""))
+    player_type = normalize_leaderboard_player_type(request.GET.get("player_type", ""))
+    has_teams = group_has_any_teams(selected_group)
+    if not has_teams:
+        player_type = PLAYER_TYPE_PEOPLE
 
     if _hall_of_fame_needs_redirect(
         request,
@@ -442,7 +452,7 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
             group_name=selected_group.name,
             granularity=granularity,
         )
-        type_label = player_type_filter_label(player_type)
+        type_label = leaderboard_player_type_filter_label(player_type)
         if type_label:
             filter_summary = f"{filter_summary}, {type_label}"
 
@@ -475,7 +485,8 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
             "selected_period": LeaderboardPeriod.all_time(),
             "insight_scope": SCOPE_HALL_OF_FAME,
             "player_type": player_type,
-            "player_type_choices": PLAYER_TYPE_CHOICES,
+            "player_type_choices": LEADERBOARD_PLAYER_TYPE_CHOICES,
+            "has_teams": has_teams,
             **_insights_template_context(request),
         },
     )

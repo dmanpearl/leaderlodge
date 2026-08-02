@@ -356,7 +356,8 @@ def build_leaderboard_query(
         params.update(period.query_params())
     if game_size is not None:
         params["game_size"] = str(game_size)
-    if player_type:
+    # "people" (Players) is the leaderboard default; omit it from URLs.
+    if player_type and player_type != "people":
         params["player_type"] = player_type
     if location_id is not None:
         params["location"] = str(location_id)

@@ -2,7 +2,9 @@ import pytest
 from datetime import date
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.utils import timezone
 
+from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import (
@@ -10,6 +12,7 @@ from leaderlodge.groups.services import (
     add_guest_player,
     create_group_with_owner,
 )
+from leaderlodge.groups.teams import resolve_side_player
 from leaderlodge.leaderboards.service import get_player_rankings
 from tests.test_games import _load_roster_post, _save_game_post
 
@@ -236,3 +239,140 @@ def test_rank_detail_hides_invite_button_for_linked_user(client, user, group):
         "groups:player_invite", kwargs={"pk": group.pk, "player_pk": owner_player.pk}
     )
     assert invite_url not in content
+
+
+def _record_team_dominos(group, user):
+    owner = group.players.filter(linked_user__isnull=False).first()
+    nancy = add_guest_player(group=group, display_name="Nancy")
+    zach = add_guest_player(group=group, display_name="Zach")
+    team = resolve_side_player(group=group, members=[nancy, zach])
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=timezone.localdate(),
+        participants=[
+            ParticipantInput(
+                player=team,
+                score=30,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=owner,
+                score=10,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+    return owner, nancy, zach, team
+
+
+@pytest.mark.django_db
+def test_leaderboard_hides_player_type_filter_when_no_teams(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.get(
+        reverse("leaderboards:index"),
+        {"group": str(group.pk), "game_type_code": "dominos"},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'name="player_type"' not in content
+    assert "Users + Guests" not in content
+
+
+@pytest.mark.django_db
+def test_leaderboard_player_type_filter_is_players_and_teams_only(client, user, group):
+    client.force_login(user)
+    _record_team_dominos(group, user)
+
+    response = client.get(
+        reverse("leaderboards:index"),
+        {"group": str(group.pk), "game_type_code": "dominos"},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'name="player_type"' in content
+    assert 'value="people"' in content
+    assert 'value="team"' in content
+    assert "Players" in content
+    assert "Teams" in content
+    assert "Users + Guests" not in content
+    assert (
+        'value=""' not in content.split('name="player_type"')[1].split("</select>")[0]
+    )
+    assert 'value="user"' not in content
+    assert 'value="guest"' not in content
+
+
+@pytest.mark.django_db
+def test_leaderboard_defaults_to_players_excluding_teams(client, user, group):
+    client.force_login(user)
+    owner, nancy, zach, team = _record_team_dominos(group, user)
+
+    response = client.get(
+        reverse("leaderboards:index"),
+        {"group": str(group.pk), "game_type_code": "dominos"},
+    )
+    assert response.status_code == 200
+    labels = {row.player.display_label for row in response.context["rankings"]}
+    assert owner.display_label in labels
+    assert nancy.display_label in labels
+    assert zach.display_label in labels
+    assert team.display_label not in labels
+
+
+@pytest.mark.django_db
+def test_leaderboard_teams_filter_shows_only_teams(client, user, group):
+    client.force_login(user)
+    owner, nancy, zach, team = _record_team_dominos(group, user)
+
+    response = client.get(
+        reverse("leaderboards:index"),
+        {
+            "group": str(group.pk),
+            "game_type_code": "dominos",
+            "player_type": "team",
+        },
+    )
+    assert response.status_code == 200
+    labels = {row.player.display_label for row in response.context["rankings"]}
+    assert labels == {team.display_label}
+    assert owner.display_label not in labels
+
+
+@pytest.mark.django_db
+def test_hall_of_fame_hides_player_type_filter_when_no_teams(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.get(
+        reverse("leaderboards:hall_of_fame"),
+        {"group": str(group.pk)},
+    )
+    assert response.status_code == 200
+    assert 'name="player_type"' not in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_hall_of_fame_shows_players_teams_filter_when_teams_exist(client, user, group):
+    client.force_login(user)
+    _record_team_dominos(group, user)
+
+    response = client.get(
+        reverse("leaderboards:hall_of_fame"),
+        {"group": str(group.pk)},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'name="player_type"' in content
+    assert 'value="people"' in content
+    assert 'value="team"' in content
+    assert "Players" in content
+    assert "Teams" in content
+    assert "Users + Guests" not in content

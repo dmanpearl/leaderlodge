@@ -53,7 +53,9 @@
               {% endfor %}
             </select>
           </div>
-          {% include "includes/player_type_filter.html" with select_id="leaderboard-player-type" %}
+          {% if has_teams %}
+            {% include "includes/player_type_filter.html" with select_id="leaderboard-player-type" %}
+          {% endif %}
           {% if selected_group and game_type_options %}
             <div class="col-12 col-sm-6 col-lg-4 col-xl">
               <label for="game-type-select" class="form-label">Game</label>

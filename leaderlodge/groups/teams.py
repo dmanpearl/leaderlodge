@@ -24,6 +24,14 @@ PLAYER_TYPE_CHOICES = (
     (PLAYER_TYPE_TEAM, "Teams"),
 )
 
+# Leaderboard and Hall of Fame only: a plain Players/Teams toggle, no All
+# state (mixing team and individual rows in one ranked list makes no sense)
+# and no Users/Guests split.
+LEADERBOARD_PLAYER_TYPE_CHOICES = (
+    (PLAYER_TYPE_PEOPLE, "Players"),
+    (PLAYER_TYPE_TEAM, "Teams"),
+)
+
 VALID_PLAYER_TYPES = frozenset(
     value for value, _label in PLAYER_TYPE_CHOICES
 ) | frozenset({"all"})
@@ -49,6 +57,53 @@ def player_type_filter_label(player_type: str) -> str:
         if value == player_type:
             return label if value else ""
     return ""
+
+
+def normalize_leaderboard_player_type(value: str) -> str:
+    """Leaderboard/Hall of Fame Players-vs-Teams toggle: no All, no Users/Guests split."""
+    if normalize_player_type(value) == PLAYER_TYPE_TEAM:
+        return PLAYER_TYPE_TEAM
+    return PLAYER_TYPE_PEOPLE
+
+
+def leaderboard_player_type_filter_label(player_type: str) -> str:
+    """Summary label for the Players/Teams toggle.
+
+    "Players" is the default, so only "Teams" is worth calling out in a
+    collapsed filter summary (mirrors how the old "All" default showed no
+    label at all).
+    """
+    return "Teams" if player_type == PLAYER_TYPE_TEAM else ""
+
+
+def group_has_teams_for_game_type(
+    group: Group | None, game_type_code: str | None
+) -> bool:
+    """Whether an active team has a recorded result for this game type.
+
+    Decides whether the Leaderboard's Players/Teams filter is worth showing
+    at all.
+    """
+    if not group or not game_type_code:
+        return False
+    return GroupPlayer.objects.filter(
+        group=group,
+        is_team=True,
+        is_active=True,
+        game_results__game__game_type_code=game_type_code,
+    ).exists()
+
+
+def group_has_any_teams(group: Group | None) -> bool:
+    """Whether the group has any active team roster entry at all.
+
+    Used by Hall of Fame, which spans every game type at once.
+    """
+    if not group:
+        return False
+    return GroupPlayer.objects.filter(
+        group=group, is_team=True, is_active=True
+    ).exists()
 
 
 def player_type_icon(player: GroupPlayer) -> str:
