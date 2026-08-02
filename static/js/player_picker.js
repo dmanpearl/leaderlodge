@@ -64,6 +64,14 @@
       })
       .filter((item) => item.score >= 0)
       .sort((a, b) => {
+        // Teams never used for the current game type sort after everything
+        // else (including lower-scoring individual matches), so a team's
+        // recency in an unrelated game type cannot win it a top slot.
+        const aTier = a.entry.deprioritized ? 1 : 0;
+        const bTier = b.entry.deprioritized ? 1 : 0;
+        if (aTier !== bTier) {
+          return aTier - bTier;
+        }
         if (b.score !== a.score) {
           return b.score - a.score;
         }

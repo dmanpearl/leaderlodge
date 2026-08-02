@@ -179,6 +179,145 @@ def test_roster_marks_never_played_with_default_recency(group, user):
     assert nancy_entry["recency"] == DEFAULT_RECENCY
 
 
+@pytest.mark.django_db
+def test_roster_deprioritizes_team_with_no_history_in_game_type(group, user):
+    owner, nancy, zach, _ = _people(group)
+    team = resolve_side_player(group=group, members=[nancy, zach])
+
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="pickleball",
+        played_on="2026-02-01",
+        participants=[
+            ParticipantInput(
+                player=team,
+                score=11,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=owner,
+                score=5,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+
+    roster = roster_for_group(group, game_type_code="mahjongg")
+    team_entry = next(entry for entry in roster if entry["label"] == "Nancy+Zach")
+
+    assert team_entry["deprioritized"] is True
+    assert team_entry["recency"] == DEFAULT_RECENCY
+
+    # Without game_type_code scoping, no team is deprioritized.
+    unscoped_roster = roster_for_group(group)
+    unscoped_team_entry = next(
+        entry for entry in unscoped_roster if entry["label"] == "Nancy+Zach"
+    )
+    assert unscoped_team_entry["deprioritized"] is False
+
+
+@pytest.mark.django_db
+def test_roster_keeps_team_recency_when_used_for_game_type(group, user):
+    owner, nancy, zach, _ = _people(group)
+    team = resolve_side_player(group=group, members=[nancy, zach])
+
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="pickleball",
+        played_on="2026-03-01",
+        participants=[
+            ParticipantInput(
+                player=team,
+                score=11,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=owner,
+                score=5,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="pickleball",
+        played_on="2026-01-01",
+        participants=[
+            ParticipantInput(
+                player=nancy,
+                score=11,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=owner,
+                score=5,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+
+    roster = roster_for_group(group, game_type_code="pickleball")
+    team_entry = next(entry for entry in roster if entry["label"] == "Nancy+Zach")
+    nancy_entry = next(
+        entry
+        for entry in roster
+        if entry["label"] == "Nancy" and entry["kind"] != "team"
+    )
+
+    assert team_entry["deprioritized"] is False
+    assert team_entry["recency"] < nancy_entry["recency"]
+
+
+@pytest.mark.django_db
+def test_search_group_players_puts_deprioritized_teams_after_matching_individuals(
+    group, user
+):
+    owner, nancy, zach, sally = _people(group)
+    team = resolve_side_player(group=group, members=[nancy, zach])
+
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="pickleball",
+        played_on="2026-02-01",
+        participants=[
+            ParticipantInput(
+                player=team,
+                score=11,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=owner,
+                score=5,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+
+    results = search_group_players(group, "an", game_type_code="mahjongg")
+    labels = [entry["label"] for entry in results]
+
+    # "Nancy" (individual) matches "an" and has no game-type history baggage;
+    # the pickleball-only "Nancy+Zach" team must not outrank it just because
+    # the team happens to have recent (pickleball) history.
+    assert "Nancy" in labels
+    team_index = labels.index("Nancy+Zach") if "Nancy+Zach" in labels else None
+    nancy_index = labels.index("Nancy")
+    if team_index is not None:
+        assert nancy_index < team_index
+
+
 from tests.test_games import _load_roster_post
 
 

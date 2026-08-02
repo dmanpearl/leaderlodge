@@ -797,7 +797,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     roster = []
     participant_rows = []
     if group and show_roster:
-        roster = roster_for_group(group)
+        roster = roster_for_group(group, game_type_code=game_type_code)
         if post_for_rows is not None:
             participant_rows = _participant_rows_from_post(group, post_for_rows)
         elif reused_participant_rows is not None:
