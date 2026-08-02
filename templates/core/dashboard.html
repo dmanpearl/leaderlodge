@@ -90,7 +90,26 @@
               <span id="dashboard-recent-games-summary" class="text-muted game-list-filters-summary" hidden>({{ recent_games|length }} game{{ recent_games|length|pluralize }})</span>
             {% endif %}
           </button>
-          <a href="{% url 'games:list' %}{% if preferred_games_list_query %}?{{ preferred_games_list_query }}{% endif %}" class="small flex-shrink-0 ms-2">View all</a>
+          <span class="d-flex align-items-center gap-2 flex-shrink-0">
+            {% if can_record_games %}
+              <a
+                href="{% url 'games:create' %}{% if record_game_url_group %}?group={{ record_game_url_group }}{% endif %}"
+                class="btn btn-link btn-sm p-0"
+                title="Record game"
+                aria-label="Record game"
+              >
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+              </a>
+            {% endif %}
+            <a
+              href="{% url 'games:list' %}{% if preferred_games_list_query %}?{{ preferred_games_list_query }}{% endif %}"
+              class="btn btn-link btn-sm p-0 text-muted"
+              title="View all games"
+              aria-label="View all games"
+            >
+              <i class="bi bi-fullscreen" aria-hidden="true"></i>
+            </a>
+          </span>
         </div>
         <div id="dashboard-recent-games" class="collapse">
           <div class="card-body p-0">
@@ -182,9 +201,26 @@
                         ({{ card.rows|length }} player{{ card.rows|length|pluralize }})
                       </span>
                     </button>
-                    <a href="{{ card.leaderboard_url }}" class="small text-nowrap flex-shrink-0">
-                      Full board
-                    </a>
+                    <span class="d-flex align-items-center gap-2 flex-shrink-0">
+                      {% if can_record_games %}
+                        <a
+                          href="{% url 'games:create' %}?game_type_code={{ card.game_type_code }}{% if card.group_id %}&group={{ card.group_id }}{% endif %}"
+                          class="btn btn-link btn-sm p-0"
+                          title="Record {{ card.game_type_name }} game"
+                          aria-label="Record {{ card.game_type_name }} game"
+                        >
+                          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        </a>
+                      {% endif %}
+                      <a
+                        href="{{ card.leaderboard_url }}"
+                        class="btn btn-link btn-sm p-0 text-muted"
+                        title="Full {{ card.game_type_name }} Leaderboard"
+                        aria-label="Full {{ card.game_type_name }} Leaderboard"
+                      >
+                        <i class="bi bi-fullscreen" aria-hidden="true"></i>
+                      </a>
+                    </span>
                   </div>
                   <div id="dashboard-leaderboard-{{ card.game_type_code }}" class="collapse">
                     <div class="card-body p-0">

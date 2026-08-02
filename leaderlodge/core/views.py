@@ -44,6 +44,7 @@ class DashboardLeaderboardCard:
     rows: list[DashboardLeaderboardRow]
     composite: bool
     leaderboard_url: str
+    group_id: int | None = None
     icon_class: str = ""
     icon_image: str = ""
 
@@ -131,6 +132,9 @@ def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboa
                 rows=rows,
                 composite=composite,
                 leaderboard_url=leaderboard_url,
+                # None when composite: rows span multiple groups, so there is
+                # no single group to preselect for the record-game shortcut.
+                group_id=None if composite else group_list[0].pk,
                 icon_class=icon_class,
                 icon_image=icon_image,
             )
