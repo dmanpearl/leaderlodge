@@ -283,9 +283,25 @@ def get_or_create_location(
                 and by_place.name != cleaned
                 and len(cleaned) > len(by_place.name)
             ):
-                by_place.name = cleaned
-                by_place.normalized_name = normalize_location_name(cleaned)
-                by_place.save(update_fields=["name", "normalized_name"])
+                candidate_normalized = normalize_location_name(cleaned)
+                collision = (
+                    Location.objects.filter(
+                        library=library,
+                        normalized_name=candidate_normalized,
+                    )
+                    .exclude(pk=by_place.pk)
+                    .exists()
+                )
+                # A separate, unmerged duplicate already owns that normalized
+                # name (e.g. an un-geocoded "Larry's, Venice" alongside a
+                # place_id-matched "Larry's"). Keep the shorter existing name
+                # rather than violating the (library, normalized_name)
+                # uniqueness constraint; the two rows can be merged later via
+                # Combine locations.
+                if not collision:
+                    by_place.name = cleaned
+                    by_place.normalized_name = candidate_normalized
+                    by_place.save(update_fields=["name", "normalized_name"])
             return apply_location_geo(by_place, geo)
 
     location = Location.objects.filter(

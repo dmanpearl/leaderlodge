@@ -281,6 +281,35 @@ def test_get_or_create_location_reuses_place_id(user):
 
 
 @pytest.mark.django_db
+def test_get_or_create_location_place_id_rename_skips_on_collision(user):
+    """A place_id match should not rename into a normalized_name already
+    owned by a separate, unmerged duplicate row (regression: this used to
+    raise IntegrityError instead of just keeping the existing shorter name).
+    """
+    from leaderlodge.groups.location_geo import LocationGeo
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    library = group.location_library
+
+    duplicate = get_or_create_location(library=library, name="Larry's, Venice")
+    geo = LocationGeo(lat=34.05, lon=-118.25, place_id="places/larry")
+    by_place = get_or_create_location(library=library, name="Larry's", geo=geo)
+
+    result = get_or_create_location(
+        library=library,
+        name="Larry's, Venice",
+        geo=geo,
+    )
+
+    assert result.pk == by_place.pk
+    assert result.name == "Larry's"
+    assert result.lat == 34.05
+    assert Location.objects.filter(library=library).count() == 2
+    duplicate.refresh_from_db()
+    assert duplicate.name == "Larry's, Venice"
+
+
+@pytest.mark.django_db
 def test_combine_locations_copies_geo_onto_ungeocoded_keeper(user):
     from leaderlodge.groups.location_geo import (
         GEOCODE_SOURCE_PLACES_LOOKUP,
