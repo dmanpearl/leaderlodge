@@ -18,7 +18,8 @@ from leaderlodge.games.game_type_icons import game_type_icon_url
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group, Location
-from leaderlodge.groups.services import visible_groups
+from leaderlodge.groups.permissions import can_invite_roster_player, get_membership
+from leaderlodge.groups.services import can_manage_group_members, visible_groups
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
     build_leaderboard_query,
@@ -268,6 +269,18 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         if rankings:
             apply_label_overrides([r.player for r in rankings])
 
+    can_manage_members = bool(selected_group) and can_manage_group_members(
+        request.user, selected_group
+    )
+    invite_eligible_player_ids: set[int] = set()
+    if can_manage_members and rankings:
+        actor_membership = get_membership(request.user, selected_group)
+        invite_eligible_player_ids = {
+            row.player.pk
+            for row in rankings
+            if can_invite_roster_player(actor_membership, row.player, selected_group)
+        }
+
     game_type_options = _leaderboard_game_type_options(played_game_type_codes)
     selected_game_type_has_games = bool(
         selected_game_type_code
@@ -345,6 +358,8 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "locations": locations,
             "selected_location_id": selected_location_id,
             "selected_location": selected_location,
+            "can_manage_members": can_manage_members,
+            "invite_eligible_player_ids": invite_eligible_player_ids,
             **period_ctx,
             **game_size_ctx,
             **game_filter_ctx,
@@ -534,6 +549,11 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     insight_models = tuple(MODEL_REGISTRY.values())
     selected_insight_model = preferred_insight_model_id(request)
 
+    can_manage_members = can_manage_group_members(request.user, selected_group)
+    can_invite = can_manage_members and can_invite_roster_player(
+        get_membership(request.user, selected_group), player, selected_group
+    )
+
     return render(
         request,
         "leaderboards/rank_detail.html",
@@ -550,6 +570,8 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
             "insights_ready": insights_ready,
             "insight_models": insight_models,
             "selected_insight_model": selected_insight_model,
+            "can_manage_members": can_manage_members,
+            "can_invite": can_invite,
             **period_ctx,
             **game_size_ctx,
         },

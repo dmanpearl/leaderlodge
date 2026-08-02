@@ -4,11 +4,17 @@ from django.urls import reverse
 
 from leaderlodge.groups.models import GroupMembership, GroupPlayer
 from leaderlodge.groups.permissions import (
+    can_invite_roster_player,
     can_remove_membership,
     can_set_membership_role,
     get_membership,
 )
-from leaderlodge.groups.services import add_group_member, create_group_with_owner
+from leaderlodge.groups.services import (
+    add_group_member,
+    add_guest_player,
+    create_group_with_owner,
+)
+from leaderlodge.groups.teams import resolve_side_player
 
 
 @pytest.fixture
@@ -285,6 +291,22 @@ def test_cannot_remove_guest_player_with_games(client, editor, group):
     assert response.status_code == 404
     guest.refresh_from_db()
     assert guest.is_active is True
+
+
+@pytest.mark.django_db
+def test_can_invite_roster_player_allows_guest(editor, group):
+    guest = add_guest_player(group=group, display_name="Pat")
+    actor = _membership(group, editor)
+    assert can_invite_roster_player(actor, guest, group) is True
+
+
+@pytest.mark.django_db
+def test_can_invite_roster_player_excludes_teams(editor, group):
+    guest_one = add_guest_player(group=group, display_name="Pat")
+    guest_two = add_guest_player(group=group, display_name="Sam")
+    team = resolve_side_player(group=group, members=[guest_one, guest_two])
+    actor = _membership(group, editor)
+    assert can_invite_roster_player(actor, team, group) is False
 
 
 @pytest.mark.django_db

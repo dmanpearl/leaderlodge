@@ -446,6 +446,15 @@ def invite_send(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+def _player_invite_redirect(request: HttpRequest, group: Group) -> HttpResponse:
+    """Return to the page the invite was sent from (Leaderboard, Rank Detail,
+    etc.) when a safe relative next URL is provided, else Group Detail."""
+    next_raw = (request.POST.get("next") or "").strip()
+    if next_raw.startswith("/") and not next_raw.startswith("//"):
+        return redirect(next_raw)
+    return redirect("groups:detail", pk=group.pk)
+
+
 @login_required
 def player_invite(request: HttpRequest, pk: int, player_pk: int) -> HttpResponse:
     group = get_object_or_404(Group, pk=pk)
@@ -485,7 +494,7 @@ def player_invite(request: HttpRequest, pk: int, player_pk: int) -> HttpResponse
         for error in form.errors.get("email", []):
             messages.error(request, error)
 
-    return redirect("groups:detail", pk=group.pk)
+    return _player_invite_redirect(request, group)
 
 
 @login_required

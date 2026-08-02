@@ -196,6 +196,46 @@ def test_player_invite_for_existing_guest(client, owner, group):
 
 
 @pytest.mark.django_db
+def test_player_invite_redirects_to_safe_next(client, owner, group):
+    guest = add_guest_player(group=group, display_name="Pat")
+    client.force_login(owner)
+    leaderboard_url = f"{reverse('leaderboards:index')}?group={group.pk}"
+    response = client.post(
+        reverse("groups:player_invite", kwargs={"pk": group.pk, "player_pk": guest.pk}),
+        {"email": "pat@example.com", "next": leaderboard_url},
+    )
+
+    assert response.status_code == 302
+    assert response["Location"] == leaderboard_url
+
+
+@pytest.mark.django_db
+def test_player_invite_ignores_unsafe_next(client, owner, group):
+    guest = add_guest_player(group=group, display_name="Pat")
+    client.force_login(owner)
+    response = client.post(
+        reverse("groups:player_invite", kwargs={"pk": group.pk, "player_pk": guest.pk}),
+        {"email": "pat@example.com", "next": "//evil.example.com/steal"},
+    )
+
+    assert response.status_code == 302
+    assert response["Location"] == reverse("groups:detail", kwargs={"pk": group.pk})
+
+
+@pytest.mark.django_db
+def test_player_invite_defaults_to_group_detail_without_next(client, owner, group):
+    guest = add_guest_player(group=group, display_name="Pat")
+    client.force_login(owner)
+    response = client.post(
+        reverse("groups:player_invite", kwargs={"pk": group.pk, "player_pk": guest.pk}),
+        {"email": "pat@example.com"},
+    )
+
+    assert response.status_code == 302
+    assert response["Location"] == reverse("groups:detail", kwargs={"pk": group.pk})
+
+
+@pytest.mark.django_db
 def test_cannot_invite_duplicate_pending_email(client, owner, group):
     client.force_login(owner)
     first = client.post(

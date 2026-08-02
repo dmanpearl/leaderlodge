@@ -9,6 +9,9 @@
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
+  {% if can_manage_members %}
+    <link rel="stylesheet" href="{% static 'css/groups.css' %}" />
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -168,6 +171,9 @@
                 <th scope="col">Losses</th>
                 <th scope="col" class="text-nowrap">Loss %</th>
               {% endif %}
+              {% if can_manage_members %}
+                <th scope="col" class="group-list-actions-col"><span class="visually-hidden">Actions</span></th>
+              {% endif %}
             </tr>
           </thead>
           <tbody>
@@ -190,12 +196,18 @@
                   <td>{{ row.losses|floatformat:-1 }}</td>
                   <td>{{ row.loss_pct|floatformat:0 }}%</td>
                 {% endif %}
+                {% if can_manage_members %}
+                  <td class="text-end group-list-actions-col" onclick="event.stopPropagation()">
+                    {% include "leaderboards/includes/leaderboard_row_actions.html" with row=row %}
+                  </td>
+                {% endif %}
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
+    {% include "groups/includes/roster_invite_modal.html" %}
   {% else %}
     <div class="card">
       <div class="card-body text-center py-5">
@@ -215,6 +227,9 @@
 {% block extra_js %}
   <script src="{% static 'js/period_filters.js' %}"></script>
   <script src="{% static 'js/leaderboard.js' %}"></script>
+  {% if can_manage_members %}
+    <script src="{% static 'js/roster_invite_modal.js' %}"></script>
+  {% endif %}
   <script>
     document.querySelectorAll(".leaderboard-row[data-href]").forEach((row) => {
       const navigate = () => {

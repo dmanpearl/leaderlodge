@@ -1,0 +1,29 @@
+{% if row.player.pk in invite_eligible_player_ids %}
+  <div class="dropdown position-static">
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-secondary"
+      data-bs-toggle="dropdown"
+      data-bs-popper-config='{"strategy":"fixed"}'
+      aria-expanded="false"
+      title="Actions"
+      aria-label="Actions for {{ row.player.display_label }}"
+    >
+      <i class="bi bi-three-dots" aria-hidden="true"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li>
+        <button
+          type="button"
+          class="dropdown-item d-flex align-items-center gap-2"
+          data-roster-invite
+          data-player-name="{{ row.player.display_label }}"
+          data-invite-url="{% url 'groups:player_invite' selected_group.pk row.player.pk %}"
+        >
+          <i class="bi bi-envelope" aria-hidden="true"></i>
+          Invite with email
+        </button>
+      </li>
+    </ul>
+  </div>
+{% endif %}

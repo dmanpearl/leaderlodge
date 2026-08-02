@@ -165,11 +165,11 @@
 - [x] 439cbfd Bug: Ask the Lodge questions about yearly performance truncates at 10 responses (ex 'For every year since 2014, tell me tell me the name of the leader' only shows 2014-2023 although there are games in 2024-2026
 - [x] 439cbfd Bug: Ask the Lodge fails to find games (ex 'For every year since 2014, tell me tell me the name of the leader' responds with 'No recorded games for any players' for most of the years)
 - [x] e97d97d Record game look up should deprioritize (move to the bottom of the list) teams that have not previously played the current game-type (https://leaderlodge.com/admin/feedback/feedback/21)
-- [x] Dashboard game headers should each have a plus button for record-game of that particular game type (https://leaderlodge.com/admin/feedback/feedback/23)
+- [x] 18c66eb Dashboard game headers should each have a plus button for record-game of that particular game type (https://leaderlodge.com/admin/feedback/feedback/23)
+- [x] Player detail, you should be able to invite a guest to convert to a full user (https://leaderlodge.com/admin/feedback/feedback/22)
 
 ## Open Items
 
-- [ ] Player detail, you should be able to invite a guest to convert to a full user (https://leaderlodge.com/admin/feedback/feedback/22)
 - [ ] Leaderboard > Record by Partner: Order the partners by win percentage descending
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

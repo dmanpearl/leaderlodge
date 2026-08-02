@@ -157,6 +157,6 @@ def can_invite_roster_player(
 ) -> bool:
     if not can_manage_members(actor):
         return False
-    if player.group_id != group.pk or not player.is_active:
+    if player.group_id != group.pk or not player.is_active or player.is_team:
         return False
     return player.linked_user_id is None

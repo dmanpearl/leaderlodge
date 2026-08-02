@@ -16,12 +16,28 @@
       <h1 class="h3 mb-1">{{ detail.ranking.player.display_label }}</h1>
       <p class="text-muted mb-0">{{ selected_group.name }} &middot; {{ game_type.name }}{% if period_label %} &middot; {{ period_label }}{% endif %}</p>
     </div>
-    {% if insights_enabled %}
+    {% if insights_enabled or can_invite %}
       <div class="d-flex flex-wrap gap-2 align-self-sm-start">
-        {% include "includes/btn_insights.html" with btn_size="sm" offcanvas_target="#player-insights-panel" offcanvas_controls="player-insights-panel" %}
+        {% if can_invite %}
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+            data-roster-invite
+            data-player-name="{{ detail.ranking.player.display_label }}"
+            data-invite-url="{% url 'groups:player_invite' selected_group.pk detail.ranking.player.pk %}"
+          >
+            <i class="bi bi-envelope" aria-hidden="true"></i>
+            Invite
+          </button>
+        {% endif %}
+        {% if insights_enabled %}
+          {% include "includes/btn_insights.html" with btn_size="sm" offcanvas_target="#player-insights-panel" offcanvas_controls="player-insights-panel" %}
+        {% endif %}
       </div>
     {% endif %}
   </div>
+
+  {% include "groups/includes/roster_invite_modal.html" %}
 
   <div class="card mb-3">
     <div class="card-header d-flex align-items-center gap-2">
@@ -301,6 +317,9 @@
 {% endblock %}
 
 {% block extra_js %}
+  {% if can_invite %}
+    <script src="{% static 'js/roster_invite_modal.js' %}"></script>
+  {% endif %}
   <script>
     (function () {
       const buttons = Array.from(
