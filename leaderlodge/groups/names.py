@@ -65,13 +65,8 @@ def _resolve_last_collision(
     return f"{first} {base_last[:3].upper()}"
 
 
-def disambiguate_labels(players: list) -> dict[int, str]:
-    """Return {player_id: display label} with first-name collision resolution.
-
-    Unique first name: show first name only (linked users) or stored display_name.
-    Shared first name: show first + 2 uppercase chars of last name, expanding to 3
-    if still colliding, then appending a name suffix (Jr, Sr, II, etc.) if present.
-    """
+def _disambiguate_labels_in_group(players: list) -> dict[int, str]:
+    """Resolve first-name collisions within a single group of players."""
     data: dict[int, tuple[str, str]] = {p.pk: _player_first_last(p) for p in players}
 
     first_groups: dict[str, list[int]] = {}
@@ -102,6 +97,27 @@ def disambiguate_labels(players: list) -> dict[int, str]:
             first, base_last, suffix, p.pk, peers, data
         )
 
+    return result
+
+
+def disambiguate_labels(players: list) -> dict[int, str]:
+    """Return {player_id: display label} with first-name collision resolution.
+
+    Collisions are scoped per group: the same first name in different groups
+    does not force a last initial.
+
+    Unique first name in the group: show first name only (linked users) or
+    stored display_name. Shared first name in the group: show first + 1 to 3
+    uppercase chars of last name, then a name suffix (Jr, Sr, II, etc.) if
+    needed.
+    """
+    by_group: dict[object, list] = {}
+    for p in players:
+        by_group.setdefault(getattr(p, "group_id", None), []).append(p)
+
+    result: dict[int, str] = {}
+    for group_players in by_group.values():
+        result.update(_disambiguate_labels_in_group(group_players))
     return result
 
 

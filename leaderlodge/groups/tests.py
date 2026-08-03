@@ -5,10 +5,11 @@ from django.test import TestCase
 from leaderlodge.groups.names import disambiguate_labels
 
 
-def _player(pk: int, first: str, last: str) -> MagicMock:
+def _player(pk: int, first: str, last: str, *, group_id: int = 1) -> MagicMock:
     """Build a minimal GroupPlayer mock with linked_user set."""
     p = MagicMock()
     p.pk = pk
+    p.group_id = group_id
     p.is_team = False
     p.linked_user_id = pk
     p.linked_user = MagicMock()
@@ -19,10 +20,11 @@ def _player(pk: int, first: str, last: str) -> MagicMock:
     return p
 
 
-def _guest(pk: int, display_name: str) -> MagicMock:
+def _guest(pk: int, display_name: str, *, group_id: int = 1) -> MagicMock:
     """Build a guest player mock (no linked_user)."""
     p = MagicMock()
     p.pk = pk
+    p.group_id = group_id
     p.is_team = False
     p.linked_user_id = None
     p.linked_user = None
@@ -141,3 +143,20 @@ class DisambiguateLabelsTests(TestCase):
         result = disambiguate_labels([a, g])
         self.assertEqual(result[a.pk], "John")
         self.assertEqual(result[g.pk], "Alice")
+
+    def test_same_first_name_in_different_groups_no_initial(self):
+        """Cross-group first-name overlap must not force a last initial."""
+        a = _player(1, "Nancy", "Manpearl", group_id=10)
+        b = _player(2, "Nancy", "Miller", group_id=20)
+        result = disambiguate_labels([a, b])
+        self.assertEqual(result[a.pk], "Nancy")
+        self.assertEqual(result[b.pk], "Nancy")
+
+    def test_same_first_name_same_group_still_disambiguates(self):
+        a = _player(1, "Nancy", "Manpearl", group_id=10)
+        b = _player(2, "Nancy", "Miller", group_id=10)
+        c = _player(3, "Nancy", "Other", group_id=20)
+        result = disambiguate_labels([a, b, c])
+        self.assertEqual(result[a.pk], "Nancy MA")
+        self.assertEqual(result[b.pk], "Nancy MI")
+        self.assertEqual(result[c.pk], "Nancy")
