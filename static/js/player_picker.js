@@ -1,5 +1,5 @@
 /**
- * Fuzzy player picker for game recording — roster members and guests.
+ * Fuzzy player picker for game recording: roster members and guests.
  */
 (function () {
   const MAX_SUGGESTIONS = 8;
@@ -671,9 +671,23 @@
       this.renderSuggestions();
     }
 
+    isPickingTeammate() {
+      return Boolean(this.teammateTargetRow && this.teammateTargetRow.isConnected);
+    }
+
+    rosterForCurrentMode() {
+      // Teammates must be individual people; existing teams cannot nest as a
+      // teammate on another side.
+      if (this.isPickingTeammate()) {
+        return this.roster.filter((entry) => entry.kind !== "team");
+      }
+      return this.roster;
+    }
+
     refreshSuggestions() {
       const query = this.input.value;
-      const matches = filterRoster(this.roster, query);
+      const roster = this.rosterForCurrentMode();
+      const matches = filterRoster(roster, query);
       const existing = this.existingRowKeys();
       this.suggestions = matches
         .filter(
@@ -684,7 +698,7 @@
 
       const trimmed = query.trim();
       if (trimmed) {
-        const exactRosterMatch = this.roster.some((entry) =>
+        const exactRosterMatch = roster.some((entry) =>
           rosterEntryMatchesLabel(entry, trimmed)
         );
         const guestKey = rowKeyForEntry({ guestName: trimmed });
@@ -776,7 +790,8 @@
         return;
       }
       const existing = this.existingRowKeys();
-      const rosterMatch = this.roster.find(
+      const roster = this.rosterForCurrentMode();
+      const rosterMatch = roster.find(
         (entry) =>
           rosterEntryMatchesLabel(entry, trimmed) &&
           !entryIsIneligible(this.tbody, entry, existing, this.roster)
@@ -794,8 +809,9 @@
     addParticipant({ entry, guestName }) {
       const teammateRow = this.teammateTargetRow;
       if (entry?.kind === "team") {
+        // Teams are only valid as whole sides, never as a teammate pick.
         if (teammateRow && teammateRow.isConnected) {
-          this.clearTeammateTarget();
+          return;
         }
         if (
           entryIsIneligible(

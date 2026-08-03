@@ -321,7 +321,7 @@
 {% block extra_js %}
   {% if show_roster %}
     <script src="{% static 'js/game_record_form.js' %}?v=6"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=14"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=15"></script>
   {% else %}
     <script>
       document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";

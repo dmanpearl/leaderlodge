@@ -170,7 +170,7 @@
 - [x] 118ea4f Leaderboard > Record by Partner: Order the partners by rank descending
 - [x] 97da3ae Create tool to promote production group (ie 'manpearl') games to the 'demo' group with player name and location re-mappings to keep realistic examples for the Guests
 - [x] 0c37ba2 Leaderboard > Filters > Player type: Change menu options to 'Players' (default) and 'Teams'. No all, no combined, no diferentiation between Users and Guests. It makess no sense to combine Teams and Individuals. Hide the menu option if there are no teams available
-- [x] Delete Game: Need capability to remove a game from the Edit Game menu.
+- [x] a1d3693 Delete Game: Need capability to remove a game from the Edit Game menu.
 
 ## Open Items
 
