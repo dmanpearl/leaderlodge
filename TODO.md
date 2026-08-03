@@ -169,10 +169,15 @@
 - [x] c569c04 Player detail, you should be able to invite a guest to convert to a full user (https://leaderlodge.com/admin/feedback/feedback/22)
 - [x] 118ea4f Leaderboard > Record by Partner: Order the partners by rank descending
 - [x] 97da3ae Create tool to promote production group (ie 'manpearl') games to the 'demo' group with player name and location re-mappings to keep realistic examples for the Guests
-- [x] Leaderboard > Filters > Player type: Change menu options to 'Players' (default) and 'Teams'. No all, no combined, no diferentiation between Users and Guests. It makess no sense to combine Teams and Individuals. Hide the menu option if there are no teams available
+- [x] 0c37ba2 Leaderboard > Filters > Player type: Change menu options to 'Players' (default) and 'Teams'. No all, no combined, no diferentiation between Users and Guests. It makess no sense to combine Teams and Individuals. Hide the menu option if there are no teams available
+- [x] Delete Game: Need capability to remove a game from the Edit Game menu.
 
 ## Open Items
 
+- [ ] Bug: Record Game > Add Teammate: Should not see teams in the list of available teammates
+- [ ] Record Game (Game Detail with record_again=1) Context menu add '<plus-icon> Record game' menu item
+- [ ] Last initial being shown in games list unnecessarily. Examples: 'Jeff M', 'Nancy M', 'Karenina M', when there are no conflicts. Perhaps due to having players with same first name in multiple groups (ie. manpearl, test in local)
+- [ ] Fake Accounts: Need tool to identify, flag/remove users like myylprhhgz (l.parks@tuparks.com)
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Record Game: Make it easier to go back and set location during user selections

@@ -1,0 +1,1 @@
+LeaderLodge: game deleted ({{ group_name }})

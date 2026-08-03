@@ -57,7 +57,12 @@
     </div>
   </div>
 
-  <form method="post" class="card" data-location-group-id="{{ game.group.pk }}">
+  <div class="card">
+  <form
+    method="post"
+    id="game-edit-form"
+    data-location-group-id="{{ game.group.pk }}"
+  >
     {% csrf_token %}
     <div class="card-header">Changes</div>
     <div class="card-body">
@@ -173,11 +178,21 @@
         </div>
       </div>
     </div>
-    <div class="card-footer d-flex flex-wrap gap-2">
-      <button type="submit" class="btn btn-primary">Save changes</button>
-      <a href="{% url 'games:detail' pk=game.pk %}" class="btn btn-outline-secondary">Cancel</a>
-    </div>
   </form>
+    <div class="card-footer d-flex flex-wrap gap-2 align-items-center">
+      <button type="submit" form="game-edit-form" class="btn btn-primary">Save changes</button>
+      <a href="{% url 'games:detail' pk=game.pk %}" class="btn btn-outline-secondary">Cancel</a>
+      <form
+        method="post"
+        action="{% url 'games:delete' pk=game.pk %}"
+        class="ms-auto m-0"
+        onsubmit="return confirm('Delete this game? This cannot be undone.');"
+      >
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-danger">Delete game</button>
+      </form>
+    </div>
+  </div>
 
   {% if can_set_place and google_places_api_key %}
     {% include "groups/includes/location_set_place_modal.html" %}

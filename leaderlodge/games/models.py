@@ -118,10 +118,21 @@ class GameParticipantResult(models.Model):
 
 
 class GameScoreChangeLog(models.Model):
+    class Event(models.TextChoices):
+        CHANGE = "change", "Change"
+        DELETE = "delete", "Delete"
+
     game = models.ForeignKey(
         Game,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="score_change_logs",
+    )
+    event = models.CharField(
+        max_length=10,
+        choices=Event.choices,
+        default=Event.CHANGE,
     )
     changed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -140,4 +151,5 @@ class GameScoreChangeLog(models.Model):
         verbose_name_plural = "game edit logs"
 
     def __str__(self) -> str:
-        return f"Game {self.game_id} change by {self.changed_by}"
+        game_ref = self.game_id or self.old_snapshot.get("game_id") or "?"
+        return f"Game {game_ref} {self.event} by {self.changed_by}"

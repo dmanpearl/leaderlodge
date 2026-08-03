@@ -1,1 +1,1 @@
-LeaderLodge: game edited ({{ group.name }})
+LeaderLodge: game edited ({{ group_name }})

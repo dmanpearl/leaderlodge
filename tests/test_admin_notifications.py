@@ -16,7 +16,7 @@ from leaderlodge.core.admin_notifications import (
 )
 from leaderlodge.core.models import SiteSettings
 from leaderlodge.feedback.models import Feedback
-from leaderlodge.games.score_changes import apply_game_edits
+from leaderlodge.games.score_changes import apply_game_edits, delete_game
 from leaderlodge.groups.services import create_group_with_owner
 
 TEST_NOTIFY_EMAIL = "ops@example.com"
@@ -179,6 +179,53 @@ def test_apply_game_edits_notifies_admin(site_settings, user):
     ]
     assert len(admin_messages) == 1
     assert "game edited" in admin_messages[0].subject.lower()
+    assert "Dom Club" in admin_messages[0].subject
+
+
+@pytest.mark.django_db
+def test_delete_game_notifies_admin_as_delete_event(site_settings, user):
+    from django.utils import timezone
+
+    from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
+    from leaderlodge.groups.services import add_guest_player
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    add_guest_player(group=group, display_name="Pat")
+    players = list(group.players.order_by("pk"))
+    game = Game.objects.create(
+        group=group,
+        game_type_code="dominos",
+        played_on=timezone.localdate(),
+        recorded_by=user,
+        player_count=2,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[0],
+        score=30,
+        result=GameParticipantResult.Result.WIN,
+        placement=0,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[1],
+        score=20,
+        result=GameParticipantResult.Result.PLAYED,
+        placement=1,
+    )
+    mail.outbox.clear()
+    delete_game(game=game, user=user)
+
+    admin_messages = [
+        message for message in mail.outbox if TEST_NOTIFY_EMAIL in message.to
+    ]
+    assert len(admin_messages) == 1
+    assert "game deleted" in admin_messages[0].subject.lower()
+    assert "game edited" not in admin_messages[0].subject.lower()
+    assert "Dom Club" in admin_messages[0].subject
+    log = GameScoreChangeLog.objects.get()
+    assert log.event == GameScoreChangeLog.Event.DELETE
+    assert log.game_id is None
 
 
 @pytest.mark.django_db

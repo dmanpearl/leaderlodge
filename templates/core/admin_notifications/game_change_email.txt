@@ -1,6 +1,6 @@
 A game was edited on LeaderLodge.
 
-Group: {{ group.name }}
+Group: {{ group_name }}
 Game type: {{ game_type_label }}
 Date played: {{ played_on }}
 Changed by: {{ changed_by_display }}

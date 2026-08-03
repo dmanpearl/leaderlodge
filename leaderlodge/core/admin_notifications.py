@@ -181,39 +181,62 @@ def notify_admin_invite_accepted(
     )
 
 
-def notify_admin_game_change(*, log) -> bool:
+def _game_log_notification_context(*, log) -> dict[str, Any]:
     from django.urls import reverse
 
     from leaderlodge.games.registry import get_game_type
     from leaderlodge.groups.names import format_user_display_name
 
     game = log.game
-    group = game.group
-    changed_by = log.changed_by
-    try:
-        game_type_label = get_game_type(game.game_type_code).name
-    except Exception:
-        game_type_label = game.game_type_code
+    snapshot = log.old_snapshot or {}
+    if game is not None:
+        group = game.group
+        group_name = group.name
+        game_type_code = game.game_type_code
+        played_on = game.played_on
+        game_path = reverse("games:detail", kwargs={"pk": game.pk})
+        game_url = absolute_url(game_path)
+    else:
+        group = None
+        group_name = (snapshot.get("group") or {}).get("name") or "(unknown group)"
+        game_type_code = snapshot.get("game_type_code") or ""
+        played_on = snapshot.get("played_on") or ""
+        game_url = ""
 
-    game_path = reverse("games:detail", kwargs={"pk": game.pk})
+    try:
+        game_type_label = get_game_type(game_type_code).name if game_type_code else ""
+    except Exception:
+        game_type_label = game_type_code
+
     # Django admin change URLs include /change/; that is the canonical edit view.
     admin_path = reverse("admin:games_gamescorechangelog_change", args=[log.pk])
+    return {
+        "log": log,
+        "game": game,
+        "group": group,
+        "group_name": group_name,
+        "game_type_label": game_type_label,
+        "played_on": played_on,
+        "changed_by_display": format_user_display_name(log.changed_by),
+        "notes": log.notes,
+        "game_url": game_url,
+        "admin_url": absolute_url(admin_path),
+        "old_snapshot": log.old_snapshot,
+        "new_snapshot": log.new_snapshot,
+    }
 
+
+def notify_admin_game_change(*, log) -> bool:
     return notify_admin(
         kind="game_change",
-        context={
-            "log": log,
-            "game": game,
-            "group": group,
-            "game_type_label": game_type_label,
-            "played_on": game.played_on,
-            "changed_by_display": format_user_display_name(changed_by),
-            "notes": log.notes,
-            "game_url": absolute_url(game_path),
-            "admin_url": absolute_url(admin_path),
-            "old_snapshot": log.old_snapshot,
-            "new_snapshot": log.new_snapshot,
-        },
+        context=_game_log_notification_context(log=log),
+    )
+
+
+def notify_admin_game_delete(*, log) -> bool:
+    return notify_admin(
+        kind="game_delete",
+        context=_game_log_notification_context(log=log),
     )
 
 

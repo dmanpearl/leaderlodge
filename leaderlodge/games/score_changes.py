@@ -111,6 +111,8 @@ def _game_snapshot(
         ),
     )
     return {
+        "game_id": game.pk,
+        "group": {"id": game.group_id, "name": game.group.name},
         "game_type_code": game.game_type_code,
         "played_on": resolved_played_on.isoformat(),
         "player_count": game.player_count,
@@ -212,11 +214,37 @@ def _build_change_log(
         return None
     return GameScoreChangeLog(
         game=game,
+        event=GameScoreChangeLog.Event.CHANGE,
         changed_by=user,
         notes=notes,
         old_snapshot=old_snapshot,
         new_snapshot=new_snapshot,
     )
+
+
+@transaction.atomic
+def delete_game(*, game: Game, user: AbstractBaseUser) -> GameScoreChangeLog:
+    """Delete a game and write a surviving DELETE entry in the game edit log."""
+    from leaderlodge.core.admin_notifications import notify_admin_game_delete
+
+    if not user_can_edit_game(user, game):
+        raise ValidationError("You cannot delete this game.")
+
+    # Snapshot before delete; include group/game ids so the log remains useful
+    # after game FK is cleared by SET_NULL.
+    old_snapshot = _game_snapshot(game)
+    log = GameScoreChangeLog.objects.create(
+        game=game,
+        event=GameScoreChangeLog.Event.DELETE,
+        changed_by=user,
+        notes="Game deleted.",
+        old_snapshot=old_snapshot,
+        new_snapshot={},
+    )
+    notify_admin_game_delete(log=log)
+    game.delete()
+    log.refresh_from_db()
+    return log
 
 
 @transaction.atomic

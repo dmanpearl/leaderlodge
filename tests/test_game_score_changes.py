@@ -392,3 +392,52 @@ def test_edit_progressive_rummy_half_game(client, staff_user, progressiverummy_g
     log = GameScoreChangeLog.objects.get(game=game)
     assert log.old_snapshot["half_weight"] == 1
     assert log.new_snapshot["half_weight"] == 2
+
+
+@pytest.mark.django_db
+def test_game_edit_shows_delete_button(client, staff_user, dominos_game):
+    client.force_login(staff_user)
+    response = client.get(reverse("games:edit_game", kwargs={"pk": dominos_game.pk}))
+    assert response.status_code == 200
+    content = response.content.decode()
+    delete_url = reverse("games:delete", kwargs={"pk": dominos_game.pk})
+    assert delete_url in content
+    assert "Delete game" in content
+    assert "Delete this game? This cannot be undone." in content
+
+
+@pytest.mark.django_db
+def test_member_can_delete_own_game(client, member_user, member_dominos_game, group):
+    client.force_login(member_user)
+    game_pk = member_dominos_game.pk
+    response = client.post(reverse("games:delete", kwargs={"pk": game_pk}))
+    assert response.status_code == 302
+    assert not Game.objects.filter(pk=game_pk).exists()
+    assert response.url == (
+        f"{reverse('games:list')}?group={group.pk}&game_type_code=dominos"
+    )
+    log = GameScoreChangeLog.objects.get()
+    assert log.event == GameScoreChangeLog.Event.DELETE
+    assert log.game_id is None
+    assert log.changed_by_id == member_user.pk
+    assert log.notes == "Game deleted."
+    assert log.old_snapshot["game_id"] == game_pk
+    assert log.old_snapshot["group"]["id"] == group.pk
+    assert log.old_snapshot["participants"]
+    assert log.new_snapshot == {}
+
+
+@pytest.mark.django_db
+def test_member_cannot_delete_other_users_game(client, member_user, dominos_game):
+    client.force_login(member_user)
+    response = client.post(reverse("games:delete", kwargs={"pk": dominos_game.pk}))
+    assert response.status_code == 404
+    assert Game.objects.filter(pk=dominos_game.pk).exists()
+
+
+@pytest.mark.django_db
+def test_game_delete_rejects_get(client, staff_user, dominos_game):
+    client.force_login(staff_user)
+    response = client.get(reverse("games:delete", kwargs={"pk": dominos_game.pk}))
+    assert response.status_code == 405
+    assert Game.objects.filter(pk=dominos_game.pk).exists()

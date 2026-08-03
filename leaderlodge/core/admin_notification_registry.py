@@ -6,6 +6,7 @@ NOTIFICATION_LABELS: dict[str, str] = {
     "invite_sent": "Group invite sent",
     "invite_accepted": "Group invite accepted",
     "game_change": "Game edited (change log)",
+    "game_delete": "Game deleted (change log)",
     "feedback": "Feedback submitted",
 }
 

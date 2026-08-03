@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -8,6 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_POST
 
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.groups.names import apply_label_overrides, disambiguate_labels
@@ -57,7 +60,11 @@ from leaderlodge.insights.model_selection import preferred_insight_model_id
 from leaderlodge.insights.registry import MODEL_REGISTRY
 from leaderlodge.insights.views import insights_ui_enabled
 from leaderlodge.games.services import ParticipantInput, record_game
-from leaderlodge.games.score_changes import apply_game_edits, user_can_edit_game
+from leaderlodge.games.score_changes import (
+    apply_game_edits,
+    delete_game,
+    user_can_edit_game,
+)
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
     can_edit_group,
@@ -1172,3 +1179,33 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "location_game_count": location_game_count,
         },
     )
+
+
+@login_required
+@require_POST
+def game_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Delete a game. Same permission gate as Edit Game (recorder or staff)."""
+    game = get_object_or_404(
+        Game.objects.select_related("group").prefetch_related(
+            "participant_results__player"
+        ),
+        pk=pk,
+    )
+    if not can_view_group(request.user, game.group) or not user_can_edit_game(
+        request.user, game
+    ):
+        raise Http404
+
+    group_id = game.group_id
+    game_type_code = game.game_type_code
+    game_type_name = get_game_type(game_type_code).name
+    played_on = game.played_on
+    delete_game(game=game, user=request.user)
+    played_label = played_on.strftime("%b %d, %Y").replace(" 0", " ")
+    messages.success(
+        request,
+        f"Deleted {game_type_name} game from {played_label}.",
+    )
+    list_url = reverse("games:list")
+    query = urlencode({"group": group_id, "game_type_code": game_type_code})
+    return redirect(f"{list_url}?{query}")

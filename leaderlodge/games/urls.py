@@ -12,4 +12,5 @@ urlpatterns = [
     path("matchup/", views.game_matchup, name="matchup"),
     path("<int:pk>/", views.game_detail, name="detail"),
     path("<int:pk>/edit-game/", views.game_edit_game, name="edit_game"),
+    path("<int:pk>/delete/", views.game_delete, name="delete"),
 ]

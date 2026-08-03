@@ -79,17 +79,19 @@ class GameParticipantResultInline(admin.TabularInline):
 @admin.register(GameScoreChangeLog)
 class GameScoreChangeLogAdmin(admin.ModelAdmin):
     list_display = (
-        "game",
+        "event",
+        "game_label",
         "changed_by",
         "created_at",
     )
-    list_filter = ("game__game_type_code", "created_at")
+    list_filter = ("event", "created_at")
     search_fields = (
         "game__pk",
         "changed_by__username",
         "notes",
     )
     readonly_fields = (
+        "event",
         "game",
         "changed_by",
         "created_at",
@@ -102,6 +104,7 @@ class GameScoreChangeLogAdmin(admin.ModelAdmin):
             "Audit",
             {
                 "fields": (
+                    "event",
                     "game",
                     "changed_by",
                     "created_at",
@@ -119,6 +122,18 @@ class GameScoreChangeLogAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+    @admin.display(description="Game")
+    def game_label(self, obj: GameScoreChangeLog) -> str:
+        if obj.game_id:
+            return str(obj.game)
+        snapshot = obj.old_snapshot or {}
+        game_id = snapshot.get("game_id")
+        game_type = snapshot.get("game_type_code") or "game"
+        played_on = snapshot.get("played_on") or ""
+        if game_id:
+            return f"Deleted {game_type} #{game_id} ({played_on})"
+        return f"Deleted {game_type} ({played_on})" if played_on else "Deleted game"
 
     def has_add_permission(self, request):
         return False

@@ -1,0 +1,14 @@
+A game was deleted on LeaderLodge.
+
+Group: {{ group_name }}
+Game type: {{ game_type_label }}
+Date played: {{ played_on }}
+Deleted by: {{ changed_by_display }}
+Notes: {{ notes }}
+
+--- Deleted game ---
+Date: {{ old_snapshot.played_on }}
+Location: {{ old_snapshot.location.name|default:"(none)" }}
+{% for p in old_snapshot.participants %}  {{ p.display_name }}: {{ p.score }} ({{ p.result }})
+{% endfor %}
+Admin: {{ admin_url }}
