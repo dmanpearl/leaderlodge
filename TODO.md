@@ -174,11 +174,11 @@
 - [x] 5a22d84 Bug: Record Game > Add Teammate: Should not see teams in the list of available teammates
 - [x] Bug: Last initial is being shown in games list unnecessarily. Examples: 'Jeff M', 'Nancy M', 'Karenina M', when there are no conflicts. Perhaps due to having players with same first name in multiple groups (ie. manpearl, test in local)
 - [x] b340a5d Record Game (Game Detail with record_again=1) Context menu add '<plus-icon> Record game' menu item
-- [x] Fake Accounts: Need tool to identify, flag/remove users like myylprhhgz (l.parks@tuparks.com)
+- [x] ec2d0e3 Fake Accounts: Need tool to identify, flag/remove users like myylprhhgz (l.parks@tuparks.com)
+- [x] Update management commands documentation
 
 ## Open Items
 
-- [ ] Update management commands documentation
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Record Game: Make it easier to go back and set location during user selections

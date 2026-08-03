@@ -132,6 +132,7 @@ Admin notification email (signup, invites, game edits, feedback): [Site settings
 ## Documentation
 
 - [Local development setup](docs/setup.md) — settings, tests, day-to-day commands, **previewing transactional email**
+- [Management commands](docs/management-commands.md) — full inventory of project `manage.py` commands
 - [Architecture](docs/architecture.md) — app layout, models, leaderboard design
 - [Importing game history](docs/importing.md) — seed spreadsheets, `import_games`, and `setup_demo`
 - [Google Places API](docs/google-places.md) — location lookup setup, billing, key restrictions, Railway deployment

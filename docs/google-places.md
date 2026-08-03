@@ -204,7 +204,8 @@ Server endpoint: `POST /groups/<group_id>/locations/<location_id>/set-place/`
 ## Interactive CLI backfill (optional)
 
 For cleaning hundreds of historical names, use an interactive management
-command that mirrors **Map > Search > Assign**, with accept/reject per row:
+command that mirrors **Map > Search > Assign**, with accept/reject per row.
+Also listed in [Management commands](management-commands.md#backfill_location_places).
 
 ```bash
 python manage.py backfill_location_places \

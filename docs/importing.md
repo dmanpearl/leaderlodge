@@ -2,6 +2,8 @@
 
 LeaderLodge can import historical games from Excel **ScoreKeeper** workbooks. Imports are idempotent: re-running the same file skips rows that were already imported.
 
+Command reference (including `import_games`, `setup_demo`, and `promote_games`): [Management commands](management-commands.md).
+
 ## Seed file layout
 
 Store versioned seed files under `data/seeds/<game-type>/`:

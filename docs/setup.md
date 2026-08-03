@@ -89,7 +89,7 @@ Both commands run the same tests; `--create-db` only forces a fresh schema. Use 
 
 ## Importing historical games
 
-See [Importing game history](importing.md) for seed file layout, player mapping, and the `import_games` management command.
+See [Importing game history](importing.md) for seed file layout, player mapping, and the `import_games` management command. Full command inventory: [Management commands](management-commands.md).
 
 Quick example:
 
@@ -194,7 +194,7 @@ Locally, outbound email uses the **console backend** (messages print in the runs
 
 ### Preview transactional emails
 
-Use `send_sample_email` to render welcome and password-reset templates without going through signup or the reset form.
+Use `send_sample_email` to render welcome and password-reset templates without going through signup or the reset form. Also listed in [Management commands](management-commands.md#send_sample_email).
 
 **Print to the terminal (no mail sent):**
 
