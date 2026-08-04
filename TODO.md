@@ -176,9 +176,23 @@
 - [x] b340a5d Record Game (Game Detail with record_again=1) Context menu add '<plus-icon> Record game' menu item
 - [x] ec2d0e3 Fake Accounts: Need tool to identify, flag/remove users like myylprhhgz (l.parks@tuparks.com)
 - [x] Update management commands documentation
+- [x] Game Type: Add Gin Rummy, Cribbage, Phase 10, Darts (501, Cricket), Cornhole
 
 ## Open Items
 
+- [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 30/60 double skunk
+- [ ] Pickleball: Rename 'ScoreType' to 'PickleballScoreType'
+- [ ] Method for users to lock in one specific game type
+      - Purpose: Makes LeaderLodge look like a single game type app
+      - Available to all users
+      - Accessible via Account menu: Lock Game Type, Unlock Game Type with bootstrap lock and unlock icons
+      - When locked, all other games types are hidden from all views and menus
+      - Lock lock-game-type is saved in user preferences
+      - Game type locking can be specified in url params as a way to deliver a url for a specific game type
+      - About menu: Add section 'Game Types' before feedback listing all supported games. If locked, also display an 'Unlock' button.
+- [ ] Game Type: Add Canasta, Euchre
+- [ ] Leaderboard Algorithm/Streaks: provide rank algorithm selector that includes default, streak, win-percent, win-total, points-percent, points-total. streaks (win, unbeaten, current, total/range, head-to-head/matchup
+- [ ] Mah Jongg: Support style: American or Chinese (Japanese? Hong Kong? Chinese variants?)
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Record Game: Make it easier to go back and set location during user selections
