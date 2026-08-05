@@ -81,8 +81,9 @@ def test_metrics_page_and_menu_for_staff(client, staff_user):
     assert response.status_code == 200
     content = response.content.decode()
     assert ">Metrics</h1>" in content
-    assert "Total users" in content
+    assert "Users and groups" in content
     assert "Total games" in content
+    assert "Game pace" in content
     assert "Top" in content
     assert "Games by type" in content
     assert 'id="metrics-groups-panel"' in content

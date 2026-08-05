@@ -103,8 +103,8 @@ def _game_type_activity_rows(
         )
     rows.sort(
         key=lambda row: (
-            -row.games_last_7_days,
             -row.games_total,
+            -row.games_last_7_days,
             -row.games_last_hour,
             row.game_type_name,
         )
@@ -126,7 +126,7 @@ def build_site_metrics(*, top_n: int = METRICS_TOP_GROUPS) -> SiteMetrics:
     games_last_7_days = Game.objects.filter(created_at__gte=week_ago).count()
     avg_games_per_day_7d = _avg_per_day(games_last_7_days)
 
-    # Most active = most games recorded in the rolling 7-day window.
+    # Groups with activity in the rolling 7-day window, ranked by total games.
     ranked = list(
         Group.objects.annotate(
             games_total=Count("games"),
@@ -141,7 +141,7 @@ def build_site_metrics(*, top_n: int = METRICS_TOP_GROUPS) -> SiteMetrics:
             user_count=Count("memberships", distinct=True),
         )
         .filter(games_last_7_days__gt=0)
-        .order_by("-games_last_7_days", "name", "pk")[: max(top_n, 0)]
+        .order_by("-games_total", "name", "pk")[: max(top_n, 0)]
     )
 
     top_groups = [
