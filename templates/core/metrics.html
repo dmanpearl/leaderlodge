@@ -1,6 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Metrics | LeaderLodge{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
+{% endblock %}
 
 {% block content %}
   <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
@@ -14,7 +19,7 @@
   </div>
 
   <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-4 col-xl">
       <div class="card h-100">
         <div class="card-body">
           <div class="text-muted small">Total users</div>
@@ -22,7 +27,7 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-4 col-xl">
       <div class="card h-100">
         <div class="card-body">
           <div class="text-muted small">Groups</div>
@@ -30,7 +35,15 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-4 col-xl">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Total games</div>
+          <div class="fs-4 fw-semibold">{{ metrics.games_total }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
       <div class="card h-100">
         <div class="card-body">
           <div class="text-muted small">Games (last hour)</div>
@@ -38,7 +51,7 @@
         </div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-4 col-xl">
       <div class="card h-100">
         <div class="card-body">
           <div class="text-muted small">Avg games / day (7d)</div>
@@ -48,47 +61,133 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span class="fw-semibold">Top {{ metrics.top_n }} most active groups</span>
-      <span class="text-muted small">By games in the last 7 days</span>
+  <div class="card mb-3 game-list-filters-card">
+    <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
+      <button
+        class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start w-100"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#metrics-groups-panel"
+        aria-expanded="true"
+        aria-controls="metrics-groups-panel"
+      >
+        <i id="metrics-groups-icon" class="bi bi-chevron-down" aria-hidden="true"></i>
+        <span class="fw-semibold">Top {{ metrics.top_n }} most active groups</span>
+        <span id="metrics-groups-summary" class="text-muted game-list-filters-summary" hidden>
+          ({{ metrics.top_groups|length }} group{{ metrics.top_groups|length|pluralize }})
+        </span>
+      </button>
     </div>
-    <div class="card-body p-0">
-      {% if metrics.top_groups %}
-        <div class="table-responsive">
-          <table class="table table-striped mb-0">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Group</th>
-                <th scope="col" class="text-end">Users</th>
-                <th scope="col" class="text-end">Games (1h)</th>
-                <th scope="col" class="text-end">Avg / day (7d)</th>
-                <th scope="col" class="text-end">Games (7d)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in metrics.top_groups %}
+    <div id="metrics-groups-panel" class="collapse show">
+      <div class="card-body p-0">
+        {% if metrics.top_groups %}
+          <div class="table-responsive">
+            <table class="table table-striped mb-0">
+              <thead>
                 <tr>
-                  <td>{{ forloop.counter }}</td>
-                  <td>
-                    <a href="{% url 'groups:detail' row.group_id %}">{{ row.group_name }}</a>
-                    {% if row.is_demo %}
-                      <span class="badge text-bg-secondary ms-1">Demo</span>
-                    {% endif %}
-                  </td>
-                  <td class="text-end">{{ row.user_count }}</td>
-                  <td class="text-end">{{ row.games_last_hour }}</td>
-                  <td class="text-end">{{ row.avg_games_per_day }}</td>
-                  <td class="text-end">{{ row.games_last_7_days }}</td>
+                  <th scope="col">#</th>
+                  <th scope="col">Group</th>
+                  <th scope="col" class="text-end">Users</th>
+                  <th scope="col" class="text-end">Games</th>
+                  <th scope="col" class="text-end">Games (1h)</th>
+                  <th scope="col" class="text-end">Avg / day (7d)</th>
+                  <th scope="col" class="text-end">Games (7d)</th>
                 </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p class="text-muted mb-0 p-3">No games recorded in the last 7 days.</p>
-      {% endif %}
+              </thead>
+              <tbody>
+                {% for row in metrics.top_groups %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                      <a href="{% url 'groups:detail' row.group_id %}">{{ row.group_name }}</a>
+                      {% if row.is_demo %}
+                        <span class="badge text-bg-secondary ms-1">Demo</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">{{ row.user_count }}</td>
+                    <td class="text-end">{{ row.games_total }}</td>
+                    <td class="text-end">{{ row.games_last_hour }}</td>
+                    <td class="text-end">{{ row.avg_games_per_day }}</td>
+                    <td class="text-end">{{ row.games_last_7_days }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0 p-3">No games recorded in the last 7 days.</p>
+        {% endif %}
+      </div>
     </div>
   </div>
+
+  <div class="card game-list-filters-card">
+    <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
+      <button
+        class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start w-100"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#metrics-games-panel"
+        aria-expanded="true"
+        aria-controls="metrics-games-panel"
+      >
+        <i id="metrics-games-icon" class="bi bi-chevron-down" aria-hidden="true"></i>
+        <span class="fw-semibold">Games by type</span>
+        <span id="metrics-games-summary" class="text-muted game-list-filters-summary" hidden>
+          ({{ metrics.game_types|length }} type{{ metrics.game_types|length|pluralize }})
+        </span>
+      </button>
+    </div>
+    <div id="metrics-games-panel" class="collapse show">
+      <div class="card-body p-0">
+        {% if metrics.game_types %}
+          <div class="table-responsive">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Game</th>
+                  <th scope="col" class="text-end">Games</th>
+                  <th scope="col" class="text-end">Games (1h)</th>
+                  <th scope="col" class="text-end">Avg / day (7d)</th>
+                  <th scope="col" class="text-end">Games (7d)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in metrics.game_types %}
+                  <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                      <span class="d-inline-flex align-items-center gap-2">
+                        {% if row.icon_url %}
+                          <img
+                            src="{{ row.icon_url }}"
+                            alt=""
+                            width="20"
+                            height="20"
+                            class="flex-shrink-0"
+                          />
+                        {% endif %}
+                        <span>{{ row.game_type_name }}</span>
+                      </span>
+                    </td>
+                    <td class="text-end">{{ row.games_total }}</td>
+                    <td class="text-end">{{ row.games_last_hour }}</td>
+                    <td class="text-end">{{ row.avg_games_per_day }}</td>
+                    <td class="text-end">{{ row.games_last_7_days }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0 p-3">No games recorded in the last 7 days.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'js/metrics.js' %}"></script>
 {% endblock %}

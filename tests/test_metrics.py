@@ -82,7 +82,12 @@ def test_metrics_page_and_menu_for_staff(client, staff_user):
     content = response.content.decode()
     assert ">Metrics</h1>" in content
     assert "Total users" in content
+    assert "Total games" in content
     assert "Top" in content
+    assert "Games by type" in content
+    assert 'id="metrics-groups-panel"' in content
+    assert 'id="metrics-games-panel"' in content
+    assert "metrics.js" in content
 
 
 @pytest.mark.django_db
@@ -120,6 +125,7 @@ def test_build_site_metrics_counts_and_top_groups(staff_user):
     metrics = build_site_metrics(top_n=METRICS_TOP_GROUPS)
     assert metrics.total_users >= 1
     assert metrics.group_count >= 2
+    assert metrics.games_total == 6
     assert metrics.games_last_hour == 3
     # 4 games in last 7 days for active + 1 for quiet = 5 site-wide in window
     assert metrics.avg_games_per_day_7d == Decimal("0.71")
@@ -129,10 +135,24 @@ def test_build_site_metrics_counts_and_top_groups(staff_user):
         "Quiet Club",
     ]
     top = metrics.top_groups[0]
+    assert top.games_total == 4
     assert top.games_last_hour == 3
     assert top.games_last_7_days == 4
     assert top.avg_games_per_day == Decimal("0.57")
     assert top.user_count >= 1
+    quiet_row = metrics.top_groups[1]
+    assert quiet_row.games_total == 2
+
+    by_type = {row.game_type_code: row for row in metrics.game_types}
+    assert set(by_type) == {"dominos", "pickleball"}
+    assert by_type["dominos"].games_total == 5
+    assert by_type["dominos"].games_last_hour == 3
+    assert by_type["dominos"].games_last_7_days == 4
+    assert by_type["dominos"].avg_games_per_day == Decimal("0.57")
+    assert by_type["pickleball"].games_total == 1
+    assert by_type["pickleball"].games_last_hour == 0
+    assert by_type["pickleball"].games_last_7_days == 1
+    assert [row.game_type_code for row in metrics.game_types][0] == "dominos"
 
 
 @pytest.mark.django_db
