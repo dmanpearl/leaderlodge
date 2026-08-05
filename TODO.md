@@ -186,7 +186,7 @@
       - Game type locking can be specified with a short/simple url param as a way to deliver a url for a specific game type
       - About menu: Add section 'Game Types' before feedback listing all supported games. If locked, also display an 'Unlock' button.
 - [x] 8a0031e Bug: CSRF verification failed Forbidden (403) after phone sleep/wake (harden csrf_refresh.js: never POST without cookie; reload on failed refresh; always pageshow refresh; disable Safari-hostile COOP)
-- [x] Metrics: Build a metrics dashboard accessible to staff from the Accounts menu that shows:
+- [x] 9e93220 Metrics: Build a metrics dashboard accessible to staff from the Accounts menu that shows:
   - Total user count across all groups
   - Group count
   - Number of games played in the last hour
