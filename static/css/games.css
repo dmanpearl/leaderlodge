@@ -707,10 +707,6 @@
   justify-content: center;
 }
 
-.record-again-new__reuse {
-  border-left-color: rgba(255, 255, 255, 0.55) !important;
-}
-
 .game-record-score-input {
   min-width: 3rem;
   max-width: 6rem;

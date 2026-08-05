@@ -4,7 +4,7 @@
 {% block title %}{{ game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=13" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=14" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
@@ -179,7 +179,7 @@
           </a>
           <a
             href="{% url 'games:create' %}?reuse_from={{ game.pk }}"
-            class="btn btn-primary record-again-new__reuse d-inline-flex align-items-center justify-content-center"
+            class="btn btn-primary d-inline-flex align-items-center justify-content-center"
             title="Record another game with the same players"
           >
             Reuse
