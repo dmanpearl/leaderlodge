@@ -195,9 +195,18 @@
   - N is hardcoded, but easy to find and change in code.
   - Most active group is defined by the total number of games played in the last 7 days
   - shows for all game types regardless of locking
+- [x] Feature request: Record game: after entering your game, change '+ Reuse' button to new pick buttons still left of the context menu (https://leaderlodge.com/admin/feedback/feedback/30)
+      - 'New' consists of 2 operations: pick and reuse. They can be in a shared UX container TBD exact style
 
 ## Open Items
 
+- [ ] Bug: Record Game view: 'Reuse >' button is broken. Currently does nothing. Note: The Reuse button in the Pick|Reuse segmented button does work
+- [ ] Record game: When entering game scores, don't allow browser to suggest values
+- [ ] Record game: need recent locations (https://leaderlodge.com/admin/feedback/feedback/29)
+      - Sometimes I don’t remember what the location is called, so it is difficult to use type ahead, and I am no longer at that location so it is difficult to use the map options. I suggest a way to look at recent locations without typing. Perhaps use a dedicated button or even a click in the field.
+- [ ] Record game: look ahead incorrectly displayed “no players yet” (https://leaderlodge.com/admin/feedback/feedback/28)
+      - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
+- [ ] Feedback View: remove required attribute on details field (https://leaderlodge.com/admin/feedback/feedback/27)
 - [ ] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
 - [ ] NAV bar dashboard button and other buttons are sometimes unresponsive, perhaps due to slow Internet connection. Consider adding a spinner or other state indication (https://leaderlodge.com/admin/feedback/feedback/24)
 - [ ] Hall of Fame: Revisit the need for this view. Consider removal

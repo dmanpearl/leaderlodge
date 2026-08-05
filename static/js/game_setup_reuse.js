@@ -24,6 +24,8 @@
 
   let fetchTimer = null;
   let fetchId = 0;
+  // Pick-from seeds location server-side; keep it until the user changes group/type.
+  let preserveLocation = form.dataset.locationPreserve === "1";
 
   function clearReuseAction() {
     button.disabled = true;
@@ -92,7 +94,7 @@
       } else {
         menu.replaceChildren();
       }
-      if (locationInput) {
+      if (locationInput && !preserveLocation) {
         locationInput.value = data.last_location_name || "";
         locationInput.dispatchEvent(new Event("input", { bubbles: true }));
       }
@@ -104,6 +106,7 @@
   }
 
   function scheduleUpdate() {
+    preserveLocation = false;
     clearReuseAction();
     window.clearTimeout(fetchTimer);
     fetchTimer = window.setTimeout(updateReuseAction, 150);

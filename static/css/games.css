@@ -687,6 +687,30 @@
   row-gap: 0.5rem;
 }
 
+.record-again-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.record-again-new__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bs-primary);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.record-again-new .btn-group > .btn {
+  min-width: 4.5rem;
+  justify-content: center;
+}
+
+.record-again-new__reuse {
+  border-left-color: rgba(255, 255, 255, 0.55) !important;
+}
+
 .game-record-score-input {
   min-width: 3rem;
   max-width: 6rem;

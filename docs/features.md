@@ -17,8 +17,9 @@ and leaderboards for social games played by groups of people.
 - Location tracking with fuzzy auto-complete and "last location used" pre-population
 - Reuse a recent game's player roster from a menu of up to 5 recent games
   of the same type
-- Record another game with the same players from Game Detail after saving
-  (+ Reuse Players); Add player starts collapsed as a small + under the roster
+- After saving, Game Detail offers a New control (+ Pick | Reuse) left of the
+  context menu; both open the record screen with the prior location. Pick starts
+  with an empty roster; Reuse starts with players loaded and Add player collapsed
 - Support for 2x (double) and 0.5x (half) game weighting
 - Automatic score-to-result and placement assignment based on game-type rules
 - Notes field per game

@@ -693,6 +693,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     post_for_rows = None
     reused_participant_rows = None
     player_picker_start_collapsed = False
+    preserve_setup_location = False
     game_type = None
 
     if request.method == "POST":
@@ -744,6 +745,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     else:
         initial = {}
         reuse_from_pk = (request.GET.get("reuse_from") or "").strip()
+        pick_from_pk = (request.GET.get("pick_from") or "").strip()
         source_game = None
         if reuse_from_pk and request.user.is_authenticated:
             source_game = (
@@ -773,6 +775,27 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     source_game = None
             else:
                 source_game = None
+
+        if source_game is None and pick_from_pk and request.user.is_authenticated:
+            pick_game = (
+                Game.objects.filter(pk=pick_from_pk)
+                .select_related("group", "location")
+                .first()
+            )
+            if pick_game is not None and can_edit_group(request.user, pick_game.group):
+                # Same as reuse_from for group/type/date/location, but start with
+                # an empty roster so the user picks players on the record screen.
+                show_roster = True
+                player_picker_start_collapsed = False
+                reused_participant_rows = []
+                initial["group"] = pick_game.group_id
+                initial["game_type_code"] = pick_game.game_type_code
+                initial["played_on"] = timezone.localdate()
+                if pick_game.location_id:
+                    initial["location_name"] = pick_game.location.name
+                persist_game_type_code(request, pick_game.game_type_code)
+                persist_group_id(request, pick_game.group_id)
+                source_game = pick_game
 
         if source_game is None:
             if request.GET.get("group"):
@@ -974,6 +997,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 default_participant_score_value(game_type.code) if game_type else ""
             ),
             "player_picker_start_collapsed": player_picker_start_collapsed,
+            "preserve_setup_location": preserve_setup_location,
             "google_places_api_key": (
                 getattr(settings, "GOOGLE_PLACES_API_KEY", "")
                 if request.user.is_authenticated
@@ -989,7 +1013,10 @@ def game_create(request: HttpRequest) -> HttpResponse:
 @login_required
 def game_reuse_preview(request: HttpRequest) -> JsonResponse:
     group_id = request.GET.get("group", "").strip()
-    game_type_code = _requested_game_type_code(request)
+    game_type_code = (
+        _requested_game_type_code(request)
+        or (request.GET.get("game_type_code") or "").strip()
+    )
     if not group_id.isdigit() or game_type_code not in GAME_TYPES:
         return JsonResponse(
             {

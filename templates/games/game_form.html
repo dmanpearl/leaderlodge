@@ -41,7 +41,7 @@
   {% else %}
     <div class="card mb-3">
       <div class="card-body">
-        <form method="post" id="game-setup-form"{% if not is_guest_demo %} data-reuse-preview-url="{% url 'games:reuse_preview' %}"{% endif %}>
+        <form method="post" id="game-setup-form"{% if not is_guest_demo %} data-reuse-preview-url="{% url 'games:reuse_preview' %}"{% endif %}{% if preserve_setup_location %} data-location-preserve="1"{% endif %}>
           {% csrf_token %}
           {% if form.non_field_errors %}
             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
@@ -345,7 +345,7 @@
     <script src="{% static 'js/location_autocomplete.js' %}?v=10"></script>
     <script src="{% static 'js/game_setup.js' %}?v=1"></script>
     {% if not is_guest_demo %}
-      <script src="{% static 'js/game_setup_reuse.js' %}?v=6"></script>
+      <script src="{% static 'js/game_setup_reuse.js' %}?v=7"></script>
     {% endif %}
     {% if google_places_api_key %}
       <script src="{% static 'js/location_lookup.js' %}?v=7"></script>

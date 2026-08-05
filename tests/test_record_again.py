@@ -40,7 +40,13 @@ def test_save_game_detail_shows_record_again(client, user, group):
     detail = client.get(response["Location"])
     content = detail.content.decode()
     assert detail.status_code == 200
-    assert "Reuse Players" in content
+    assert 'aria-label="New game"' in content
+    assert "record-again-new" in content
+    assert "record-again-new__label" in content
+    assert "Pick" in content
+    assert "Reuse" in content
+    assert "Reuse Players" not in content
+    assert f"/games/new/?pick_from={game.pk}" in content
     assert f"/games/new/?reuse_from={game.pk}" in content
 
 
@@ -53,7 +59,37 @@ def test_record_again_hidden_without_query_param(client, user, group):
     content = client.get(
         reverse("games:detail", kwargs={"pk": game.pk})
     ).content.decode()
+    assert 'aria-label="New game"' not in content
     assert "Reuse Players" not in content
+
+
+@pytest.mark.django_db
+def test_pick_from_opens_record_form_with_same_location(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    save = _save_game_post(group)
+    save["location_name"] = "Patio"
+    client.post(reverse("games:create"), save)
+    game = Game.objects.get(group=group)
+    assert game.location is not None
+    assert game.location.name == "Patio"
+
+    response = client.get(
+        reverse("games:create"),
+        {"pick_from": str(game.pk)},
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert response.context["show_roster"] is True
+    assert response.context["location_name"] == "Patio"
+    assert 'name="location_name" value="Patio"' in content
+    assert "Patio" in content
+    assert "Type player name" in content
+    assert "is-player-picker-collapsed" not in content
+    assert response.context["participant_rows"] == []
+    assert response.context["form"].initial.get("location_name") == "Patio"
+    assert response.context["form"].initial.get("group") == game.group_id
+    assert response.context["form"].initial.get("game_type_code") == game.game_type_code
 
 
 @pytest.mark.django_db

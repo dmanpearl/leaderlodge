@@ -4,7 +4,7 @@
 {% block title %}{{ game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=13" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
@@ -165,14 +165,27 @@
 
   <div class="matchup-action-buttons mt-3">
     {% if show_record_again %}
-      <a
-        href="{% url 'games:create' %}?reuse_from={{ game.pk }}"
-        class="btn btn-primary d-inline-flex align-items-center gap-1"
-        title="Record another game with the same players"
-      >
-        <i class="bi bi-plus-lg" aria-hidden="true"></i>
-        Reuse Players
-      </a>
+      <div class="record-again-new" aria-label="New game">
+        <span class="record-again-new__label" aria-hidden="true" title="New">
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        </span>
+        <div class="btn-group" role="group" aria-label="New game options">
+          <a
+            href="{% url 'games:create' %}?pick_from={{ game.pk }}"
+            class="btn btn-primary d-inline-flex align-items-center justify-content-center"
+            title="Record a new game and pick players"
+          >
+            Pick
+          </a>
+          <a
+            href="{% url 'games:create' %}?reuse_from={{ game.pk }}"
+            class="btn btn-primary record-again-new__reuse d-inline-flex align-items-center justify-content-center"
+            title="Record another game with the same players"
+          >
+            Reuse
+          </a>
+        </div>
+      </div>
       <a
         href="{% url 'games:list' %}?type={{ game.game_type_code }}&group={{ game.group.pk }}"
         class="btn btn-outline-secondary d-none d-sm-inline-flex align-items-center gap-1"
