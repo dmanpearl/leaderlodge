@@ -25,3 +25,7 @@ STORAGES = {
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+# Safari can break same-origin fetch after sleep/POST when COOP is
+# same-origin (breaking-news pattern). Single-host app: COOP unused.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = None
+

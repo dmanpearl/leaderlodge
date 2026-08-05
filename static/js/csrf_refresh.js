@@ -1,5 +1,7 @@
 (function () {
   var refreshTimer = null;
+  var refreshPromise = null;
+  var wasHidden = false;
 
   function getCsrfTokenFromCookie() {
     var match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
@@ -23,12 +25,19 @@
   }
 
   function refreshCsrfTokens() {
-    var url = document.body.dataset.csrfRefreshUrl;
+    var url = document.body && document.body.dataset.csrfRefreshUrl;
     if (!url) {
-      return;
+      return Promise.resolve("");
+    }
+    if (refreshPromise) {
+      return refreshPromise;
     }
 
-    fetch(url, { credentials: "same-origin" })
+    refreshPromise = fetch(url, {
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    })
       .then(function (response) {
         if (!response.ok) {
           return null;
@@ -36,42 +45,63 @@
         return response.json();
       })
       .then(function (data) {
-        if (data && data.csrfToken) {
-          updateCsrfInputs(data.csrfToken);
+        var token =
+          (data && data.csrfToken) || getCsrfTokenFromCookie() || "";
+        if (token) {
+          updateCsrfInputs(token);
         }
+        return token;
       })
       .catch(function () {
-        /* ignore; form may still work if token is fresh */
+        return getCsrfTokenFromCookie() || "";
+      })
+      .finally(function () {
+        refreshPromise = null;
       });
+
+    return refreshPromise;
   }
 
   function scheduleCsrfRefresh() {
     if (refreshTimer) {
       window.clearTimeout(refreshTimer);
     }
-    refreshTimer = window.setTimeout(refreshCsrfTokens, 100);
+    refreshTimer = window.setTimeout(function () {
+      refreshCsrfTokens();
+    }, 100);
+  }
+
+  function recoverAfterSleep() {
+    syncCsrfFromCookie();
+    scheduleCsrfRefresh();
   }
 
   window.leaderlodgeGetCsrfToken = getCsrfTokenFromCookie;
+  window.leaderlodgeRefreshCsrfToken = refreshCsrfTokens;
 
   document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") {
+      wasHidden = true;
+      return;
+    }
     if (document.visibilityState === "visible") {
-      syncCsrfFromCookie();
-      scheduleCsrfRefresh();
+      wasHidden = false;
+      recoverAfterSleep();
     }
   });
 
   /* Some iOS browsers fire focus but not visibilitychange on app resume */
   window.addEventListener("focus", function () {
-    syncCsrfFromCookie();
-    scheduleCsrfRefresh();
+    if (wasHidden || !getCsrfTokenFromCookie()) {
+      wasHidden = false;
+      recoverAfterSleep();
+    }
   });
 
-  window.addEventListener("pageshow", function (event) {
-    syncCsrfFromCookie();
-    if (event.persisted) {
-      scheduleCsrfRefresh();
-    }
+  window.addEventListener("pageshow", function () {
+    /* Always refresh on pageshow: iOS bfcache restores are flaky about
+       event.persisted, and a cheap token fetch beats a 403 form POST. */
+    recoverAfterSleep();
   });
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -89,30 +119,30 @@
       if (!form.querySelector('input[name="csrfmiddlewaretoken"]')) {
         return;
       }
+
       var token = getCsrfTokenFromCookie();
       if (token) {
         updateCsrfInputs(token, form);
         return;
       }
-      /* Cookie is absent - block submission, fetch a fresh token, then retry */
-      var url = document.body.dataset.csrfRefreshUrl;
+
+      /* Cookie is absent (common after iOS sleep). Block submit, refresh,
+         then retry only if a cookie is available. Never POST without one. */
+      var url = document.body && document.body.dataset.csrfRefreshUrl;
       if (!url) {
         return;
       }
       event.preventDefault();
-      fetch(url, { credentials: "same-origin" })
-        .then(function (response) {
-          return response.ok ? response.json() : null;
-        })
-        .then(function (data) {
-          if (data && data.csrfToken) {
-            updateCsrfInputs(data.csrfToken);
-          }
+      event.stopPropagation();
+
+      refreshCsrfTokens().then(function (freshToken) {
+        if (freshToken && getCsrfTokenFromCookie()) {
+          updateCsrfInputs(freshToken, form);
           form.submit();
-        })
-        .catch(function () {
-          form.submit();
-        });
+          return;
+        }
+        window.location.reload();
+      });
     },
     true,
   );

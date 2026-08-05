@@ -177,7 +177,7 @@
 - [x] ec2d0e3 Fake Accounts: Need tool to identify, flag/remove users like myylprhhgz (l.parks@tuparks.com)
 - [x] 875f855 Update management commands documentation
 - [x] 65d5998 Game Type: Add Gin Rummy, Cribbage, Phase 10, Darts (501, Cricket), Cornhole
-- [x] Method for users to lock in one specific game type
+- [x] 2e72eed Method for users to lock in one specific game type
       - Purpose: Makes LeaderLodge look like a single game type app
       - Available to all users
       - Accessible via Account menu: Lock Game Type, Unlock Game Type with bootstrap lock and unlock icons
@@ -185,10 +185,12 @@
       - Lock lock-game-type is saved in user preferences
       - Game type locking can be specified with a short/simple url param as a way to deliver a url for a specific game type
       - About menu: Add section 'Game Types' before feedback listing all supported games. If locked, also display an 'Unlock' button.
+- [x] Bug: CSRF verification failed Forbidden (403) after phone sleep/wake
+      (harden csrf_refresh.js: never POST without cookie; reload on failed
+      refresh; always pageshow refresh; disable Safari-hostile COOP)
 
 ## Open Items
 
-- [ ] Bug: CSRF verification failed Forbiden (403). You are seeing this message because the site requires a CSRF cookie when submitting froms. This cookie is required for security resasons...
 - [ ] Metrics: Build a metrics dashboard accessible to staff from the Accounts menu that shows:
   - Total user count across all groups
   - Group count

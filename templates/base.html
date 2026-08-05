@@ -87,7 +87,7 @@
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
-    <script src="{% static 'js/csrf_refresh.js' %}"></script>
+    <script src="{% static 'js/csrf_refresh.js' %}?v=3"></script>
     {% load static %}
     {% if user.is_authenticated %}
       <script src="{% static 'js/account_menu.js' %}"></script>
