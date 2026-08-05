@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Metrics | LeaderLodge{% endblock %}
+
+{% block content %}
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Metrics</h1>
+      <p class="text-muted mb-0 small">
+        Site-wide activity for staff. All game types are included.
+        Updated {{ metrics.generated_at|date:"n/j/y g:i A" }}.
+      </p>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Total users</div>
+          <div class="fs-4 fw-semibold">{{ metrics.total_users }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Groups</div>
+          <div class="fs-4 fw-semibold">{{ metrics.group_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Games (last hour)</div>
+          <div class="fs-4 fw-semibold">{{ metrics.games_last_hour }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Avg games / day (7d)</div>
+          <div class="fs-4 fw-semibold">{{ metrics.avg_games_per_day_7d }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span class="fw-semibold">Top {{ metrics.top_n }} most active groups</span>
+      <span class="text-muted small">By games in the last 7 days</span>
+    </div>
+    <div class="card-body p-0">
+      {% if metrics.top_groups %}
+        <div class="table-responsive">
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Group</th>
+                <th scope="col" class="text-end">Users</th>
+                <th scope="col" class="text-end">Games (1h)</th>
+                <th scope="col" class="text-end">Avg / day (7d)</th>
+                <th scope="col" class="text-end">Games (7d)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in metrics.top_groups %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>
+                    <a href="{% url 'groups:detail' row.group_id %}">{{ row.group_name }}</a>
+                    {% if row.is_demo %}
+                      <span class="badge text-bg-secondary ms-1">Demo</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">{{ row.user_count }}</td>
+                  <td class="text-end">{{ row.games_last_hour }}</td>
+                  <td class="text-end">{{ row.avg_games_per_day }}</td>
+                  <td class="text-end">{{ row.games_last_7_days }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted mb-0 p-3">No games recorded in the last 7 days.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

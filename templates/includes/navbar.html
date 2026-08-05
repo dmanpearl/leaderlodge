@@ -141,6 +141,12 @@
             {% endif %}
             {% if user.is_staff or user.is_superuser %}
               <li>
+                <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'core:metrics' %}">
+                  <i class="bi bi-graph-up navbar-menu-icon" aria-hidden="true"></i>
+                  Metrics
+                </a>
+              </li>
+              <li>
                 <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'admin:index' %}">
                   <i class="bi bi-gear navbar-menu-icon" aria-hidden="true"></i>
                   Admin

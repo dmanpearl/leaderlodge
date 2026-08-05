@@ -185,13 +185,8 @@
       - Lock lock-game-type is saved in user preferences
       - Game type locking can be specified with a short/simple url param as a way to deliver a url for a specific game type
       - About menu: Add section 'Game Types' before feedback listing all supported games. If locked, also display an 'Unlock' button.
-- [x] Bug: CSRF verification failed Forbidden (403) after phone sleep/wake
-      (harden csrf_refresh.js: never POST without cookie; reload on failed
-      refresh; always pageshow refresh; disable Safari-hostile COOP)
-
-## Open Items
-
-- [ ] Metrics: Build a metrics dashboard accessible to staff from the Accounts menu that shows:
+- [x] 8a0031e Bug: CSRF verification failed Forbidden (403) after phone sleep/wake (harden csrf_refresh.js: never POST without cookie; reload on failed refresh; always pageshow refresh; disable Safari-hostile COOP)
+- [x] Metrics: Build a metrics dashboard accessible to staff from the Accounts menu that shows:
   - Total user count across all groups
   - Group count
   - Number of games played in the last hour
@@ -199,6 +194,10 @@
   - Top N most active groups and their group stats: User count, games played in last hour, average games per day
   - N is hardcoded, but easy to find and change in code.
   - Most active group is defined by the total number of games played in the last 7 days
+  - shows for all game types regardless of locking
+
+## Open Items
+
 - [ ] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
 - [ ] NAV bar dashboard button and other buttons are sometimes unresponsive, perhaps due to slow Internet connection. Consider adding a spinner or other state indication (https://leaderlodge.com/admin/feedback/feedback/24)
 - [ ] Hall of Fame: Revisit the need for this view. Consider removal

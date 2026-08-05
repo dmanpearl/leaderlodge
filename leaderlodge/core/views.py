@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
 
-from leaderlodge.core.decorators import demo_or_login_required
+from leaderlodge.core.decorators import demo_or_login_required, staff_required
 from leaderlodge.games.display import winner_labels_for_games
 from leaderlodge.groups.names import apply_label_overrides
 from leaderlodge.games.game_type_icons import game_type_icon_image
@@ -292,6 +292,18 @@ def about_scoring(request):
     )
 
 
+@staff_required
+def metrics(request):
+    """Staff-only site metrics. Includes all game types regardless of lock."""
+    from leaderlodge.core.metrics import build_site_metrics
+
+    return render(
+        request,
+        "core/metrics.html",
+        {"metrics": build_site_metrics()},
+    )
+
+
 def robots_txt(request):
     lines = [
         "User-agent: *",
@@ -303,6 +315,7 @@ def robots_txt(request):
         "Disallow: /leaderboards/",
         "Disallow: /insights/",
         "Disallow: /feedback/",
+        "Disallow: /metrics/",
         "",
         "Sitemap: https://leaderlodge.com/sitemap.xml",
     ]
