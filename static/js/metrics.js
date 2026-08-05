@@ -63,15 +63,21 @@
   }
 
   initSection({
+    collapseId: "metrics-games-panel",
+    iconId: "metrics-games-icon",
+    storageKey: "leaderlodge.metricsGamesOpen",
+    summaryId: "metrics-games-summary",
+  });
+  initSection({
     collapseId: "metrics-groups-panel",
     iconId: "metrics-groups-icon",
     storageKey: "leaderlodge.metricsGroupsOpen",
     summaryId: "metrics-groups-summary",
   });
   initSection({
-    collapseId: "metrics-games-panel",
-    iconId: "metrics-games-icon",
-    storageKey: "leaderlodge.metricsGamesOpen",
-    summaryId: "metrics-games-summary",
+    collapseId: "metrics-users-panel",
+    iconId: "metrics-users-icon",
+    storageKey: "leaderlodge.metricsUsersOpen",
+    summaryId: "metrics-users-summary",
   });
 })();

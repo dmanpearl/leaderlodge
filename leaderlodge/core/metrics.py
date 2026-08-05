@@ -14,8 +14,9 @@ from leaderlodge.games.game_type_icons import game_type_icon_url
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES, get_game_type
 from leaderlodge.groups.models import Group
+from leaderlodge.groups.names import format_user_display_name
 
-# Easy to find and change: how many top groups the metrics page lists.
+# Easy to find and change: how many top groups/users the metrics page lists.
 METRICS_TOP_GROUPS = 10
 
 ROLLING_DAYS = 7
@@ -28,6 +29,17 @@ class GroupActivityRow:
     group_name: str
     is_demo: bool
     user_count: int
+    games_total: int
+    games_last_hour: int
+    games_last_7_days: int
+    avg_games_per_day: Decimal
+
+
+@dataclass(frozen=True)
+class UserActivityRow:
+    user_id: int
+    username: str
+    display_name: str
     games_total: int
     games_last_hour: int
     games_last_7_days: int
@@ -53,6 +65,7 @@ class SiteMetrics:
     games_last_hour: int
     avg_games_per_day_7d: Decimal
     top_groups: list[GroupActivityRow]
+    top_users: list[UserActivityRow]
     game_types: list[GameTypeActivityRow]
     top_n: int
     generated_at: datetime
@@ -158,6 +171,36 @@ def build_site_metrics(*, top_n: int = METRICS_TOP_GROUPS) -> SiteMetrics:
         for group in ranked
     ]
 
+    # Users who recorded games in the rolling 7-day window, ranked by total.
+    ranked_users = list(
+        User.objects.annotate(
+            games_total=Count("recorded_games"),
+            games_last_7_days=Count(
+                "recorded_games",
+                filter=Q(recorded_games__created_at__gte=week_ago),
+            ),
+            games_last_hour=Count(
+                "recorded_games",
+                filter=Q(recorded_games__created_at__gte=hour_ago),
+            ),
+        )
+        .filter(games_last_7_days__gt=0)
+        .order_by("-games_total", "username", "pk")[: max(top_n, 0)]
+    )
+
+    top_users = [
+        UserActivityRow(
+            user_id=user.pk,
+            username=user.get_username(),
+            display_name=format_user_display_name(user),
+            games_total=int(user.games_total),
+            games_last_hour=int(user.games_last_hour),
+            games_last_7_days=int(user.games_last_7_days),
+            avg_games_per_day=_avg_per_day(int(user.games_last_7_days)),
+        )
+        for user in ranked_users
+    ]
+
     return SiteMetrics(
         total_users=total_users,
         group_count=group_count,
@@ -165,6 +208,7 @@ def build_site_metrics(*, top_n: int = METRICS_TOP_GROUPS) -> SiteMetrics:
         games_last_hour=games_last_hour,
         avg_games_per_day_7d=avg_games_per_day_7d,
         top_groups=top_groups,
+        top_users=top_users,
         game_types=_game_type_activity_rows(hour_ago=hour_ago, week_ago=week_ago),
         top_n=top_n,
         generated_at=now,

@@ -85,10 +85,17 @@ def test_metrics_page_and_menu_for_staff(client, staff_user):
     assert "Total games" in content
     assert "Game pace" in content
     assert "Top" in content
+    assert "most active groups" in content
+    assert "most active users" in content
     assert "Games by type" in content
-    assert 'id="metrics-groups-panel"' in content
     assert 'id="metrics-games-panel"' in content
+    assert 'id="metrics-groups-panel"' in content
+    assert 'id="metrics-users-panel"' in content
     assert "metrics.js" in content
+    games_pos = content.index('id="metrics-games-panel"')
+    groups_pos = content.index('id="metrics-groups-panel"')
+    users_pos = content.index('id="metrics-users-panel"')
+    assert games_pos < groups_pos < users_pos
 
 
 @pytest.mark.django_db
@@ -96,6 +103,7 @@ def test_build_site_metrics_counts_and_top_groups(staff_user):
     now = timezone.now()
     active = create_group_with_owner(user=staff_user, name="Active Club")
     quiet = create_group_with_owner(user=staff_user, name="Quiet Club")
+    other = User.objects.create_user(username="recorder", password="test-pass-123")
     add_guest_player(group=active, display_name="Pat")
     add_guest_player(group=quiet, display_name="Sam")
 
@@ -112,13 +120,13 @@ def test_build_site_metrics_counts_and_top_groups(staff_user):
         game_type_code="pickleball",
     )
     _record_game(
-        staff_user,
+        other,
         quiet,
         created_at=now - timedelta(days=3),
     )
     # Outside the rolling windows.
     _record_game(
-        staff_user,
+        other,
         quiet,
         created_at=now - timedelta(days=10),
     )
@@ -143,6 +151,19 @@ def test_build_site_metrics_counts_and_top_groups(staff_user):
     assert top.user_count >= 1
     quiet_row = metrics.top_groups[1]
     assert quiet_row.games_total == 2
+
+    assert [row.username for row in metrics.top_users][:2] == [
+        "staffer",
+        "recorder",
+    ]
+    top_user = metrics.top_users[0]
+    assert top_user.games_total == 4
+    assert top_user.games_last_hour == 3
+    assert top_user.games_last_7_days == 4
+    assert top_user.avg_games_per_day == Decimal("0.57")
+    other_user = metrics.top_users[1]
+    assert other_user.games_total == 2
+    assert other_user.games_last_7_days == 1
 
     by_type = {row.game_type_code: row for row in metrics.game_types}
     assert set(by_type) == {"dominos", "pickleball"}

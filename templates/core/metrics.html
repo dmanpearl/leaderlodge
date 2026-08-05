@@ -70,6 +70,70 @@
         class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start w-100"
         type="button"
         data-bs-toggle="collapse"
+        data-bs-target="#metrics-games-panel"
+        aria-expanded="true"
+        aria-controls="metrics-games-panel"
+      >
+        <i id="metrics-games-icon" class="bi bi-chevron-down" aria-hidden="true"></i>
+        <span class="fw-semibold">Games by type</span>
+        <span id="metrics-games-summary" class="text-muted game-list-filters-summary" hidden>
+          ({{ metrics.game_types|length }} type{{ metrics.game_types|length|pluralize }})
+        </span>
+      </button>
+    </div>
+    <div id="metrics-games-panel" class="collapse show">
+      <div class="card-body p-0">
+        {% if metrics.game_types %}
+          <div class="table-responsive">
+            <table class="table table-striped mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">Game</th>
+                  <th scope="col" class="text-end">Games</th>
+                  <th scope="col" class="text-end">Games (1h)</th>
+                  <th scope="col" class="text-end">Avg / day (7d)</th>
+                  <th scope="col" class="text-end">Games (7d)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in metrics.game_types %}
+                  <tr>
+                    <td>
+                      <span class="d-inline-flex align-items-center gap-2">
+                        {% if row.icon_url %}
+                          <img
+                            src="{{ row.icon_url }}"
+                            alt=""
+                            width="20"
+                            height="20"
+                            class="flex-shrink-0"
+                          />
+                        {% endif %}
+                        <span>{{ row.game_type_name }}</span>
+                      </span>
+                    </td>
+                    <td class="text-end">{{ row.games_total }}</td>
+                    <td class="text-end">{{ row.games_last_hour }}</td>
+                    <td class="text-end">{{ row.avg_games_per_day }}</td>
+                    <td class="text-end">{{ row.games_last_7_days }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0 p-3">No games recorded yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3 game-list-filters-card">
+    <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header">
+      <button
+        class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start w-100"
+        type="button"
+        data-bs-toggle="collapse"
         data-bs-target="#metrics-groups-panel"
         aria-expanded="true"
         aria-controls="metrics-groups-panel"
@@ -128,25 +192,25 @@
         class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start w-100"
         type="button"
         data-bs-toggle="collapse"
-        data-bs-target="#metrics-games-panel"
+        data-bs-target="#metrics-users-panel"
         aria-expanded="true"
-        aria-controls="metrics-games-panel"
+        aria-controls="metrics-users-panel"
       >
-        <i id="metrics-games-icon" class="bi bi-chevron-down" aria-hidden="true"></i>
-        <span class="fw-semibold">Games by type</span>
-        <span id="metrics-games-summary" class="text-muted game-list-filters-summary" hidden>
-          ({{ metrics.game_types|length }} type{{ metrics.game_types|length|pluralize }})
+        <i id="metrics-users-icon" class="bi bi-chevron-down" aria-hidden="true"></i>
+        <span class="fw-semibold">Top {{ metrics.top_n }} most active users</span>
+        <span id="metrics-users-summary" class="text-muted game-list-filters-summary" hidden>
+          ({{ metrics.top_users|length }} user{{ metrics.top_users|length|pluralize }})
         </span>
       </button>
     </div>
-    <div id="metrics-games-panel" class="collapse show">
+    <div id="metrics-users-panel" class="collapse show">
       <div class="card-body p-0">
-        {% if metrics.game_types %}
+        {% if metrics.top_users %}
           <div class="table-responsive">
             <table class="table table-striped mb-0">
               <thead>
                 <tr>
-                  <th scope="col">Game</th>
+                  <th scope="col">User</th>
                   <th scope="col" class="text-end">Games</th>
                   <th scope="col" class="text-end">Games (1h)</th>
                   <th scope="col" class="text-end">Avg / day (7d)</th>
@@ -154,21 +218,13 @@
                 </tr>
               </thead>
               <tbody>
-                {% for row in metrics.game_types %}
+                {% for row in metrics.top_users %}
                   <tr>
                     <td>
-                      <span class="d-inline-flex align-items-center gap-2">
-                        {% if row.icon_url %}
-                          <img
-                            src="{{ row.icon_url }}"
-                            alt=""
-                            width="20"
-                            height="20"
-                            class="flex-shrink-0"
-                          />
-                        {% endif %}
-                        <span>{{ row.game_type_name }}</span>
-                      </span>
+                      <a href="{% url 'admin:auth_user_change' row.user_id %}">{{ row.display_name }}</a>
+                      {% if row.display_name != row.username %}
+                        <span class="text-muted small">({{ row.username }})</span>
+                      {% endif %}
                     </td>
                     <td class="text-end">{{ row.games_total }}</td>
                     <td class="text-end">{{ row.games_last_hour }}</td>
