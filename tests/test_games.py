@@ -481,7 +481,8 @@ def test_reuse_roster_prefills_previous_players(client, user, group):
     content = response.content.decode()
 
     assert response.status_code == 200
-    assert "Type player name" in content
+    assert "Type player" in content
+    assert 'autocomplete="off"' in content
     players = list(group.players.order_by("pk")[:2])
     assert players[0].display_label in content
     assert players[1].display_label in content
@@ -546,7 +547,7 @@ def test_reuse_roster_does_not_use_other_game_type(client, user, group):
 
     assert response.status_code == 200
     assert "Pick Players" in content
-    assert "Type player name" not in content
+    assert "Type player" not in content
     assert "No previous game found" in content
 
 

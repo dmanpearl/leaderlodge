@@ -231,6 +231,9 @@ def test_game_reuse_preview_endpoint(client, user, group):
     )
 
     client.force_login(user)
+    # Setup JS still queries with game_type_code (not type/t). After game-locking
+    # renamed product URL params, the preview must keep accepting this key or
+    # Reuse > stays disabled.
     response = client.get(
         reverse("games:reuse_preview"),
         {"group": str(group.pk), "game_type_code": "dominos"},
@@ -246,3 +249,17 @@ def test_game_reuse_preview_endpoint(client, user, group):
         f"{players[0].display_label}, {players[1].display_label}"
     )
     assert newer.pk not in [option["game_id"] for option in data["options"]]
+
+    via_type = client.get(
+        reverse("games:reuse_preview"),
+        {"group": str(group.pk), "type": "dominos"},
+    )
+    assert via_type.status_code == 200
+    assert via_type.json()["available"] is True
+
+    missing_type = client.get(
+        reverse("games:reuse_preview"),
+        {"group": str(group.pk)},
+    )
+    assert missing_type.status_code == 200
+    assert missing_type.json()["available"] is False

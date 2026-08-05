@@ -84,7 +84,7 @@ def test_pick_from_opens_record_form_with_same_location(client, user, group):
     assert response.context["location_name"] == "Patio"
     assert 'name="location_name" value="Patio"' in content
     assert "Patio" in content
-    assert "Type player name" in content
+    assert "Type player" in content
     assert "is-player-picker-collapsed" not in content
     assert response.context["participant_rows"] == []
     assert response.context["form"].initial.get("location_name") == "Patio"
@@ -105,7 +105,7 @@ def test_reuse_from_opens_record_form_with_players_collapsed(client, user, group
     )
     content = response.content.decode()
     assert response.status_code == 200
-    assert "Type player name" in content
+    assert "Type player" in content
     assert players[0].display_label in content
     assert players[1].display_label in content
     assert "game-record-score-input" in content
@@ -122,7 +122,8 @@ def test_pick_players_starts_with_add_player_expanded(client, user, group):
     content = response.content.decode()
     assert response.status_code == 200
     assert "is-player-picker-collapsed" not in content
-    assert "Type player name" in content
+    assert "Type player" in content
+    assert 'autocomplete="ll-player"' in content
     assert "data-player-picker-expand" in content
     assert "hidden" not in _expanded_tag(content)
 
@@ -142,4 +143,4 @@ def test_reuse_from_denied_for_non_member(client, user, group):
     content = response.content.decode()
     assert response.status_code == 200
     assert "Pick Players" in content
-    assert "Type player name" not in content
+    assert "Type player" not in content

@@ -13,6 +13,29 @@
     return folded.replace(/[^a-z0-9\s']/g, "");
   }
 
+  // Browsers (especially iOS Safari) ignore autocomplete=off for name-like
+  // fields. Use a non-semantic token plus readonly-until-interaction.
+  function suppressBrowserSuggestions(input) {
+    input.setAttribute("autocomplete", "ll-player");
+    input.setAttribute("autocorrect", "off");
+    input.setAttribute("autocapitalize", "off");
+    input.setAttribute("spellcheck", "false");
+    if (!input.hasAttribute("readonly")) {
+      input.setAttribute("readonly", "readonly");
+    }
+    const unlock = () => {
+      if (input.hasAttribute("readonly")) {
+        input.removeAttribute("readonly");
+      }
+    };
+    input.addEventListener("focus", unlock);
+    input.addEventListener("touchstart", unlock, { passive: true });
+    // Autofocus may run before this script; unlock if already focused.
+    if (document.activeElement === input) {
+      unlock();
+    }
+  }
+
   function scoreMatch(query, candidate) {
     const q = normalizeForMatch(query);
     const n = normalizeForMatch(candidate);
@@ -349,6 +372,10 @@
             class="form-control form-control-sm game-record-score-input"
             data-score-input${initialScoreAttr}
             value="${defaultParticipantScore}"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
             style="max-width: 6rem;"
           />
         </td>
@@ -503,6 +530,7 @@
       input.setAttribute("aria-autocomplete", "list");
       input.setAttribute("aria-expanded", "false");
       input.setAttribute("aria-controls", this.listId);
+      suppressBrowserSuggestions(input);
 
       this.onViewportChange = () => this.reposition();
       input.addEventListener("input", () => this.onInput());
@@ -843,7 +871,7 @@
             "Player already on a side"
           );
           window.setTimeout(() => {
-            this.input.setAttribute("placeholder", "Type player name");
+            this.input.setAttribute("placeholder", "Type player");
           }, 1500);
         } else {
           this.scheduleSuggestionRefresh();
@@ -883,7 +911,7 @@
       this.teammateTargetRow = row;
       this.setPickerLabelText(this.addTeammateLabelText);
       this.pickerExpandedEl?.classList.add("player-picker-cta--teammate");
-      this.input.setAttribute("placeholder", "Type teammate name");
+      this.input.setAttribute("placeholder", "Type teammate");
       this.expandPicker({ focus: true });
     }
 
@@ -891,7 +919,7 @@
       this.teammateTargetRow = null;
       this.setPickerLabelText(this.addPlayerLabelText);
       this.pickerExpandedEl?.classList.remove("player-picker-cta--teammate");
-      this.input.setAttribute("placeholder", "Type player name");
+      this.input.setAttribute("placeholder", "Type player");
     }
 
     open() {

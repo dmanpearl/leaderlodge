@@ -162,6 +162,7 @@
         <form
           method="post"
           id="game-record-form"
+          autocomplete="off"
           data-min-players="{{ game_type.min_players }}"
           data-max-players="{{ game_type.max_players }}"
           data-supports-loser="{% if game_type.supports_loser %}true{% else %}false{% endif %}"
@@ -257,6 +258,10 @@
                         name="participant_score"
                         class="form-control form-control-sm game-record-score-input"
                         data-score-input
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
                         {% if row.score != "" %}
                           value="{{ row.score }}"
                         {% elif default_participant_score %}
@@ -313,8 +318,13 @@
                       id="player-picker-input"
                       class="form-control form-control-lg player-picker-cta-input"
                       data-player-picker
-                      placeholder="Type player name"
-                      autocomplete="off"
+                      name="ll_player_search"
+                      placeholder="Type player"
+                      autocomplete="ll-player"
+                      autocorrect="off"
+                      autocapitalize="off"
+                      spellcheck="false"
+                      readonly
                       {% if not participant_rows and not player_picker_start_collapsed %}autofocus{% endif %}
                     />
                   </div>
@@ -337,7 +347,7 @@
 {% block extra_js %}
   {% if show_roster %}
     <script src="{% static 'js/game_record_form.js' %}?v=6"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=15"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=16"></script>
   {% else %}
     <script>
       document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
