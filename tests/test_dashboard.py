@@ -75,7 +75,9 @@ def test_dashboard_composite_leaderboards(client, user, group):
     assert "Leaderboards across your groups" in content
     assert "Dom Club" in content
     assert "Other Club" in content
-    assert content.index("Player") < content.index("Group", content.index("Dominos"))
+    # Composite mini-leaderboard includes a Group column after Player.
+    card_start = content.index("Full Dominos Leaderboard")
+    assert content.index("Player", card_start) < content.index("Group", card_start)
 
 
 @pytest.mark.django_db
@@ -89,7 +91,7 @@ def test_dashboard_leaderboard_card_has_record_and_fullscreen_buttons(
     content = client.get(reverse("core:dashboard")).content.decode()
 
     create_url = reverse("games:create")
-    assert f'href="{create_url}?game_type_code=dominos&group={group.pk}"' in content
+    assert f'href="{create_url}?type=dominos&group={group.pk}"' in content
     assert "bi-plus-lg" in content
     assert "bi-fullscreen" in content
 
@@ -108,8 +110,8 @@ def test_dashboard_composite_leaderboard_record_button_omits_group(client, user,
     content = client.get(reverse("core:dashboard")).content.decode()
 
     create_url = reverse("games:create")
-    assert f'href="{create_url}?game_type_code=dominos"' in content
-    assert f'href="{create_url}?game_type_code=dominos&group=' not in content
+    assert f'href="{create_url}?type=dominos"' in content
+    assert f'href="{create_url}?type=dominos&group=' not in content
 
 
 @pytest.mark.django_db
@@ -158,6 +160,57 @@ def test_dashboard_recent_games_header_hides_record_button_when_not_can_record(
 
     assert 'title="View all games"' in content
     assert 'title="Record game"' not in content
+
+
+@pytest.mark.django_db
+def test_dashboard_hides_collapse_when_single_game_type_card(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    response = client.get(reverse("core:dashboard"))
+    content = response.content.decode()
+
+    assert response.context["dashboard_sections_collapsible"] is False
+    assert 'data-bs-toggle="collapse"' not in content
+    assert "dashboard-recent-games-icon" not in content
+    assert "bi-chevron-right" not in content
+
+
+@pytest.mark.django_db
+def test_dashboard_keeps_collapse_when_multiple_game_type_cards(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+    client.post(
+        reverse("games:create"),
+        _load_roster_post(group, game_type_code="pickleball"),
+    )
+    client.post(
+        reverse("games:create"),
+        _save_game_post(group, game_type_code="pickleball"),
+    )
+
+    response = client.get(reverse("core:dashboard"))
+    content = response.content.decode()
+
+    assert response.context["dashboard_sections_collapsible"] is True
+    assert 'data-bs-toggle="collapse"' in content
+    assert "dashboard-recent-games-icon" in content
+
+
+@pytest.mark.django_db
+def test_dashboard_locked_title_uses_game_type_name(client, user, group):
+    client.force_login(user)
+    client.get("/?lock=dominos")
+    response = client.get(reverse("core:dashboard"))
+    content = response.content.decode()
+
+    assert response.context["dashboard_heading"] == "Dominos"
+    assert response.context["dashboard_heading_icon_url"]
+    assert "game-detail-title-icon" in content
+    assert ">Dominos</h1>" in content
+    assert "Dashboard" not in content
 
 
 @pytest.mark.django_db

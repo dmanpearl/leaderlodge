@@ -33,6 +33,7 @@ class ShutoutConfig:
 class GameTypeDefinition:
     code: str
     name: str
+    abbr: str
     min_players: int
     max_players: int
     supports_loser: bool
@@ -50,6 +51,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "dominos": GameTypeDefinition(
             code="dominos",
             name="Dominos",
+            abbr="DO",
             min_players=2,
             max_players=4,
             supports_loser=False,
@@ -60,6 +62,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "progressiverummy": GameTypeDefinition(
             code="progressiverummy",
             name="Progressive Rummy",
+            abbr="PR",
             min_players=2,
             max_players=10,
             supports_loser=True,
@@ -71,6 +74,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "backgammon": GameTypeDefinition(
             code="backgammon",
             name="Backgammon",
+            abbr="BG",
             min_players=2,
             max_players=2,
             supports_loser=False,
@@ -81,6 +85,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "mahjongg": GameTypeDefinition(
             code="mahjongg",
             name="Mah Jongg",
+            abbr="MJ",
             min_players=3,
             max_players=4,
             supports_loser=False,
@@ -91,6 +96,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "pickleball": GameTypeDefinition(
             code="pickleball",
             name="Pickleball",
+            abbr="PB",
             min_players=2,
             max_players=3,
             supports_loser=False,
@@ -104,6 +110,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "ginrummy": GameTypeDefinition(
             code="ginrummy",
             name="Gin Rummy",
+            abbr="GR",
             min_players=2,
             max_players=2,
             supports_loser=False,
@@ -114,6 +121,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "cribbage": GameTypeDefinition(
             code="cribbage",
             name="Cribbage",
+            abbr="CR",
             min_players=2,
             max_players=3,
             supports_loser=False,
@@ -125,6 +133,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "phase10": GameTypeDefinition(
             code="phase10",
             name="Phase 10",
+            abbr="PT",
             min_players=2,
             max_players=6,
             supports_loser=True,
@@ -135,6 +144,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "darts": GameTypeDefinition(
             code="darts",
             name="Darts",
+            abbr="DA",
             min_players=2,
             max_players=3,
             supports_loser=False,
@@ -145,6 +155,7 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
         "cornhole": GameTypeDefinition(
             code="cornhole",
             name="Cornhole",
+            abbr="CH",
             min_players=2,
             max_players=2,
             supports_loser=False,
@@ -157,12 +168,30 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
 
 GAME_TYPES: dict[str, GameTypeDefinition] = _load_registry()
 
+_ABBR_TO_CODE: dict[str, str] = {gt.abbr.upper(): gt.code for gt in GAME_TYPES.values()}
+
 
 def get_game_type(code: str) -> GameTypeDefinition:
     try:
         return GAME_TYPES[code]
     except KeyError as exc:
         raise ValueError(f"Unknown game type: {code}") from exc
+
+
+def game_type_abbr(code: str) -> str:
+    """Return the short pill abbreviation for a game type code."""
+    return get_game_type(code).abbr
+
+
+def resolve_game_type_token(token: str) -> str | None:
+    """Resolve a full code or abbr to a game type code (case-insensitive)."""
+    cleaned = (token or "").strip()
+    if not cleaned:
+        return None
+    lower = cleaned.lower()
+    if lower in GAME_TYPES:
+        return lower
+    return _ABBR_TO_CODE.get(cleaned.upper())
 
 
 def score_direction_label(code: str) -> str:

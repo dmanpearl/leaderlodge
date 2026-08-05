@@ -85,4 +85,14 @@ urlpatterns = [
         views.reset_preferences,
         name="reset_preferences",
     ),
+    path(
+        "game-type/lock/",
+        views.lock_preferred_game_type,
+        name="lock_game_type",
+    ),
+    path(
+        "game-type/unlock/",
+        views.unlock_preferred_game_type,
+        name="unlock_game_type",
+    ),
 ]

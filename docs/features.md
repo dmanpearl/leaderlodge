@@ -7,9 +7,11 @@ and leaderboards for social games played by groups of people.
 
 ## Game Recording
 
-- Record scores for supported game types: Dominos, Backgammon, Progressive
-  Rummy, Mah Jongg, and Pickleball
-- Easy to add additional game types and scoring rules
+- Record scores for supported game types (Dominos, Backgammon, Progressive
+  Rummy, Mah Jongg, Pickleball, Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
+- Easy to add additional game types and scoring rules (central registry)
+- Optional game-type lock so the app can look like a single-game product
+  (see [Game type lock and URL params](#game-type-lock-and-url-params))
 - Games support Users, Players (roster members), or Teams
 - Fuzzy auto-complete for player name entry
 - Location tracking with fuzzy auto-complete and "last location used" pre-population
@@ -201,6 +203,47 @@ and leaderboards for social games played by groups of people.
 - Transactional email via Brevo HTTPS API in production
 - Emails: welcome, email verification, password reset, invite acceptance,
   group invite, feedback confirmation, admin alerts
+
+## Game type lock and URL params
+
+Users can lock LeaderLodge to one game type so other types are hidden from
+menus, dashboard cards, maps, Ask, and Hall of Fame. Lock state is stored in
+user preferences (logged-in) or the session (anonymous / demo).
+
+Account menu: **Lock Game Type** / **Unlock Game Type**. About > Game Types
+lists every supported game and can unlock when locked. Reset Preferences
+clears the lock.
+
+### Query parameters
+
+| Param | Aliases | Effect |
+|-------|---------|--------|
+| `lock` | `l` | Lock to that game type (code or abbr) and set preference |
+| `type` | `t` | Set preferred type; if locked to a different type, unlock and switch |
+| `unlock` | (flag) | Unlock; keep the previously locked type as the preference |
+
+Values are case-insensitive. Accept full registry codes (`dominos`) or short
+abbreviations (`do`, `DO`). Precedence when several appear: `unlock`, then
+`lock`/`l`, then `type`/`t`. After `lock`/`l`/`unlock`, the response redirects
+to the same path with those params removed (`type`/`t` stay for normal filters).
+
+Examples:
+
+```text
+/?lock=dominos
+/?l=do
+/games/?type=pickleball&group=1
+/leaderboards/?t=pb&group=1
+/?unlock
+```
+
+Abbreviations (also shown as location pills): DO, PR, BG, MJ, PB, GR, CR, PT,
+DA, CH.
+
+### Matchup note
+
+Game **type** selection uses `type` / `t`. A future Matchup view may use
+`game=` for a game instance id (context-sensitive per URL).
 
 ## Security
 

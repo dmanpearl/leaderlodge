@@ -1,7 +1,7 @@
 {% load display_names %}
 {% if game_type_code %}
   <a
-    href="{% url 'leaderboards:detail' %}?group={{ player.group_id }}&amp;game_type_code={{ game_type_code }}&amp;player={{ player.pk }}"
+    href="{% url 'leaderboards:detail' %}?group={{ player.group_id }}&amp;type={{ game_type_code }}&amp;player={{ player.pk }}"
     class="game-list-player-col-header game-list-player-col-header-link"
     title="View {{ player.display_label }} rank detail"
   >

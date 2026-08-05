@@ -19,26 +19,32 @@
       />
       <div class="game-list-title-select-wrap">
         <label for="filter-game-type" class="visually-hidden">Game type</label>
-        <select
-          id="filter-game-type"
-          name="game_type"
-          class="form-select game-list-title-select"
-          form="game-list-filters"
-          onchange="this.form.submit()"
-        >
-          {% for code, name in game_types %}
-            {% with icon_path='img/game-types/'|add:code|add:'.png' %}
-              <option
-                value="{{ code }}"
-                data-icon-url="{% static icon_path %}"
-                {% if params.game_type == code %}selected{% endif %}
-              >
-                {{ name }}
-              </option>
-            {% endwith %}
-          {% endfor %}
-        </select>
-        <i class="bi bi-chevron-down game-list-title-chevron" aria-hidden="true"></i>
+        {% if game_type_locked %}
+          <span class="game-list-title-select form-select" id="filter-game-type" aria-hidden="true">
+            {{ selected_game_type.name }}
+          </span>
+        {% else %}
+          <select
+            id="filter-game-type"
+            name="type"
+            class="form-select game-list-title-select"
+            form="game-list-filters"
+            onchange="this.form.submit()"
+          >
+            {% for code, name in game_types %}
+              {% with icon_path='img/game-types/'|add:code|add:'.png' %}
+                <option
+                  value="{{ code }}"
+                  data-icon-url="{% static icon_path %}"
+                  {% if params.game_type == code %}selected{% endif %}
+                >
+                  {{ name }}
+                </option>
+              {% endwith %}
+            {% endfor %}
+          </select>
+          <i class="bi bi-chevron-down game-list-title-chevron" aria-hidden="true"></i>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -362,7 +368,7 @@
       <div class="card-body text-center py-5">
         {% if show_empty_filters_message %}
           <p class="text-muted mb-3">No games match these filters.</p>
-          <a href="{% url 'games:list' %}?game_type={{ params.game_type }}" class="btn btn-outline-secondary">Clear filters</a>
+          <a href="{% url 'games:list' %}?type={{ params.game_type }}" class="btn btn-outline-secondary">Clear filters</a>
         {% else %}
           <p class="text-muted mb-3">No games recorded yet.</p>
           <a href="{% url 'games:create' %}" class="btn btn-primary">Record your first game</a>

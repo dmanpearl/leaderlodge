@@ -351,7 +351,7 @@ def build_leaderboard_query(
     if group_id:
         params["group"] = group_id
     if game_type_code:
-        params["game_type_code"] = game_type_code
+        params["type"] = game_type_code
     if period is not None:
         params.update(period.query_params())
     if game_size is not None:

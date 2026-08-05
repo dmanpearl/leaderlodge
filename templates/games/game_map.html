@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Map | LeaderLodge{% endblock %}
+{% block title %}{{ map_heading|default:"Map" }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
@@ -10,7 +10,11 @@
 
 {% block content %}
   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-    <h1 class="h3 mb-0">Map</h1>
+    {% if game_type_locked and map_heading_icon_url %}
+      {% include "includes/game_type_page_title.html" with title=map_heading icon_url=map_heading_icon_url h1_class="h3 mb-0" %}
+    {% else %}
+      <h1 class="h3 mb-0">{{ map_heading|default:"Map" }}</h1>
+    {% endif %}
     {% if groups and google_places_api_key %}
       <button
         type="button"
@@ -76,20 +80,24 @@
             </div>
 
             {% if selected_group %}
-              <div class="game-map-filter-field">
-                <label for="map-game-type-select" class="form-label">Game</label>
-                <select name="game_type" id="map-game-type-select" class="form-select">
-                  <option value="">All games</option>
-                  {% for code, name in game_type_options %}
-                    <option
-                      value="{{ code }}"
-                      {% if params.game_type == code %}selected{% endif %}
-                    >
-                      {{ name }}
-                    </option>
-                  {% endfor %}
-                </select>
-              </div>
+              {% if game_type_locked %}
+                <input type="hidden" name="type" value="{{ params.game_type }}" />
+              {% else %}
+                <div class="game-map-filter-field">
+                  <label for="map-game-type-select" class="form-label">Game</label>
+                  <select name="type" id="map-game-type-select" class="form-select">
+                    <option value="">All games</option>
+                    {% for code, name in game_type_options %}
+                      <option
+                        value="{{ code }}"
+                        {% if params.game_type == code %}selected{% endif %}
+                      >
+                        {{ name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              {% endif %}
 
               <div class="game-map-filter-field">
                 <label for="map-player-select" class="form-label">Player</label>

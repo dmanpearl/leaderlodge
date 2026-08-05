@@ -8,7 +8,12 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from leaderlodge.accounts.group_selection import resolve_group_id
-from leaderlodge.accounts.game_selection import all_game_type_codes
+from leaderlodge.accounts.game_selection import (
+    available_game_type_codes,
+    is_game_type_locked,
+    preferred_game_type_code,
+    requested_game_type_token,
+)
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.map_data import (
     build_map_features,
@@ -23,8 +28,9 @@ from leaderlodge.games.map_data import (
     parse_map_bbox,
     resolve_map_group,
 )
+from leaderlodge.games.game_type_icons import game_type_icon_url
 from leaderlodge.games.models import Game, GameParticipantResult
-from leaderlodge.games.registry import GAME_TYPES
+from leaderlodge.games.registry import GAME_TYPES, get_game_type
 from leaderlodge.groups.models import GroupPlayer
 from leaderlodge.groups.services import can_manage_group_members, visible_groups
 
@@ -32,7 +38,7 @@ from leaderlodge.groups.services import can_manage_group_members, visible_groups
 def _map_params(request: HttpRequest) -> dict[str, str]:
     return {
         "group": (request.GET.get("group") or "").strip(),
-        "game_type": (request.GET.get("game_type") or "").strip(),
+        "game_type": requested_game_type_token(request),
         "player": (request.GET.get("player") or "").strip(),
         "city": (request.GET.get("city") or "").strip(),
         "state": (request.GET.get("state") or "").strip(),
@@ -53,9 +59,13 @@ def _resolve_map_params(request: HttpRequest, params: dict[str, str], groups) ->
         requested=params["group"],
         available_groups=groups,
     )
+    if is_game_type_locked(request):
+        resolved["game_type"] = preferred_game_type_code(request)
+        return resolved
     game_type = params["game_type"]
     if game_type and game_type not in GAME_TYPES:
         game_type = ""
+    # Empty means "all games" when unlocked.
     resolved["game_type"] = game_type
     return resolved
 
@@ -127,14 +137,14 @@ def _player_choices_for_map(group, game_type_code: str):
     )
 
 
-def _game_type_options_for_map(group) -> list[tuple[str, str]]:
-    codes = (
+def _game_type_options_for_map(request: HttpRequest, group) -> list[tuple[str, str]]:
+    codes = set(
         Game.objects.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
     )
     options = []
-    for code in all_game_type_codes():
+    for code in available_game_type_codes(request):
         if code in codes and code in GAME_TYPES:
             options.append((code, GAME_TYPES[code].name))
     return options
@@ -143,7 +153,15 @@ def _game_type_options_for_map(group) -> list[tuple[str, str]]:
 def _map_filter_query(params: dict[str, str]) -> str:
     from urllib.parse import urlencode
 
-    return urlencode({k: v for k, v in params.items() if v})
+    query = {}
+    for k, v in params.items():
+        if not v:
+            continue
+        if k == "game_type":
+            query["type"] = v
+        else:
+            query[k] = v
+    return urlencode(query)
 
 
 @demo_or_login_required
@@ -210,7 +228,7 @@ def game_map(request: HttpRequest) -> HttpResponse:
         location_name_choices = map_location_name_choices(selected_group)
         geo_cascade_tree = map_geo_cascade_tree(selected_group)
         players = list(_player_choices_for_map(selected_group, params["game_type"]))
-        game_type_options = _game_type_options_for_map(selected_group)
+        game_type_options = _game_type_options_for_map(request, selected_group)
         can_manage_locations = can_manage_group_members(request.user, selected_group)
         if params.get("player") and not any(
             str(p.pk) == params["player"] for p in players
@@ -250,6 +268,15 @@ def game_map(request: HttpRequest) -> HttpResponse:
         selected_group is not None and location_count > 0 and geocoded_count == 0
     )
 
+    locked = is_game_type_locked(request)
+    map_heading = "Map"
+    map_heading_icon_url = ""
+    if locked:
+        locked_code = preferred_game_type_code(request)
+        if locked_code in GAME_TYPES:
+            map_heading = get_game_type(locked_code).name
+            map_heading_icon_url = game_type_icon_url(locked_code)
+
     return render(
         request,
         "games/game_map.html",
@@ -258,6 +285,9 @@ def game_map(request: HttpRequest) -> HttpResponse:
             "selected_group": selected_group,
             "params": params,
             "game_type_options": game_type_options,
+            "game_type_locked": locked,
+            "map_heading": map_heading,
+            "map_heading_icon_url": map_heading_icon_url,
             "players": players,
             "country_choices": country_choices,
             "state_choices": state_choices,

@@ -37,7 +37,7 @@
           Record Game
         </button>
       {% else %}
-        <a href="{% url 'games:create' %}?group={{ group.pk }}{% if selected_game_type_code %}&game_type_code={{ selected_game_type_code }}{% endif %}" class="btn btn-primary btn-sm">
+        <a href="{% url 'games:create' %}?group={{ group.pk }}{% if selected_game_type_code %}&type={{ selected_game_type_code }}{% endif %}" class="btn btn-primary btn-sm">
           Record Game
         </a>
       {% endif %}
@@ -236,7 +236,7 @@
             <label for="roster-game-type" class="form-label">Game</label>
             <select
               id="roster-game-type"
-              name="game_type_code"
+              name="type"
               class="form-select"
               onchange="this.form.submit()"
             >

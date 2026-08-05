@@ -16,7 +16,11 @@ from leaderlodge.accounts.email_verification import (
 )
 from leaderlodge.accounts.forms import InviteJoinSignupForm
 from leaderlodge.accounts.honeypot import handle_signup_honeypot
-from leaderlodge.accounts.game_selection import resolve_game_type_code
+from leaderlodge.accounts.game_selection import (
+    available_game_type_codes,
+    requested_game_type_token,
+    resolve_game_type_code,
+)
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.accounts.group_selection import persist_group_id
@@ -122,11 +126,15 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
                 "email_verified": membership.user_id in verified_user_pks,
             }
         )
-    game_type_codes = _game_type_codes_for_group(group)
+    game_type_codes = [
+        code
+        for code in _game_type_codes_for_group(group)
+        if code in frozenset(available_game_type_codes(request))
+    ]
     if game_type_codes:
         selected_game_type_code = resolve_game_type_code(
             request,
-            requested=request.GET.get("game_type_code", "").strip(),
+            requested=requested_game_type_token(request),
             available_codes=game_type_codes,
         )
     else:
@@ -793,9 +801,8 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
 
     from leaderlodge.accounts.ui_settings import get_ui_settings, set_ui_settings
     from leaderlodge.games.models import Game
-    from leaderlodge.games.registry import GAME_TYPES
+    from leaderlodge.games.registry import GAME_TYPES, game_type_abbr
     from leaderlodge.groups.locations import (
-        GAME_CODE_SHORT,
         ensure_group_location_library,
         find_duplicate_location_pairs,
     )
@@ -857,7 +864,7 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
         seen_codes: set[str] = set()
         game_pills = []
         for c in sorted(game_type_map.get(loc.pk, [])):
-            short = GAME_CODE_SHORT.get(c, c[:2].upper())
+            short = game_type_abbr(c) if c in GAME_TYPES else c[:2].upper()
             if short in seen_codes:
                 continue
             seen_codes.add(short)
@@ -908,9 +915,8 @@ def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
     from django.db.models import Count, Max
 
     from leaderlodge.games.models import Game
-    from leaderlodge.games.registry import GAME_TYPES
+    from leaderlodge.games.registry import GAME_TYPES, game_type_abbr
     from leaderlodge.groups.locations import (
-        GAME_CODE_SHORT,
         ensure_group_location_library,
     )
 
@@ -937,7 +943,7 @@ def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
         .values_list("game_type_code", flat=True)
         .distinct()
     ):
-        short = GAME_CODE_SHORT.get(code, code[:2].upper())
+        short = game_type_abbr(code) if code in GAME_TYPES else code[:2].upper()
         if short in seen_codes:
             continue
         seen_codes.add(short)

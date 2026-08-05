@@ -259,7 +259,7 @@ def test_game_list_filters_by_year_and_quick_range(client, user, group):
 
     year_response = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos", "year": "2026"},
+        {"group": str(group.pk), "type": "dominos", "year": "2026"},
     )
     year_content = year_response.content.decode()
     assert year_response.status_code == 200
@@ -271,7 +271,7 @@ def test_game_list_filters_by_year_and_quick_range(client, user, group):
         reverse("games:list"),
         {
             "group": str(group.pk),
-            "game_type": "dominos",
+            "type": "dominos",
             "start_date": "2025-12-01",
             "end_date": "2025-12-31",
         },
@@ -300,17 +300,17 @@ def test_game_list_filters_by_group_and_game_type(client, user, group):
 
     redirect_response = client.get(reverse("games:list"))
     assert redirect_response.status_code == 302
-    assert "game_type=backgammon" in redirect_response.url
+    assert "type=backgammon" in redirect_response.url
     assert f"group={other_group.pk}" in redirect_response.url
 
     default_list = client.get(reverse("games:list"), follow=True)
     dominos_only = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     backgammon_only = client.get(
         reverse("games:list"),
-        {"game_type": "backgammon"},
+        {"type": "backgammon"},
         follow=True,
     )
 
@@ -353,7 +353,7 @@ def test_game_list_location_choices_culled_by_group_and_type(client, user, group
 
     dominos_group = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     content = dominos_group.content.decode()
     assert "Sally" in content
@@ -390,15 +390,15 @@ def test_game_list_filters_by_game_size(client, user, group):
 
     all_sizes = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     ).content.decode()
     two_player = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos", "game_size": "2"},
+        {"group": str(group.pk), "type": "dominos", "game_size": "2"},
     ).content.decode()
     three_player = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos", "game_size": "3"},
+        {"group": str(group.pk), "type": "dominos", "game_size": "3"},
     ).content.decode()
 
     assert 'id="filter-game-size"' in all_sizes
@@ -440,17 +440,17 @@ def test_game_list_filters_by_player(client, user, group):
 
     dom_club_dominos = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
         follow=True,
     )
     pat_only = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos", "player": str(pat.pk)},
+        {"group": str(group.pk), "type": "dominos", "player": str(pat.pk)},
         follow=True,
     )
     group_pat_only = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos", "player": str(pat.pk)},
+        {"group": str(group.pk), "type": "dominos", "player": str(pat.pk)},
     )
 
     assert dom_club_dominos.status_code == 200
@@ -611,7 +611,7 @@ def test_record_game_setup_honors_game_type_query_param(client, user, group):
 
     response = client.get(
         reverse("games:create"),
-        {"group": str(group.pk), "game_type": "progressiverummy"},
+        {"group": str(group.pk), "type": "progressiverummy"},
     )
     content = response.content.decode()
 

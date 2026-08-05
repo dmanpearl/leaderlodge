@@ -175,21 +175,34 @@
 - [x] Bug: Last initial is being shown in games list unnecessarily. Examples: 'Jeff M', 'Nancy M', 'Karenina M', when there are no conflicts. Perhaps due to having players with same first name in multiple groups (ie. manpearl, test in local)
 - [x] b340a5d Record Game (Game Detail with record_again=1) Context menu add '<plus-icon> Record game' menu item
 - [x] ec2d0e3 Fake Accounts: Need tool to identify, flag/remove users like myylprhhgz (l.parks@tuparks.com)
-- [x] Update management commands documentation
-- [x] Game Type: Add Gin Rummy, Cribbage, Phase 10, Darts (501, Cricket), Cornhole
-
-## Open Items
-
-- [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 30/60 double skunk
-- [ ] Pickleball: Rename 'ScoreType' to 'PickleballScoreType'
-- [ ] Method for users to lock in one specific game type
+- [x] 875f855 Update management commands documentation
+- [x] 65d5998 Game Type: Add Gin Rummy, Cribbage, Phase 10, Darts (501, Cricket), Cornhole
+- [x] Method for users to lock in one specific game type
       - Purpose: Makes LeaderLodge look like a single game type app
       - Available to all users
       - Accessible via Account menu: Lock Game Type, Unlock Game Type with bootstrap lock and unlock icons
       - When locked, all other games types are hidden from all views and menus
       - Lock lock-game-type is saved in user preferences
-      - Game type locking can be specified in url params as a way to deliver a url for a specific game type
+      - Game type locking can be specified with a short/simple url param as a way to deliver a url for a specific game type
       - About menu: Add section 'Game Types' before feedback listing all supported games. If locked, also display an 'Unlock' button.
+
+## Open Items
+
+- [ ] Bug: CSRF verification failed Forbiden (403). You are seeing this message because the site requires a CSRF cookie when submitting froms. This cookie is required for security resasons...
+- [ ] Metrics: Build a metrics dashboard accessible to staff from the Accounts menu that shows:
+  - Total user count across all groups
+  - Group count
+  - Number of games played in the last hour
+  - Avg total number of games per day over past 7 days incremental to 1 minute
+  - Top N most active groups and their group stats: User count, games played in last hour, average games per day
+  - N is hardcoded, but easy to find and change in code.
+  - Most active group is defined by the total number of games played in the last 7 days
+- [ ] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
+- [ ] NAV bar dashboard button and other buttons are sometimes unresponsive, perhaps due to slow Internet connection. Consider adding a spinner or other state indication (https://leaderlodge.com/admin/feedback/feedback/24)
+- [ ] Hall of Fame: Revisit the need for this view. Consider removal
+- [ ] Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
+- [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 30/60 double skunk
+- [ ] Pickleball: Rename 'ScoreType' to 'PickleballScoreType'
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Leaderboard Algorithm/Streaks: provide rank algorithm selector that includes default, streak, win-percent, win-total, points-percent, points-total. streaks (win, unbeaten, current, total/range, head-to-head/matchup
 - [ ] Mah Jongg: Support style: American or Chinese (Japanese? Hong Kong? Chinese variants?)
@@ -199,7 +212,7 @@
 - [ ] Add Favicon
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
-- [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&game_type_code=&players=`; optional `&game=` to anchor before/after deltas; picker UI)
+- [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&type=&players=`; optional `&game=` as game instance id when the value is not a known type code/abbr; picker UI)
 - [ ] Matchup View: Entry points from stats panel and leaderboard (after player picker)
 - [ ] Offline mode: Allow game entry in limited connection environments
 - [ ] Leaderboard graphs of leaders over time

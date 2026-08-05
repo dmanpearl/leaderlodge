@@ -122,6 +122,41 @@
       <div class="card mb-4">
         <div class="card-body">
           <h2 class="h5 mb-3 about-section-heading">
+            <i class="bi bi-controller about-section-icon" aria-hidden="true"></i>
+            <span>Game Types</span>
+          </h2>
+          <p class="mb-3">
+            LeaderLodge supports these games. Share a link with
+            <code>?lock=do</code> or <code>?type=pb</code> (full codes or short
+            abbreviations) to open the app focused on one game.
+          </p>
+          <ul class="list-unstyled mb-3">
+            {% for gt in about_game_types %}
+              <li class="d-flex align-items-center gap-2 mb-2">
+                {% if gt.icon_url %}
+                  <img src="{{ gt.icon_url }}" alt="" width="28" height="28" />
+                {% endif %}
+                <span>{{ gt.name }}</span>
+                <span class="text-muted small">({{ gt.abbr }})</span>
+              </li>
+            {% endfor %}
+          </ul>
+          {% if game_type_locked %}
+            <form method="post" action="{% url 'accounts:unlock_game_type' %}" class="mb-0">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+              <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-unlock" aria-hidden="true"></i>
+                Show all game types
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <h2 class="h5 mb-3 about-section-heading">
             <i class="bi bi-chat-left-text about-section-icon" aria-hidden="true"></i>
             <span>Feedback</span>
           </h2>

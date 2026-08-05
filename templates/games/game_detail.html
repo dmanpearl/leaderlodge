@@ -110,7 +110,7 @@
             <tr>
               <td>
                 <span class="account-name-with-badge account-name-with-badge--table">
-                  <a href="{% url 'leaderboards:detail' %}?group={{ game.group.pk }}&amp;game_type_code={{ game.game_type_code }}&amp;player={{ result.player.pk }}">
+                  <a href="{% url 'leaderboards:detail' %}?group={{ game.group.pk }}&amp;type={{ game.game_type_code }}&amp;player={{ result.player.pk }}">
                     {{ result.player.display_label }}
                   </a>
                   {% if result.player.linked_user %}
@@ -174,14 +174,14 @@
         Reuse Players
       </a>
       <a
-        href="{% url 'games:list' %}?game_type={{ game.game_type_code }}&group={{ game.group.pk }}"
+        href="{% url 'games:list' %}?type={{ game.game_type_code }}&group={{ game.group.pk }}"
         class="btn btn-outline-secondary d-none d-sm-inline-flex align-items-center gap-1"
       >
         <i class="bi bi-controller" aria-hidden="true"></i>
         Games
       </a>
       <a
-        href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&game_type_code={{ game.game_type_code }}"
+        href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&type={{ game.game_type_code }}"
         class="btn btn-outline-primary d-none d-sm-inline-flex align-items-center gap-1"
       >
         <i class="bi bi-trophy" aria-hidden="true"></i>
@@ -207,7 +207,7 @@
         <ul class="dropdown-menu">
           <li>
             <a
-              href="{% url 'games:list' %}?game_type={{ game.game_type_code }}&group={{ game.group.pk }}"
+              href="{% url 'games:list' %}?type={{ game.game_type_code }}&group={{ game.group.pk }}"
               class="dropdown-item d-flex align-items-center gap-2"
             >
               <i class="bi bi-controller" aria-hidden="true"></i>
@@ -216,7 +216,7 @@
           </li>
           <li>
             <a
-              href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&game_type_code={{ game.game_type_code }}"
+              href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&type={{ game.game_type_code }}"
               class="dropdown-item d-flex align-items-center gap-2"
             >
               <i class="bi bi-trophy" aria-hidden="true"></i>
@@ -236,14 +236,14 @@
       </div>
     {% else %}
       <a
-        href="{% url 'games:list' %}?game_type={{ game.game_type_code }}&group={{ game.group.pk }}"
+        href="{% url 'games:list' %}?type={{ game.game_type_code }}&group={{ game.group.pk }}"
         class="btn btn-outline-secondary d-inline-flex align-items-center gap-1"
       >
         <i class="bi bi-controller" aria-hidden="true"></i>
         Games
       </a>
       <a
-        href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&game_type_code={{ game.game_type_code }}"
+        href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&type={{ game.game_type_code }}"
         class="btn btn-outline-primary d-inline-flex align-items-center gap-1"
       >
         <i class="bi bi-trophy" aria-hidden="true"></i>

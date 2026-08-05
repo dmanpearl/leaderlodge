@@ -104,7 +104,7 @@ def test_rank_detail_shows_breakdown(client, user, group):
         reverse("leaderboards:detail"),
         {
             "group": str(group.pk),
-            "game_type_code": "dominos",
+            "type": "dominos",
             "player": str(player.pk),
         },
     )
@@ -126,7 +126,7 @@ def test_leaderboard_links_to_scoring_explainer(client, user, group):
 
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     assert response.status_code == 200
     assert reverse("core:about_scoring") in response.content.decode()
@@ -141,7 +141,7 @@ def test_leaderboard_shows_invite_action_for_guest(client, user, group):
     guest = group.players.get(display_name="Pat")
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     assert response.status_code == 200
     content = response.content.decode()
@@ -161,7 +161,7 @@ def test_leaderboard_hides_invite_action_for_linked_user(client, user, group):
     owner_player = group.players.get(linked_user=user)
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     assert response.status_code == 200
     content = response.content.decode()
@@ -184,7 +184,7 @@ def test_leaderboard_hides_invite_action_for_non_manager(client, user, group):
 
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     assert response.status_code == 200
     content = response.content.decode()
@@ -205,7 +205,7 @@ def test_rank_detail_shows_invite_button_for_guest(client, user, group):
         reverse("leaderboards:detail"),
         {
             "group": str(group.pk),
-            "game_type_code": "dominos",
+            "type": "dominos",
             "player": str(guest.pk),
         },
     )
@@ -229,7 +229,7 @@ def test_rank_detail_hides_invite_button_for_linked_user(client, user, group):
         reverse("leaderboards:detail"),
         {
             "group": str(group.pk),
-            "game_type_code": "dominos",
+            "type": "dominos",
             "player": str(owner_player.pk),
         },
     )
@@ -277,7 +277,7 @@ def test_leaderboard_hides_player_type_filter_when_no_teams(client, user, group)
 
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     assert response.status_code == 200
     content = response.content.decode()
@@ -292,7 +292,7 @@ def test_leaderboard_player_type_filter_is_players_and_teams_only(client, user, 
 
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     assert response.status_code == 200
     content = response.content.decode()
@@ -316,7 +316,7 @@ def test_leaderboard_defaults_to_players_excluding_teams(client, user, group):
 
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     assert response.status_code == 200
     labels = {row.player.display_label for row in response.context["rankings"]}
@@ -335,7 +335,7 @@ def test_leaderboard_teams_filter_shows_only_teams(client, user, group):
         reverse("leaderboards:index"),
         {
             "group": str(group.pk),
-            "game_type_code": "dominos",
+            "type": "dominos",
             "player_type": "team",
         },
     )

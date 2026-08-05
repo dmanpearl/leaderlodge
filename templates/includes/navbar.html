@@ -148,6 +148,27 @@
               </li>
             {% endif %}
             <li>
+              {% if game_type_locked %}
+                <form method="post" action="{% url 'accounts:unlock_game_type' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                  <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                    <i class="bi bi-unlock navbar-menu-icon" aria-hidden="true"></i>
+                    Show all game types
+                  </button>
+                </form>
+              {% else %}
+                <form method="post" action="{% url 'accounts:lock_game_type' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                  <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                    <i class="bi bi-lock navbar-menu-icon" aria-hidden="true"></i>
+                    Show {{ preferred_game_type_name|default:"game type" }} only
+                  </button>
+                </form>
+              {% endif %}
+            </li>
+            <li>
               <button
                 type="button"
                 id="reset-preferences-btn"
@@ -199,6 +220,29 @@
                 Login
               </a>
             </li>
+            {% if user.is_authenticated or demo_mode_enabled %}
+              <li>
+                {% if game_type_locked %}
+                  <form method="post" action="{% url 'accounts:unlock_game_type' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                      <i class="bi bi-unlock navbar-menu-icon" aria-hidden="true"></i>
+                      Show all game types
+                    </button>
+                  </form>
+                {% else %}
+                  <form method="post" action="{% url 'accounts:lock_game_type' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                      <i class="bi bi-lock navbar-menu-icon" aria-hidden="true"></i>
+                      Show {{ preferred_game_type_name|default:"game type" }} only
+                    </button>
+                  </form>
+                {% endif %}
+              </li>
+            {% endif %}
             {% include "includes/account_menu_feedback.html" %}
             <li><hr class="dropdown-divider"></li>
             {% include "includes/account_menu_about.html" %}

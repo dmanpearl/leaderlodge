@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Leaderboards | LeaderLodge{% endblock %}
+{% block title %}{% if game_type_locked and selected_game_type %}{{ selected_game_type.name }}{% else %}Leaderboards{% endif %} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
@@ -17,7 +17,11 @@
 {% block content %}
   <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
     <div class="w-100">
-      <h1 class="h3 visually-hidden">Leaderboards</h1>
+      {% if game_type_locked and selected_game_type %}
+        {% include "includes/game_type_page_title.html" with title=selected_game_type.name icon_url=selected_game_type_icon_url h1_class="h3 mb-2" %}
+      {% else %}
+        <h1 class="h3 visually-hidden">Leaderboards</h1>
+      {% endif %}
       {% include "includes/leaderboard_view_nav.html" with leaderboard_view="index" %}
     </div>
   </div>
@@ -57,36 +61,40 @@
             {% include "includes/player_type_filter.html" with select_id="leaderboard-player-type" %}
           {% endif %}
           {% if selected_group and game_type_options %}
-            <div class="col-12 col-sm-6 col-lg-4 col-xl">
-              <label for="game-type-select" class="form-label">Game</label>
-              <div class="leaderboard-game-type-wrap{% if selected_game_type_icon_url %} leaderboard-game-type-wrap--has-icon{% endif %}">
-                <img
-                  id="leaderboard-game-type-icon"
-                  class="leaderboard-game-type-icon{% if not selected_game_type_icon_url %} d-none{% endif %}"
-                  {% if selected_game_type_icon_url %}src="{{ selected_game_type_icon_url }}"{% endif %}
-                  alt=""
-                />
-                <select
-                  name="game_type_code"
-                  id="game-type-select"
-                  class="form-select leaderboard-game-type-select"
-                  onchange="this.form.submit()"
-                >
-                  {% for code, name, disabled in game_type_options %}
-                    {% with icon_path='img/game-types/'|add:code|add:'.png' %}
-                      <option
-                        value="{{ code }}"
-                        data-icon-url="{% static icon_path %}"
-                        {% if selected_game_type_code == code %}selected{% endif %}
-                        {% if disabled %}disabled{% endif %}
-                      >
-                        {{ name }}
-                      </option>
-                    {% endwith %}
-                  {% endfor %}
-                </select>
+            {% if game_type_locked %}
+              <input type="hidden" name="type" value="{{ selected_game_type_code }}" />
+            {% else %}
+              <div class="col-12 col-sm-6 col-lg-4 col-xl">
+                <label for="game-type-select" class="form-label">Game</label>
+                <div class="leaderboard-game-type-wrap{% if selected_game_type_icon_url %} leaderboard-game-type-wrap--has-icon{% endif %}">
+                  <img
+                    id="leaderboard-game-type-icon"
+                    class="leaderboard-game-type-icon{% if not selected_game_type_icon_url %} d-none{% endif %}"
+                    {% if selected_game_type_icon_url %}src="{{ selected_game_type_icon_url }}"{% endif %}
+                    alt=""
+                  />
+                  <select
+                    name="type"
+                    id="game-type-select"
+                    class="form-select leaderboard-game-type-select"
+                    onchange="this.form.submit()"
+                  >
+                    {% for code, name, disabled in game_type_options %}
+                      {% with icon_path='img/game-types/'|add:code|add:'.png' %}
+                        <option
+                          value="{{ code }}"
+                          data-icon-url="{% static icon_path %}"
+                          {% if selected_game_type_code == code %}selected{% endif %}
+                          {% if disabled %}disabled{% endif %}
+                        >
+                          {{ name }}
+                        </option>
+                      {% endwith %}
+                    {% endfor %}
+                  </select>
+                </div>
               </div>
-            </div>
+            {% endif %}
             {% include "includes/leaderboard_period_filters.html" with year_select_id="leaderboard-year" month_select_id="leaderboard-month" %}
             {% include "includes/game_size_filter.html" with select_id="leaderboard-game-size" %}
             {% include "includes/leaderboard_game_option_filters.html" %}
@@ -138,7 +146,7 @@
         {% else %}
           <p class="text-muted mb-3">No games recorded for {{ selected_group.name }} yet.</p>
         {% endif %}
-        <a href="{% url 'games:create' %}?group={{ selected_group.pk }}{% if selected_game_type_code %}&game_type_code={{ selected_game_type_code }}{% endif %}" class="btn btn-primary">Record a game</a>
+        <a href="{% url 'games:create' %}?group={{ selected_group.pk }}{% if selected_game_type_code %}&type={{ selected_game_type_code }}{% endif %}" class="btn btn-primary">Record a game</a>
       </div>
     </div>
   {% elif rankings %}

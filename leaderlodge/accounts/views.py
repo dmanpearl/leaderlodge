@@ -21,7 +21,11 @@ from leaderlodge.accounts.email_verification import (
 from leaderlodge.accounts.auth_log import log_failed_signup
 from leaderlodge.accounts.forms import SignupForm
 from leaderlodge.accounts.honeypot import handle_signup_honeypot
-from leaderlodge.accounts.game_selection import SESSION_GAME_TYPE_CODE
+from leaderlodge.accounts.game_selection import (
+    clear_game_selection_session,
+    lock_game_type,
+    unlock_game_type,
+)
 from leaderlodge.accounts.group_selection import SESSION_GROUP_ID
 from leaderlodge.accounts.ui_settings import reset_ui_settings
 from leaderlodge.accounts.group_selection import persist_group_id
@@ -44,9 +48,32 @@ def csrf_token(request: HttpRequest) -> JsonResponse:
 @require_POST
 def reset_preferences(request: HttpRequest) -> JsonResponse:
     reset_ui_settings(request.user)
-    request.session.pop(SESSION_GAME_TYPE_CODE, None)
+    clear_game_selection_session(request)
     request.session.pop(SESSION_GROUP_ID, None)
     return JsonResponse({"ok": True})
+
+
+@require_POST
+def lock_preferred_game_type(request: HttpRequest) -> HttpResponse:
+    """Lock the current preferred game type (session or profile)."""
+    lock_game_type(request)
+    return _redirect_back(request)
+
+
+@require_POST
+def unlock_preferred_game_type(request: HttpRequest) -> HttpResponse:
+    """Unlock; keep the previously locked type as the preference."""
+    unlock_game_type(request)
+    return _redirect_back(request)
+
+
+def _redirect_back(request: HttpRequest) -> HttpResponse:
+    next_url = (
+        request.POST.get("next") or request.META.get("HTTP_REFERER") or ""
+    ).strip()
+    if next_url.startswith("/") and not next_url.startswith("//"):
+        return redirect(next_url)
+    return redirect("core:dashboard")
 
 
 @require_http_methods(["GET", "POST"])

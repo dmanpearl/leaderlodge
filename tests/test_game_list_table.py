@@ -152,7 +152,7 @@ def test_game_list_column_header_links_to_rank_detail(client, user, group):
     assert response.status_code == 200
     detail_url = reverse("leaderboards:detail")
     assert (
-        f'href="{detail_url}?group={group.pk}&amp;game_type_code=dominos&amp;player={pat.pk}"'
+        f'href="{detail_url}?group={group.pk}&amp;type=dominos&amp;player={pat.pk}"'
         in content
     )
     assert "game-list-player-col-header-link" in content

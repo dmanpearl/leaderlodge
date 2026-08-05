@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Record Game | LeaderLodge{% endblock %}
+{% block title %}{{ record_game_heading|default:"Record Game" }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
   {% if show_roster %}
-    <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
     <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=17" />
   {% else %}
     <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
@@ -16,14 +16,22 @@
   {% endif %}
 {% endblock %}
 {% block content %}
-  <h1 class="h3 mb-3">Record Game</h1>
+  {% if game_type_locked and record_game_heading_icon_url %}
+    <div class="mb-3">
+      {% include "includes/game_type_page_title.html" with title=record_game_heading icon_url=record_game_heading_icon_url h1_class="h3 mb-0" %}
+    </div>
+  {% else %}
+    <h1 class="h3 mb-3">{{ record_game_heading|default:"Record Game" }}</h1>
+  {% endif %}
 
   {% if show_roster %}
     <div class="card mb-3">
       <div class="card-body">
         <span class="text-muted small d-block">Recording for</span>
         <strong>{{ group.name }}</strong>
-        &middot; {{ game_type.name }}
+        {% if not game_type_locked %}
+          &middot; {{ game_type.name }}
+        {% endif %}
         &middot; {{ played_on_display }}
         {% if location_name %}
           &middot; {{ location_name }}
@@ -46,37 +54,45 @@
                 <div class="invalid-feedback d-block">{{ form.group.errors }}</div>
               {% endif %}
             </div>
-            <div class="col-12 col-md-4">
-              <label for="game-setup-game-type-select" class="form-label">Game</label>
-              <div class="game-setup-game-type-wrap{% if selected_setup_game_type_icon_url %} game-setup-game-type-wrap--has-icon{% endif %}">
-                <img
-                  id="game-setup-game-type-icon"
-                  class="game-setup-game-type-icon{% if not selected_setup_game_type_icon_url %} d-none{% endif %}"
-                  {% if selected_setup_game_type_icon_url %}src="{{ selected_setup_game_type_icon_url }}"{% endif %}
-                  alt=""
-                />
-                <select
-                  name="game_type_code"
-                  id="game-setup-game-type-select"
-                  class="form-select game-setup-game-type-select"
-                  required
-                >
-                  <option value="" data-icon-url="">Choose a game</option>
-                  {% for code, name, icon_url in setup_game_type_options %}
-                    <option
-                      value="{{ code }}"
-                      data-icon-url="{{ icon_url }}"
-                      {% if selected_setup_game_type_code == code %}selected{% endif %}
-                    >
-                      {{ name }}
-                    </option>
-                  {% endfor %}
-                </select>
+            {% if game_type_locked %}
+              <input
+                type="hidden"
+                name="game_type_code"
+                value="{{ selected_setup_game_type_code }}"
+              />
+            {% else %}
+              <div class="col-12 col-md-4">
+                <label for="game-setup-game-type-select" class="form-label">Game</label>
+                <div class="game-setup-game-type-wrap{% if selected_setup_game_type_icon_url %} game-setup-game-type-wrap--has-icon{% endif %}">
+                  <img
+                    id="game-setup-game-type-icon"
+                    class="game-setup-game-type-icon{% if not selected_setup_game_type_icon_url %} d-none{% endif %}"
+                    {% if selected_setup_game_type_icon_url %}src="{{ selected_setup_game_type_icon_url }}"{% endif %}
+                    alt=""
+                  />
+                  <select
+                    name="game_type_code"
+                    id="game-setup-game-type-select"
+                    class="form-select game-setup-game-type-select"
+                    required
+                  >
+                    <option value="" data-icon-url="">Choose a game</option>
+                    {% for code, name, icon_url in setup_game_type_options %}
+                      <option
+                        value="{{ code }}"
+                        data-icon-url="{{ icon_url }}"
+                        {% if selected_setup_game_type_code == code %}selected{% endif %}
+                      >
+                        {{ name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+                {% if form.game_type_code.errors %}
+                  <div class="invalid-feedback d-block">{{ form.game_type_code.errors }}</div>
+                {% endif %}
               </div>
-              {% if form.game_type_code.errors %}
-                <div class="invalid-feedback d-block">{{ form.game_type_code.errors }}</div>
-              {% endif %}
-            </div>
+            {% endif %}
             <div class="col-12 col-md-4">
               <label for="{{ form.played_on.id_for_label }}" class="form-label">Date played</label>
               {{ form.played_on }}

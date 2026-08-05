@@ -8,8 +8,7 @@ from typing import Any
 from django.db.models import Count, Q, QuerySet
 
 from leaderlodge.games.models import Game
-from leaderlodge.games.registry import GAME_TYPES
-from leaderlodge.groups.locations import GAME_CODE_SHORT
+from leaderlodge.games.registry import GAME_TYPES, game_type_abbr
 from leaderlodge.groups.models import Group, Location
 from leaderlodge.groups.services import can_view_group, visible_groups
 
@@ -263,7 +262,11 @@ def build_map_features(
                     "game_count_labels": [
                         {
                             "code": code,
-                            "short": GAME_CODE_SHORT.get(code, code[:2].upper()),
+                            "short": (
+                                game_type_abbr(code)
+                                if code in GAME_TYPES
+                                else code[:2].upper()
+                            ),
                             "name": GAME_TYPES[code].name,
                             "count": n,
                         }

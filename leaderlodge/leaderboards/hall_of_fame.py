@@ -167,8 +167,12 @@ def build_hall_of_fame_grid(
     granularity: str,
     player_type: str = "",
     label_map: dict[int, str] | None = None,
+    allowed_game_type_codes: list[str] | None = None,
 ) -> HallOfFameGrid:
     codes = _game_type_codes_for_group(group)
+    if allowed_game_type_codes is not None:
+        allowed = frozenset(allowed_game_type_codes)
+        codes = [code for code in codes if code in allowed]
     columns = tuple(
         HallOfFameColumn(code=code, name=get_game_type(code).name) for code in codes
     )

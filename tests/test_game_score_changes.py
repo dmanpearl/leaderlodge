@@ -414,7 +414,7 @@ def test_member_can_delete_own_game(client, member_user, member_dominos_game, gr
     assert response.status_code == 302
     assert not Game.objects.filter(pk=game_pk).exists()
     assert response.url == (
-        f"{reverse('games:list')}?group={group.pk}&game_type_code=dominos"
+        f"{reverse('games:list')}?group={group.pk}&type=dominos"
     )
     log = GameScoreChangeLog.objects.get()
     assert log.event == GameScoreChangeLog.Event.DELETE

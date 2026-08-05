@@ -75,15 +75,23 @@ def _dashboard_ranking_sort_key(ranking: PlayerRanking) -> tuple:
     )
 
 
-def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboardCard]:
+def _build_leaderboard_cards(
+    request,
+    groups: QuerySet[Group],
+) -> list[DashboardLeaderboardCard]:
+    from leaderlodge.accounts.game_selection import available_game_type_codes
+
     group_list = list(groups)
     if not group_list:
         return []
 
     composite = len(group_list) > 1
     cards: list[DashboardLeaderboardCard] = []
+    allowed = frozenset(available_game_type_codes(request))
 
     for code in _game_type_codes_for_groups(group_list):
+        if code not in allowed:
+            continue
         game_type = get_game_type(code)
         combined: list[PlayerRanking] = []
         for group in group_list:
@@ -107,7 +115,7 @@ def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboa
                 )
                 for index, row in enumerate(top, start=1)
             ]
-            leaderboard_url = f"{reverse('leaderboards:index')}?game_type_code={code}"
+            leaderboard_url = f"{reverse('leaderboards:index')}?type={code}"
         else:
             group = group_list[0]
             rows = [
@@ -120,8 +128,7 @@ def _build_leaderboard_cards(groups: QuerySet[Group]) -> list[DashboardLeaderboa
                 for index, row in enumerate(top, start=1)
             ]
             leaderboard_url = (
-                f"{reverse('leaderboards:index')}"
-                f"?group={group.pk}&game_type_code={code}"
+                f"{reverse('leaderboards:index')}" f"?group={group.pk}&type={code}"
             )
 
         icon_class, icon_image = _dashboard_leaderboard_icons(code)
@@ -158,24 +165,50 @@ def _render_dashboard(
     if default_group is None and groups.count() == 1:
         default_group = groups.first()
 
-    recent_games_qs = list(
-        Game.objects.filter(group__in=groups)
-        .select_related("group", "location")
-        .order_by("-played_on", "-created_at")[:5]
+    from leaderlodge.accounts.game_selection import (
+        available_game_type_codes,
+        is_game_type_locked,
+        preferred_game_type_code,
     )
+
+    allowed_types = available_game_type_codes(request)
+    recent_games_qs = Game.objects.filter(group__in=groups).select_related(
+        "group", "location"
+    )
+    if len(allowed_types) == 1:
+        recent_games_qs = recent_games_qs.filter(game_type_code=allowed_types[0])
+    recent_games_qs = list(recent_games_qs.order_by("-played_on", "-created_at")[:5])
     winner_labels = winner_labels_for_games(recent_games_qs)
     recent_games = [
         DashboardRecentGame(
             game=game,
-            winner_label=winner_labels.get(game.pk, "—"),
+            winner_label=winner_labels.get(game.pk, "-"),
         )
         for game in recent_games_qs
     ]
 
-    leaderboard_cards = _build_leaderboard_cards(groups)
+    leaderboard_cards = _build_leaderboard_cards(request, groups)
     composite_leaderboards = groups.count() > 1
     record_game_url_group = (
         default_group.pk if default_group and can_record_games else None
+    )
+    from leaderlodge.games.game_type_icons import game_type_icon_url
+
+    locked = is_game_type_locked(request)
+    locked_type_name = ""
+    locked_type_code = ""
+    if locked:
+        locked_type_code = preferred_game_type_code(request)
+        if locked_type_code:
+            locked_type_name = get_game_type(locked_type_code).name
+    if is_demo_landing:
+        dashboard_heading = "Demo"
+    elif locked and locked_type_name:
+        dashboard_heading = locked_type_name
+    else:
+        dashboard_heading = "Dashboard"
+    dashboard_heading_icon_url = (
+        game_type_icon_url(locked_type_code) if locked and locked_type_code else ""
     )
 
     return render(
@@ -189,6 +222,11 @@ def _render_dashboard(
             "record_game_url_group": record_game_url_group,
             "is_demo_landing": is_demo_landing,
             "can_record_games": can_record_games,
+            "dashboard_heading": dashboard_heading,
+            "dashboard_heading_icon_url": dashboard_heading_icon_url,
+            "game_type_locked": locked,
+            # Collapse chrome only when multiple game-type cards are shown.
+            "dashboard_sections_collapsible": len(leaderboard_cards) > 1,
         },
     )
 
@@ -217,7 +255,27 @@ def dashboard(request):
 
 
 def about(request):
-    return render(request, "core/about.html")
+    from leaderlodge.accounts.game_selection import is_game_type_locked
+    from leaderlodge.games.game_type_icons import game_type_icon_url
+    from leaderlodge.games.registry import GAME_TYPES
+
+    game_types = [
+        {
+            "code": gt.code,
+            "name": gt.name,
+            "abbr": gt.abbr,
+            "icon_url": game_type_icon_url(gt.code),
+        }
+        for gt in GAME_TYPES.values()
+    ]
+    return render(
+        request,
+        "core/about.html",
+        {
+            "about_game_types": game_types,
+            "game_type_locked": is_game_type_locked(request),
+        },
+    )
 
 
 def about_insights(request):

@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load display_names static %}
 
-{% block title %}{{ home_page_title }} | LeaderLodge{% endblock %}
-{% block og_title %}{{ home_page_title }} | LeaderLodge{% endblock %}
+{% block title %}{{ dashboard_heading }} | LeaderLodge{% endblock %}
+{% block og_title %}{{ dashboard_heading }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
@@ -13,15 +13,19 @@
     <div class="col-12">
       <div class="dashboard-header dashboard-header--mobile d-md-none d-flex align-items-center justify-content-between gap-2">
         <div class="d-flex align-items-center gap-2 min-w-0">
-          <h1 class="h3 mb-0 flex-shrink-0">
-            <img
-              src="{% static 'img/brand/navbar-logo.png' %}"
-              alt="LeaderLodge"
-              class="page-header-logo"
-              width="128"
-              height="64"
-            />
-          </h1>
+          {% if game_type_locked and dashboard_heading_icon_url %}
+            {% include "includes/game_type_page_title.html" with title=dashboard_heading icon_url=dashboard_heading_icon_url h1_class="h3 mb-0" %}
+          {% else %}
+            <h1 class="h3 mb-0 flex-shrink-0">
+              <img
+                src="{% static 'img/brand/navbar-logo.png' %}"
+                alt="LeaderLodge"
+                class="page-header-logo"
+                width="128"
+                height="64"
+              />
+            </h1>
+          {% endif %}
           {% if is_demo_landing %}
             <p class="text-muted mb-0 text-truncate">Demo</p>
           {% else %}
@@ -49,9 +53,13 @@
 
       <div class="dashboard-header dashboard-header--desktop d-none d-md-flex flex-row justify-content-between align-items-start gap-2">
         <div>
-          <h1 class="h3 mb-1">
-            <span>{% if is_demo_landing %}Demo{% else %}Dashboard{% endif %}</span>
-          </h1>
+          {% if game_type_locked and dashboard_heading_icon_url %}
+            {% include "includes/game_type_page_title.html" with title=dashboard_heading icon_url=dashboard_heading_icon_url h1_class="h3 mb-1" %}
+          {% else %}
+            <h1 class="h3 mb-1">
+              <span>{{ dashboard_heading }}</span>
+            </h1>
+          {% endif %}
           {% if is_demo_landing %}
             <p class="text-muted mb-0">Sample games and leaderboards for all supported game types.</p>
           {% else %}
@@ -75,21 +83,28 @@
     <div class="col-12 {% if leaderboard_cards %}col-xl-5{% endif %}">
       <div class="card game-list-filters-card">
         <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header dashboard-section-header">
-          <button
-            class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#dashboard-recent-games"
-            aria-expanded="false"
-            aria-controls="dashboard-recent-games"
-          >
-            <i id="dashboard-recent-games-icon" class="bi bi-chevron-right" aria-hidden="true"></i>
-            <i class="bi bi-controller dashboard-section-icon" aria-hidden="true"></i>
-            <span class="fw-semibold">Recent Games</span>
-            {% if recent_games %}
-              <span id="dashboard-recent-games-summary" class="text-muted game-list-filters-summary" hidden>({{ recent_games|length }} game{{ recent_games|length|pluralize }})</span>
-            {% endif %}
-          </button>
+          {% if dashboard_sections_collapsible %}
+            <button
+              class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#dashboard-recent-games"
+              aria-expanded="false"
+              aria-controls="dashboard-recent-games"
+            >
+              <i id="dashboard-recent-games-icon" class="bi bi-chevron-right" aria-hidden="true"></i>
+              <i class="bi bi-controller dashboard-section-icon" aria-hidden="true"></i>
+              <span class="fw-semibold">Recent Games</span>
+              {% if recent_games %}
+                <span id="dashboard-recent-games-summary" class="text-muted game-list-filters-summary" hidden>({{ recent_games|length }} game{{ recent_games|length|pluralize }})</span>
+              {% endif %}
+            </button>
+          {% else %}
+            <div class="d-flex game-list-filters-toggle text-start">
+              <i class="bi bi-controller dashboard-section-icon" aria-hidden="true"></i>
+              <span class="fw-semibold">Recent Games</span>
+            </div>
+          {% endif %}
           <span class="d-flex align-items-center gap-2 flex-shrink-0">
             {% if can_record_games %}
               <a
@@ -111,7 +126,7 @@
             </a>
           </span>
         </div>
-        <div id="dashboard-recent-games" class="collapse">
+        <div{% if dashboard_sections_collapsible %} id="dashboard-recent-games" class="collapse"{% endif %}>
           <div class="card-body p-0">
             {% if recent_games %}
               <div class="table-responsive">
@@ -167,44 +182,59 @@
               <div class="col-12 col-md-6">
                 <div class="card game-list-filters-card">
                   <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header dashboard-section-header gap-2">
-                    <button
-                      class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1"
-                      type="button"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#dashboard-leaderboard-{{ card.game_type_code }}"
-                      aria-expanded="false"
-                      aria-controls="dashboard-leaderboard-{{ card.game_type_code }}"
-                      data-dashboard-collapse
-                      data-collapse-storage-key="leaderlodge.dashboardLeaderboard.{{ card.game_type_code }}.Open"
-                      data-collapse-summary-id="dashboard-leaderboard-summary-{{ card.game_type_code }}"
-                    >
-                      <i
-                        id="dashboard-leaderboard-icon-{{ card.game_type_code }}"
-                        class="bi bi-chevron-right"
-                        aria-hidden="true"
-                      ></i>
-                      {% if card.icon_image %}
-                        <img
-                          src="{% static card.icon_image %}"
-                          class="dashboard-section-icon dashboard-section-icon--image"
-                          alt=""
-                        />
-                      {% elif card.icon_class %}
-                        <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
-                      {% endif %}
-                      <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
-                      <span
-                        id="dashboard-leaderboard-summary-{{ card.game_type_code }}"
-                        class="text-muted game-list-filters-summary"
-                        hidden
+                    {% if dashboard_sections_collapsible %}
+                      <button
+                        class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#dashboard-leaderboard-{{ card.game_type_code }}"
+                        aria-expanded="false"
+                        aria-controls="dashboard-leaderboard-{{ card.game_type_code }}"
+                        data-dashboard-collapse
+                        data-collapse-storage-key="leaderlodge.dashboardLeaderboard.{{ card.game_type_code }}.Open"
+                        data-collapse-summary-id="dashboard-leaderboard-summary-{{ card.game_type_code }}"
                       >
-                        ({{ card.rows|length }} player{{ card.rows|length|pluralize }})
-                      </span>
-                    </button>
+                        <i
+                          id="dashboard-leaderboard-icon-{{ card.game_type_code }}"
+                          class="bi bi-chevron-right"
+                          aria-hidden="true"
+                        ></i>
+                        {% if card.icon_image %}
+                          <img
+                            src="{% static card.icon_image %}"
+                            class="dashboard-section-icon dashboard-section-icon--image"
+                            alt=""
+                          />
+                        {% elif card.icon_class %}
+                          <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
+                        {% endif %}
+                        <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
+                        <span
+                          id="dashboard-leaderboard-summary-{{ card.game_type_code }}"
+                          class="text-muted game-list-filters-summary"
+                          hidden
+                        >
+                          ({{ card.rows|length }} player{{ card.rows|length|pluralize }})
+                        </span>
+                      </button>
+                    {% else %}
+                      <div class="d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1">
+                        {% if card.icon_image %}
+                          <img
+                            src="{% static card.icon_image %}"
+                            class="dashboard-section-icon dashboard-section-icon--image"
+                            alt=""
+                          />
+                        {% elif card.icon_class %}
+                          <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
+                        {% endif %}
+                        <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
+                      </div>
+                    {% endif %}
                     <span class="d-flex align-items-center gap-2 flex-shrink-0">
                       {% if can_record_games %}
                         <a
-                          href="{% url 'games:create' %}?game_type_code={{ card.game_type_code }}{% if card.group_id %}&group={{ card.group_id }}{% endif %}"
+                          href="{% url 'games:create' %}?type={{ card.game_type_code }}{% if card.group_id %}&group={{ card.group_id }}{% endif %}"
                           class="btn btn-link btn-sm p-0"
                           title="Record {{ card.game_type_name }} game"
                           aria-label="Record {{ card.game_type_name }} game"
@@ -222,7 +252,7 @@
                       </a>
                     </span>
                   </div>
-                  <div id="dashboard-leaderboard-{{ card.game_type_code }}" class="collapse">
+                  <div{% if dashboard_sections_collapsible %} id="dashboard-leaderboard-{{ card.game_type_code }}" class="collapse"{% endif %}>
                     <div class="card-body p-0">
                       <div class="table-responsive">
                         <table class="table table-striped mb-0">

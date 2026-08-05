@@ -1,0 +1,14 @@
+{% comment %}
+  Locked (or game-type) page heading: optional icon + title text.
+  Expects: title, icon_url (optional), h1_class (optional).
+{% endcomment %}
+<div class="game-detail-title-wrap{% if icon_url %} game-detail-title-wrap--has-icon{% endif %}">
+  {% if icon_url %}
+    <img
+      src="{{ icon_url }}"
+      class="game-detail-title-icon"
+      alt=""
+    />
+  {% endif %}
+  <h1 class="{{ h1_class|default:'h3 mb-0' }}">{{ title }}</h1>
+</div>

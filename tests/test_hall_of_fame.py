@@ -115,6 +115,6 @@ def test_hall_of_fame_cell_links_to_rank_detail(client, user, group):
     ).content.decode()
 
     assert (
-        f'href="/leaderboards/detail/?group={group.pk}&amp;game_type_code=dominos&amp;year=2025&amp;month=7&amp;player={winner.pk}"'
+        f'href="/leaderboards/detail/?group={group.pk}&amp;type=dominos&amp;year=2025&amp;month=7&amp;player={winner.pk}"'
         in content
     )

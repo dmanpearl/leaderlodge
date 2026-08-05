@@ -10,7 +10,11 @@ from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
-from leaderlodge.accounts.game_selection import resolve_game_type_code
+from leaderlodge.accounts.game_selection import (
+    available_game_type_codes,
+    requested_game_type_token,
+    resolve_game_type_code,
+)
 from leaderlodge.accounts.group_selection import resolve_view_group
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.games.registry import get_game_type
@@ -697,14 +701,18 @@ def ask_page(request: HttpRequest) -> HttpResponse:
         available_groups=groups,
     )
 
-    game_type_codes = (
-        game_type_codes_for_group(selected_group) if selected_group else []
-    )
+    game_type_codes = [
+        code
+        for code in (
+            game_type_codes_for_group(selected_group) if selected_group else []
+        )
+        if code in frozenset(available_game_type_codes(request))
+    ]
     selected_game_type_code = None
     if game_type_codes:
         selected_game_type_code = resolve_game_type_code(
             request,
-            requested=request.GET.get("game_type_code", "").strip(),
+            requested=requested_game_type_token(request),
             available_codes=game_type_codes,
         )
 
@@ -890,11 +898,14 @@ def ask_query(request: HttpRequest) -> HttpResponse:
     except InsightRateLimitExceeded as exc:
         return _rate_limit_response(draft=draft, exc=exc)
 
+    played = frozenset(game_type_codes_for_group(group))
     scope = AskScope(
         group=group,
         period=period,
         default_game_type_code=game_type_code,
-        available_game_type_codes=tuple(game_type_codes_for_group(group)),
+        available_game_type_codes=tuple(
+            code for code in available_game_type_codes(request) if code in played
+        ),
     )
 
     include_debug = request_include_debug(request.user, payload)

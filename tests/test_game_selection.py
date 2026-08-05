@@ -44,7 +44,7 @@ def test_game_list_redirects_to_saved_game_type(client, user, group):
     response = client.get(reverse("games:list"))
 
     assert response.status_code == 302
-    assert "game_type=backgammon" in response.url
+    assert "type=backgammon" in response.url
 
 
 @pytest.mark.django_db
@@ -57,7 +57,7 @@ def test_game_list_persists_explicit_selection(client, user, group):
 
     response = client.get(
         reverse("games:list"),
-        {"game_type": "backgammon"},
+        {"type": "backgammon"},
         follow=True,
     )
 
@@ -125,12 +125,12 @@ def test_record_game_persists_group_and_game_type(client, user, group):
 
     list_response = client.get(reverse("games:list"))
     assert list_response.status_code == 302
-    assert "game_type=dominos" in list_response.url
+    assert "type=dominos" in list_response.url
     assert f"group={group.pk}" in list_response.url
 
     detail = client.get(response.url)
     assert detail.status_code == 200
-    assert f"/games/?group={group.pk}&amp;game_type=dominos" in detail.content.decode()
+    assert f"/games/?group={group.pk}&amp;type=dominos" in detail.content.decode()
 
 
 @pytest.mark.django_db
@@ -165,7 +165,7 @@ def test_leaderboard_uses_saved_game_type(client, user, group):
     assert 'value="backgammon"' in content
     assert "selected" in content
     assert "Backgammon" in content
-    assert f"game_type_code=backgammon" in content or "game_type=backgammon" in content
+    assert f"type=backgammon" in content or "type=backgammon" in content
 
 
 @pytest.mark.django_db
@@ -185,5 +185,5 @@ def test_anonymous_visitor_maintains_game_type_in_navbar(
     response = client.get(reverse("core:dashboard"))
     content = response.content.decode()
 
-    assert "game_type=dominos" in content
-    assert "game_type_code=dominos" in content
+    assert "type=dominos" in content
+    assert "type=dominos" in content

@@ -352,15 +352,6 @@ def locations_for_group(group: Group):
     return library.locations.order_by("name")
 
 
-GAME_CODE_SHORT = {
-    "dominos": "DO",
-    "progressiverummy": "PR",
-    "backgammon": "BG",
-    "mahjongg": "MJ",
-    "pickleball": "PB",
-}
-
-
 def rename_location(*, location: Location, new_name: str) -> Location:
     cleaned = new_name.strip()
     normalized = normalize_location_name(cleaned)

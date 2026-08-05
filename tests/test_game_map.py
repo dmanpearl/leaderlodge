@@ -213,6 +213,55 @@ def test_game_map_page_and_api(client, user, group, settings):
 
 
 @pytest.mark.django_db
+def test_game_map_locked_filters_to_locked_type(client, user, group, settings):
+    settings.GOOGLE_PLACES_API_KEY = "test-browser-key"
+    parlor = get_or_create_location(
+        library=group.location_library,
+        name="The Parlor",
+        geo=LocationGeo(
+            lat=34.05,
+            lon=-118.25,
+            city="Los Angeles",
+            state="CA",
+            country="US",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    other = get_or_create_location(
+        library=group.location_library,
+        name="Pickle Court",
+        geo=LocationGeo(
+            lat=34.1,
+            lon=-118.3,
+            city="Los Angeles",
+            state="CA",
+            country="US",
+            geocode_source=GEOCODE_SOURCE_PLACES_LOOKUP,
+        ),
+    )
+    _make_game(user, group, parlor, game_type_code="dominos")
+    _make_game(user, group, other, game_type_code="pickleball")
+
+    client.force_login(user)
+    client.get("/?lock=dominos")
+
+    page = client.get(reverse("games:map"), {"group": group.pk})
+    assert page.status_code == 200
+    assert page.context["params"]["game_type"] == "dominos"
+    assert page.context["map_heading"] == "Dominos"
+    assert page.context["map_heading_icon_url"]
+    assert b">Dominos</h1>" in page.content
+    assert b'id="map-game-type-select"' not in page.content
+    names = {f["properties"]["name"] for f in page.context["features"]}
+    assert names == {"The Parlor"}
+
+    api = client.get(reverse("map_locations"), {"group": group.pk})
+    assert api.status_code == 200
+    api_names = {f["properties"]["name"] for f in api.json()["features"]}
+    assert api_names == {"The Parlor"}
+
+
+@pytest.mark.django_db
 def test_anonymous_can_open_demo_map(client, settings, db):
     settings.DEMO_MODE_ENABLED = True
     settings.GOOGLE_PLACES_API_KEY = "test-browser-key"
@@ -271,7 +320,7 @@ def test_leaderboard_location_filter(client, user, group):
         reverse("leaderboards:index"),
         {
             "group": group.pk,
-            "game_type_code": "dominos",
+            "type": "dominos",
             "location": parlor.pk,
         },
     )

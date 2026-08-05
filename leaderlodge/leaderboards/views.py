@@ -9,6 +9,10 @@ from leaderlodge.groups.names import apply_label_overrides, disambiguate_labels
 
 from leaderlodge.accounts.game_selection import (
     all_game_type_codes,
+    available_game_type_codes,
+    is_game_type_locked,
+    preferred_game_type_code,
+    requested_game_type_token,
     resolve_game_type_code,
 )
 from leaderlodge.accounts.group_selection import resolve_view_group
@@ -62,12 +66,13 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
 
 
 def _leaderboard_game_type_options(
+    request: HttpRequest,
     played_codes: list[str],
 ) -> list[tuple[str, str, bool]]:
     played_set = frozenset(played_codes)
     return [
         (code, get_game_type(code).name, code not in played_set)
-        for code in all_game_type_codes()
+        for code in available_game_type_codes(request)
     ]
 
 
@@ -76,9 +81,9 @@ def _resolve_leaderboard_game_type_code(
     *,
     played_codes: list[str],
 ) -> str:
-    all_codes = all_game_type_codes()
-    requested = request.GET.get("game_type_code", "").strip()
-    if requested in all_codes:
+    all_codes = available_game_type_codes(request)
+    requested = requested_game_type_token(request)
+    if requested in all_game_type_codes() and requested in all_codes:
         resolve_game_type_code(
             request,
             requested=requested,
@@ -88,7 +93,9 @@ def _resolve_leaderboard_game_type_code(
     return resolve_game_type_code(
         request,
         requested="",
-        available_codes=played_codes if played_codes else all_codes,
+        available_codes=(
+            [c for c in played_codes if c in all_codes] if played_codes else all_codes
+        ),
     )
 
 
@@ -146,7 +153,9 @@ def _leaderboard_needs_redirect(
 ) -> bool:
     requested_group = request.GET.get("group") if "group" in request.GET else None
     requested_game_type = (
-        request.GET.get("game_type_code") if "game_type_code" in request.GET else None
+        requested_game_type_token(request)
+        if "type" in request.GET or "t" in request.GET
+        else None
     )
     if requested_group is None and resolved_group_id:
         return True
@@ -161,7 +170,7 @@ def _leaderboard_needs_redirect(
     if (
         requested_game_type is not None
         and resolved_game_type_code
-        and requested_game_type.strip() != resolved_game_type_code
+        and requested_game_type != resolved_game_type_code
     ):
         return True
     return False
@@ -287,7 +296,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             if can_invite_roster_player(actor_membership, row.player, selected_group)
         }
 
-    game_type_options = _leaderboard_game_type_options(played_game_type_codes)
+    game_type_options = _leaderboard_game_type_options(request, played_game_type_codes)
     selected_game_type_has_games = bool(
         selected_game_type_code
         and selected_game_type_code in frozenset(played_game_type_codes)
@@ -339,6 +348,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "groups": groups,
             "selected_group": selected_group,
             "game_type_options": game_type_options,
+            "game_type_locked": is_game_type_locked(request),
             "played_game_type_codes": played_game_type_codes,
             "selected_game_type_has_games": selected_game_type_has_games,
             "selected_game_type_code": selected_game_type_code,
@@ -447,6 +457,7 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
             granularity=granularity,
             player_type=player_type,
             label_map=hof_label_map,
+            allowed_game_type_codes=available_game_type_codes(request),
         )
         filter_summary = hall_of_fame_filter_summary(
             group_name=selected_group.name,
@@ -501,7 +512,9 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
         requested=requested_group,
         available_groups=groups,
     )
-    game_type_code = request.GET.get("game_type_code")
+    game_type_code = requested_game_type_token(request) or preferred_game_type_code(
+        request
+    )
     player_id = request.GET.get("player")
 
     if (

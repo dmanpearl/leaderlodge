@@ -48,7 +48,7 @@ def test_ask_example_detail_shows_try_it_for_supported_when_demo_exists(client, 
     content = response.content.decode()
     assert "Try It" in content
     assert "group=" in content
-    assert "game_type_code=dominos" in content
+    assert "type=dominos" in content
     assert "Who+leads+at+Home" in content
 
 

@@ -74,8 +74,8 @@
   </div>
 
   <div class="d-flex flex-wrap matchup-action-buttons mt-3">
-    <a href="{% url 'games:list' %}?game_type={{ game.game_type_code }}&group={{ game.group.pk }}" class="btn btn-outline-secondary">Games</a>
-    <a href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&game_type_code={{ game.game_type_code }}" class="btn btn-outline-primary">Leaderboard</a>
+    <a href="{% url 'games:list' %}?type={{ game.game_type_code }}&group={{ game.group.pk }}" class="btn btn-outline-secondary">Games</a>
+    <a href="{% url 'leaderboards:index' %}?group={{ game.group.pk }}&type={{ game.game_type_code }}" class="btn btn-outline-primary">Leaderboard</a>
     <a href="{% url 'games:detail' game.pk %}" class="btn btn-outline-secondary">Game detail</a>
   </div>
   {% if insights_enabled %}

@@ -75,8 +75,11 @@ from leaderlodge.groups.services import (
     visible_groups,
 )
 from leaderlodge.accounts.game_selection import (
-    all_game_type_codes,
+    available_game_type_codes,
+    is_game_type_locked,
     persist_game_type_code,
+    preferred_game_type_code,
+    requested_game_type_token,
     resolve_game_type_code,
 )
 from leaderlodge.accounts.group_selection import (
@@ -100,7 +103,7 @@ def _game_list_params(request: HttpRequest) -> dict:
         group = group.strip()
     return {
         "group": group,
-        "game_type": request.GET.get("game_type", "").strip(),
+        "game_type": requested_game_type_token(request),
         "player": request.GET.get("player", "").strip(),
         "player_type": normalize_player_type(request.GET.get("player_type", "")),
         "location": request.GET.get("location", "").strip(),
@@ -138,7 +141,7 @@ def _resolve_game_list_params(
         "game_type": resolve_game_type_code(
             request,
             requested=params["game_type"],
-            available_codes=all_game_type_codes(),
+            available_codes=available_game_type_codes(request),
         ),
         "player": params["player"],
         "player_type": params.get("player_type", ""),
@@ -158,7 +161,14 @@ def _resolve_game_list_params(
 def _game_list_redirect_query(params: dict[str, str], page: str | None) -> str:
     from urllib.parse import urlencode
 
-    query_params = {key: value for key, value in params.items() if value}
+    query_params = {}
+    for key, value in params.items():
+        if not value:
+            continue
+        if key == "game_type":
+            query_params["type"] = value
+        else:
+            query_params[key] = value
     if page:
         query_params["page"] = page
     return urlencode(query_params)
@@ -354,7 +364,15 @@ def _sanitize_game_list_params(
 def _game_list_filter_query(params: dict[str, str]) -> str:
     from urllib.parse import urlencode
 
-    return urlencode({key: value for key, value in params.items() if value})
+    query_params = {}
+    for key, value in params.items():
+        if not value:
+            continue
+        if key == "game_type":
+            query_params["type"] = value
+        else:
+            query_params[key] = value
+    return urlencode(query_params)
 
 
 def _game_list_has_filters(params: dict[str, str]) -> bool:
@@ -513,10 +531,7 @@ def _single_user_group(user) -> Group | None:
 
 
 def _requested_game_type_code(request: HttpRequest) -> str:
-    return (
-        request.GET.get("game_type_code", "").strip()
-        or request.GET.get("game_type", "").strip()
-    )
+    return requested_game_type_token(request)
 
 
 def _reuse_lookup_codes(form: GameRecordForm) -> tuple[Group, str] | None:
@@ -633,7 +648,12 @@ def game_list(request: HttpRequest) -> HttpResponse:
             ),
             "show_empty_filters_message": has_any_games,
             "groups": groups,
-            "game_types": game_type_choices(),
+            "game_types": [
+                (code, name)
+                for code, name in game_type_choices()
+                if code in available_game_type_codes(request)
+            ],
+            "game_type_locked": len(available_game_type_codes(request)) <= 1,
             "player_type_choices": PLAYER_TYPE_CHOICES,
             "locations": locations,
             "players": players,
@@ -770,7 +790,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
             initial["game_type_code"] = resolve_game_type_code(
                 request,
                 requested=_requested_game_type_code(request),
-                available_codes=all_game_type_codes(),
+                available_codes=available_game_type_codes(request),
             )
         form = GameRecordForm(user=request.user, initial=initial)
 
@@ -891,8 +911,11 @@ def game_create(request: HttpRequest) -> HttpResponse:
         initial_code = form.initial.get("game_type_code")
         if initial_code:
             selected_setup_game_type_code = str(initial_code).strip()
+    allowed_types = frozenset(available_game_type_codes(request))
     setup_game_type_options = [
-        (code, name, game_type_icon_url(code)) for code, name in game_type_choices()
+        (code, name, game_type_icon_url(code))
+        for code, name in game_type_choices()
+        if code in allowed_types
     ]
     selected_setup_game_type_icon_url = (
         game_type_icon_url(selected_setup_game_type_code)
@@ -908,6 +931,19 @@ def game_create(request: HttpRequest) -> HttpResponse:
         elif form.initial.get("location_name"):
             location_name = form.initial.get("location_name", "")
             location_geo = location_geo_post_values(form.initial)
+
+    locked = is_game_type_locked(request)
+    heading_type = game_type
+    if heading_type is None and locked:
+        locked_code = preferred_game_type_code(request)
+        if locked_code in GAME_TYPES:
+            heading_type = get_game_type(locked_code)
+    if locked and heading_type is not None:
+        record_game_heading = f"{heading_type.name} - Record Game"
+        record_game_heading_icon_url = game_type_icon_url(heading_type.code)
+    else:
+        record_game_heading = "Record Game"
+        record_game_heading_icon_url = ""
 
     return render(
         request,
@@ -943,6 +979,9 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 if request.user.is_authenticated
                 else ""
             ),
+            "game_type_locked": locked,
+            "record_game_heading": record_game_heading,
+            "record_game_heading_icon_url": record_game_heading_icon_url,
         },
     )
 

@@ -147,7 +147,7 @@ def test_navbar_links_include_saved_group(client, user, group, other_group):
 
     assert f"group={other_group.pk}" in content
     assert "game_type=dominos" in content
-    assert "game_type_code=dominos" in content
+    assert "type=dominos" in content
 
 
 @pytest.mark.django_db
