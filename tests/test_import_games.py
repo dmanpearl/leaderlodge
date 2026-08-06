@@ -481,13 +481,48 @@ def test_import_pickleball_file(group, user, pickleball_spreadsheet):
 
 
 @pytest.mark.django_db
-def test_import_committed_pickleball_demo_seed(group, user):
-    path = Path("data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx")
+@pytest.mark.parametrize(
+    ("game_type_code", "relative_path"),
+    [
+        ("backgammon", "data/seeds/backgammon/backgammon_demo_2026-08-06.xlsx"),
+        ("mahjongg", "data/seeds/mahjongg/mahjongg_demo_2026-08-06.xlsx"),
+        ("pickleball", "data/seeds/pickleball/pickleball_demo_2026-08-06.xlsx"),
+        ("ginrummy", "data/seeds/ginrummy/ginrummy_demo_2026-08-06.xlsx"),
+        ("cribbage", "data/seeds/cribbage/cribbage_demo_2026-08-06.xlsx"),
+        ("phase10", "data/seeds/phase10/phase10_demo_2026-08-06.xlsx"),
+        ("darts", "data/seeds/darts/darts_demo_2026-08-06.xlsx"),
+        ("cornhole", "data/seeds/cornhole/cornhole_demo_2026-08-06.xlsx"),
+    ],
+)
+def test_import_committed_generated_demo_seeds(
+    group, user, game_type_code, relative_path
+):
+    path = Path(relative_path)
     if not path.is_file():
-        pytest.skip("Pickleball demo seed not present")
+        pytest.skip(f"{game_type_code} demo seed not present")
 
-    summary = import_pickleball_file(path=path, group=group, recorded_by=user)
-    assert summary.parsed == 18
-    assert summary.created == 15
-    assert summary.skipped == 3
-    assert Game.objects.filter(group=group, game_type_code="pickleball").count() == 15
+    summary = import_games_file(
+        path=path,
+        group=group,
+        game_type_code=game_type_code,
+        recorded_by=user,
+    )
+    assert 50 <= summary.parsed <= 80
+    assert summary.created == summary.parsed
+    assert summary.skipped == 0
+    assert (
+        Game.objects.filter(group=group, game_type_code=game_type_code).count()
+        == summary.created
+    )
+    mapped = Game.objects.filter(
+        group=group,
+        game_type_code=game_type_code,
+        location__lat__isnull=False,
+        location__lon__isnull=False,
+    ).count()
+    assert mapped == summary.created
+    if game_type_code == "pickleball":
+        assert GroupPlayer.objects.filter(group=group, is_team=True).exists()
+        assert not Game.objects.filter(
+            group=group, game_type_code="pickleball", player_count__gt=2
+        ).exists()

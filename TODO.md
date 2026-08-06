@@ -211,12 +211,12 @@
       - Source-side pending bar for MPA navigations. Bar must contrast with the primary navbar (white strip, not primary-on-primary). Still needed for Leaders/etc on low bandwidth.
 - [x] aff308d Dashboard: speed up leaderboard-card ranking + skeleton shell with deferred fill
       - Reuse prefetched results in finish-points (no double scan). Shell paints recent games + skeletons; `/dashboard/leaderboard-cards/` fills ranked cards via fetch.
-- [x] Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
-      - features.md list; About/AI Insights meta, OG/Twitter, JSON-LD featureList. Demo seed docs still describe the five existing spreadsheets until new seeds land.
+- [x] 45f6f04 Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
+      - features.md list; About/AI Insights meta, OG/Twitter, JSON-LD featureList; demo seeds for all ten types.
 
 ## Open Items
 
-- [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 30/60 double skunk
+- [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 61/90 skunk/double-skunk
 - [ ] Pickleball: Rename 'ScoreType' to 'PickleballScoreType'
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Leaderboard Algorithm/Streaks: provide rank algorithm selector that includes default, streak, win-percent, win-total, points-percent, points-total. streaks (win, unbeaten, current, total/range, head-to-head/matchup

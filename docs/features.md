@@ -9,7 +9,8 @@ and leaderboards for social games played by groups of people.
 
 - Record scores for supported game types (Dominos, Backgammon, Progressive
   Rummy, Mah Jongg, Pickleball, Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
-- Easy to add additional game types and scoring rules (central registry)
+- Easy to add additional game types and scoring rules (central registry).
+  Step-by-step: [Adding a new game type](./adding-a-game-type.md)
 - Optional game-type lock so the app can look like a single-game product
   (see [Game type lock and URL params](#game-type-lock-and-url-params))
 - Games support Users, Players (roster members), or Teams

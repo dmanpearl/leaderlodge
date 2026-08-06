@@ -7,7 +7,7 @@
 | `leaderlodge.core` | Dashboard, home |
 | `leaderlodge.accounts` | Login / logout |
 | `leaderlodge.groups` | Groups, memberships, group players |
-| `leaderlodge.games` | Game records, registry, per-game validation |
+| `leaderlodge.games` | Game records, registry, per-game validation. To add a type: [Adding a new game type](./adding-a-game-type.md) |
 | `leaderlodge.leaderboards` | Ranking display; logic in `service.py` |
 | `leaderlodge.insights` | AI narration over computed stats. See [ai-insights.md](./ai-insights.md). |
 

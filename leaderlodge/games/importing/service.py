@@ -23,12 +23,23 @@ from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
+from leaderlodge.groups.demo_seed_locations import geo_for_seed_location
 from leaderlodge.groups.locations import resolve_game_location
 from leaderlodge.groups.models import Group, GroupPlayer
 from leaderlodge.groups.services import resolve_group, resolve_seed_player
 
 SCOREKEEPER_GAME_TYPES = frozenset({"dominos", "backgammon"})
-RAW_GAMES_GAME_TYPES = frozenset({"progressiverummy", "mahjongg"})
+RAW_GAMES_GAME_TYPES = frozenset(
+    {
+        "progressiverummy",
+        "mahjongg",
+        "ginrummy",
+        "cribbage",
+        "phase10",
+        "darts",
+        "cornhole",
+    }
+)
 PICKLEBALL_GAME_TYPE = "pickleball"
 
 
@@ -142,6 +153,7 @@ def import_scorekeeper_file(
         location = resolve_game_location(
             group=group,
             location_name=row.location_name,
+            geo=geo_for_seed_location(row.location_name),
         )
         participants = [
             ParticipantInput(
@@ -246,6 +258,7 @@ def import_raw_games_file(
         location = resolve_game_location(
             group=group,
             location_name=row.location_name,
+            geo=geo_for_seed_location(row.location_name),
         )
         participants = [
             ParticipantInput(
@@ -372,6 +385,7 @@ def import_pickleball_file(
         location = resolve_game_location(
             group=group,
             location_name=row.location_name,
+            geo=geo_for_seed_location(row.location_name),
         )
         participants = [
             ParticipantInput(

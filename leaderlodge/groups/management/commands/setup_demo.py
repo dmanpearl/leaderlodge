@@ -10,6 +10,9 @@ from leaderlodge.groups.demo import (
     DEMO_GROUP_NAME,
     demo_seed_paths,
 )
+from leaderlodge.groups.demo_seed_locations import geo_for_seed_location
+from leaderlodge.groups.location_geo import apply_location_geo
+from leaderlodge.groups.locations import ensure_group_location_library
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.services import create_group_with_owner
 
@@ -77,6 +80,13 @@ class Command(BaseCommand):
                 + "\nEnsure demo spreadsheets are present in the deployed checkout."
             )
 
+        if not options["dry_run"]:
+            geocoded = self._apply_seed_location_coordinates(group)
+            if geocoded:
+                self.stdout.write(
+                    f"  Applied map coordinates to {geocoded} seed location(s)."
+                )
+
     def _resolve_owner(self, username: str | None):
         User = get_user_model()
         if username:
@@ -127,8 +137,27 @@ class Command(BaseCommand):
 
         if updates:
             action = "Would update" if dry_run else "Updated"
-            self.stdout.write(f"{action} group {DEMO_GROUP_NAME!r}: {', '.join(updates)}.")
+            self.stdout.write(
+                f"{action} group {DEMO_GROUP_NAME!r}: {', '.join(updates)}."
+            )
         else:
-            self.stdout.write(f"Group {DEMO_GROUP_NAME!r} already exists with is_demo=True.")
+            self.stdout.write(
+                f"Group {DEMO_GROUP_NAME!r} already exists with is_demo=True."
+            )
 
         return group
+
+    def _apply_seed_location_coordinates(self, group: Group) -> int:
+        """Fill lat/lon for catalog seed venues (helps re-imports that skipped rows)."""
+        library = ensure_group_location_library(group)
+        updated = 0
+        for location in library.locations.all():
+            geo = geo_for_seed_location(location.name)
+            if geo is None:
+                continue
+            before = location.lat, location.lon
+            apply_location_geo(location, geo)
+            location.refresh_from_db()
+            if (location.lat, location.lon) != before and location.lat is not None:
+                updated += 1
+        return updated

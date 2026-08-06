@@ -89,7 +89,7 @@ Both commands run the same tests; `--create-db` only forces a fresh schema. Use 
 
 ## Importing historical games
 
-See [Importing game history](importing.md) for seed file layout, player mapping, and the `import_games` management command. Full command inventory: [Management commands](management-commands.md).
+See [Importing game history](importing.md) for seed file layout, player mapping, and the `import_games` management command. Full command inventory: [Management commands](management-commands.md). To add a game type (registry, importer, demo seeds): [Adding a new game type](adding-a-game-type.md).
 
 Quick example:
 
@@ -110,7 +110,10 @@ After `migrate` and `createsuperuser`:
 python manage.py setup_demo
 ```
 
-This creates the **Demo** group, sets `is_demo=True`, and imports all five bundled demo seed files (dominos, backgammon, Progressive Rummy, Mah Jongg, and Pickleball). Re-running is idempotent.
+This creates the **Demo** group, sets `is_demo=True`, and imports all bundled demo
+seed files (ten game types). Newer generated demos use mappable venues and
+per-sport randomized size/span. Re-running is idempotent. See
+[Importing — Demo group seeds](importing.md#demo-group-seeds) for the full path list.
 
 Log out and open http://127.0.0.1:8000/ to confirm the demo landing page. Set `DEMO_MODE_ENABLED=false` in `.env` or Railway variables to disable public demo browsing.
 

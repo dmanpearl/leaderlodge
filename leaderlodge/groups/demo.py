@@ -15,13 +15,18 @@ GUEST_DEMO_PAGE_NOTICE = (
 
 DEMO_SEED_IMPORTS: tuple[tuple[str, str], ...] = (
     ("dominos", "data/seeds/dominos/dominos_demo_2026-07-16.xlsx"),
-    ("backgammon", "data/seeds/backgammon/backgammon_demo_2026-07-16.xlsx"),
+    ("backgammon", "data/seeds/backgammon/backgammon_demo_2026-08-06.xlsx"),
     (
         "progressiverummy",
         "data/seeds/progressiverummy/progressiverummy_demo_2026-07-16.xlsx",
     ),
-    ("mahjongg", "data/seeds/mahjongg/mahjongg_demo_2026-07-16.xlsx"),
-    ("pickleball", "data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx"),
+    ("mahjongg", "data/seeds/mahjongg/mahjongg_demo_2026-08-06.xlsx"),
+    ("pickleball", "data/seeds/pickleball/pickleball_demo_2026-08-06.xlsx"),
+    ("ginrummy", "data/seeds/ginrummy/ginrummy_demo_2026-08-06.xlsx"),
+    ("cribbage", "data/seeds/cribbage/cribbage_demo_2026-08-06.xlsx"),
+    ("phase10", "data/seeds/phase10/phase10_demo_2026-08-06.xlsx"),
+    ("darts", "data/seeds/darts/darts_demo_2026-08-06.xlsx"),
+    ("cornhole", "data/seeds/cornhole/cornhole_demo_2026-08-06.xlsx"),
 )
 
 

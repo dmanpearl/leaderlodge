@@ -88,7 +88,8 @@ python manage.py setup_site_settings --email=you@example.com
 ### import_games
 
 Import games from a ScoreKeeper spreadsheet (`.xlsx`). Idempotent by
-spreadsheet row. See [Importing game history](importing.md).
+spreadsheet row. See [Importing game history](importing.md). New game types:
+[Adding a new game type](adding-a-game-type.md).
 
 ```bash
 python manage.py import_games \
@@ -159,6 +160,7 @@ Use exactly one scope: `--game`, `--game-type` (optional `-g`), or `--all`.
 
 Create or update the public Demo group (`is_demo=True`) and import all bundled
 demo seed spreadsheets. See [Demo group seeds](importing.md#demo-group-seeds).
+Adding another demo type: [Adding a new game type](adding-a-game-type.md).
 
 ```bash
 python manage.py setup_demo

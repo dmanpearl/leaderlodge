@@ -111,21 +111,18 @@ railway run python manage.py import_games -g manpearl --game-type pickleball dat
 
 ### Demo group (anonymous visitors)
 
-After `createsuperuser`, load the public demo group and all five demo spreadsheets in one step:
+After `createsuperuser`, load the public demo group and all bundled demo spreadsheets in one step:
 
 ```bash
 railway run python manage.py setup_demo
 ```
 
-This creates **Demo**, sets `is_demo=True`, and imports:
+This creates **Demo**, sets `is_demo=True`, and imports every file listed under
+[Importing — Demo group seeds](docs/importing.md#demo-group-seeds) (ten game
+types, including Gin Rummy, Cribbage, Phase 10, Darts, and Cornhole).
 
-- `data/seeds/dominos/dominos_demo_2026-07-16.xlsx`
-- `data/seeds/backgammon/backgammon_demo_2026-07-16.xlsx`
-- `data/seeds/progressiverummy/progressiverummy_demo_2026-07-16.xlsx`
-- `data/seeds/mahjongg/mahjongg_demo_2026-07-16.xlsx`
-- `data/seeds/pickleball/pickleball_demo_2026-07-16.xlsx`
-
-See [Demo group setup](docs/setup.md#demo-group-public-read-only) and [Importing — Demo seeds](docs/importing.md#demo-group-seeds) for local use, `--dry-run`, and manual import alternatives.
+See [Demo group setup](docs/setup.md#demo-group-public-read-only) for local use,
+`--dry-run`, and manual import alternatives.
 
 Admin notification email (signup, invites, game edits, feedback): [Site settings](docs/setup.md#site-settings-admin-notifications).
 
@@ -136,6 +133,7 @@ Admin notification email (signup, invites, game edits, feedback): [Site settings
 - [Features](docs/features.md) — product capabilities, including [game type lock and URL params](docs/features.md#game-type-lock-and-url-params)
 - [Architecture](docs/architecture.md) — app layout, models, leaderboard design
 - [Importing game history](docs/importing.md) — seed spreadsheets, `import_games`, and `setup_demo`
+- [Adding a new game type](docs/adding-a-game-type.md) — registry, importer, demo seeds, docs/SEO checklist
 - [Google Places API](docs/google-places.md) — location lookup setup, billing, key restrictions, Railway deployment
 
 ## Git setup
