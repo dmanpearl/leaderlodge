@@ -209,13 +209,13 @@
       - Staff and the demo group's creator can record/edit demo games without clearing is_demo. editable_groups now matches can_edit_group (no custom permission).
 - [x] b85e326 Nav pending feedback: thin top bar on same-origin navigations (navbar links and data-href rows)
       - Source-side pending bar for MPA navigations. Bar must contrast with the primary navbar (white strip, not primary-on-primary). Still needed for Leaders/etc on low bandwidth.
-- [x] Dashboard: speed up leaderboard-card ranking + skeleton shell with deferred fill
+- [x] aff308d Dashboard: speed up leaderboard-card ranking + skeleton shell with deferred fill
       - Reuse prefetched results in finish-points (no double scan). Shell paints recent games + skeletons; `/dashboard/leaderboard-cards/` fills ranked cards via fetch.
+- [x] Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
+      - features.md list; About/AI Insights meta, OG/Twitter, JSON-LD featureList. Demo seed docs still describe the five existing spreadsheets until new seeds land.
 
 ## Open Items
 
-- [ ] Hall of Fame: Revisit the need for this view. Consider removal
-- [ ] Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
 - [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 30/60 double skunk
 - [ ] Pickleball: Rename 'ScoreType' to 'PickleballScoreType'
 - [ ] Game Type: Add Canasta, Euchre
@@ -256,6 +256,7 @@
 - [/] Record game: look ahead incorrectly displayed “no players yet” (https://leaderlodge.com/admin/feedback/feedback/28)
       - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
 - [/] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
+- [keep] Hall of Fame: Revisit the need for this view. Consider removal
 
 ## AI showcase
 

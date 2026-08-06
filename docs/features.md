@@ -264,7 +264,9 @@ Game **type** selection uses `type` / `t`. A future Matchup view may use
 - XML sitemap at `/sitemap.xml` covering home, About, and About AI Insights
 - Canonical URL tag on every page strips query parameters to prevent duplicate indexing
 - Open Graph and Twitter Card meta tags on every page, with per-page override blocks
-- Per-page meta descriptions on the About and AI Insights pages, naming all 5 supported games
+- Per-page meta descriptions on the About and AI Insights pages, naming all
+  supported games (Dominos, Backgammon, Progressive Rummy, Mah Jongg,
+  Pickleball, Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
 - JSON-LD structured data (`WebApplication` schema) in the base template, extended
   to a richer `SoftwareApplication` schema with game-specific feature list on the About page
 
