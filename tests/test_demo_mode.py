@@ -2,7 +2,12 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from leaderlodge.groups.services import add_guest_player, create_group_with_owner
+from leaderlodge.games.models import Game
+from leaderlodge.groups.services import (
+    add_guest_player,
+    create_group_with_owner,
+    editable_groups,
+)
 from tests.test_games import _load_roster_post, _save_game_post
 
 
@@ -93,7 +98,7 @@ def test_anonymous_can_view_demo_leaderboard(client, demo_group_flagged, user):
 
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(demo_group_flagged.pk), "game_type_code": "dominos"},
+        {"group": str(demo_group_flagged.pk), "type": "dominos"},
     )
     assert response.status_code == 200
     assert "Demo" in response.content.decode()
@@ -126,3 +131,45 @@ def test_other_user_cannot_record_in_demo_group(client, demo_group_flagged, othe
         _load_roster_post(demo_group_flagged),
     )
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_demo_creator_can_record_in_demo_group(client, demo_group_flagged, user):
+    assert demo_group_flagged in editable_groups(user)
+
+    client.force_login(user)
+    roster = client.post(
+        reverse("games:create"),
+        _load_roster_post(demo_group_flagged),
+    )
+    assert roster.status_code == 200
+
+    save = client.post(
+        reverse("games:create"),
+        _save_game_post(demo_group_flagged),
+    )
+    assert save.status_code == 302
+    assert Game.objects.filter(group=demo_group_flagged).exists()
+
+
+@pytest.mark.django_db
+def test_staff_can_record_in_demo_group_without_membership(
+    client, demo_group_flagged, other_user
+):
+    other_user.is_staff = True
+    other_user.save(update_fields=["is_staff"])
+    assert demo_group_flagged in editable_groups(other_user)
+
+    client.force_login(other_user)
+    roster = client.post(
+        reverse("games:create"),
+        _load_roster_post(demo_group_flagged),
+    )
+    assert roster.status_code == 200
+
+    save = client.post(
+        reverse("games:create"),
+        _save_game_post(demo_group_flagged),
+    )
+    assert save.status_code == 302
+    assert Game.objects.filter(group=demo_group_flagged).exists()

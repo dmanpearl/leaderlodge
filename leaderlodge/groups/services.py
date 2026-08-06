@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 
 from leaderlodge.groups.locations import create_location_library
 from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer
@@ -210,9 +211,20 @@ def visible_groups(user: AbstractBaseUser | None):
 
 
 def editable_groups(user: AbstractBaseUser | None):
+    """Membership groups plus demo groups the user may edit (staff or creator)."""
     if user is None or not user.is_authenticated:
         return Group.objects.none()
-    return user_groups(user).filter(is_demo=False).order_by("name")
+
+    member_non_demo = Q(memberships__user=user, is_demo=False)
+    if user.is_staff:
+        demo_editable = Q(is_demo=True)
+    else:
+        demo_editable = Q(is_demo=True, created_by=user)
+    return (
+        Group.objects.filter(member_non_demo | demo_editable)
+        .distinct()
+        .order_by("name")
+    )
 
 
 def user_is_member(user: AbstractBaseUser, group: Group) -> bool:
@@ -235,7 +247,9 @@ def resolve_user_group(user: AbstractBaseUser, group_id: str | None) -> Group | 
     return single_user_group(user)
 
 
-def resolve_view_group(user: AbstractBaseUser | None, group_id: str | None) -> Group | None:
+def resolve_view_group(
+    user: AbstractBaseUser | None, group_id: str | None
+) -> Group | None:
     if group_id:
         group = Group.objects.filter(pk=group_id).first()
         if group and can_view_group(user, group):
@@ -298,9 +312,12 @@ def remove_group_member(*, membership: GroupMembership) -> str:
 def remove_roster_player(*, player: GroupPlayer) -> None:
     if player_has_games(player):
         raise ValueError("Cannot remove a player with recorded games.")
-    if player.linked_user_id and GroupMembership.objects.filter(
-        group_id=player.group_id,
-        user_id=player.linked_user_id,
-    ).exists():
+    if (
+        player.linked_user_id
+        and GroupMembership.objects.filter(
+            group_id=player.group_id,
+            user_id=player.linked_user_id,
+        ).exists()
+    ):
         raise ValueError("Remove the member from the group instead.")
     player.delete()

@@ -218,8 +218,7 @@ def test_dashboard_leaderboard_card_hides_record_button_when_not_can_record(
     client, user, demo_group_flagged
 ):
     owner, guest = list(demo_group_flagged.players.order_by("pk"))
-    # Seed via the service layer directly: the demo group is excluded from
-    # editable_groups, so the record-game form/view rejects it.
+    # Anonymous demo landing: seed via the service (no login). Record stays hidden.
     record_game(
         user=user,
         group=demo_group_flagged,

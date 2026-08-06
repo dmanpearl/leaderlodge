@@ -203,15 +203,15 @@
       - Also suppress browser/Contacts suggestions on the player picker (iOS Safari). Uses form autocomplete=off, non-semantic autocomplete tokens, and readonly-until-focus. Easy to revert if ineffective.
 - [x] 1138fcd Record game: need recent locations (https://leaderlodge.com/admin/feedback/feedback/29)
       - Recent button beside Location (and empty-field focus) lists recent group venues without typing
-- [x] Feedback View: remove required attribute on details field (https://leaderlodge.com/admin/feedback/feedback/27)
+- [x] fed130e Feedback View: remove required attribute on details field (https://leaderlodge.com/admin/feedback/feedback/27)
       - Details is optional; submit with title only is allowed
 
 ## Open Items
 
-- [ ] Record game: look ahead incorrectly displayed “no players yet” (https://leaderlodge.com/admin/feedback/feedback/28)
-      - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
-- [ ] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
-- [ ] NAV bar dashboard button and other buttons are sometimes unresponsive, perhaps due to slow Internet connection. Consider adding a spinner or other state indication (https://leaderlodge.com/admin/feedback/feedback/24)
+- [ ] Leaderboard: Clicking on a row takes a long time to register button press. Need activity indicator. Suggest navigate immediately to detail page and show a spinner there while loading
+- [ ] NAV bar dashboard button and other buttons are sometimes unresponsive, perhaps due to slow Internet connection. Consider adding a spinner or other state indication
+- [x] Demo group games editability (https://leaderlodge.com/admin/feedback/feedback/24)
+      - Staff and the demo group's creator can record/edit demo games without clearing is_demo. editable_groups now matches can_edit_group (no custom permission).
 - [ ] Hall of Fame: Revisit the need for this view. Consider removal
 - [ ] Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
 - [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 30/60 double skunk
@@ -251,6 +251,9 @@
 - [ ] Android: Build native mobile app for Android
 - [ ] Delete Group: Make a UI for deleting group, warn user about deleting x number of games, access from Groups View, Group Detail View, and/or Group Edit
 - [ ] If/when LeaderLodge becomes an installable PWA (`display: standalone`), design real in-app navigation chrome (back button and/or persistent nav bar), since the browser Back/URL bar disappear in standalone mode
+- [/] Record game: look ahead incorrectly displayed “no players yet” (https://leaderlodge.com/admin/feedback/feedback/28)
+      - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
+- [/] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
 
 ## AI showcase
 
