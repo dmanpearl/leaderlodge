@@ -73,11 +73,15 @@ def test_dashboard_composite_leaderboards(client, user, group):
     content = response.content.decode()
 
     assert "Leaderboards across your groups" in content
-    assert "Dom Club" in content
-    assert "Other Club" in content
+    assert "dashboard-leaderboard-skeletons" in content
+    assert reverse("core:dashboard_leaderboard_cards") in content
+
+    cards = client.get(reverse("core:dashboard_leaderboard_cards")).content.decode()
+    assert "Dom Club" in cards
+    assert "Other Club" in cards
     # Composite mini-leaderboard includes a Group column after Player.
-    card_start = content.index("Full Dominos Leaderboard")
-    assert content.index("Player", card_start) < content.index("Group", card_start)
+    card_start = cards.index("Full Dominos Leaderboard")
+    assert cards.index("Player", card_start) < cards.index("Group", card_start)
 
 
 @pytest.mark.django_db
@@ -88,7 +92,7 @@ def test_dashboard_leaderboard_card_has_record_and_fullscreen_buttons(
     client.post(reverse("games:create"), _load_roster_post(group))
     client.post(reverse("games:create"), _save_game_post(group))
 
-    content = client.get(reverse("core:dashboard")).content.decode()
+    content = client.get(reverse("core:dashboard_leaderboard_cards")).content.decode()
 
     create_url = reverse("games:create")
     assert f'href="{create_url}?type=dominos&group={group.pk}"' in content
@@ -107,7 +111,7 @@ def test_dashboard_composite_leaderboard_record_button_omits_group(client, user,
     client.post(reverse("games:create"), _load_roster_post(other_group))
     client.post(reverse("games:create"), _save_game_post(other_group))
 
-    content = client.get(reverse("core:dashboard")).content.decode()
+    content = client.get(reverse("core:dashboard_leaderboard_cards")).content.decode()
 
     create_url = reverse("games:create")
     assert f'href="{create_url}?type=dominos"' in content
@@ -242,5 +246,25 @@ def test_dashboard_leaderboard_card_hides_record_button_when_not_can_record(
 
     content = client.get(reverse("core:dashboard")).content.decode()
 
-    assert "bi-fullscreen" in content
-    assert "Record Dominos game" not in content
+    assert "dashboard-leaderboard-skeletons" in content
+    assert reverse("core:dashboard_leaderboard_cards") in content
+
+    cards = client.get(reverse("core:dashboard_leaderboard_cards")).content.decode()
+    assert "bi-fullscreen" in cards
+    assert "Record Dominos game" not in cards
+
+
+@pytest.mark.django_db
+def test_dashboard_shell_skips_ranked_player_labels(client, user, group):
+    client.force_login(user)
+    client.post(reverse("games:create"), _load_roster_post(group))
+    client.post(reverse("games:create"), _save_game_post(group))
+
+    shell = client.get(reverse("core:dashboard")).content.decode()
+    assert "dashboard-skeleton-row" in shell
+    assert "Full Dominos Leaderboard" not in shell
+
+    cards = client.get(reverse("core:dashboard_leaderboard_cards")).content.decode()
+    assert "Full Dominos Leaderboard" in cards
+    players = list(group.players.order_by("pk"))
+    assert players[0].display_label in cards or players[1].display_label in cards

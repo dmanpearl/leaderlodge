@@ -8,11 +8,11 @@ from django.urls import reverse
 
 from leaderlodge.core.decorators import demo_or_login_required, staff_required
 from leaderlodge.games.display import winner_labels_for_games
-from leaderlodge.groups.names import apply_label_overrides
 from leaderlodge.games.game_type_icons import game_type_icon_image
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group
+from leaderlodge.groups.names import apply_label_overrides
 from leaderlodge.groups.services import (
     editable_groups,
     get_demo_group,
@@ -49,6 +49,14 @@ class DashboardLeaderboardCard:
     icon_image: str = ""
 
 
+@dataclass(frozen=True)
+class DashboardLeaderboardSkeleton:
+    game_type_code: str
+    game_type_name: str
+    icon_class: str = ""
+    icon_image: str = ""
+
+
 def _dashboard_leaderboard_icons(game_type_code: str) -> tuple[str, str]:
     icon_image = game_type_icon_image(game_type_code)
     if icon_image:
@@ -75,9 +83,48 @@ def _dashboard_ranking_sort_key(ranking: PlayerRanking) -> tuple:
     )
 
 
+def _dashboard_groups_context(request):
+    """Return (groups, is_demo_landing, can_record_games) or None if login required."""
+    if request.user.is_authenticated:
+        return (
+            user_groups(request.user).order_by("name"),
+            False,
+            editable_groups(request.user).exists(),
+        )
+
+    demo = get_demo_group()
+    if demo is None:
+        return None
+    return Group.objects.filter(pk=demo.pk), True, False
+
+
+def _leaderboard_skeleton_cards(
+    request, groups: QuerySet[Group] | list[Group]
+) -> list[DashboardLeaderboardSkeleton]:
+    """Cheap card placeholders: game types with recorded games (no ranking math)."""
+    from leaderlodge.accounts.game_selection import available_game_type_codes
+
+    allowed = frozenset(available_game_type_codes(request))
+    cards: list[DashboardLeaderboardSkeleton] = []
+    for code in _game_type_codes_for_groups(groups):
+        if code not in allowed:
+            continue
+        game_type = get_game_type(code)
+        icon_class, icon_image = _dashboard_leaderboard_icons(code)
+        cards.append(
+            DashboardLeaderboardSkeleton(
+                game_type_code=code,
+                game_type_name=game_type.name,
+                icon_class=icon_class,
+                icon_image=icon_image,
+            )
+        )
+    return cards
+
+
 def _build_leaderboard_cards(
     request,
-    groups: QuerySet[Group],
+    groups: QuerySet[Group] | list[Group],
 ) -> list[DashboardLeaderboardCard]:
     from leaderlodge.accounts.game_selection import available_game_type_codes
 
@@ -162,8 +209,9 @@ def _render_dashboard(
         if request.user.is_authenticated
         else None
     )
-    if default_group is None and groups.count() == 1:
-        default_group = groups.first()
+    group_list = list(groups)
+    if default_group is None and len(group_list) == 1:
+        default_group = group_list[0]
 
     from leaderlodge.accounts.game_selection import (
         available_game_type_codes,
@@ -172,7 +220,7 @@ def _render_dashboard(
     )
 
     allowed_types = available_game_type_codes(request)
-    recent_games_qs = Game.objects.filter(group__in=groups).select_related(
+    recent_games_qs = Game.objects.filter(group__in=group_list).select_related(
         "group", "location"
     )
     if len(allowed_types) == 1:
@@ -187,8 +235,8 @@ def _render_dashboard(
         for game in recent_games_qs
     ]
 
-    leaderboard_cards = _build_leaderboard_cards(request, groups)
-    composite_leaderboards = groups.count() > 1
+    skeleton_cards = _leaderboard_skeleton_cards(request, group_list)
+    composite_leaderboards = len(group_list) > 1
     record_game_url_group = (
         default_group.pk if default_group and can_record_games else None
     )
@@ -216,9 +264,9 @@ def _render_dashboard(
         "core/dashboard.html",
         {
             "recent_games": recent_games,
-            "leaderboard_cards": leaderboard_cards,
+            "leaderboard_skeleton_cards": skeleton_cards,
             "composite_leaderboards": composite_leaderboards,
-            "has_groups": groups.exists(),
+            "has_groups": bool(group_list),
             "record_game_url_group": record_game_url_group,
             "is_demo_landing": is_demo_landing,
             "can_record_games": can_record_games,
@@ -226,31 +274,46 @@ def _render_dashboard(
             "dashboard_heading_icon_url": dashboard_heading_icon_url,
             "game_type_locked": locked,
             # Collapse chrome only when multiple game-type cards are shown.
-            "dashboard_sections_collapsible": len(leaderboard_cards) > 1,
+            "dashboard_sections_collapsible": len(skeleton_cards) > 1,
+            "dashboard_leaderboard_cards_url": reverse(
+                "core:dashboard_leaderboard_cards"
+            ),
         },
     )
 
 
 @demo_or_login_required
 def dashboard(request):
-    if request.user.is_authenticated:
-        groups = user_groups(request.user).order_by("name")
-        return _render_dashboard(
-            request,
-            groups=groups,
-            is_demo_landing=False,
-            can_record_games=editable_groups(request.user).exists(),
-        )
-
-    demo = get_demo_group()
-    if demo is None:
+    ctx = _dashboard_groups_context(request)
+    if ctx is None:
         return redirect_to_login(request.get_full_path())
-
+    groups, is_demo_landing, can_record_games = ctx
     return _render_dashboard(
         request,
-        groups=Group.objects.filter(pk=demo.pk),
-        is_demo_landing=True,
-        can_record_games=False,
+        groups=groups,
+        is_demo_landing=is_demo_landing,
+        can_record_games=can_record_games,
+    )
+
+
+@demo_or_login_required
+def dashboard_leaderboard_cards(request):
+    """HTML fragment: ranked top-5 cards for the dashboard (deferred fill)."""
+    ctx = _dashboard_groups_context(request)
+    if ctx is None:
+        return redirect_to_login(request.get_full_path())
+    groups, _is_demo_landing, can_record_games = ctx
+    group_list = list(groups)
+    cards = _build_leaderboard_cards(request, group_list)
+    return render(
+        request,
+        "core/includes/dashboard_leaderboard_cards.html",
+        {
+            "leaderboard_cards": cards,
+            "composite_leaderboards": len(group_list) > 1,
+            "can_record_games": can_record_games,
+            "dashboard_sections_collapsible": len(cards) > 1,
+        },
     )
 
 

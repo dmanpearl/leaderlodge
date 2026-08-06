@@ -352,6 +352,46 @@
   object-fit: contain;
 }
 
+.dashboard-skeleton-bar {
+  display: inline-block;
+  height: 0.7rem;
+  border-radius: 0.2rem;
+  background-color: rgba(33, 37, 41, 0.12);
+  vertical-align: middle;
+}
+
+.dashboard-skeleton-bar--rank {
+  width: 1.25rem;
+}
+
+.dashboard-skeleton-bar--player {
+  width: 5.5rem;
+}
+
+.dashboard-skeleton-bar--group {
+  width: 4.5rem;
+}
+
+.dashboard-skeleton-bar--score {
+  width: 2.25rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-skeleton-bar {
+    animation: dashboard-skeleton-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes dashboard-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .game-list-table-foot th {
   border-top-width: 2px;
   background-color: var(--bs-table-bg);

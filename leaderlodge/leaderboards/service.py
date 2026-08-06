@@ -762,14 +762,21 @@ def _finish_points_by_player(
     games_played_by_id: dict[int, float] | None = None,
     apply_experience_weight: bool = False,
 ) -> dict[int, FinishPointsCredit]:
+    from django.db.models import QuerySet
+
     from leaderlodge.games.models import GameParticipantResult
     from leaderlodge.groups.teams import team_member_players
 
-    results = list(
-        results_qs.select_related("player", "game").prefetch_related(
-            "player__team_members__member"
+    # Accept a prefetched list (preferred) or a queryset. Callers that already
+    # materialize results must pass the list to avoid a second DB round-trip.
+    if isinstance(results_qs, QuerySet):
+        results = list(
+            results_qs.select_related("player", "game").prefetch_related(
+                "player__team_members__member"
+            )
         )
-    )
+    else:
+        results = list(results_qs)
     if not results:
         return {}
 
@@ -962,7 +969,7 @@ def _standings_for_game_type(
         player_id: row["games_played"] for player_id, row in stats.items()
     }
     finish_points_by_player = _finish_points_by_player(
-        results_qs,
+        results,
         game_type_code=game_type_code,
         games_played_by_id=games_played_by_id,
         apply_experience_weight=period.apply_bayesian,

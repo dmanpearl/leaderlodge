@@ -207,12 +207,13 @@
       - Details is optional; submit with title only is allowed
 - [x] 25a296a Demo group games editability (https://leaderlodge.com/admin/feedback/feedback/24)
       - Staff and the demo group's creator can record/edit demo games without clearing is_demo. editable_groups now matches can_edit_group (no custom permission).
-- [x] Nav pending feedback: thin top bar on same-origin navigations (navbar links and data-href rows)
-      - Source-side pending bar for MPA navigations. Bar must contrast with the primary navbar (white strip, not primary-on-primary). Still needed for Leaders/etc on low bandwidth. Dashboard needs query speed + skeleton fill (below), not just this bar.
+- [x] b85e326 Nav pending feedback: thin top bar on same-origin navigations (navbar links and data-href rows)
+      - Source-side pending bar for MPA navigations. Bar must contrast with the primary navbar (white strip, not primary-on-primary). Still needed for Leaders/etc on low bandwidth.
+- [x] Dashboard: speed up leaderboard-card ranking + skeleton shell with deferred fill
+      - Reuse prefetched results in finish-points (no double scan). Shell paints recent games + skeletons; `/dashboard/leaderboard-cards/` fills ranked cards via fetch.
 
 ## Open Items
 
-- [ ] Dashboard: speed up leaderboard-card ranking work (double full-result scans per group x game type via get_player_rankings); then skeleton shell + deferred fill for cards/tables
 - [ ] Hall of Fame: Revisit the need for this view. Consider removal
 - [ ] Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
 - [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 30/60 double skunk

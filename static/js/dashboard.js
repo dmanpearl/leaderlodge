@@ -99,6 +99,9 @@
     });
   }
 
+  window.LeaderLodge = window.LeaderLodge || {};
+  window.LeaderLodge.initDashboardLeaderboardCollapses = initLeaderboardCollapses;
+
   initRecentGamesCollapse();
   initLeaderboardCollapses();
 })();

@@ -1,0 +1,121 @@
+{% load static %}
+{% if leaderboard_cards %}
+  {% if composite_leaderboards %}
+    <p class="text-muted small mb-2">Leaderboards across your groups</p>
+  {% endif %}
+  <div class="row g-3 align-items-start">
+    {% for card in leaderboard_cards %}
+      <div class="col-12 col-md-6">
+        <div class="card game-list-filters-card">
+          <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header dashboard-section-header gap-2">
+            {% if dashboard_sections_collapsible %}
+              <button
+                class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#dashboard-leaderboard-{{ card.game_type_code }}"
+                aria-expanded="false"
+                aria-controls="dashboard-leaderboard-{{ card.game_type_code }}"
+                data-dashboard-collapse
+                data-collapse-storage-key="leaderlodge.dashboardLeaderboard.{{ card.game_type_code }}.Open"
+                data-collapse-summary-id="dashboard-leaderboard-summary-{{ card.game_type_code }}"
+              >
+                <i
+                  id="dashboard-leaderboard-icon-{{ card.game_type_code }}"
+                  class="bi bi-chevron-right"
+                  aria-hidden="true"
+                ></i>
+                {% if card.icon_image %}
+                  <img
+                    src="{% static card.icon_image %}"
+                    class="dashboard-section-icon dashboard-section-icon--image"
+                    alt=""
+                  />
+                {% elif card.icon_class %}
+                  <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
+                {% endif %}
+                <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
+                <span
+                  id="dashboard-leaderboard-summary-{{ card.game_type_code }}"
+                  class="text-muted game-list-filters-summary"
+                  hidden
+                >
+                  ({{ card.rows|length }} player{{ card.rows|length|pluralize }})
+                </span>
+              </button>
+            {% else %}
+              <div class="d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1">
+                {% if card.icon_image %}
+                  <img
+                    src="{% static card.icon_image %}"
+                    class="dashboard-section-icon dashboard-section-icon--image"
+                    alt=""
+                  />
+                {% elif card.icon_class %}
+                  <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
+                {% endif %}
+                <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
+              </div>
+            {% endif %}
+            <span class="d-flex align-items-center gap-2 flex-shrink-0">
+              {% if can_record_games %}
+                <a
+                  href="{% url 'games:create' %}?type={{ card.game_type_code }}{% if card.group_id %}&group={{ card.group_id }}{% endif %}"
+                  class="btn btn-link btn-sm p-0"
+                  title="Record {{ card.game_type_name }} game"
+                  aria-label="Record {{ card.game_type_name }} game"
+                >
+                  <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                </a>
+              {% endif %}
+              <a
+                href="{{ card.leaderboard_url }}"
+                class="btn btn-link btn-sm p-0 text-muted"
+                title="Full {{ card.game_type_name }} Leaderboard"
+                aria-label="Full {{ card.game_type_name }} Leaderboard"
+              >
+                <i class="bi bi-fullscreen" aria-hidden="true"></i>
+              </a>
+            </span>
+          </div>
+          <div{% if dashboard_sections_collapsible %} id="dashboard-leaderboard-{{ card.game_type_code }}" class="collapse"{% endif %}>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                  <thead>
+                    <tr>
+                      <th scope="col">#</th>
+                      <th scope="col">Player</th>
+                      {% if card.composite %}
+                        <th scope="col">Group</th>
+                      {% endif %}
+                      <th scope="col">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in card.rows %}
+                      <tr>
+                        <td>{{ row.rank }}</td>
+                        <td class="text-truncate" style="max-width: 7rem;">{{ row.player_label }}</td>
+                        {% if card.composite %}
+                          <td class="text-truncate" style="max-width: 6rem;">{{ row.group_name }}</td>
+                        {% endif %}
+                        <td>{{ row.rank_score|floatformat:1 }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card h-100">
+    <div class="card-body d-flex align-items-center">
+      <p class="text-muted mb-0">Record games to see leaderboards.</p>
+    </div>
+  </div>
+{% endif %}
