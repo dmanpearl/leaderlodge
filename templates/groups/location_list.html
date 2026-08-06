@@ -598,7 +598,7 @@
 
       document.querySelectorAll(".location-list-row[data-href]").forEach(function (row) {
         function navigate() {
-          window.location = row.dataset.href;
+          window.LeaderLodge.navigate(row.dataset.href);
         }
         row.addEventListener("click", function (event) {
           if (event.target.closest("a, button, .dropdown-menu, form")) {

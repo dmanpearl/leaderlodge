@@ -348,3 +348,51 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
   height: 1px;
   overflow: hidden;
 }
+
+/* Contrasting strip under the top of the viewport. Must not use --bs-primary:
+   the navbar is already primary blue, so a primary bar is invisible. */
+.nav-pending-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 2000;
+  pointer-events: none;
+  overflow: hidden;
+  background: transparent;
+}
+
+.nav-pending-bar[hidden] {
+  display: none;
+}
+
+.nav-pending-bar.is-active {
+  display: block;
+}
+
+.nav-pending-bar.is-active::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: 40%;
+  background-color: #fff;
+  box-shadow: 0 0 0 1px rgba(13, 110, 253, 0.35);
+  animation: nav-pending-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes nav-pending-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-pending-bar.is-active::after {
+    width: 100%;
+    animation: none;
+  }
+}

@@ -205,13 +205,14 @@
       - Recent button beside Location (and empty-field focus) lists recent group venues without typing
 - [x] fed130e Feedback View: remove required attribute on details field (https://leaderlodge.com/admin/feedback/feedback/27)
       - Details is optional; submit with title only is allowed
+- [x] 25a296a Demo group games editability (https://leaderlodge.com/admin/feedback/feedback/24)
+      - Staff and the demo group's creator can record/edit demo games without clearing is_demo. editable_groups now matches can_edit_group (no custom permission).
+- [x] Nav pending feedback: thin top bar on same-origin navigations (navbar links and data-href rows)
+      - Source-side pending bar for MPA navigations. Bar must contrast with the primary navbar (white strip, not primary-on-primary). Still needed for Leaders/etc on low bandwidth. Dashboard needs query speed + skeleton fill (below), not just this bar.
 
 ## Open Items
 
-- [ ] Leaderboard: Clicking on a row takes a long time to register button press. Need activity indicator. Suggest navigate immediately to detail page and show a spinner there while loading
-- [ ] NAV bar dashboard button and other buttons are sometimes unresponsive, perhaps due to slow Internet connection. Consider adding a spinner or other state indication
-- [x] Demo group games editability (https://leaderlodge.com/admin/feedback/feedback/24)
-      - Staff and the demo group's creator can record/edit demo games without clearing is_demo. editable_groups now matches can_edit_group (no custom permission).
+- [ ] Dashboard: speed up leaderboard-card ranking work (double full-result scans per group x game type via get_player_rankings); then skeleton shell + deferred fill for cards/tables
 - [ ] Hall of Fame: Revisit the need for this view. Consider removal
 - [ ] Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
 - [ ] Cribbage Skunk: Modify shutout behavior to support Cribbage 30/60 double skunk

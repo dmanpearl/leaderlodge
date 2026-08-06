@@ -160,7 +160,7 @@
   function initRowNavigation() {
     document.querySelectorAll(".game-list-row[data-href]").forEach((row) => {
       const navigate = () => {
-        window.location = row.dataset.href;
+        window.LeaderLodge.navigate(row.dataset.href);
       };
 
       row.addEventListener("click", (event) => {
