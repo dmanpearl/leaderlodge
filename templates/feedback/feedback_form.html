@@ -48,6 +48,7 @@
             <div class="mb-3">
               <label for="{{ form.description.id_for_label }}" class="form-label">
                 {{ form.description.label }}
+                <span class="text-muted fw-normal">(optional)</span>
               </label>
               {{ form.description }}
               {% if form.description.errors %}

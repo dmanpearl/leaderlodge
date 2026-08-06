@@ -55,6 +55,33 @@ def test_feedback_create_submits_and_emails_user(client, user):
 
 
 @pytest.mark.django_db
+def test_feedback_create_allows_empty_details(client, user):
+    client.force_login(user)
+    page = client.get(reverse("feedback:create"))
+    content = page.content.decode()
+    assert page.status_code == 200
+    assert "(optional)" in content
+    assert 'id="id_description"' in content
+    desc_tag = content.split('id="id_description"', 1)[0].rsplit("<", 1)[-1]
+    assert "required" not in desc_tag
+
+    response = client.post(
+        reverse("feedback:create"),
+        {
+            "feedback_type": Feedback.FeedbackType.FEATURE,
+            "game_type_code": "",
+            "title": "Dark mode",
+            "description": "",
+        },
+    )
+    assert response.status_code == 302
+    assert response.url == reverse("feedback:thanks")
+    feedback = Feedback.objects.get()
+    assert feedback.title == "Dark mode"
+    assert feedback.description == ""
+
+
+@pytest.mark.django_db
 def test_feedback_create_without_email_still_saves(client, db):
     user = User.objects.create_user(
         username="noemail",

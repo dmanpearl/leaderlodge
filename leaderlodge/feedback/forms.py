@@ -29,7 +29,7 @@ class FeedbackForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "rows": 6,
-                    "placeholder": "Tell us what happened or what you would like to see.",
+                    "placeholder": "Optional: tell us what happened or what you would like to see.",
                 }
             ),
         }
@@ -37,6 +37,9 @@ class FeedbackForm(forms.ModelForm):
             "feedback_type": "Type",
             "title": "Title",
             "description": "Details",
+        }
+        help_texts = {
+            "description": "Optional.",
         }
 
     def __init__(self, *args, **kwargs):
@@ -48,7 +51,9 @@ class FeedbackForm(forms.ModelForm):
         if not self.is_bound and not self.instance.pk:
             self.fields["feedback_type"].initial = Feedback.FeedbackType.BUG
         self.fields["feedback_type"].choices = Feedback.FeedbackType.choices
+        # Model allows blank; keep the HTML required attribute off as well.
         self.fields["description"].required = False
+        self.fields["description"].widget.attrs.pop("required", None)
 
     def clean_game_type_code(self):
         code = self.cleaned_data.get("game_type_code", "")
