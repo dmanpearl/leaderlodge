@@ -1,6 +1,19 @@
-<div class="d-flex align-items-center gap-2 {% if show_label|default:True %}mb-1{% else %}mb-0{% endif %}">
+<div class="d-flex align-items-center gap-2 flex-wrap {% if show_label|default:True %}mb-1{% else %}mb-0{% endif %}">
   {% if show_label|default:True %}
     <label for="{{ field.id_for_label }}" class="form-label mb-0">{{ label|default:field.label }}</label>
+  {% endif %}
+  {% if enable_recent_locations %}
+    <button
+      type="button"
+      class="btn btn-sm btn-link p-0 location-lookup-btn"
+      data-location-recent
+      aria-label="Recent locations"
+      title="Browse recent locations"
+      disabled
+    >
+      <i class="bi bi-clock-history" aria-hidden="true"></i>
+      <span>Recent</span>
+    </button>
   {% endif %}
   {% if google_places_api_key and not is_guest_demo %}
     <button

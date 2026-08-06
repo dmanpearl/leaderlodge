@@ -201,11 +201,11 @@
       - Root cause: game-locking (2e72eed) made reuse_preview only read ?type/?t, while setup JS still sends game_type_code, so the button stayed disabled. Pick|Reuse restored game_type_code on that endpoint (side effect of the location fix). Segmented Reuse was never affected (uses reuse_from, not the preview API).
 - [x] Record game: When entering game scores, don't allow browser to suggest values
       - Also suppress browser/Contacts suggestions on the player picker (iOS Safari). Uses form autocomplete=off, non-semantic autocomplete tokens, and readonly-until-focus. Easy to revert if ineffective.
+- [x] Record game: need recent locations (https://leaderlodge.com/admin/feedback/feedback/29)
+      - Recent button beside Location (and empty-field focus) lists recent group venues without typing
 
 ## Open Items
 
-- [ ] Record game: need recent locations (https://leaderlodge.com/admin/feedback/feedback/29)
-      - Sometimes I don’t remember what the location is called, so it is difficult to use type ahead, and I am no longer at that location so it is difficult to use the map options. I suggest a way to look at recent locations without typing. Perhaps use a dedicated button or even a click in the field.
 - [ ] Record game: look ahead incorrectly displayed “no players yet” (https://leaderlodge.com/admin/feedback/feedback/28)
       - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
 - [ ] Feedback View: remove required attribute on details field (https://leaderlodge.com/admin/feedback/feedback/27)

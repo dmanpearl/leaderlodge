@@ -61,6 +61,10 @@
       .map((item) => item.location);
   }
 
+  function recentSuggestions(recentLocations) {
+    return recentLocations.slice(0, MAX_SUGGESTIONS);
+  }
+
   function attachListToInput(input, listEl) {
     const existingWrap = input.closest(".location-field-input-wrap");
     if (existingWrap) {
@@ -138,11 +142,20 @@
       this.groupSelect = groupSelect;
       this.fixedGroupId = fixedGroupId;
       this.locationsUrlTemplate = locationsUrlTemplate;
+      this.form = input.closest("form");
+      this.gameSelect = this.form
+        ? this.form.querySelector('[name="game_type_code"]')
+        : null;
+      this.recentButton = this.form
+        ? this.form.querySelector("[data-location-recent]")
+        : null;
       this.locations = [];
+      this.recentLocations = [];
       this.suggestions = [];
       this.activeIndex = -1;
       this.isOpen = false;
       this.skipRefresh = false;
+      this.forceRecent = false;
 
       this.listEl = document.createElement("ul");
       this.listEl.className = "location-autocomplete-list";
@@ -163,6 +176,8 @@
       this.onFocus = this.onFocus.bind(this);
       this.reposition = this.reposition.bind(this);
       this.onGroupChange = this.onGroupChange.bind(this);
+      this.onGameTypeChange = this.onGameTypeChange.bind(this);
+      this.onRecentClick = this.onRecentClick.bind(this);
       this.onViewportChange = this.reposition;
 
       this.input.addEventListener("input", this.onInput);
@@ -175,19 +190,43 @@
       if (this.groupSelect) {
         this.groupSelect.addEventListener("change", this.onGroupChange);
       }
+      if (this.gameSelect) {
+        this.gameSelect.addEventListener("change", this.onGameTypeChange);
+      }
+      if (this.recentButton) {
+        this.recentButton.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+        });
+        this.recentButton.addEventListener("click", this.onRecentClick);
+      }
 
       initLocationClearButton(this.input);
       this.loadLocationsForSelectedGroup();
     }
 
     locationsUrl(groupId) {
-      return this.locationsUrlTemplate.replace("/0/", `/${groupId}/`);
+      const base = this.locationsUrlTemplate.replace("/0/", `/${groupId}/`);
+      const gameType = this.gameSelect ? this.gameSelect.value : "";
+      if (!gameType) {
+        return base;
+      }
+      const params = new URLSearchParams({ game_type_code: gameType });
+      return `${base}?${params.toString()}`;
+    }
+
+    syncRecentButton() {
+      if (!this.recentButton) {
+        return;
+      }
+      this.recentButton.disabled = this.recentLocations.length === 0;
     }
 
     async loadLocationsForSelectedGroup() {
       const groupId = this.groupSelect ? this.groupSelect.value : this.fixedGroupId;
       if (!groupId) {
         this.locations = [];
+        this.recentLocations = [];
+        this.syncRecentButton();
         this.close();
         return;
       }
@@ -198,13 +237,19 @@
         });
         if (!response.ok) {
           this.locations = [];
+          this.recentLocations = [];
+          this.syncRecentButton();
           this.close();
           return;
         }
         const data = await response.json();
         this.locations = Array.isArray(data.locations) ? data.locations : [];
+        this.recentLocations = Array.isArray(data.recent) ? data.recent : [];
+        this.syncRecentButton();
       } catch (_error) {
         this.locations = [];
+        this.recentLocations = [];
+        this.syncRecentButton();
         this.close();
       }
     }
@@ -213,8 +258,22 @@
       this.loadLocationsForSelectedGroup();
     }
 
+    onGameTypeChange() {
+      this.loadLocationsForSelectedGroup();
+    }
+
+    onRecentClick() {
+      if (this.recentLocations.length === 0) {
+        return;
+      }
+      this.forceRecent = true;
+      this.input.focus();
+      this.refreshSuggestions({ forceRecent: true });
+    }
+
     onInput(event) {
       syncLocationFieldButtons(this.input);
+      this.forceRecent = false;
       if (this.skipRefresh) {
         this.skipRefresh = false;
         return;
@@ -229,7 +288,7 @@
       if (this.skipRefresh) {
         return;
       }
-      this.refreshSuggestions();
+      this.refreshSuggestions({ forceRecent: this.forceRecent });
     }
 
     onBlur() {
@@ -275,8 +334,13 @@
       this.renderSuggestions();
     }
 
-    refreshSuggestions() {
-      this.suggestions = filterLocations(this.locations, this.input.value);
+    refreshSuggestions({ forceRecent = false } = {}) {
+      const query = this.input.value.trim();
+      if (forceRecent || !query) {
+        this.suggestions = recentSuggestions(this.recentLocations);
+      } else {
+        this.suggestions = filterLocations(this.locations, this.input.value);
+      }
       this.activeIndex = -1;
       if (this.suggestions.length === 0) {
         this.close();

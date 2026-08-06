@@ -3,7 +3,12 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 
-from leaderlodge.games.last_location import last_recorded_location_name
+from datetime import date, timedelta
+
+from leaderlodge.games.last_location import (
+    last_recorded_location_name,
+    recent_location_names,
+)
 from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.locations import resolve_game_location
@@ -118,3 +123,87 @@ def test_game_reuse_preview_includes_last_location_name(client, staff_user, grou
     assert response.json()["last_location_name"] == "Kitchen"
 
 
+@pytest.mark.django_db
+def test_recent_location_names_prefers_game_type_then_fills(staff_user, group):
+    players = list(group.players.order_by("pk"))
+    kitchen = resolve_game_location(group=group, location_name="Kitchen")
+    patio = resolve_game_location(group=group, location_name="Patio")
+    clubhouse = resolve_game_location(group=group, location_name="Clubhouse")
+    today = timezone.localdate()
+
+    def _play(*, game_type_code, location, played_on):
+        record_game(
+            user=staff_user,
+            group=group,
+            game_type_code=game_type_code,
+            played_on=played_on,
+            participants=[
+                ParticipantInput(
+                    player=players[0], score=30, result=Result.WIN, placement=0
+                ),
+                ParticipantInput(
+                    player=players[1], score=20, result=Result.PLAYED, placement=1
+                ),
+            ],
+            location=location,
+        )
+
+    _play(
+        game_type_code="dominos", location=kitchen, played_on=today - timedelta(days=3)
+    )
+    _play(game_type_code="dominos", location=patio, played_on=today - timedelta(days=1))
+    _play(
+        game_type_code="backgammon",
+        location=clubhouse,
+        played_on=today,
+    )
+
+    assert recent_location_names(group, game_type_code="dominos") == [
+        "Patio",
+        "Kitchen",
+        "Clubhouse",
+    ]
+    assert recent_location_names(group, game_type_code="backgammon")[:1] == [
+        "Clubhouse"
+    ]
+
+
+@pytest.mark.django_db
+def test_group_locations_api_includes_recent(client, staff_user, group):
+    players = list(group.players.order_by("pk"))
+    kitchen = resolve_game_location(group=group, location_name="Kitchen")
+    record_game(
+        user=staff_user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 1, 1),
+        participants=[
+            ParticipantInput(
+                player=players[0], score=30, result=Result.WIN, placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=20, result=Result.PLAYED, placement=1
+            ),
+        ],
+        location=kitchen,
+    )
+
+    client.force_login(staff_user)
+    response = client.get(
+        reverse("groups:locations", kwargs={"pk": group.pk}),
+        {"game_type_code": "dominos"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert {"name": "Kitchen"} in data["locations"]
+    assert data["recent"] == [{"name": "Kitchen"}]
+
+
+@pytest.mark.django_db
+def test_record_game_setup_shows_recent_locations_control(client, staff_user, group):
+    client.force_login(staff_user)
+    response = client.get(reverse("games:create"))
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert "data-location-recent" in content
+    assert "Recent" in content

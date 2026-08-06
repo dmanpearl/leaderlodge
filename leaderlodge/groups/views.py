@@ -22,6 +22,7 @@ from leaderlodge.accounts.game_selection import (
     resolve_game_type_code,
 )
 from leaderlodge.core.decorators import demo_or_login_required
+from leaderlodge.games.last_location import recent_location_names
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.accounts.group_selection import persist_group_id
 from leaderlodge.groups.forms import (
@@ -354,7 +355,18 @@ def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
         raise Http404
 
     locations = [{"name": location.name} for location in locations_for_group(group)]
-    return JsonResponse({"locations": locations})
+    game_type_code = (
+        (request.GET.get("game_type_code") or "").strip()
+        or (request.GET.get("type") or "").strip()
+        or (request.GET.get("t") or "").strip()
+    )
+    recent = recent_location_names(group, game_type_code=game_type_code or None)
+    return JsonResponse(
+        {
+            "locations": locations,
+            "recent": [{"name": name} for name in recent],
+        }
+    )
 
 
 @demo_or_login_required

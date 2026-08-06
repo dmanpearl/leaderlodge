@@ -101,7 +101,7 @@
               {% endif %}
             </div>
             <div class="col-12">
-              {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True %}
+              {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True enable_recent_locations=True %}
             </div>
           </div>
           <div class="game-setup-actions mt-3">
@@ -352,7 +352,7 @@
     <script>
       document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
     </script>
-    <script src="{% static 'js/location_autocomplete.js' %}?v=10"></script>
+    <script src="{% static 'js/location_autocomplete.js' %}?v=11"></script>
     <script src="{% static 'js/game_setup.js' %}?v=1"></script>
     {% if not is_guest_demo %}
       <script src="{% static 'js/game_setup_reuse.js' %}?v=7"></script>

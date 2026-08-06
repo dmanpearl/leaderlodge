@@ -14,7 +14,8 @@ and leaderboards for social games played by groups of people.
   (see [Game type lock and URL params](#game-type-lock-and-url-params))
 - Games support Users, Players (roster members), or Teams
 - Fuzzy auto-complete for player name entry
-- Location tracking with fuzzy auto-complete and "last location used" pre-population
+- Location tracking with fuzzy auto-complete, "last location used" pre-population,
+  and a Recent control to browse recent group venues without typing
 - Reuse a recent game's player roster from a menu of up to 5 recent games
   of the same type
 - After saving, Game Detail offers a New control (+ Pick | Reuse) left of the

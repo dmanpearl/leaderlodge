@@ -92,7 +92,10 @@ def test_group_locations_api(client, user):
     response = client.get(reverse("groups:locations", kwargs={"pk": group.pk}))
 
     assert response.status_code == 200
-    assert response.json() == {"locations": [{"name": "Nancy's House"}]}
+    assert response.json() == {
+        "locations": [{"name": "Nancy's House"}],
+        "recent": [],
+    }
 
 
 @pytest.mark.django_db
