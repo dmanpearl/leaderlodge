@@ -1,3 +1,4 @@
+import json
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -45,7 +46,10 @@ from leaderlodge.games.location_field import (
     location_geo_from_form,
     location_geo_post_values,
 )
-from leaderlodge.games.last_location import last_recorded_location_name
+from leaderlodge.games.last_location import (
+    last_recorded_location_name,
+    last_recorded_score_type,
+)
 from leaderlodge.games.reuse_players import (
     participant_rows_from_game,
     previous_game_participant_rows,
@@ -695,6 +699,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     player_picker_start_collapsed = False
     preserve_setup_location = False
     game_type = None
+    seeded_score_type: str | None = None
 
     if request.method == "POST":
         form = GameRecordForm(request.POST, user=request.user)
@@ -715,15 +720,16 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 if action == "reuse_roster":
                     reused_participant_rows = []
                     reuse_game_id = (request.POST.get("reuse_game_id") or "").strip()
+                    source_for_reuse = None
                     if reuse_game_id.isdigit():
-                        source_game = Game.objects.filter(
+                        source_for_reuse = Game.objects.filter(
                             pk=int(reuse_game_id),
                             group=group,
                             game_type_code=game_type_code,
                         ).first()
-                        if source_game is not None:
+                        if source_for_reuse is not None:
                             reused_participant_rows = participant_rows_from_game(
-                                source_game
+                                source_for_reuse
                             )
                     if not reused_participant_rows:
                         reused_participant_rows = previous_game_participant_rows(
@@ -734,9 +740,13 @@ def game_create(request: HttpRequest) -> HttpResponse:
                             request,
                             "No previous game found for this group and game type.",
                         )
+                        # Stay on unified screen with empty roster.
+                        show_roster = True
                     else:
                         show_roster = True
                         player_picker_start_collapsed = True
+                        if source_for_reuse is not None:
+                            seeded_score_type = source_for_reuse.score_type or None
                 else:
                     show_roster = True
                 if show_roster:
@@ -764,6 +774,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 if reused_participant_rows:
                     show_roster = True
                     player_picker_start_collapsed = True
+                    preserve_setup_location = True
+                    seeded_score_type = source_game.score_type or None
                     initial["group"] = source_game.group_id
                     initial["game_type_code"] = source_game.game_type_code
                     initial["played_on"] = timezone.localdate()
@@ -787,6 +799,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 # an empty roster so the user picks players on the record screen.
                 show_roster = True
                 player_picker_start_collapsed = False
+                preserve_setup_location = True
+                seeded_score_type = pick_game.score_type or None
                 reused_participant_rows = []
                 initial["group"] = pick_game.group_id
                 initial["game_type_code"] = pick_game.game_type_code
@@ -829,25 +843,32 @@ def game_create(request: HttpRequest) -> HttpResponse:
     if show_roster and group and not can_edit_group(request.user, group):
         raise Http404
 
-    if show_roster and group:
-        if (
-            form.is_bound
-            and form.is_valid()
-            and form.cleaned_data.get("game_type_code")
-        ):
-            game_type_code = form.cleaned_data["game_type_code"]
-        else:
-            game_type_code = (
-                request.POST.get("game_type_code")
-                or form.initial.get("game_type_code")
-                or ""
-            )
-        game_type = get_game_type(game_type_code) if game_type_code else None
+    if form.is_bound and form.is_valid() and form.cleaned_data.get("game_type_code"):
+        game_type_code = form.cleaned_data["game_type_code"]
+    else:
+        game_type_code = (
+            request.POST.get("game_type_code")
+            or form.initial.get("game_type_code")
+            or ""
+        )
+    game_type = get_game_type(game_type_code) if game_type_code else None
+
+    # Unified Record Game: show players/scores whenever group + type resolve
+    # and the user can record. Guests see context fields plus a login CTA.
+    if (
+        not show_roster
+        and group is not None
+        and game_type is not None
+        and request.user.is_authenticated
+        and can_edit_group(request.user, group)
+    ):
+        show_roster = True
 
     roster = []
     participant_rows = []
-    if group and show_roster:
-        roster = roster_for_group(group, game_type_code=game_type_code)
+    if group and show_roster and game_type is not None:
+        if request.user.is_authenticated and can_edit_group(request.user, group):
+            roster = roster_for_group(group, game_type_code=game_type_code)
         if post_for_rows is not None:
             participant_rows = _participant_rows_from_post(group, post_for_rows)
         elif reused_participant_rows is not None:
@@ -945,15 +966,27 @@ def game_create(request: HttpRequest) -> HttpResponse:
         if selected_setup_game_type_code in GAME_TYPES
         else ""
     )
-    if show_roster and group:
+    if group and game_type is not None:
         played_on_value, played_on_display = _played_on_value_and_display(form)
         if form.is_bound:
             location_name = form.data.get("location_name", "")
             location_geo = location_geo_post_values(form.data)
             score_type = request.POST.get("score_type", score_type)
-        elif form.initial.get("location_name"):
-            location_name = form.initial.get("location_name", "")
-            location_geo = location_geo_post_values(form.initial)
+        else:
+            if form.initial.get("location_name"):
+                location_name = form.initial.get("location_name", "")
+                location_geo = location_geo_post_values(form.initial)
+            else:
+                location_name = form["location_name"].value() or ""
+            if seeded_score_type:
+                score_type = seeded_score_type
+            else:
+                prior_score_type = last_recorded_score_type(
+                    request.user if request.user.is_authenticated else None,
+                    game_type.code,
+                )
+                if prior_score_type:
+                    score_type = prior_score_type
 
     locked = is_game_type_locked(request)
     heading_type = game_type
@@ -967,6 +1000,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
     else:
         record_game_heading = "Record Game"
         record_game_heading_icon_url = ""
+
+    from leaderlodge.insights.views import insights_feature_enabled
 
     return render(
         request,
@@ -1006,8 +1041,77 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "game_type_locked": locked,
             "record_game_heading": record_game_heading,
             "record_game_heading_icon_url": record_game_heading_icon_url,
+            "insights_ready": insights_feature_enabled(),
         },
     )
+
+
+@login_required
+@require_POST
+def game_parse_recording(request: HttpRequest) -> JsonResponse:
+    """Parse a voice/typed transcript into a Record Game draft (no save)."""
+    from leaderlodge.games.voice_draft import parse_recording_transcript
+    from leaderlodge.insights.model_selection import preferred_insight_model_id
+    from leaderlodge.insights.providers.base import InsightProviderError
+    from leaderlodge.insights.rate_limit import (
+        InsightRateLimitExceeded,
+        check_insight_rate_limit,
+    )
+    from leaderlodge.insights.views import insights_feature_enabled
+
+    if not insights_feature_enabled():
+        return JsonResponse(
+            {"error": "AI features are not enabled."},
+            status=503,
+        )
+
+    try:
+        payload = json.loads(request.body.decode() or "{}")
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return JsonResponse({"error": "Invalid JSON body."}, status=400)
+
+    group_id = str(payload.get("group") or "").strip()
+    transcript = str(payload.get("transcript") or "").strip()
+    default_type = str(payload.get("game_type_code") or "").strip()
+    if not group_id.isdigit():
+        return JsonResponse({"error": "Group is required."}, status=400)
+    if not transcript:
+        return JsonResponse({"error": "Transcript is required."}, status=400)
+
+    group = Group.objects.filter(pk=int(group_id)).first()
+    if group is None:
+        return JsonResponse({"error": "Group not found."}, status=404)
+    if not can_edit_group(request.user, group):
+        return JsonResponse(
+            {"error": "You cannot record games in this group."},
+            status=403,
+        )
+
+    model_slug = preferred_insight_model_id(request)
+    try:
+        check_insight_rate_limit(request, user=request.user, model_slug=model_slug)
+    except InsightRateLimitExceeded as exc:
+        return JsonResponse({"error": str(exc)}, status=429)
+
+    try:
+        draft = parse_recording_transcript(
+            group=group,
+            transcript=transcript,
+            user=request.user,
+            model_slug=model_slug,
+            default_game_type_code=default_type,
+        )
+    except InsightProviderError as exc:
+        return JsonResponse({"error": str(exc)}, status=502)
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+    except Exception:
+        return JsonResponse(
+            {"error": "Could not parse that entry. Try again."},
+            status=500,
+        )
+
+    return JsonResponse({"draft": draft})
 
 
 @login_required

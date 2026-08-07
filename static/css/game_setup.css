@@ -24,6 +24,192 @@
   gap: 1rem 1.5rem;
 }
 
+.game-record-primary-actions {
+  align-items: center;
+}
+
+/*
+ * AI game entry: Insights-branded lavender shell; white text field only
+ * when expanded (two nested rects). Tokens align with insights.css.
+ */
+.game-record-voice {
+  --game-record-voice-accent: var(--insights-accent, #7c3aed);
+  --game-record-voice-accent-hover: var(--insights-accent-hover, #6d28d9);
+  --game-record-voice-accent-rgb: var(--insights-accent-rgb, 124, 58, 237);
+  --game-record-voice-wash: rgba(var(--game-record-voice-accent-rgb), 0.1);
+  --game-record-voice-border: rgba(var(--game-record-voice-accent-rgb), 0.35);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--game-record-voice-border);
+  border-radius: 0.75rem;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--game-record-voice-accent-rgb), 0.16) 0%,
+    rgba(var(--game-record-voice-accent-rgb), 0.06) 45%,
+    rgba(237, 233, 254, 0.85) 100%
+  );
+  box-shadow:
+    0 0.35rem 1rem rgba(var(--game-record-voice-accent-rgb), 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.game-record-voice::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0.28rem;
+  background: linear-gradient(
+    180deg,
+    var(--game-record-voice-accent) 0%,
+    var(--game-record-voice-accent-hover) 100%
+  );
+}
+
+.game-record-voice-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.7rem 0.85rem 0.7rem 1.05rem;
+  border: 0;
+  background: transparent;
+  color: var(--game-record-voice-accent);
+  text-align: left;
+  line-height: 1.25;
+}
+
+.game-record-voice-toggle:hover,
+.game-record-voice-toggle:focus-visible {
+  color: var(--game-record-voice-accent-hover);
+}
+
+.game-record-voice-toggle:focus-visible {
+  outline: 2px solid var(--game-record-voice-accent);
+  outline-offset: -2px;
+}
+
+.game-record-voice-toggle-leading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.game-record-voice-stars {
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  filter: drop-shadow(
+    0 0 0.35rem rgba(var(--game-record-voice-accent-rgb), 0.45)
+  );
+}
+
+.game-record-voice-title {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.game-record-voice.is-voice-open .game-record-voice-title {
+  font-weight: 400;
+  font-size: 0.925rem;
+  letter-spacing: 0;
+}
+
+.game-record-voice-chevron {
+  flex-shrink: 0;
+  width: 1rem;
+  font-size: 1rem;
+  color: var(--game-record-voice-accent);
+  opacity: 0.85;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.game-record-voice.is-voice-open .game-record-voice-chevron {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-record-voice-chevron {
+    transition: none;
+  }
+}
+
+.game-record-voice-panel-inner {
+  padding: 0 0.85rem 0.75rem 1.05rem;
+}
+
+.game-record-voice-status {
+  color: #5b6472;
+}
+
+.game-record-voice-status.text-danger {
+  color: var(--bs-danger) !important;
+}
+
+.game-record-voice-input-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.game-record-voice-input-wrap [data-voice-transcript] {
+  padding-right: 2.5rem;
+  border-color: rgba(var(--game-record-voice-accent-rgb), 0.28);
+}
+
+.game-record-voice-input-wrap [data-voice-transcript]:focus {
+  border-color: var(--game-record-voice-accent);
+  box-shadow: 0 0 0 0.2rem rgba(var(--game-record-voice-accent-rgb), 0.2);
+}
+
+.game-record-voice-apply {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(var(--game-record-voice-accent-rgb), 0.12);
+  color: var(--game-record-voice-accent);
+  line-height: 1;
+  font-size: 1.15rem;
+}
+
+.game-record-voice-apply:hover:not(:disabled),
+.game-record-voice-apply:focus-visible:not(:disabled) {
+  background: var(--game-record-voice-accent);
+  color: #fff;
+}
+
+.game-record-voice-apply:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.game-record-voice.is-voice-processing .game-record-voice-apply {
+  pointer-events: none;
+  background: var(--game-record-voice-accent);
+  color: #fff;
+  opacity: 1;
+}
+
+.game-record-voice.is-voice-processing [data-voice-status] {
+  font-style: italic;
+  color: var(--game-record-voice-accent-hover);
+}
+
 .reuse-players-action {
   display: flex;
   flex-direction: column;

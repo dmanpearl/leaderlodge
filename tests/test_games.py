@@ -164,7 +164,8 @@ def test_load_roster_requires_game_type(client, user, group):
         },
     )
     assert response.status_code == 200
-    assert 'id="game-record-form"' not in response.content.decode()
+    assert response.context["show_roster"] is False
+    assert "Type player" not in response.content.decode()
 
 
 @pytest.mark.django_db
@@ -546,9 +547,9 @@ def test_reuse_roster_does_not_use_other_game_type(client, user, group):
     content = response.content.decode()
 
     assert response.status_code == 200
-    assert "Pick Players" in content
-    assert "Type player" not in content
     assert "No previous game found" in content
+    assert "Type player" in content
+    assert content.count("data-game-row") == 0
 
 
 @pytest.mark.django_db

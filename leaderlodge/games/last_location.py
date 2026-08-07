@@ -36,6 +36,28 @@ def last_recorded_location_name(
     return game.location.name
 
 
+def last_recorded_score_type(user: AbstractBaseUser | None, game_type_code: str) -> str:
+    """Prior score mode for this user and type (e.g. rally), or empty."""
+    from leaderlodge.games.registry import (
+        game_type_has_score_type,
+        normalize_score_type,
+    )
+
+    if user is None or not user.is_authenticated:
+        return ""
+    if not game_type_has_score_type(game_type_code):
+        return ""
+
+    game = (
+        Game.objects.filter(recorded_by=user, game_type_code=game_type_code)
+        .order_by("-played_on", "-created_at", "-pk")
+        .first()
+    )
+    if game is None:
+        return ""
+    return normalize_score_type(game_type_code, game.score_type or "")
+
+
 def _dedupe_location_names(games: QuerySet[Game], *, limit: int) -> list[str]:
     names: list[str] = []
     seen: set[str] = set()

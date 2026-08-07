@@ -120,16 +120,26 @@ def test_game_list_shows_rally_badge(client, user, group):
         reverse("games:create"),
         _load_roster_post(group, game_type_code="pickleball"),
     )
-    client.post(
+    players = list(group.players.order_by("pk"))
+    save_response = client.post(
         reverse("games:create"),
-        _save_pickleball_post(group, score_type="rally"),
+        _save_pickleball_post(
+            group,
+            score_type="rally",
+            scores={players[0].pk: 11, players[1].pk: 7},
+        ),
     )
+    assert save_response.status_code == 302
+    from leaderlodge.games.models import Game
+    assert Game.objects.filter(group=group, game_type_code="pickleball").exists()
 
     response = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "pickleball"},
+        {"group": str(group.pk), "type": "pickleball"},
+        follow=True,
     )
     content = response.content.decode()
+    assert "game-list-table" in content, content[content.find("card"):content.find("card")+400]
     games_table = content.split("game-list-table ", 1)[1].split("</table>", 1)[0]
 
     assert response.status_code == 200

@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.game_list, name="list"),
     path("map/", map_views.game_map, name="map"),
     path("new/", views.game_create, name="create"),
+    path("parse-recording/", views.game_parse_recording, name="parse_recording"),
     path("reuse-preview/", views.game_reuse_preview, name="reuse_preview"),
     path("matchup/", views.game_matchup, name="matchup"),
     path("<int:pk>/", views.game_detail, name="detail"),

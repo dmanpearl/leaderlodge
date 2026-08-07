@@ -1,5 +1,7 @@
 (function () {
-  const form = document.getElementById("game-setup-form");
+  const form =
+    document.getElementById("game-record-form") ||
+    document.getElementById("game-setup-form");
   if (!form) {
     return;
   }

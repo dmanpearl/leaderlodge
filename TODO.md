@@ -220,17 +220,28 @@
 - [x] 6e54acc Leaderboard Streaks: Add streak algorithms: longest win streak (includes ties), longest current win streak (w/ties), longest streak within a range. Add streak stats to Matchup view if applicable
 - [x] 0fe4555 Bug: Team labels kept last initial (Nancy M) when the player is unique in-group but exists in another group (https://leaderlodge.com/admin/feedback/feedback/32)
 - [x] 757325d If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
-- [x] Bug: Leaderboard: Pressing a context menu button when others are expanded should close them, but doesn't.
+- [x] 1153d59 Bug: Leaderboard: Pressing a context menu button when others are expanded should close them, but doesn't.
+- [x] Record Game: Make it easier to go back and set location during user selections (unified Record Game screen)
+- [x] Voice activated game recording (Record Game is our biggest bottleneck because people don't have time or interest between games)
+      - AI driven voice activated supporting prompts like:
+      - "Record a Pickleball game David plus Nancy 11 vs Jan plus Sara 9 using rally scoring.
+      - Default to same location as previous recording.
+      - Default to same style (Rally or Traditional) as previous recording.
+      - This will have to pre-fill the data in a record game screen
+      - Unified Record Game screen + keyboard-mic / typed draft parse (confirm then save; no auto-save)
 
 ## Open Items
 
+- [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
+- [ ] System Hint Text: All text fields with interior hint/help text should use italic font and a lighter color gray to avoid confusion with typed text.
+      - Reference: `.ll-field-hint-input::placeholder` in `static/css/site.css` (Record Game AI entry). Roll out that class to inputs/textareas app-wide. Helper copy below fields stays normal weight/color.
+- [ ] Bug: Dashboard > Recent Games card still lists team member as 'Nancy M' when there is no name conflict.
 - [ ] Icons: Need a better Skunk icon for Cribbage
 - [ ] Icons: Need separate icons for Gin Rummy and Progressive Rummy
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Mah Jongg: Support style: American or Chinese (Japanese? Hong Kong? Chinese variants?) Use country logo for icon
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
-- [ ] Record Game: Make it easier to go back and set location during user selections
 - [ ] Add Favicon
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

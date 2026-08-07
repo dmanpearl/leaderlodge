@@ -975,4 +975,63 @@
   } else {
     initPlayerPicker();
   }
+
+  window.LeaderLodgeRecordGame = window.LeaderLodgeRecordGame || {};
+  window.LeaderLodgeRecordGame.clearParticipants = function clearParticipants() {
+    const tbody = document.querySelector("[data-participant-rows]");
+    if (!tbody) {
+      return;
+    }
+    tbody.querySelectorAll("[data-game-row]").forEach((row) => row.remove());
+    const empty = tbody.querySelector("[data-participant-empty]");
+    if (empty) {
+      empty.classList.remove("d-none");
+    }
+  };
+  window.LeaderLodgeRecordGame.appendSide = function appendSide(side) {
+    const form = document.getElementById("game-record-form");
+    const tbody = document.querySelector("[data-participant-rows]");
+    if (!form || !tbody || !side || !Array.isArray(side.players)) {
+      return false;
+    }
+    const empty = tbody.querySelector("[data-participant-empty]");
+    if (empty) {
+      empty.classList.add("d-none");
+    }
+    const fallback = form.dataset.defaultParticipantScore || "";
+    const scoreValue =
+      side.score != null && side.score !== "" ? String(side.score) : fallback;
+    const players = side.players.filter((p) => p && (p.player_id || p.guest_name));
+    if (!players.length) {
+      return false;
+    }
+    const primary = {
+      id: players[0].player_id || "",
+      guestName: players[0].guest_name || "",
+      label: players[0].label || players[0].guest_name || "Player",
+      kind: players[0].player_id ? "member" : "guest",
+      username: null,
+    };
+    if (!appendParticipantRow(tbody, primary, scoreValue, null)) {
+      return false;
+    }
+    const rows = tbody.querySelectorAll("[data-game-row]");
+    const row = rows[rows.length - 1];
+    if (players.length > 1) {
+      const teammate = {
+        id: players[1].player_id || "",
+        guestName: players[1].guest_name || "",
+        label: players[1].label || players[1].guest_name || "Teammate",
+        kind: players[1].player_id ? "member" : "guest",
+        username: null,
+      };
+      assignTeammate(row, teammate);
+    }
+    const scoreInput = row.querySelector("[data-score-input]");
+    if (scoreInput && side.score != null && side.score !== "") {
+      scoreInput.value = String(side.score);
+      scoreInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    return true;
+  };
 })();

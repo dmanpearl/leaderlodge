@@ -79,7 +79,7 @@ def test_anonymous_can_browse_groups_and_record_game_setup(client, demo_group_fl
     create_response = client.get(reverse("games:create"))
     assert create_response.status_code == 200
     create_content = create_response.content.decode()
-    assert "Pick Players" in create_content
+    assert "Sign in to record" in create_content
     assert "data-guest-login-prompt" in create_content
 
     roster_response = client.post(

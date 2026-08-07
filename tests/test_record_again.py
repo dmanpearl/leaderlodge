@@ -142,5 +142,5 @@ def test_reuse_from_denied_for_non_member(client, user, group):
     )
     content = response.content.decode()
     assert response.status_code == 200
-    assert "Pick Players" in content
+    assert response.context["show_roster"] is False
     assert "Type player" not in content

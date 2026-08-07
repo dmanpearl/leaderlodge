@@ -5,14 +5,14 @@
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
-  {% if show_roster %}
-    <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=17" />
-  {% else %}
-    <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-    <link rel="stylesheet" href="{% static 'css/game_setup.css' %}" />
-    {% if google_places_api_key %}
-      <link rel="stylesheet" href="{% static 'css/location_map.css' %}?v=1" />
-    {% endif %}
+  <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
+  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=8" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=17" />
+  {% if insights_ready %}
+    <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
+  {% endif %}
+  {% if google_places_api_key %}
+    <link rel="stylesheet" href="{% static 'css/location_map.css' %}?v=1" />
   {% endif %}
 {% endblock %}
 {% block content %}
@@ -24,164 +24,185 @@
     <h1 class="h3 mb-3">{{ record_game_heading|default:"Record Game" }}</h1>
   {% endif %}
 
-  {% if show_roster %}
-    <div class="card mb-3">
-      <div class="card-body">
-        <span class="text-muted small d-block">Recording for</span>
-        <strong>{{ group.name }}</strong>
-        {% if not game_type_locked %}
-          &middot; {{ game_type.name }}
-        {% endif %}
-        &middot; {{ played_on_display }}
-        {% if location_name %}
-          &middot; {{ location_name }}
-        {% endif %}
-      </div>
-    </div>
-  {% else %}
-    <div class="card mb-3">
-      <div class="card-body">
-        <form method="post" id="game-setup-form"{% if not is_guest_demo %} data-reuse-preview-url="{% url 'games:reuse_preview' %}"{% endif %}{% if preserve_setup_location %} data-location-preserve="1"{% endif %}>
-          {% csrf_token %}
-          {% if form.non_field_errors %}
-            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-          {% endif %}
-          <div class="row g-3">
-            <div class="col-12 col-md-4">
-              <label for="{{ form.group.id_for_label }}" class="form-label">Group</label>
-              {{ form.group }}
-              {% if form.group.errors %}
-                <div class="invalid-feedback d-block">{{ form.group.errors }}</div>
-              {% endif %}
-            </div>
-            {% if game_type_locked %}
-              <input
-                type="hidden"
-                name="game_type_code"
-                value="{{ selected_setup_game_type_code }}"
-              />
-            {% else %}
-              <div class="col-12 col-md-4">
-                <label for="game-setup-game-type-select" class="form-label">Game</label>
-                <div class="game-setup-game-type-wrap{% if selected_setup_game_type_icon_url %} game-setup-game-type-wrap--has-icon{% endif %}">
-                  <img
-                    id="game-setup-game-type-icon"
-                    class="game-setup-game-type-icon{% if not selected_setup_game_type_icon_url %} d-none{% endif %}"
-                    {% if selected_setup_game_type_icon_url %}src="{{ selected_setup_game_type_icon_url }}"{% endif %}
-                    alt=""
-                  />
-                  <select
-                    name="game_type_code"
-                    id="game-setup-game-type-select"
-                    class="form-select game-setup-game-type-select"
-                    required
-                  >
-                    <option value="" data-icon-url="">Choose a game</option>
-                    {% for code, name, icon_url in setup_game_type_options %}
-                      <option
-                        value="{{ code }}"
-                        data-icon-url="{{ icon_url }}"
-                        {% if selected_setup_game_type_code == code %}selected{% endif %}
-                      >
-                        {{ name }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-                {% if form.game_type_code.errors %}
-                  <div class="invalid-feedback d-block">{{ form.game_type_code.errors }}</div>
-                {% endif %}
-              </div>
-            {% endif %}
-            <div class="col-12 col-md-4">
-              <label for="{{ form.played_on.id_for_label }}" class="form-label">Date played</label>
-              {{ form.played_on }}
-              {% if form.played_on.errors %}
-                <div class="invalid-feedback d-block">{{ form.played_on.errors }}</div>
-              {% endif %}
-            </div>
-            <div class="col-12">
-              {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True enable_recent_locations=True %}
-            </div>
-          </div>
-          <div class="game-setup-actions mt-3">
-            {% if is_guest_demo %}
-              <button
-                type="button"
-                class="btn btn-primary"
-                data-guest-login-prompt="{{ guest_login_prompt }}"
-              >
-                Pick Players
-              </button>
-              <div class="reuse-players-action">
-                <button type="button" class="btn btn-outline-primary" disabled>Reuse ></button>
-              </div>
-            {% else %}
-              <button type="submit" name="action" value="load_roster" class="btn btn-primary">
-                Pick Players
-              </button>
-              <div class="dropdown reuse-players-action">
-                <button
-                  type="button"
-                  id="reuse-players-btn"
-                  class="btn btn-outline-primary"
-                  data-bs-toggle="dropdown"
-                  data-bs-display="static"
-                  aria-expanded="false"
-                  disabled
-                >
-                  Reuse &gt;
-                </button>
-                <ul
-                  class="dropdown-menu reuse-players-menu"
-                  id="reuse-players-menu"
-                  aria-labelledby="reuse-players-btn"
-                ></ul>
-                <input type="hidden" name="reuse_game_id" id="reuse-game-id" value="" />
-              </div>
-            {% endif %}
-          </div>
-        </form>
-      </div>
-    </div>
-    {% include "includes/guest_demo_notice.html" %}
-    {% if google_places_api_key and not is_guest_demo %}
-      {% include "groups/includes/location_set_place_modal.html" %}
-    {% endif %}
-  {% endif %}
+  <div class="card mb-3">
+    <div class="card-body">
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% if participant_error %}
+        <div class="alert alert-danger">{{ participant_error }}</div>
+      {% endif %}
 
-  {% if show_roster %}
-    <div class="card">
-      <div class="card-body">
-        {% if participant_error %}
-          <div class="alert alert-danger">{{ participant_error }}</div>
-        {% endif %}
-
-        <p class="text-muted small mb-3">{{ game_rules_summary }}</p>
-
-        <form
-          method="post"
-          id="game-record-form"
-          autocomplete="off"
+      <form
+        method="post"
+        id="game-record-form"
+        autocomplete="off"
+        {% if not is_guest_demo %} data-reuse-preview-url="{% url 'games:reuse_preview' %}"{% endif %}
+        {% if not is_guest_demo and insights_ready %} data-parse-recording-url="{% url 'games:parse_recording' %}"{% endif %}
+        {% if preserve_setup_location %} data-location-preserve="1"{% endif %}
+        {% if show_roster and game_type %}
           data-min-players="{{ game_type.min_players }}"
           data-max-players="{{ game_type.max_players }}"
           data-supports-loser="{% if game_type.supports_loser %}true{% else %}false{% endif %}"
           data-score-direction="{{ game_type.score_direction }}"
           data-win-target-score="{% if game_type.win_target_score %}{{ game_type.win_target_score }}{% endif %}"
           data-default-participant-score="{{ default_participant_score }}"
-        >
-          {% csrf_token %}
-          <input type="hidden" name="action" value="save" />
-          <input type="hidden" name="group" value="{{ group.pk }}" />
-          <input type="hidden" name="game_type_code" value="{{ game_type.code }}" />
-          <input type="hidden" name="played_on" value="{{ played_on_value }}" />
-          <input type="hidden" name="location_name" value="{{ location_name }}" />
-          {% for geo_name, geo_value in location_geo.items %}
-            <input type="hidden" name="{{ geo_name }}" value="{{ geo_value }}" />
-          {% endfor %}
+        {% endif %}
+      >
+        {% csrf_token %}
+        <input type="hidden" name="reuse_game_id" id="reuse-game-id" value="" />
+
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-4">
+            <label for="{{ form.group.id_for_label }}" class="form-label">Group</label>
+            {{ form.group }}
+            {% if form.group.errors %}
+              <div class="invalid-feedback d-block">{{ form.group.errors }}</div>
+            {% endif %}
+          </div>
+          {% if game_type_locked %}
+            <input
+              type="hidden"
+              name="game_type_code"
+              id="game-setup-game-type-select"
+              value="{{ selected_setup_game_type_code }}"
+            />
+          {% else %}
+            <div class="col-12 col-md-4">
+              <label for="game-setup-game-type-select" class="form-label">Game</label>
+              <div class="game-setup-game-type-wrap{% if selected_setup_game_type_icon_url %} game-setup-game-type-wrap--has-icon{% endif %}">
+                <img
+                  id="game-setup-game-type-icon"
+                  class="game-setup-game-type-icon{% if not selected_setup_game_type_icon_url %} d-none{% endif %}"
+                  {% if selected_setup_game_type_icon_url %}src="{{ selected_setup_game_type_icon_url }}"{% endif %}
+                  alt=""
+                />
+                <select
+                  name="game_type_code"
+                  id="game-setup-game-type-select"
+                  class="form-select game-setup-game-type-select"
+                  required
+                >
+                  <option value="" data-icon-url="">Choose a game</option>
+                  {% for code, name, icon_url in setup_game_type_options %}
+                    <option
+                      value="{{ code }}"
+                      data-icon-url="{{ icon_url }}"
+                      {% if selected_setup_game_type_code == code %}selected{% endif %}
+                    >
+                      {{ name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+              {% if form.game_type_code.errors %}
+                <div class="invalid-feedback d-block">{{ form.game_type_code.errors }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+          <div class="col-12 col-md-4">
+            <label for="{{ form.played_on.id_for_label }}" class="form-label">Date played</label>
+            {{ form.played_on }}
+            {% if form.played_on.errors %}
+              <div class="invalid-feedback d-block">{{ form.played_on.errors }}</div>
+            {% endif %}
+          </div>
+          {% if not show_roster or is_guest_demo %}
+            <div class="col-12">
+              {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True enable_recent_locations=True %}
+            </div>
+          {% endif %}
+        </div>
+
+        {% if is_guest_demo %}
+          <div class="game-setup-actions mt-2">
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-guest-login-prompt="{{ guest_login_prompt }}"
+            >
+              Sign in to record
+            </button>
+          </div>
+        {% elif show_roster and game_type %}
+          {% if game_rules_summary %}
+            <p class="text-muted small mb-3">{{ game_rules_summary }}</p>
+          {% endif %}
+
+          {% if insights_ready %}
+            <div
+              class="game-record-voice mb-3"
+              data-game-record-voice
+              data-voice-title-closed="AI game entry"
+              data-voice-title-open="Speak or type players, teams, score, location{% if score_type_choices %}, score type{% endif %}"
+            >
+              <button
+                class="game-record-voice-toggle"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#game-record-voice-panel"
+                aria-expanded="false"
+                aria-controls="game-record-voice-panel"
+                data-voice-toggle
+              >
+                <span class="game-record-voice-toggle-leading">
+                  <i class="bi bi-stars game-record-voice-stars" aria-hidden="true"></i>
+                  <span class="game-record-voice-title" data-voice-title>AI game entry</span>
+                </span>
+                <i class="bi bi-chevron-right game-record-voice-chevron" data-voice-chevron aria-hidden="true"></i>
+              </button>
+              <div id="game-record-voice-panel" class="collapse">
+                <div class="game-record-voice-panel-inner">
+                  <label class="visually-hidden" for="game-record-voice-transcript">
+                    Game entry transcript
+                  </label>
+                  <div class="game-record-voice-input-wrap">
+                    <textarea
+                      id="game-record-voice-transcript"
+                      class="form-control form-control-sm ll-field-hint-input"
+                      rows="2"
+                      data-voice-transcript
+                      placeholder="e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, rally"
+                      autocomplete="off"
+                      autocorrect="on"
+                      autocapitalize="sentences"
+                      spellcheck="true"
+                    ></textarea>
+                    <button
+                      type="button"
+                      class="game-record-voice-apply"
+                      data-voice-apply
+                      disabled
+                      title="Parse"
+                      aria-label="Parse"
+                    >
+                      <span
+                        class="spinner-border spinner-border-sm d-none"
+                        role="status"
+                        aria-hidden="true"
+                        data-voice-spinner
+                      ></span>
+                      <i class="bi bi-check-lg" data-voice-apply-icon aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <div
+                    class="game-record-voice-status small mt-1"
+                    data-voice-status
+                    role="status"
+                    aria-live="polite"
+                  ></div>
+                  <div class="game-record-voice-notes small mt-1 d-none" data-voice-notes></div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True enable_recent_locations=True %}
+          </div>
 
           {% if score_type_choices %}
-            <div class="mb-3 d-flex align-items-center gap-2">
+            <div class="mb-3 d-flex align-items-center gap-2" data-score-type-wrap>
               <label for="game-score-type" class="form-label mb-0">Score type</label>
               <select
                 id="game-score-type"
@@ -331,38 +352,75 @@
                 </div>
               </div>
               <div class="game-record-save-col">
-                <button type="submit" class="btn btn-primary btn-lg game-record-save" data-save-button disabled>
-                  Save Game
-                </button>
+                <div class="game-setup-actions game-record-primary-actions">
+                  <button
+                    type="submit"
+                    name="action"
+                    value="save"
+                    class="btn btn-primary btn-lg game-record-save"
+                    data-save-button
+                    disabled
+                  >
+                    Save Game
+                  </button>
+                  <div class="dropdown reuse-players-action">
+                    <button
+                      type="button"
+                      id="reuse-players-btn"
+                      class="btn btn-outline-primary"
+                      data-bs-toggle="dropdown"
+                      data-bs-display="static"
+                      aria-expanded="false"
+                      disabled
+                    >
+                      Reuse &gt;
+                    </button>
+                    <ul
+                      class="dropdown-menu reuse-players-menu"
+                      id="reuse-players-menu"
+                      aria-labelledby="reuse-players-btn"
+                    ></ul>
+                  </div>
+                </div>
                 <div class="game-record-feedback small" data-score-feedback role="status" aria-live="polite"></div>
               </div>
             </div>
           </div>
-        </form>
-      </div>
+        {% else %}
+          <p class="text-muted mb-0">Choose a group and game to start recording.</p>
+        {% endif %}
+      </form>
     </div>
+  </div>
+
+  {% include "includes/guest_demo_notice.html" %}
+  {% if google_places_api_key and not is_guest_demo %}
+    {% include "groups/includes/location_set_place_modal.html" %}
   {% endif %}
 {% endblock %}
 
 {% block extra_js %}
-  {% if show_roster %}
-    <script src="{% static 'js/game_record_form.js' %}?v=6"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=16"></script>
-  {% else %}
-    <script>
-      document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
-    </script>
-    <script src="{% static 'js/location_autocomplete.js' %}?v=11"></script>
-    <script src="{% static 'js/game_setup.js' %}?v=1"></script>
+  <script>
+    document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
+  </script>
+  <script src="{% static 'js/location_autocomplete.js' %}?v=11"></script>
+  <script src="{% static 'js/game_setup.js' %}?v=1"></script>
+  {% if not is_guest_demo %}
+    <script src="{% static 'js/game_setup_reuse.js' %}?v=8"></script>
+  {% endif %}
+  {% if google_places_api_key %}
+    <script src="{% static 'js/location_lookup.js' %}?v=7"></script>
     {% if not is_guest_demo %}
-      <script src="{% static 'js/game_setup_reuse.js' %}?v=7"></script>
+      <script src="{% static 'js/location_map.js' %}?v=3"></script>
+      <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
     {% endif %}
-    {% if google_places_api_key %}
-      <script src="{% static 'js/location_lookup.js' %}?v=7"></script>
-      {% if not is_guest_demo %}
-        <script src="{% static 'js/location_map.js' %}?v=3"></script>
-        <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
-      {% endif %}
+  {% endif %}
+  {% if show_roster and game_type and not is_guest_demo %}
+    <script src="{% static 'js/game_record_form.js' %}?v=6"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=17"></script>
+    <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
+    {% if insights_ready %}
+      <script src="{% static 'js/game_record_voice.js' %}?v=9"></script>
     {% endif %}
   {% endif %}
 {% endblock %}
