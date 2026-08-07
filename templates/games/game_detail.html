@@ -129,12 +129,27 @@
                 <span class="game-detail-result-badges">
                   {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}
                   {% if row.is_shutout_winner and shutout_icon_url %}
-                    <img
-                      src="{{ shutout_icon_url }}"
-                      class="game-detail-result-shutout-icon"
-                      alt="{{ game_type.shutout.label }}"
-                      title="{{ game_type.shutout.label }}"
-                    />
+                    {% if row.is_double_skunk %}
+                      <img
+                        src="{{ shutout_icon_url }}"
+                        class="game-detail-result-shutout-icon"
+                        alt="Double Skunked"
+                        title="Double Skunked"
+                      />
+                      <img
+                        src="{{ shutout_icon_url }}"
+                        class="game-detail-result-shutout-icon"
+                        alt=""
+                        title="Double Skunked"
+                      />
+                    {% else %}
+                      <img
+                        src="{{ shutout_icon_url }}"
+                        class="game-detail-result-shutout-icon"
+                        alt="{{ game_type.shutout.label }}"
+                        title="{{ game_type.shutout.label }}"
+                      />
+                    {% endif %}
                   {% endif %}
                 </span>
               </td>

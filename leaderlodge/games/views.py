@@ -1110,9 +1110,14 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
         can_edit_group(request.user, game.group)
         and request.GET.get("record_again") == "1"
     )
-    from leaderlodge.games.shutouts import is_shutout_game, shutout_winner_result
+    from leaderlodge.games.shutouts import (
+        is_double_skunk_game,
+        is_shutout_game,
+        shutout_winner_result,
+    )
 
     is_shutout = is_shutout_game(game.game_type_code, results)
+    is_double_skunk = is_double_skunk_game(game.game_type_code, results)
     shutout_winner = shutout_winner_result(game.game_type_code, results)
     shutout_winner_player_id = (
         shutout_winner.player_id if shutout_winner is not None else None
@@ -1128,6 +1133,11 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             ),
             "is_shutout_winner": (
                 is_shutout
+                and shutout_winner_player_id is not None
+                and r.player_id == shutout_winner_player_id
+            ),
+            "is_double_skunk": (
+                is_double_skunk
                 and shutout_winner_player_id is not None
                 and r.player_id == shutout_winner_player_id
             ),
@@ -1147,6 +1157,7 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
             "is_shutout": is_shutout,
+            "is_double_skunk": is_double_skunk,
             "insights_enabled": insights_ui_enabled(),
             "insight_models": tuple(MODEL_REGISTRY.values()),
             "selected_insight_model": preferred_insight_model_id(request),

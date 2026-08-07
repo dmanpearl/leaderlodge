@@ -250,12 +250,27 @@
                       <span class="badge text-bg-secondary game-list-weight-badge">R</span>
                     {% endif %}
                     {% if row.is_shutout and shutout_icon_url %}
-                      <img
-                        src="{{ shutout_icon_url }}"
-                        class="game-list-shutout-icon"
-                        alt="{{ selected_game_type.shutout.label }}"
-                        title="{{ selected_game_type.shutout.label }}"
-                      />
+                      {% if row.is_double_skunk %}
+                        <img
+                          src="{{ shutout_icon_url }}"
+                          class="game-list-shutout-icon"
+                          alt="Double Skunked"
+                          title="Double Skunked"
+                        />
+                        <img
+                          src="{{ shutout_icon_url }}"
+                          class="game-list-shutout-icon"
+                          alt=""
+                          title="Double Skunked"
+                        />
+                      {% else %}
+                        <img
+                          src="{{ shutout_icon_url }}"
+                          class="game-list-shutout-icon"
+                          alt="{{ selected_game_type.shutout.label }}"
+                          title="{{ selected_game_type.shutout.label }}"
+                        />
+                      {% endif %}
                     {% endif %}
                   </td>
                 {% endif %}

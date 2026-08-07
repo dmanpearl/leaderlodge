@@ -171,28 +171,57 @@ def shutout_catalog_for_game_type(game_type_code: str) -> dict | None:
 
     label = config.label
     label_lower = label.lower()
-    aliases = {label_lower, "shutout", "shutouts", "pickle", "pickled", "pickles"}
+    aliases = {label_lower, "shutout", "shutouts"}
+    if game_type_code == "pickleball":
+        aliases.update({"pickle", "pickled", "pickles"})
+        description = (
+            "When true, only shutout games (one winner, every opponent scored 0). "
+            "Active winner phrasing (pickled, shut out): rank by wins. "
+            "Passive got pickled is not tracked."
+        )
+        active = ["pickled", "shut out", "shutout win", "pickled opponents"]
+        passive = ["got pickled", "was pickled", "got shut out"]
+    elif game_type_code == "cribbage":
+        aliases.update(
+            {
+                "skunk",
+                "skunked",
+                "skunks",
+                "double skunk",
+                "double-skunk",
+                "double skunked",
+            }
+        )
+        description = (
+            "When true, only skunk games (one winner, every opponent at or under "
+            "90), including double-skunks (every opponent at or under 61). "
+            "Active winner phrasing (skunked, shut out): rank by wins. "
+            "Passive got skunked is not tracked."
+        )
+        active = [
+            "skunked",
+            "shut out",
+            "shutout win",
+            "skunked opponents",
+            "double skunk",
+        ]
+        passive = ["got skunked", "was skunked", "got shut out"]
+    else:
+        description = (
+            f"When true, only {label_lower} / shutout games for this type. "
+            f"Active winner phrasing: rank by wins. Passive loser-side counts "
+            f"are not tracked."
+        )
+        active = [label_lower, "shut out", "shutout win"]
+        passive = [f"got {label_lower}", "got shut out"]
 
     return {
         "key": "shutout_only",
         "title": label,
-        "description": (
-            f"When true, only shutout games (one winner, every opponent scored 0). "
-            f"Active winner phrasing (pickled, shut out): rank by wins. "
-            f"Passive got pickled is not tracked."
-        ),
+        "description": description,
         "grammar": {
-            "active_winner": [
-                "pickled",
-                "shut out",
-                "shutout win",
-                "pickled opponents",
-            ],
-            "passive_loser_not_tracked": [
-                "got pickled",
-                "was pickled",
-                "got shut out",
-            ],
+            "active_winner": active,
+            "passive_loser_not_tracked": passive,
         },
         "ask_aliases": sorted(aliases),
     }

@@ -27,6 +27,12 @@ class ShutoutConfig:
 
     label: str
     icon_filename: str
+    # When set, a shutout is every opponent at or under this score (inclusive).
+    # When unset, shutouts require every opponent score == 0.
+    max_opponent_score: int | None = None
+    # When set with max_opponent_score, a double shutout (e.g. double-skunk)
+    # is every opponent at or under this lower ceiling.
+    double_max_opponent_score: int | None = None
 
 
 @dataclass(frozen=True)
@@ -128,7 +134,12 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             score_direction=ScoreDirection.HIGH_WINS,
             win_target_score=121,
             icon_filename="cribbage.png",
-            shutout=ShutoutConfig(label="Skunked", icon_filename="skunk.png"),
+            shutout=ShutoutConfig(
+                label="Skunked",
+                icon_filename="skunk.png",
+                max_opponent_score=90,
+                double_max_opponent_score=61,
+            ),
         ),
         "phase10": GameTypeDefinition(
             code="phase10",

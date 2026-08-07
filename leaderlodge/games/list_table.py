@@ -3,13 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from leaderlodge.games.models import Game, GameParticipantResult
-from leaderlodge.games.shutouts import is_shutout_game
+from leaderlodge.games.registry import game_type_supports_shutout
+from leaderlodge.games.shutouts import is_double_skunk_game, is_shutout_game
 
 WEIGHT_GAME_TYPES = frozenset({"dominos", "progressiverummy", "pickleball"})
 
 
 def show_weight_column(*, games: list[Game], game_type_code: str) -> bool:
     if game_type_code in WEIGHT_GAME_TYPES:
+        return True
+    # Shutout icons (Pickled / Skunked) render in this column.
+    if game_type_supports_shutout(game_type_code):
         return True
     return any(game.double_weight == 2 or game.half_weight == 2 for game in games)
 
@@ -25,6 +29,7 @@ class GameListRow:
     game: Game
     cells: list[GameListScoreCell]
     is_shutout: bool = False
+    is_double_skunk: bool = False
 
 
 def result_cell_class(*, result: str, is_double: bool) -> str:
@@ -67,6 +72,7 @@ def build_game_list_table(games: list[Game]) -> tuple[list, list[GameListRow]]:
         is_double = game.double_weight == 2
         participant_rows = list(game_results.values())
         shutout = is_shutout_game(game.game_type_code, participant_rows)
+        double_skunk = is_double_skunk_game(game.game_type_code, participant_rows)
         cells = []
         for player in player_columns:
             participant = game_results.get(player.pk)
@@ -82,6 +88,13 @@ def build_game_list_table(games: list[Game]) -> tuple[list, list[GameListRow]]:
                         ),
                     )
                 )
-        rows.append(GameListRow(game=game, cells=cells, is_shutout=shutout))
+        rows.append(
+            GameListRow(
+                game=game,
+                cells=cells,
+                is_shutout=shutout,
+                is_double_skunk=double_skunk,
+            )
+        )
 
     return player_columns, rows

@@ -7,9 +7,11 @@ from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.games.shutouts import (
+    is_double_skunk_game,
     is_shutout_game,
     shutout_counts_by_player,
     shutout_game_ids,
+    shutout_tier,
 )
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.groups.teams import resolve_side_player
@@ -93,11 +95,78 @@ def test_is_shutout_game_rejects_non_shutout_types(game_type_code):
     assert is_shutout_game(game_type_code, results) is False
 
 
+@pytest.mark.parametrize(
+    "sides,expected_tier,expected_shutout,expected_double",
+    [
+        (((1, 121, "win"), (2, 90, "played")), "skunk", True, False),
+        (((1, 121, "win"), (2, 61, "played")), "double_skunk", True, True),
+        (((1, 121, "win"), (2, 0, "played")), "double_skunk", True, True),
+        (((1, 121, "win"), (2, 91, "played")), None, False, False),
+        (
+            ((1, 121, "win"), (2, 50, "played"), (3, 95, "played")),
+            None,
+            False,
+            False,
+        ),
+        (
+            ((1, 121, "win"), (2, 50, "played"), (3, 61, "played")),
+            "double_skunk",
+            True,
+            True,
+        ),
+        (
+            ((1, 121, "win"), (2, 70, "played"), (3, 90, "played")),
+            "skunk",
+            True,
+            False,
+        ),
+        (
+            ((1, 121, "win"), (2, 61, "played"), (3, 90, "played")),
+            "skunk",
+            True,
+            False,
+        ),
+    ],
+)
+def test_cribbage_skunk_thresholds(
+    sides, expected_tier, expected_shutout, expected_double
+):
+    win = GameParticipantResult.Result.WIN
+    played = GameParticipantResult.Result.PLAYED
+    normalized = []
+    for side in sides:
+        player_id, score, result_name = side
+        result = win if result_name == "win" else played
+        normalized.append((player_id, score, result))
+    results = _mock_results(1, *normalized)
+    assert shutout_tier("cribbage", results) == expected_tier
+    assert is_shutout_game("cribbage", results) is expected_shutout
+    assert is_double_skunk_game("cribbage", results) is expected_double
+
+
+def test_pickleball_still_requires_zero_scores():
+    win = GameParticipantResult.Result.WIN
+    played = GameParticipantResult.Result.PLAYED
+    near_miss = _mock_results(1, (1, 11, win), (2, 1, played))
+    assert is_shutout_game("pickleball", near_miss) is False
+    assert shutout_tier("pickleball", near_miss) is None
+
+
 def _record_pickleball(user, group, *, participants):
     return record_game(
         user=user,
         group=group,
         game_type_code="pickleball",
+        played_on=timezone.localdate(),
+        participants=participants,
+    )
+
+
+def _record_cribbage(user, group, *, participants):
+    return record_game(
+        user=user,
+        group=group,
+        game_type_code="cribbage",
         played_on=timezone.localdate(),
         participants=participants,
     )
@@ -290,7 +359,7 @@ def test_leaderboard_page_omits_shutout_filter_and_column(client, user, group):
     client.force_login(user)
     response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "pickleball"},
+        {"group": str(group.pk), "type": "pickleball"},
     )
     content = response.content.decode()
     assert response.status_code == 200
@@ -324,7 +393,7 @@ def test_game_list_shows_shutout_icon(client, user, group):
     client.force_login(user)
     response = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "pickleball"},
+        {"group": str(group.pk), "type": "pickleball"},
     )
     content = response.content.decode()
     assert response.status_code == 200
@@ -496,3 +565,139 @@ def test_shutout_game_ids_from_results_qs(group, user):
 
     all_results = list(results_qs.select_related("game"))
     assert shutout_game_ids("pickleball", all_results) == {shutout_game.pk}
+
+
+@pytest.mark.django_db
+def test_game_list_filter_includes_cribbage_skunks(client, user, group):
+    players = list(group.players.order_by("pk"))
+
+    def record(*, loser_score):
+        rows = [
+            {"player": players[0], "score": 121},
+            {"player": players[1], "score": loser_score},
+        ]
+        assign_results_from_scores(rows, "cribbage")
+        return _record_cribbage(
+            user,
+            group,
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    skunk_game = record(loser_score=85)
+    double_game = record(loser_score=40)
+    record(loser_score=100)
+
+    client.force_login(user)
+    response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "type": "cribbage", "shutout": "1"},
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert 'name="shutout"' in content
+    assert "Skunked" in content
+    assert str(skunk_game.pk) in content
+    assert str(double_game.pk) in content
+    # Single skunk: 1 icon; double-skunk: 2 icons.
+    assert content.count("game-types/skunk.png") == 3
+
+
+@pytest.mark.django_db
+def test_game_list_shows_two_icons_for_double_skunk(client, user, group):
+    players = list(group.players.order_by("pk"))
+    rows = [
+        {"player": players[0], "score": 121},
+        {"player": players[1], "score": 55},
+    ]
+    assign_results_from_scores(rows, "cribbage")
+    _record_cribbage(
+        user,
+        group,
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ],
+    )
+
+    client.force_login(user)
+    response = client.get(
+        reverse("games:list"),
+        {"group": str(group.pk), "type": "cribbage"},
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert content.count("game-list-shutout-icon") == 2
+    assert "Double Skunked" in content
+
+
+@pytest.mark.django_db
+def test_game_detail_shows_two_icons_for_double_skunk(client, user, group):
+    players = list(group.players.order_by("pk"))
+    rows = [
+        {"player": players[0], "score": 121},
+        {"player": players[1], "score": 30},
+    ]
+    assign_results_from_scores(rows, "cribbage")
+    game = _record_cribbage(
+        user,
+        group,
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ],
+    )
+
+    client.force_login(user)
+    response = client.get(reverse("games:detail", kwargs={"pk": game.pk}))
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert content.count("game-detail-result-shutout-icon") == 2
+    assert "Double Skunked" in content
+
+
+@pytest.mark.django_db
+def test_game_detail_shows_one_icon_for_single_skunk(client, user, group):
+    players = list(group.players.order_by("pk"))
+    rows = [
+        {"player": players[0], "score": 121},
+        {"player": players[1], "score": 88},
+    ]
+    assign_results_from_scores(rows, "cribbage")
+    game = _record_cribbage(
+        user,
+        group,
+        participants=[
+            ParticipantInput(
+                player=row["player"],
+                score=row["score"],
+                result=row["result"],
+                placement=row["placement"],
+            )
+            for row in rows
+        ],
+    )
+
+    client.force_login(user)
+    response = client.get(reverse("games:detail", kwargs={"pk": game.pk}))
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert content.count("game-detail-result-shutout-icon") == 1
+    assert "Double Skunked" not in content

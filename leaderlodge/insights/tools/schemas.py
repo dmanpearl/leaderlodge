@@ -62,10 +62,12 @@ _GAME_FEATURE_PROPERTIES = {
     "shutout_only": {
         "type": "boolean",
         "description": (
-            "When true, only shutout games (one winner, every opponent scored 0). "
-            "Use for active winner questions: who pickled, shut out, or won shutout "
-            "games. Rank by wins. Not for got pickled / was pickled (loser side; "
-            "not tracked). See list_game_types shutout metadata."
+            "When true, only shutout games for the game type (Pickleball: every "
+            "opponent scored 0; Cribbage: every opponent at or under 90, including "
+            "double-skunks at or under 61). Use for active winner questions: who "
+            "pickled, skunked, shut out, or won shutout games. Rank by wins. Not "
+            "for got pickled / got skunked (loser side; not tracked). See "
+            "list_game_types shutout metadata."
         ),
     },
 }
