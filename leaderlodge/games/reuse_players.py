@@ -37,14 +37,24 @@ def recent_games_for_reuse(
 
 def participant_rows_from_game(game: Game) -> list[dict]:
     """Sides from a specific game, ready for the Record Game roster form."""
+    from leaderlodge.groups.names import apply_label_overrides
     from leaderlodge.groups.teams import team_member_players
 
-    rows = []
-    for result in (
+    results = list(
         game.participant_results.select_related("player", "player__linked_user")
         .prefetch_related("player__team_members__member__linked_user")
         .order_by("placement", "pk")
-    ):
+    )
+    label_players: list = []
+    for result in results:
+        player = result.player
+        label_players.append(player)
+        if player.is_team:
+            label_players.extend(team_member_players(player))
+    apply_label_overrides(label_players)
+
+    rows = []
+    for result in results:
         player = result.player
         if not player.is_active:
             continue

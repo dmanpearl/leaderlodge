@@ -84,18 +84,12 @@ def roster_for_group(group: Group, *, game_type_code: str | None = None) -> list
     )
     entries: list[dict] = []
 
-    players = group.players.filter(is_active=True, is_team=False).select_related(
-        "linked_user"
+    players = list(
+        group.players.filter(is_active=True, is_team=False)
+        .select_related("linked_user")
+        .order_by("display_name")
     )
-    for player in players.order_by("display_name"):
-        entries.append(
-            _player_entry(
-                player=player,
-                recency=recency_ranks.get(player.pk, DEFAULT_RECENCY),
-            )
-        )
-
-    teams = (
+    teams = list(
         group.players.filter(is_active=True, is_team=True)
         .prefetch_related(
             Prefetch(
@@ -107,6 +101,18 @@ def roster_for_group(group: Group, *, game_type_code: str | None = None) -> list
         )
         .order_by("display_name")
     )
+    from leaderlodge.groups.names import apply_label_overrides
+
+    apply_label_overrides(players + teams)
+
+    for player in players:
+        entries.append(
+            _player_entry(
+                player=player,
+                recency=recency_ranks.get(player.pk, DEFAULT_RECENCY),
+            )
+        )
+
     for team in teams:
         if not team_member_players(team):
             continue

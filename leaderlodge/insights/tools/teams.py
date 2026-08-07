@@ -9,6 +9,7 @@ from leaderlodge.groups.models import Group
 from leaderlodge.groups.teams import (
     PLAYER_TYPE_PEOPLE,
     PLAYER_TYPE_TEAM,
+    team_display_name,
     team_member_players,
 )
 from leaderlodge.insights.tools.rate_display import add_outcome_display_fields
@@ -27,6 +28,8 @@ def _duo_team_row(row) -> dict | None:
     members = team_member_players(row.player)
     if len(members) != MAX_TEAM_SIZE:
         return None
+    team_label = team_display_name(members)
+    row.player._label_override = team_label
     payload = {
         **_ranking_row(row),
         "member_player_ids": [member.pk for member in members],

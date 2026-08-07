@@ -55,6 +55,51 @@ def test_resolve_side_player_creates_team_with_sorted_label(group, user):
 
 
 @pytest.mark.django_db
+def test_resolve_side_player_linked_names_drop_initial_across_groups(db):
+    """Nancy in two groups must not keep 'Nancy M' on team labels in either."""
+    from leaderlodge.groups.services import add_group_member
+
+    david = User.objects.create_user(
+        username="david",
+        password="test-pass-123",
+        first_name="David",
+        last_name="Manpearl",
+    )
+    nancy = User.objects.create_user(
+        username="nancy",
+        password="test-pass-123",
+        first_name="Nancy",
+        last_name="Manpearl",
+    )
+    zach = User.objects.create_user(
+        username="zach",
+        password="test-pass-123",
+        first_name="Zach",
+        last_name="Quill",
+    )
+    manpearl = create_group_with_owner(user=david, name="manpearl")
+    add_group_member(group=manpearl, user=nancy)
+    add_group_member(group=manpearl, user=zach)
+    test_group = create_group_with_owner(user=david, name="test")
+    add_group_member(group=test_group, user=nancy)
+
+    nancy_mp = manpearl.players.get(linked_user=nancy)
+    zach_mp = manpearl.players.get(linked_user=zach)
+    # Raw fallback still has last initial; team create must not persist it.
+    assert nancy_mp.display_label == "Nancy M"
+
+    team = resolve_side_player(group=manpearl, members=[nancy_mp, zach_mp])
+    assert team.display_name == "Nancy+Zach"
+
+    team.display_name = "Nancy M.+Zach Q"
+    team.save(update_fields=["display_name"])
+    from leaderlodge.groups.names import disambiguate_labels
+
+    labels = disambiguate_labels([team])
+    assert labels[team.pk] == "Nancy+Zach"
+
+
+@pytest.mark.django_db
 def test_resolve_side_player_reuses_team_when_member_pks_differ_from_label_order(
     group,
     user,

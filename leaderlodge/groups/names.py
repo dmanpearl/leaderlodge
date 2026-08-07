@@ -65,8 +65,17 @@ def _resolve_last_collision(
     return f"{first} {base_last[:3].upper()}"
 
 
+def _fallback_label(player) -> str:
+    """Label when first-name disambiguation does not apply (guests, etc.)."""
+    if getattr(player, "is_team", False):
+        return player.display_name
+    if player.linked_user_id and player.linked_user:
+        return format_user_display_name(player.linked_user)
+    return player.display_name
+
+
 def _disambiguate_labels_in_group(players: list) -> dict[int, str]:
-    """Resolve first-name collisions within a single group of players."""
+    """Resolve first-name collisions within a single group of non-team players."""
     data: dict[int, tuple[str, str]] = {p.pk: _player_first_last(p) for p in players}
 
     first_groups: dict[str, list[int]] = {}
@@ -79,7 +88,7 @@ def _disambiguate_labels_in_group(players: list) -> dict[int, str]:
         first, last = data[p.pk]
 
         if not first:
-            result[p.pk] = p.display_label
+            result[p.pk] = _fallback_label(p)
             continue
 
         peers = first_groups.get(first.lower(), [])
@@ -100,6 +109,14 @@ def _disambiguate_labels_in_group(players: list) -> dict[int, str]:
     return result
 
 
+def _join_team_label(members: list, label_by_pk: dict[int, str]) -> str:
+    ordered = sorted(
+        members,
+        key=lambda player: (label_by_pk[player.pk].lower(), player.pk),
+    )
+    return "+".join(label_by_pk[player.pk] for player in ordered)
+
+
 def disambiguate_labels(players: list) -> dict[int, str]:
     """Return {player_id: display label} with first-name collision resolution.
 
@@ -110,19 +127,57 @@ def disambiguate_labels(players: list) -> dict[int, str]:
     stored display_name. Shared first name in the group: show first + 1 to 3
     uppercase chars of last name, then a name suffix (Jr, Sr, II, etc.) if
     needed.
+
+    Team labels are rebuilt from disambiguated member labels so stored names
+    like "Nancy M.+Zach" do not keep a last initial when the group has no
+    first-name collision.
     """
+    from leaderlodge.groups.teams import team_member_players
+
+    expanded: list = []
+    seen: set[int] = set()
+    teams: list = []
+    for player in players:
+        if player.pk in seen:
+            continue
+        seen.add(player.pk)
+        expanded.append(player)
+        if getattr(player, "is_team", False):
+            teams.append(player)
+
+    for team in teams:
+        for member in team_member_players(team):
+            if member.pk not in seen:
+                seen.add(member.pk)
+                expanded.append(member)
+
     by_group: dict[object, list] = {}
-    for p in players:
-        by_group.setdefault(getattr(p, "group_id", None), []).append(p)
+    for player in expanded:
+        by_group.setdefault(getattr(player, "group_id", None), []).append(player)
 
     result: dict[int, str] = {}
     for group_players in by_group.values():
-        result.update(_disambiguate_labels_in_group(group_players))
+        non_teams = [
+            player for player in group_players if not getattr(player, "is_team", False)
+        ]
+        result.update(_disambiguate_labels_in_group(non_teams))
+
+    for team in teams:
+        members = team_member_players(team)
+        if not members:
+            result[team.pk] = team.display_name
+            continue
+        member_labels = {
+            member.pk: result.get(member.pk, _fallback_label(member))
+            for member in members
+        }
+        result[team.pk] = _join_team_label(members, member_labels)
+
     return result
 
 
 def apply_label_overrides(players: list) -> None:
     """Disambiguate labels and stamp _label_override on each GroupPlayer instance."""
     label_map = disambiguate_labels(players)
-    for p in players:
-        p._label_override = label_map[p.pk]
+    for player in players:
+        player._label_override = label_map[player.pk]

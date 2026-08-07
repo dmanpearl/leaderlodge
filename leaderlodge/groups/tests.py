@@ -28,6 +28,7 @@ def _guest(pk: int, display_name: str, *, group_id: int = 1) -> MagicMock:
     p.is_team = False
     p.linked_user_id = None
     p.linked_user = None
+    p.display_name = display_name
     p.display_label = display_name
     return p
 
@@ -160,3 +161,26 @@ class DisambiguateLabelsTests(TestCase):
         self.assertEqual(result[a.pk], "Nancy MA")
         self.assertEqual(result[b.pk], "Nancy MI")
         self.assertEqual(result[c.pk], "Nancy")
+
+    def test_team_label_rebuilt_without_initial_when_unique_in_group(self):
+        from unittest.mock import patch
+
+        nancy = _player(1, "Nancy", "Manpearl", group_id=10)
+        zach = _player(2, "Zach", "Other", group_id=10)
+        team = MagicMock()
+        team.pk = 99
+        team.group_id = 10
+        team.is_team = True
+        team.display_name = "Nancy M.+Zach O"
+        team.linked_user_id = None
+        team.linked_user = None
+
+        with patch(
+            "leaderlodge.groups.teams.team_member_players",
+            return_value=[nancy, zach],
+        ):
+            result = disambiguate_labels([team, nancy, zach])
+
+        self.assertEqual(result[nancy.pk], "Nancy")
+        self.assertEqual(result[zach.pk], "Zach")
+        self.assertEqual(result[team.pk], "Nancy+Zach")

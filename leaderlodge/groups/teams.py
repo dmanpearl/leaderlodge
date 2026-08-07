@@ -126,6 +126,34 @@ def _sorted_members(members: list[GroupPlayer]) -> list[GroupPlayer]:
 
 
 def team_display_name(members: list[GroupPlayer]) -> str:
+    """Join member labels for a team side.
+
+    Linked members without a group-scoped label override are resolved against
+    the full group roster so last initials are not kept when unnecessary.
+    Overrides are stamped back onto the given member instances.
+    """
+    if not members:
+        return ""
+    needs_labels = any(
+        getattr(member, "_label_override", None) is None and member.linked_user_id
+        for member in members
+    )
+    if needs_labels:
+        from leaderlodge.groups.names import apply_label_overrides
+
+        roster = list(
+            GroupPlayer.objects.filter(
+                group_id=members[0].group_id,
+                is_active=True,
+                is_team=False,
+            ).select_related("linked_user")
+        )
+        by_pk = {player.pk: player for player in roster}
+        for member in members:
+            by_pk.setdefault(member.pk, member)
+        apply_label_overrides(list(by_pk.values()))
+        for member in members:
+            member._label_override = by_pk[member.pk]._label_override
     return "+".join(player.display_label for player in _sorted_members(members))
 
 
@@ -170,11 +198,22 @@ def validate_sides_no_shared_players(sides: list[list[GroupPlayer]]) -> None:
 @transaction.atomic
 def resolve_side_player(*, group: Group, members: list[GroupPlayer]) -> GroupPlayer:
     """Return the solo player or find-or-create team GroupPlayer for members."""
+    from leaderlodge.groups.names import apply_label_overrides
+
     validate_side_members(members, group=group)
     if len(members) == 1:
         return members[0]
 
-    ordered = _sorted_members(members)
+    roster = list(
+        GroupPlayer.objects.filter(
+            group=group, is_active=True, is_team=False
+        ).select_related("linked_user")
+    )
+    by_pk = {player.pk: player for player in roster}
+    for member in members:
+        by_pk.setdefault(member.pk, member)
+    apply_label_overrides(list(by_pk.values()))
+    ordered = _sorted_members([by_pk[member.pk] for member in members])
     member_key = _member_key(ordered)
     label = team_display_name(ordered)
 
