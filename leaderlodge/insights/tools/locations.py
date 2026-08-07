@@ -6,7 +6,7 @@ from leaderlodge.groups.locations import (
     find_fuzzy_location_match,
     locations_for_group,
     normalize_for_fuzzy_match,
-    score_location_match,
+    score_location_resolve_match,
 )
 from leaderlodge.groups.models import Group, Location
 
@@ -28,31 +28,35 @@ def resolve_location_query(group: Group, query: str) -> Location:
         labels = ", ".join(sorted(location.name for location in exact_matches))
         raise ValueError(f"Ambiguous location {query!r}. Matches: {labels}.")
 
-    library = ensure_group_location_library(group)
-    fuzzy_match = find_fuzzy_location_match(library=library, cleaned=cleaned)
-    if fuzzy_match is not None:
-        return fuzzy_match
-
     query_normalized = normalize_for_fuzzy_match(cleaned)
     scored: list[tuple[int, Location]] = []
     for location in locations_for_group(group):
-        score = score_location_match(
+        score = score_location_resolve_match(
             query_normalized,
             normalize_for_fuzzy_match(location.name),
         )
         if score >= 0:
             scored.append((score, location))
-    if not scored:
-        raise ValueError(f"No location matched {query!r} in this group.")
+    if scored:
+        scored.sort(key=lambda item: (-item[0], item[1].name.lower()))
+        best_score, best_location = scored[0]
+        if len(scored) > 1 and scored[1][0] >= best_score - AMBIGUITY_SCORE_GAP:
+            labels = ", ".join(
+                sorted(
+                    location.name
+                    for score, location in scored[:3]
+                    if score >= best_score - 1
+                )
+            )
+            raise ValueError(f"Ambiguous location {query!r}. Matches: {labels}.")
+        return best_location
 
-    scored.sort(key=lambda item: (-item[0], item[1].name.lower()))
-    best_score, best_location = scored[0]
-    if len(scored) > 1 and scored[1][0] >= best_score - AMBIGUITY_SCORE_GAP:
-        labels = ", ".join(
-            sorted(location.name for _, location in scored[:3] if _ >= best_score - 1)
-        )
-        raise ValueError(f"Ambiguous location {query!r}. Matches: {labels}.")
-    return best_location
+    library = ensure_group_location_library(group)
+    fuzzy_match = find_fuzzy_location_match(library=library, cleaned=cleaned)
+    if fuzzy_match is not None:
+        return fuzzy_match
+
+    raise ValueError(f"No location matched {query!r} in this group.")
 
 
 def resolve_location_for_group(

@@ -71,6 +71,35 @@ def score_location_match(query_normalized: str, candidate_normalized: str) -> in
     return -1
 
 
+def score_location_resolve_match(
+    query_normalized: str, candidate_normalized: str
+) -> int:
+    """Score looking up an existing place (Ask / AI entry), not merge-on-create.
+
+    Allows short spoken names to match longer Places labels, e.g. "Zinque" to
+    "Zinqué Venice, Los Angeles, CA". Merge keeps the stricter
+    :func:`score_location_match` so short names are not collapsed into longer ones.
+    """
+    if not query_normalized:
+        return -1
+
+    if query_normalized == candidate_normalized:
+        return 200
+
+    # Leading word / prefix of the stored label (space or end after the query).
+    # Flat score so "Zinque" is ambiguous across multiple "Zinque …" venues
+    # instead of preferring the shorter remainder.
+    if candidate_normalized.startswith(query_normalized):
+        rest = candidate_normalized[len(query_normalized) :]
+        if not rest or rest[0].isspace():
+            return 150
+        first_word = candidate_normalized.split(None, 1)[0]
+        if len(query_normalized) >= 4 and first_word.startswith(query_normalized):
+            return 80
+
+    return score_location_match(query_normalized, candidate_normalized)
+
+
 @dataclass(frozen=True)
 class DuplicateLocationPair:
     """Unordered duplicate suggestion for the Locations merge UI."""

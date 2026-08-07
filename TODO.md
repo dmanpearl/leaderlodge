@@ -221,8 +221,8 @@
 - [x] 0fe4555 Bug: Team labels kept last initial (Nancy M) when the player is unique in-group but exists in another group (https://leaderlodge.com/admin/feedback/feedback/32)
 - [x] 757325d If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
 - [x] 1153d59 Bug: Leaderboard: Pressing a context menu button when others are expanded should close them, but doesn't.
-- [x] Record Game: Make it easier to go back and set location during user selections (unified Record Game screen)
-- [x] Voice activated game recording (Record Game is our biggest bottleneck because people don't have time or interest between games)
+- [x] 2642c7c Record Game: Make it easier to go back and set location during user selections (unified Record Game screen)
+- [x] 2642c7c Voice activated game recording (Record Game is our biggest bottleneck because people don't have time or interest between games)
       - AI driven voice activated supporting prompts like:
       - "Record a Pickleball game David plus Nancy 11 vs Jan plus Sara 9 using rally scoring.
       - Default to same location as previous recording.

@@ -215,6 +215,38 @@ def test_parse_recording_title_cases_unmatched_guest_name(
 
 @pytest.mark.django_db
 @patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_resolves_short_location_to_places_label(
+    mock_complete, voice_group, user
+):
+    full = get_or_create_location(
+        library=voice_group.location_library,
+        name="Zinqué Venice, Los Angeles, CA",
+    )
+    mock_complete.return_value = _completion(
+        {
+            "score_type": None,
+            "location_name": "Zinque",
+            "sides": [
+                {"names": ["Pat"], "score": 23},
+                {"names": ["Nancy"], "score": 32},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="Pat 23 Nancy 32 at Zinque",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="dominos",
+    )
+
+    assert draft["location_name"] == full.name
+    assert not any("No location matched" in msg for msg in draft["warnings"])
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
 def test_parse_recording_keeps_selected_game_and_warns_on_above_fields(
     mock_complete, voice_group, user
 ):
