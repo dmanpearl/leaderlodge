@@ -611,7 +611,7 @@
       }
     }
 
-    collapsePicker() {
+    collapsePicker({ focusExpand = true } = {}) {
       if (!this.panel) {
         return;
       }
@@ -623,7 +623,9 @@
       }
       if (this.expandButton) {
         this.expandButton.setAttribute("aria-expanded", "false");
-        this.expandButton.focus();
+        if (focusExpand) {
+          this.expandButton.focus();
+        }
       }
       if (this.collapseButton) {
         this.collapseButton.setAttribute("aria-expanded", "false");
@@ -967,7 +969,13 @@
       roster = [];
     }
 
-    new PlayerPicker(input, roster, tbody, form);
+    window.LeaderLodgeRecordGame = window.LeaderLodgeRecordGame || {};
+    window.LeaderLodgeRecordGame.picker = new PlayerPicker(
+      input,
+      roster,
+      tbody,
+      form
+    );
   }
 
   if (document.readyState === "loading") {
@@ -977,6 +985,13 @@
   }
 
   window.LeaderLodgeRecordGame = window.LeaderLodgeRecordGame || {};
+  window.LeaderLodgeRecordGame.collapsePlayerPicker = function collapsePlayerPicker() {
+    const picker = window.LeaderLodgeRecordGame.picker;
+    if (picker && typeof picker.collapsePicker === "function") {
+      // Don't steal focus from AI status / Save after a successful parse.
+      picker.collapsePicker({ focusExpand: false });
+    }
+  };
   window.LeaderLodgeRecordGame.clearParticipants = function clearParticipants() {
     const tbody = document.querySelector("[data-participant-rows]");
     if (!tbody) {

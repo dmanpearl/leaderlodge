@@ -198,6 +198,9 @@
     (draft.ambiguities || []).forEach((a) => notes.push(a));
     if (added < 2) {
       notes.push("Could not add both sides. Check names and try again.");
+    } else if (typeof api.collapsePlayerPicker === "function") {
+      // Sides are filled; collapse Add player to the compact "+" control.
+      api.collapsePlayerPicker();
     }
     setNotes(notes);
     setStatus(
