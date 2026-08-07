@@ -229,10 +229,10 @@
       - Default to same style (Rally or Traditional) as previous recording.
       - This will have to pre-fill the data in a record game screen
       - Unified Record Game screen + keyboard-mic / typed draft parse (confirm then save; no auto-save)
+- [x] Record Game 'Reuse >' dropdown overhangs the right of the screen and causes scrolling. Make sure the dropdown options stay within bounds
 
 ## Open Items
 
-- [ ] Record Game 'Reuse >' dropdown overhangs the right of the screen and causes scrolling. Make sure the dropdown options stay within bounds
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] System Hint Text: All text fields with interior hint/help text should use italic font and a lighter color gray to avoid confusion with typed text.
       - Reference: `.ll-field-hint-input::placeholder` in `static/css/site.css` (Record Game AI entry). Roll out that class to inputs/textareas app-wide. Helper copy below fields stays normal weight/color.

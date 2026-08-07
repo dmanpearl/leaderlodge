@@ -220,16 +220,24 @@
 .reuse-players-action {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: flex-end;
+  position: relative;
 }
 
+/* Keep the menu inside the viewport: Reuse sits on the right, so end-align
+   and cap width so options grow left instead of forcing horizontal scroll. */
 .reuse-players-menu {
-  max-width: min(24rem, 90vw);
+  max-width: min(24rem, calc(100vw - 1.25rem));
+  width: max-content;
+  right: 0;
+  left: auto !important;
 }
 
 .reuse-players-menu-item {
   white-space: normal;
-  max-width: 24rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: min(24rem, calc(100vw - 1.25rem));
 }
 
 .reuse-players-menu > li + li {
