@@ -1,4 +1,6 @@
-.game-record-score-input {
+.game-record-score-input,
+.player-picker-cta-input,
+#game-record-voice-transcript {
   /* iOS Safari zooms focused inputs when font-size is below 16px. */
   font-size: 16px;
 }
@@ -168,6 +170,19 @@
 .player-picker-cta-input {
   border-color: var(--bs-primary);
   box-shadow: 0 0.125rem 0.5rem rgba(13, 110, 253, 0.12);
+}
+
+.game-record-primary-actions {
+  align-items: stretch;
+}
+
+.game-record-primary-actions .game-record-save,
+.game-record-primary-actions .game-record-reuse {
+  min-height: 2.5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .player-picker-field:focus-within .player-picker-cta-input {

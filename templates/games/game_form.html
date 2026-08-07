@@ -6,8 +6,8 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=8" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=17" />
+  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=9" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=18" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
@@ -159,7 +159,7 @@
                   <div class="game-record-voice-input-wrap">
                     <textarea
                       id="game-record-voice-transcript"
-                      class="form-control form-control-sm ll-field-hint-input"
+                      class="form-control ll-field-hint-input"
                       rows="2"
                       data-voice-transcript
                       placeholder="e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, rally"
@@ -337,7 +337,7 @@
                     <input
                       type="text"
                       id="player-picker-input"
-                      class="form-control form-control-lg player-picker-cta-input"
+                      class="form-control player-picker-cta-input"
                       data-player-picker
                       name="ll_player_search"
                       placeholder="Type player"
@@ -357,7 +357,7 @@
                     type="submit"
                     name="action"
                     value="save"
-                    class="btn btn-primary btn-lg game-record-save"
+                    class="btn btn-primary game-record-save"
                     data-save-button
                     disabled
                   >
@@ -367,7 +367,7 @@
                     <button
                       type="button"
                       id="reuse-players-btn"
-                      class="btn btn-outline-primary"
+                      class="btn btn-outline-primary game-record-reuse"
                       data-bs-toggle="dropdown"
                       data-bs-display="static"
                       aria-expanded="false"
