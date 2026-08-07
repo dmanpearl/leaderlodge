@@ -168,6 +168,18 @@ Always includes `periods_available` (total periods with data) and `periods_retur
 
 Returns players ordered by recorded **losses** (weighted count). Only meaningful when the game type tracks explicit losses (Progressive Rummy). Other game types return `supports_loser: false` and an error hint; use `query_placement_leaders` for last-place frequency.
 
+### `query_streaks`
+
+| Parameter | Required | Notes |
+| --------- | -------- | ----- |
+| `game_type_code` | Yes | |
+| `metric` | No | `longest` (default) or `current` |
+| `year`, `month`, `all_time`, presets, date range | No | Same period resolution as leaderboard |
+| `game_size` | No | |
+| `limit` | No | Default 10, max 20 |
+
+Ranks players by longest or current streak. A streak continues on **win or tie** and ends on a **loss** (or other non-continuing result). Period filters define the chronological game sequence. Each game counts as one step (double/half weight does not change length).
+
 ### `compare_players`
 
 | Parameter | Required | Notes |
@@ -282,6 +294,7 @@ Returns scores, placements, location, and players for one recorded game.
 | -------- | ----------------- | ------- |
 | Current standings | "Who leads dominos all time?" | `query_leaderboard` + `all_time: true` |
 | Period standings | "Who was on top in 2025?" / "March 2026 leaderboard" | `query_leaderboard` with `year` / `month` |
+| Streaks | "Longest streak?" / "Who has the current streak?" | `query_streaks` with `metric` `longest` or `current` (wins/ties continue; loss ends) |
 | Field-size standings | "Who leads 4-player mahjongg?" | `query_leaderboard` + `game_size` |
 | Placement frequency | "Who finishes 2nd most in dominos?" | `query_placement_leaders`, `placement=1` |
 | Placement + period | "Who got 2nd place most in January 2026?" | `query_placement_leaders`, `placement=1`, `month=1`, `year=2026` |
@@ -337,7 +350,6 @@ Returns scores, placements, location, and players for one recorded game.
 
 | Category | Example questions | Gap |
 | -------- | ----------------- | --- |
-| Streaks | "Longest win streak?" | Not computed in any Ask tool |
 | Rank movement after one game | "Who did Amelia pass when she won last Tuesday?" | Matchup page only |
 | Cross game type summary | "Who is best across all our games?" | No multi-type aggregate tool |
 | Predictions | "Who will win next month?" | Prompt forbids; no predictive data |
@@ -351,8 +363,8 @@ Remaining high-value gaps and proposed tools. Ordered roughly by effort and impa
 
 | Priority | Tool or change | Unlocks |
 | -------- | -------------- | ------- |
-| Next | `query_streaks` | Win/loss/podium streaks |
 | Next | `query_multi_game_type` | Cross-game-type player summary |
+| Later | Loss / podium streaks | Beyond win/tie streak rules |
 | Later | Inactive player support | Alumni questions |
 
 Example questions and tools are listed in the Ask **Examples** UI (`/insights/ask/examples/`).

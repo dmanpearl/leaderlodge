@@ -45,7 +45,7 @@ Example: David plays dominos and backgammon in Group A:
 
 `PlayerRanking` fields: `player`, `game_type_code`, `game_type_name`,
 `games_played`, `wins`, `losses`, `win_points`, `finish_points`, `win_pct`, `loss_pct`,
-`rank_score`, `rank`.
+`rank_score`, `rank`, `longest_streak`, `current_streak`.
 
 ### Ranking service
 

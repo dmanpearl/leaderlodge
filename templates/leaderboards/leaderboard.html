@@ -175,7 +175,7 @@
           <a
             href="{% url 'core:about_scoring' %}"
             class="btn btn-link btn-sm p-0 text-muted"
-            title="How ranking works (Bayesian, Win Percent, Wins Total)"
+            title="How ranking works (Bayesian, win stats, and streaks)"
             aria-label="How ranking works"
           >
             <i class="bi bi-info-circle" aria-hidden="true"></i>
@@ -221,6 +221,10 @@
                     {{ row.win_pct|floatformat:0 }}%
                   {% elif selected_algorithm == "win_total" %}
                     {{ row.wins|floatformat:-1 }}
+                  {% elif selected_algorithm == "longest_streak" %}
+                    {{ row.longest_streak }}
+                  {% elif selected_algorithm == "current_streak" %}
+                    {{ row.current_streak }}
                   {% else %}
                     {{ row.rank_score|floatformat:1 }}
                   {% endif %}

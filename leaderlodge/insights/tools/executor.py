@@ -25,6 +25,7 @@ from leaderlodge.insights.tools.standings import (
     list_game_types,
     query_date_range_leaderboard,
     query_leaderboard,
+    query_streaks,
     query_location_leaderboard,
     query_play_locations,
     query_player_detail,
@@ -63,6 +64,7 @@ class ToolExecutor:
             "query_head_to_head": self._query_head_to_head,
             "query_hall_of_fame": self._query_hall_of_fame,
             "query_loss_leaders": self._query_loss_leaders,
+            "query_streaks": self._query_streaks,
             "compare_players": self._compare_players,
             "query_player_rank_history": self._query_player_rank_history,
             "query_date_range_leaderboard": self._query_date_range_leaderboard,
@@ -402,6 +404,21 @@ class ToolExecutor:
         return query_loss_leaders(
             self.scope.group,
             game_type_code=game_type_code,
+            period=self._resolve_period(arguments, game_type_code),
+            game_size=self._resolve_game_size(arguments, game_type_code),
+            game_filters=self._resolve_game_filters(arguments, game_type_code),
+            limit=self._resolve_limit(arguments),
+        )
+
+    def _query_streaks(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        game_type_code = self._resolve_game_type_code(arguments)
+        metric = str(arguments.get("metric") or "longest").strip().lower()
+        if metric not in ("longest", "current"):
+            raise ToolExecutionError("metric must be longest or current.")
+        return query_streaks(
+            self.scope.group,
+            game_type_code=game_type_code,
+            metric=metric,
             period=self._resolve_period(arguments, game_type_code),
             game_size=self._resolve_game_size(arguments, game_type_code),
             game_filters=self._resolve_game_filters(arguments, game_type_code),

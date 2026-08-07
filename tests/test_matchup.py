@@ -44,6 +44,8 @@ def test_matchup_view_shows_players_and_stats(client, user, group):
     assert players[0].display_label in content
     assert players[1].display_label in content
     assert "Leaderboard rank" in content
+    assert "Current streak" in content
+    assert "Longest streak" in content
     assert "This game score" in content
     assert "Place" in content
     assert "Place %" in content
@@ -102,3 +104,35 @@ def test_build_matchup_view_marks_rank_changes_after_second_game(group, user):
     }
     assert changes[first.pk] == "up"
     assert changes[second.pk] == "down"
+
+
+@pytest.mark.django_db
+def test_matchup_streak_rows_reflect_career_through_game(group, user):
+    players = list(group.players.order_by("pk")[:2])
+    first, second = players[0], players[1]
+
+    client = Client()
+    client.force_login(user)
+
+    _record_game(client, group, players, {first.pk: 30, second.pk: 20})
+    _record_game(client, group, players, {first.pk: 35, second.pk: 15})
+    _record_game(client, group, players, {first.pk: 20, second.pk: 30})
+
+    game = Game.objects.filter(group=group).order_by("pk").last()
+    matchup = build_matchup_view(game)
+    longest = next(row for row in matchup.rows if row.label == "Longest streak")
+    current = next(row for row in matchup.rows if row.label == "Current streak")
+
+    by_player_longest = {
+        matchup.players[index].player.pk: longest.cells[index].display
+        for index in range(len(matchup.players))
+    }
+    by_player_current = {
+        matchup.players[index].player.pk: current.cells[index].display
+        for index in range(len(matchup.players))
+    }
+    # First: W W L (longest 2, current 0). Second: L L W (longest 1, current 1).
+    assert by_player_longest[first.pk] == "2"
+    assert by_player_current[first.pk].endswith("0")
+    assert by_player_current[second.pk].endswith("1")
+    assert by_player_longest[second.pk].endswith("1")

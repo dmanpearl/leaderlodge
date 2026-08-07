@@ -13,6 +13,10 @@ from leaderlodge.insights.tools.rate_display import (
     add_avg_score_display_fields,
     add_outcome_display_fields,
 )
+from leaderlodge.leaderboards.algorithms import (
+    ALGORITHM_CURRENT_STREAK,
+    ALGORITHM_LONGEST_STREAK,
+)
 from leaderlodge.leaderboards.game_filters import LeaderboardGameFilters
 from leaderlodge.leaderboards.period import LeaderboardPeriod
 from leaderlodge.leaderboards.ranking import compute_percentage
@@ -70,6 +74,72 @@ def _ranking_row(row, *, shutout_scope: bool = False) -> dict:
             "Winner-side shutout count only; team pair credit stays on the team row."
         )
     return data
+
+
+def query_streaks(
+    group: Group,
+    *,
+    game_type_code: str,
+    metric: str = "longest",
+    period: LeaderboardPeriod | None = None,
+    game_size: int | None = None,
+    game_filters: LeaderboardGameFilters | None = None,
+    limit: int = 10,
+) -> dict:
+    """
+    Rank players by longest or current streak.
+
+    A streak continues on win or tie and breaks on loss (or other non-win
+    outcomes). Period filters scope the chronological game sequence.
+    """
+    if period is None:
+        period = LeaderboardPeriod.all_time()
+
+    metric_key = (metric or "longest").strip().lower()
+    if metric_key not in ("longest", "current"):
+        metric_key = "longest"
+    algorithm = (
+        ALGORITHM_LONGEST_STREAK
+        if metric_key == "longest"
+        else ALGORITHM_CURRENT_STREAK
+    )
+
+    game_type = get_game_type(game_type_code)
+    rankings = get_player_rankings(
+        group,
+        game_type_code=game_type_code,
+        period=period,
+        game_size=game_size,
+        game_filters=game_filters,
+        algorithm=algorithm,
+    )
+    payload = {
+        "game_type_code": game_type_code,
+        "game_type_name": game_type.name,
+        "metric": metric_key,
+        "streak_rule": (
+            "Wins and ties continue a streak; a loss ends it. "
+            "Length is games in the filtered sequence, not weighted counts."
+        ),
+        "period": period.query_params() or {"all_time": True},
+        "rankings": [
+            {
+                "player_id": row.player.pk,
+                "display_label": row.player.display_label,
+                "rank": row.rank,
+                "longest_streak": row.longest_streak,
+                "current_streak": row.current_streak,
+                "games_played": round(row.games_played, 2),
+                "wins": round(row.wins, 2),
+            }
+            for row in rankings[:limit]
+        ],
+    }
+    return _attach_game_features(
+        payload,
+        game_type_code=game_type_code,
+        game_filters=game_filters,
+    )
 
 
 def query_leaderboard(

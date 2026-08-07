@@ -2,11 +2,11 @@
 {% load static %}
 
 {% block title %}How Ranking Works | LeaderLodge{% endblock %}
-{% block meta_description %}How LeaderLodge ranks players: Bayesian (default) rank score from finish points, plus Win Percent and Wins Total algorithms on the leaderboard.{% endblock %}
+{% block meta_description %}How LeaderLodge ranks players: Bayesian (default) rank score, plus Win Percent, Wins Total, and streak algorithms on the leaderboard.{% endblock %}
 {% block og_title %}How Ranking Works in LeaderLodge{% endblock %}
-{% block og_description %}How LeaderLodge ranks players: Bayesian (default) finish-point ranking, plus Win Percent and Wins Total on the leaderboard.{% endblock %}
+{% block og_description %}How LeaderLodge ranks players: Bayesian (default), Win Percent, Wins Total, and Longest/Current Streak on the leaderboard.{% endblock %}
 {% block twitter_title %}How Ranking Works in LeaderLodge{% endblock %}
-{% block twitter_description %}How LeaderLodge ranks players with Bayesian, Win Percent, and Wins Total.{% endblock %}
+{% block twitter_description %}How LeaderLodge ranks players with Bayesian, win stats, and streaks.{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/about.css' %}" />
@@ -19,9 +19,10 @@
       <h1 class="h3 mb-1">How ranking works</h1>
       <p class="text-muted mb-4">
         Use <strong>Rank Algorithm</strong> on the leaderboard to switch between
-        Bayesian (default), Win Percent, and Wins Total. Win Percent and Wins Total
-        are raw stats. The step-by-step below is for the <strong>Bayesian</strong>
-        Lodge ranking only.
+        Bayesian (default), Win Percent, Wins Total, Longest Streak, and Current
+        Streak. Win and streak options are raw stats (streaks: wins or ties
+        continue; a loss ends the run). The step-by-step below is for the
+        <strong>Bayesian</strong> Lodge ranking only.
       </p>
 
       <div class="card mb-4">

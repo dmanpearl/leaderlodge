@@ -24,10 +24,12 @@ option uses the same group, game type, period, and other filters.
 | **Bayesian (default)** | Lodge rank score from finish points, with experience adjustment on all-time boards. The steps below explain only this algorithm. |
 | **Win Percent** | Highest win rate first. A player with one win in one game is at 100%. No Bayesian / experience adjustment. |
 | **Wins Total** | Most wins first. No Bayesian / experience adjustment. |
+| **Longest Streak** | Longest run of wins or ties (a loss ends the run). Period filters set the game range. No Bayesian / experience adjustment. |
+| **Current Streak** | Trailing run of wins or ties at the end of the filtered sequence (`0` after a loss). No Bayesian / experience adjustment. |
 
-Win Percent and Wins Total are raw stats over the filtered games. They do not
-use finish points or the Bayesian factor. Switch back to **Bayesian** for the
-Lodge ranking described in the rest of this page.
+Win Percent, Wins Total, and streak algorithms are raw stats over the filtered
+games. They do not use finish points or the Bayesian factor. Switch back to
+**Bayesian** for the Lodge ranking described in the rest of this page.
 
 ---
 

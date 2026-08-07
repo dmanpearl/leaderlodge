@@ -662,9 +662,18 @@ ASK_EXAMPLES: tuple[AskExample, ...] = (
     ),
     _example(
         "Streaks",
-        "Longest win streak?",
-        reliability="not_supported",
-        limitation="Not computed in any Ask tool.",
+        "Who has the longest streak?",
+        reliability="supported",
+        tool_calls=(
+            AskToolCall(
+                "query_streaks",
+                {"metric": "longest", "all_time": True},
+                note=(
+                    "Wins and ties continue a streak; a loss ends it. "
+                    "Use metric=current for the active trailing streak."
+                ),
+            ),
+        ),
     ),
     _example(
         "Rank movement after one game",

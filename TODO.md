@@ -216,11 +216,11 @@
 - [x] 79861a6 Cribbage Skunk: Modify shutout behavior to support Cribbage 61/90 skunk/double-skunk
 - [x] Leaderboard: Add filtering for Shutouts (Pickles and Skunks)
 - [x] 1cef446 Leaderboard Algorithm: Provide rank algorithm selector that includes default, win-percent, win-total. Supports range
-- [x] Dashboard loading: Make the empty loading (skeleton) cards obey current spin-down preferences, so when they get populated they already will have their open/closed states.
+- [x] 8c1c2cf Dashboard loading: Make the empty loading (skeleton) cards obey current spin-down preferences, so when they get populated they already will have their open/closed states.
+- [x] Leaderboard Streaks: Add streak algorithms: longest win streak (includes ties), longest current win streak (w/ties), longest streak within a range. Add streak stats to Matchup view if applicable
 
 ## Open Items
 
-- [ ] Leaderboard Streaks: Add streak algorithms: longest win streak (includes ties), longest current win streak (w/ties), longest streak within a range. Add streak stats to Matchup view if applicable
 - [ ] Leaderboard Additional Algorithms: points-percent, points-total
 - [ ] Icons: Need a better Skunk icon for Cribbage
 - [ ] Icons: Need separate icons for Gin Rummy and Progressive Rummy

@@ -224,6 +224,61 @@ def test_query_loss_leaders_orders_by_losses(user, group):
 
 
 @pytest.mark.django_db
+def test_query_streaks_orders_by_longest(user, group):
+    from datetime import date
+
+    from leaderlodge.insights.tools.standings import query_streaks
+
+    players = list(group.players.order_by("pk"))
+
+    def record(*, winner_idx, loser_idx, day):
+        rows = [
+            {"player": players[winner_idx], "score": 35},
+            {"player": players[loser_idx], "score": 10},
+        ]
+        assign_results_from_scores(rows, "dominos")
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="dominos",
+            played_on=date(2026, 1, day),
+            participants=[
+                ParticipantInput(
+                    player=row["player"],
+                    score=row["score"],
+                    result=row["result"],
+                    placement=row["placement"],
+                )
+                for row in rows
+            ],
+        )
+
+    record(winner_idx=0, loser_idx=1, day=1)
+    record(winner_idx=1, loser_idx=0, day=2)
+    record(winner_idx=1, loser_idx=2, day=3)
+    record(winner_idx=1, loser_idx=2, day=4)
+
+    result = query_streaks(group, game_type_code="dominos", metric="longest", limit=5)
+    assert result["metric"] == "longest"
+    assert result["rankings"][0]["player_id"] == players[1].pk
+    assert result["rankings"][0]["longest_streak"] == 3
+
+    scope = AskScope(
+        group=group,
+        period=LeaderboardPeriod.all_time(),
+        default_game_type_code="dominos",
+        available_game_type_codes=("dominos",),
+    )
+    executor = ToolExecutor(scope)
+    via_tool = executor.execute(
+        "query_streaks",
+        {"game_type_code": "dominos", "metric": "current", "all_time": True},
+    )
+    assert via_tool["metric"] == "current"
+    assert via_tool["rankings"][0]["current_streak"] == 3
+
+
+@pytest.mark.django_db
 def test_query_loss_leaders_rejects_dominos(user, group):
     _record_game(group, user, third_idx=None)
     from leaderlodge.insights.tools.loss_leaders import query_loss_leaders

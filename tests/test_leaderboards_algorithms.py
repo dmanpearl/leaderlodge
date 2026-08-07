@@ -9,6 +9,8 @@ from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.leaderboards.algorithms import (
     ALGORITHM_BAYESIAN,
+    ALGORITHM_CURRENT_STREAK,
+    ALGORITHM_LONGEST_STREAK,
     ALGORITHM_WIN_PERCENT,
     ALGORITHM_WIN_TOTAL,
     resolve_rank_algorithm,
@@ -17,7 +19,7 @@ from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
     build_leaderboard_query,
 )
-from leaderlodge.leaderboards.service import get_player_rankings
+from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_rankings
 
 
 @pytest.fixture
@@ -65,6 +67,8 @@ def _record(user, group, *, winner_idx, loser_idx, played_on, winner_score=35):
         ("bayesian", ALGORITHM_BAYESIAN),
         ("win_percent", ALGORITHM_WIN_PERCENT),
         ("win_total", ALGORITHM_WIN_TOTAL),
+        ("longest_streak", ALGORITHM_LONGEST_STREAK),
+        ("current_streak", ALGORITHM_CURRENT_STREAK),
         ("nope", ALGORITHM_BAYESIAN),
         ("WIN_PERCENT", ALGORITHM_WIN_PERCENT),
     ],
@@ -222,8 +226,78 @@ def test_leaderboard_page_algorithm_select_and_order(client, user, group):
     assert "Bayesian (default)" in content
     assert "Win Percent" in content
     assert "Wins Total" in content
+    assert "Longest Streak" in content
+    assert "Current Streak" in content
     assert ">Wins</th>" in content
     # First ranked player cell should be Pat (guest with three wins).
     table = content.split("leaderboard-table", 1)[1]
     first_row = table.split("<tr", 2)[2]
     assert players[1].display_label in first_row
+
+
+@pytest.mark.django_db
+def test_longest_streak_algorithm_orders_board(user, group):
+    players = list(group.players.order_by("pk"))
+    # Player 0: W L W (longest 1)
+    _record(user, group, winner_idx=0, loser_idx=1, played_on=date(2026, 1, 1))
+    _record(user, group, winner_idx=1, loser_idx=0, played_on=date(2026, 1, 2))
+    _record(user, group, winner_idx=0, loser_idx=2, played_on=date(2026, 1, 3))
+    # Player 1: three wins in a row after that loss above... actually player 1
+    # already has W on day 2; add two more vs Sam.
+    _record(user, group, winner_idx=1, loser_idx=2, played_on=date(2026, 1, 4))
+    _record(user, group, winner_idx=1, loser_idx=2, played_on=date(2026, 1, 5))
+
+    rankings = get_player_rankings(
+        group,
+        game_type_code="dominos",
+        algorithm=ALGORITHM_LONGEST_STREAK,
+    )
+    assert rankings[0].player.pk == players[1].pk
+    assert rankings[0].longest_streak == 3
+
+
+@pytest.mark.django_db
+def test_current_streak_respects_period(user, group):
+    players = list(group.players.order_by("pk"))
+    _record(user, group, winner_idx=0, loser_idx=1, played_on=date(2025, 1, 1))
+    _record(user, group, winner_idx=0, loser_idx=1, played_on=date(2025, 1, 2))
+    _record(user, group, winner_idx=1, loser_idx=0, played_on=date(2026, 3, 1))
+    _record(user, group, winner_idx=1, loser_idx=2, played_on=date(2026, 3, 2))
+
+    rankings = get_player_rankings(
+        group,
+        game_type_code="dominos",
+        period=LeaderboardPeriod(year=2026),
+        algorithm=ALGORITHM_CURRENT_STREAK,
+    )
+    assert rankings[0].player.pk == players[1].pk
+    assert rankings[0].current_streak == 2
+
+
+def test_build_leaderboard_query_includes_streak_algorithm():
+    query = build_leaderboard_query(
+        group_id="1",
+        game_type_code="dominos",
+        algorithm=ALGORITHM_LONGEST_STREAK,
+    )
+    assert "algorithm=longest_streak" in query
+
+
+@pytest.mark.django_db
+def test_rank_detail_includes_streak_date_spans(user, group):
+    players = list(group.players.order_by("pk"))
+    _record(user, group, winner_idx=0, loser_idx=1, played_on=date(2026, 1, 1))
+    _record(user, group, winner_idx=0, loser_idx=1, played_on=date(2026, 1, 2))
+    _record(user, group, winner_idx=1, loser_idx=0, played_on=date(2026, 1, 3))
+    _record(user, group, winner_idx=0, loser_idx=2, played_on=date(2026, 2, 10))
+    _record(user, group, winner_idx=0, loser_idx=2, played_on=date(2026, 2, 11))
+    _record(user, group, winner_idx=0, loser_idx=2, played_on=date(2026, 2, 12))
+
+    detail = get_player_rank_detail(group, players[0], game_type_code="dominos")
+    assert detail is not None
+    assert detail.ranking.longest_streak == 3
+    assert detail.longest_streak_start == date(2026, 2, 10)
+    assert detail.longest_streak_end == date(2026, 2, 12)
+    assert detail.ranking.current_streak == 3
+    assert detail.current_streak_start == date(2026, 2, 10)
+    assert detail.current_streak_end == date(2026, 2, 12)

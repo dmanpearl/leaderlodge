@@ -32,6 +32,11 @@ from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
     filter_results_by_period,
 )
+from leaderlodge.leaderboards.streaks import (
+    PlayerStreaks,
+    compute_streaks_from_dated_results,
+    streaks_by_player_from_participant_results,
+)
 from leaderlodge.leaderboards.ranking import (
     FINISH_POINTS_EXPONENT,
     SORTABLE_COLUMNS,
@@ -72,6 +77,8 @@ class PlayerRanking:
     loss_pct: float
     rank_score: float
     rank: int | None = None
+    longest_streak: int = 0
+    current_streak: int = 0
 
 
 @dataclass(frozen=True)
@@ -153,6 +160,10 @@ class PlayerRankDetail:
     first_win_date: date | None
     last_win_date: date | None
     first_loss_date: date | None
+    longest_streak_start: date | None
+    longest_streak_end: date | None
+    current_streak_start: date | None
+    current_streak_end: date | None
     game_count: int
     tie_count: int
     best_score: ScoreHighlight | None
@@ -313,10 +324,14 @@ def get_player_rank_detail(
     best_score: ScoreHighlight | None = None
     worst_score: ScoreHighlight | None = None
     partner_stats: dict[tuple[int, ...], dict[str, object]] = {}
+    # Participant-side results only (team entity or solo), matching standings streaks.
+    streak_events: list[tuple[str, date]] = []
 
     for result in results_qs:
         game = result.game
         played_on = game.played_on
+        if result.player_id == player.pk:
+            streak_events.append((result.result, played_on))
         weight = game.double_weight / game.half_weight
         if game.half_weight == 2:
             half_weighted_games += weight
@@ -526,6 +541,8 @@ def get_player_rank_detail(
 
     partner_breakdown = tuple(sorted(partner_rows, key=_partner_breakdown_sort_key))
 
+    streak_detail = compute_streaks_from_dated_results(streak_events)
+
     loss_games_by_field_size = tuple(
         FieldSizeGameCount(
             player_count=size,
@@ -559,6 +576,10 @@ def get_player_rank_detail(
         first_win_date=first_win_date,
         last_win_date=last_win_date,
         first_loss_date=first_loss_date,
+        longest_streak_start=streak_detail.longest_start,
+        longest_streak_end=streak_detail.longest_end,
+        current_streak_start=streak_detail.current_start,
+        current_streak_end=streak_detail.current_end,
         game_count=game_count,
         tie_count=tie_count,
         best_score=best_score,
@@ -945,6 +966,7 @@ def _standings_for_game_type(
             "player__team_members__member__linked_user",
         )
     )
+    streaks_by_player = streaks_by_player_from_participant_results(results)
 
     stats: dict[int, dict[str, float]] = defaultdict(
         lambda: {
@@ -1020,6 +1042,9 @@ def _standings_for_game_type(
             effective_games_for_bayesian=effective_games,
             apply_bayesian=period.apply_bayesian,
         )
+        # Streaks are keyed by participant side (team entity or solo), not
+        # experience-weighted member credit from team games.
+        streaks = streaks_by_player.get(player.pk, PlayerStreaks(0, 0))
         rows.append(
             PlayerRanking(
                 player=player,
@@ -1033,6 +1058,8 @@ def _standings_for_game_type(
                 win_pct=compute_percentage(wins, games_played),
                 loss_pct=compute_percentage(losses, games_played),
                 rank_score=rank_score,
+                longest_streak=streaks.longest,
+                current_streak=streaks.current,
             )
         )
 
@@ -1052,6 +1079,8 @@ def _empty_player_ranking(player: GroupPlayer, game_type) -> PlayerRanking:
         win_pct=0.0,
         loss_pct=0.0,
         rank_score=0.0,
+        longest_streak=0,
+        current_streak=0,
     )
 
 

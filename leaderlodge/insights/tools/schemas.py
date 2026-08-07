@@ -367,6 +367,37 @@ ASK_TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "query_streaks",
+            "description": (
+                "Rank players by longest streak or current streak. A streak "
+                "continues on win or tie and ends on a loss. Use period filters "
+                "for a date range. Prefer metric=longest for career best run, "
+                "metric=current for active streak."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "game_type_code": {"type": "string"},
+                    "metric": {
+                        "type": "string",
+                        "enum": ["longest", "current"],
+                        "description": (
+                            "longest = best run in the filtered games; "
+                            "current = trailing streak at the end of the sequence."
+                        ),
+                    },
+                    **_PERIOD_PROPERTIES,
+                    "game_size": {"type": "integer"},
+                    **_GAME_FEATURE_PROPERTIES,
+                    "limit": {"type": "integer"},
+                },
+                "required": ["game_type_code"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "compare_players",
             "description": (
                 "Side-by-side stats for 2 to 5 players in one game type. "

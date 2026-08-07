@@ -236,6 +236,10 @@ def _format_pct(value: float) -> str:
     return f"{value:.1f}%"
 
 
+def _format_streak(value: float | int) -> str:
+    return str(int(value))
+
+
 def _display_place(placement: int | None) -> str:
     if placement is None:
         return "—"
@@ -501,12 +505,20 @@ def _leaderboard_rows(
     ]
     if show_losses:
         metric_rows.append(("Losses", "losses", False))
-    metric_rows.append(("Win %", "win_pct", True))
+    metric_rows.extend(
+        [
+            ("Win %", "win_pct", True),
+            ("Current streak", "current_streak", True),
+            ("Longest streak", "longest_streak", True),
+        ]
+    )
 
     for label, field, higher_is_better in metric_rows:
         formatter = _format_pct if field == "win_pct" else _format_weighted
         if field == "rank_score":
             formatter = _format_score
+        if field in ("current_streak", "longest_streak"):
+            formatter = _format_streak
         rows.append(
             MatchupStatRow(
                 label=label,

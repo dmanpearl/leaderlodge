@@ -59,7 +59,7 @@
     <div class="card-body">
       <dl class="row mb-0 rank-detail-dl">
         <dt class="col-7 col-sm-5">Rank</dt>
-        <dd class="col-5 col-sm-7">{{ detail.ranking.rank|default:"—" }}</dd>
+        <dd class="col-5 col-sm-7">{{ detail.ranking.rank|default:"-" }}</dd>
 
         <dt class="col-7 col-sm-5">Score (displayed)</dt>
         <dd class="col-5 col-sm-7">{{ detail.ranking.rank_score|floatformat:1 }}</dd>
@@ -157,10 +157,10 @@
     <div class="card-body">
       <dl class="row mb-0 rank-detail-dl">
         <dt class="col-7 col-sm-5">First game</dt>
-        <dd class="col-5 col-sm-7">{{ detail.first_game_date|date:"M j, Y"|default:"—" }}</dd>
+        <dd class="col-5 col-sm-7">{{ detail.first_game_date|date:"M j, Y"|default:"-" }}</dd>
 
         <dt class="col-7 col-sm-5">Most recent game</dt>
-        <dd class="col-5 col-sm-7">{{ detail.last_game_date|date:"M j, Y"|default:"—" }}</dd>
+        <dd class="col-5 col-sm-7">{{ detail.last_game_date|date:"M j, Y"|default:"-" }}</dd>
 
         {% if detail.date_range_label %}
           <dt class="col-7 col-sm-5">Span</dt>
@@ -168,7 +168,7 @@
         {% endif %}
 
         <dt class="col-7 col-sm-5">First win</dt>
-        <dd class="col-5 col-sm-7">{{ detail.first_win_date|date:"M j, Y"|default:"—" }}</dd>
+        <dd class="col-5 col-sm-7">{{ detail.first_win_date|date:"M j, Y"|default:"-" }}</dd>
 
         {% if detail.last_win_date and detail.last_win_date != detail.first_win_date %}
           <dt class="col-7 col-sm-5">Most recent win</dt>
@@ -179,6 +179,34 @@
           <dt class="col-7 col-sm-5">First loss</dt>
           <dd class="col-5 col-sm-7">{{ detail.first_loss_date|date:"M j, Y" }}</dd>
         {% endif %}
+
+        <dt class="col-7 col-sm-5">Current streak</dt>
+        <dd class="col-5 col-sm-7">
+          {{ detail.ranking.current_streak }}
+          {% if detail.ranking.current_streak and detail.current_streak_start %}
+            <span class="text-muted">
+              {% if detail.current_streak_end and detail.current_streak_end != detail.current_streak_start %}
+                ({{ detail.current_streak_start|date:"M j, Y" }} - {{ detail.current_streak_end|date:"M j, Y" }})
+              {% else %}
+                (since {{ detail.current_streak_start|date:"M j, Y" }})
+              {% endif %}
+            </span>
+          {% endif %}
+        </dd>
+
+        <dt class="col-7 col-sm-5">Longest streak</dt>
+        <dd class="col-5 col-sm-7">
+          {{ detail.ranking.longest_streak }}
+          {% if detail.ranking.longest_streak and detail.longest_streak_start %}
+            <span class="text-muted">
+              {% if detail.longest_streak_end and detail.longest_streak_end != detail.longest_streak_start %}
+                ({{ detail.longest_streak_start|date:"M j, Y" }} - {{ detail.longest_streak_end|date:"M j, Y" }})
+              {% else %}
+                ({{ detail.longest_streak_start|date:"M j, Y" }})
+              {% endif %}
+            </span>
+          {% endif %}
+        </dd>
 
         <dt class="col-7 col-sm-5">Podium finishes</dt>
         <dd class="col-5 col-sm-7">
