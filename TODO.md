@@ -215,7 +215,8 @@
       - features.md list; About/AI Insights meta, OG/Twitter, JSON-LD featureList; demo seeds for all ten types.
 - [x] 79861a6 Cribbage Skunk: Modify shutout behavior to support Cribbage 61/90 skunk/double-skunk
 - [x] Leaderboard: Add filtering for Shutouts (Pickles and Skunks)
-- [x] Leaderboard Algorithm: Provide rank algorithm selector that includes default, win-percent, win-total. Supports range
+- [x] 1cef446 Leaderboard Algorithm: Provide rank algorithm selector that includes default, win-percent, win-total. Supports range
+- [x] Dashboard loading: Make the empty loading (skeleton) cards obey current spin-down preferences, so when they get populated they already will have their open/closed states.
 
 ## Open Items
 
@@ -224,7 +225,7 @@
 - [ ] Icons: Need a better Skunk icon for Cribbage
 - [ ] Icons: Need separate icons for Gin Rummy and Progressive Rummy
 - [ ] Game Type: Add Canasta, Euchre
-- [ ] Mah Jongg: Support style: American or Chinese (Japanese? Hong Kong? Chinese variants?)
+- [ ] Mah Jongg: Support style: American or Chinese (Japanese? Hong Kong? Chinese variants?) Use country logo for icon
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Record Game: Make it easier to go back and set location during user selections

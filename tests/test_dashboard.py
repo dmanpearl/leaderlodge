@@ -201,6 +201,18 @@ def test_dashboard_keeps_collapse_when_multiple_game_type_cards(client, user, gr
     assert response.context["dashboard_sections_collapsible"] is True
     assert 'data-bs-toggle="collapse"' in content
     assert "dashboard-recent-games-icon" in content
+    # Skeleton cards use the same collapse storage keys as populated cards.
+    assert (
+        'data-collapse-storage-key="leaderlodge.dashboardLeaderboard.dominos.Open"'
+        in content
+    )
+    assert (
+        'data-collapse-storage-key="leaderlodge.dashboardLeaderboard.pickleball.Open"'
+        in content
+    )
+    assert 'data-dashboard-collapse' in content
+    assert 'id="dashboard-leaderboard-dominos"' in content
+    assert "dashboard-leaderboard-skeletons" in content
 
 
 @pytest.mark.django_db

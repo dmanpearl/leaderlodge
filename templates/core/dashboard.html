@@ -187,45 +187,76 @@
                 <div class="col-12 col-md-6">
                   <div class="card game-list-filters-card">
                     <div class="card-header d-flex justify-content-between align-items-center game-list-filters-header dashboard-section-header gap-2">
-                      <div class="d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1">
-                        {% if card.icon_image %}
-                          <img
-                            src="{% static card.icon_image %}"
-                            class="dashboard-section-icon dashboard-section-icon--image"
-                            alt=""
-                          />
-                        {% elif card.icon_class %}
-                          <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
-                        {% endif %}
-                        <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
-                      </div>
+                      {% if dashboard_sections_collapsible %}
+                        <button
+                          class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1"
+                          type="button"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#dashboard-leaderboard-{{ card.game_type_code }}"
+                          aria-expanded="false"
+                          aria-controls="dashboard-leaderboard-{{ card.game_type_code }}"
+                          data-dashboard-collapse
+                          data-collapse-storage-key="leaderlodge.dashboardLeaderboard.{{ card.game_type_code }}.Open"
+                        >
+                          <i
+                            id="dashboard-leaderboard-icon-{{ card.game_type_code }}"
+                            class="bi bi-chevron-right"
+                            aria-hidden="true"
+                          ></i>
+                          {% if card.icon_image %}
+                            <img
+                              src="{% static card.icon_image %}"
+                              class="dashboard-section-icon dashboard-section-icon--image"
+                              alt=""
+                            />
+                          {% elif card.icon_class %}
+                            <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
+                          {% endif %}
+                          <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
+                        </button>
+                      {% else %}
+                        <div class="d-flex game-list-filters-toggle text-start min-w-0 flex-grow-1">
+                          {% if card.icon_image %}
+                            <img
+                              src="{% static card.icon_image %}"
+                              class="dashboard-section-icon dashboard-section-icon--image"
+                              alt=""
+                            />
+                          {% elif card.icon_class %}
+                            <i class="bi {{ card.icon_class }} dashboard-section-icon" aria-hidden="true"></i>
+                          {% endif %}
+                          <span class="fw-semibold text-truncate">{{ card.game_type_name }}</span>
+                        </div>
+                      {% endif %}
                     </div>
-                    <div class="card-body p-0">
-                      <div class="table-responsive">
-                        <table class="table table-striped mb-0" aria-hidden="true">
-                          <thead>
-                            <tr>
-                              <th scope="col">#</th>
-                              <th scope="col">Player</th>
-                              {% if composite_leaderboards %}
-                                <th scope="col">Group</th>
-                              {% endif %}
-                              <th scope="col">Score</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {% for _ in "12345" %}
-                              <tr class="dashboard-skeleton-row">
-                                <td><span class="dashboard-skeleton-bar dashboard-skeleton-bar--rank"></span></td>
-                                <td><span class="dashboard-skeleton-bar dashboard-skeleton-bar--player"></span></td>
+                    <div{% if dashboard_sections_collapsible %} id="dashboard-leaderboard-{{ card.game_type_code }}" class="collapse"{% endif %}>
+                      <div class="card-body p-0">
+                        <div class="table-responsive">
+                          <table class="table table-striped mb-0" aria-hidden="true">
+                            <thead>
+                              <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Player</th>
                                 {% if composite_leaderboards %}
-                                  <td><span class="dashboard-skeleton-bar dashboard-skeleton-bar--group"></span></td>
+                                  <th scope="col">Group</th>
                                 {% endif %}
-                                <td><span class="dashboard-skeleton-bar dashboard-skeleton-bar--score"></span></td>
+                                <th scope="col">Score</th>
                               </tr>
-                            {% endfor %}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {% for _ in "12345" %}
+                                <tr class="dashboard-skeleton-row">
+                                  <td><span class="dashboard-skeleton-bar dashboard-skeleton-bar--rank"></span></td>
+                                  <td><span class="dashboard-skeleton-bar dashboard-skeleton-bar--player"></span></td>
+                                  {% if composite_leaderboards %}
+                                    <td><span class="dashboard-skeleton-bar dashboard-skeleton-bar--group"></span></td>
+                                  {% endif %}
+                                  <td><span class="dashboard-skeleton-bar dashboard-skeleton-bar--score"></span></td>
+                                </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
                   </div>
