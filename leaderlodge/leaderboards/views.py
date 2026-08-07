@@ -24,6 +24,12 @@ from leaderlodge.games.registry import get_game_type
 from leaderlodge.groups.models import Group, Location
 from leaderlodge.groups.permissions import can_invite_roster_player, get_membership
 from leaderlodge.groups.services import can_manage_group_members, visible_groups
+from leaderlodge.leaderboards.algorithms import (
+    RANK_ALGORITHM_CHOICES,
+    rank_algorithm_summary_label,
+    resolve_rank_algorithm,
+    score_column_header,
+)
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
     build_leaderboard_query,
@@ -233,6 +239,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         request.GET,
         game_type_code=selected_game_type_code,
     ).without_shutout_scope()
+    selected_algorithm = resolve_rank_algorithm(request.GET.get("algorithm", ""))
 
     if _leaderboard_needs_redirect(
         request,
@@ -245,6 +252,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             period=selected_period,
             game_size=selected_game_size,
             game_filters=game_filters,
+            algorithm=selected_algorithm,
         )
         url = reverse("leaderboards:index")
         if query:
@@ -280,6 +288,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             player_type=player_type,
             location_id=selected_location_id,
             game_filters=game_filters,
+            algorithm=selected_algorithm,
         )
         if rankings:
             apply_label_overrides([r.player for r in rankings])
@@ -310,6 +319,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         player_type=player_type,
         location_id=selected_location_id,
         game_filters=game_filters,
+        algorithm=selected_algorithm,
     )
     game_size_label = ""
     if selected_game_size is not None:
@@ -329,6 +339,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
     )
     player_type_label = leaderboard_player_type_filter_label(player_type)
     location_name = selected_location.name if selected_location else ""
+    algorithm_summary = rank_algorithm_summary_label(selected_algorithm)
     filter_summary = ""
     if selected_group:
         filter_summary = leaderboard_filter_summary(
@@ -339,6 +350,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             player_type_label=player_type_label,
             location_name=location_name,
             game_filter_labels=game_filter_ctx["game_filter_labels"],
+            algorithm_label=algorithm_summary,
         )
 
     return render(
@@ -375,6 +387,9 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
             "locations": locations,
             "selected_location_id": selected_location_id,
             "selected_location": selected_location,
+            "selected_algorithm": selected_algorithm,
+            "rank_algorithm_choices": RANK_ALGORITHM_CHOICES,
+            "score_column_header": score_column_header(selected_algorithm),
             "can_manage_members": can_manage_members,
             "invite_eligible_player_ids": invite_eligible_player_ids,
             **period_ctx,
@@ -537,6 +552,7 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
         request.GET,
         game_type_code=game_type_code,
     ).without_shutout_scope()
+    selected_algorithm = resolve_rank_algorithm(request.GET.get("algorithm", ""))
 
     detail = get_player_rank_detail(
         selected_group,
@@ -545,6 +561,7 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
         period=selected_period,
         game_size=selected_game_size,
         game_filters=game_filters,
+        algorithm=selected_algorithm,
     )
     if detail is None:
         return HttpResponseNotFound()
@@ -561,7 +578,7 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
     game_type = get_game_type(game_type_code)
     leaderboard_url = (
         f"{reverse('leaderboards:index')}"
-        f"?{build_leaderboard_query(group_id=str(selected_group.pk), game_type_code=game_type_code, period=selected_period, game_size=selected_game_size, game_filters=game_filters)}"
+        f"?{build_leaderboard_query(group_id=str(selected_group.pk), game_type_code=game_type_code, period=selected_period, game_size=selected_game_size, game_filters=game_filters, algorithm=selected_algorithm)}"
     )
     period_label = selected_period.display_label()
     game_size_label = ""

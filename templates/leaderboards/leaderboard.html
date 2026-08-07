@@ -98,6 +98,24 @@
             {% include "includes/leaderboard_period_filters.html" with year_select_id="leaderboard-year" month_select_id="leaderboard-month" %}
             {% include "includes/game_size_filter.html" with select_id="leaderboard-game-size" %}
             {% include "includes/leaderboard_game_option_filters.html" %}
+            <div class="col-12 col-sm-6 col-lg-4 col-xl">
+              <label for="leaderboard-algorithm" class="form-label">Rank Algorithm</label>
+              <select
+                name="algorithm"
+                id="leaderboard-algorithm"
+                class="form-select"
+                onchange="this.form.submit()"
+              >
+                {% for code, label in rank_algorithm_choices %}
+                  <option
+                    value="{% if code == 'bayesian' %}{% else %}{{ code }}{% endif %}"
+                    {% if selected_algorithm == code %}selected{% endif %}
+                  >
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
             {% if locations %}
               <div class="col-12 col-sm-6 col-lg-4 col-xl">
                 <label for="leaderboard-location" class="form-label">Location</label>
@@ -157,7 +175,7 @@
           <a
             href="{% url 'core:about_scoring' %}"
             class="btn btn-link btn-sm p-0 text-muted"
-            title="How ranking works"
+            title="How ranking works (Bayesian, Win Percent, Wins Total)"
             aria-label="How ranking works"
           >
             <i class="bi bi-info-circle" aria-hidden="true"></i>
@@ -173,7 +191,7 @@
             <tr>
               <th scope="col" class="leaderboard-sticky-col leaderboard-sticky-col--rank text-nowrap" aria-label="Rank">#</th>
               <th scope="col" class="leaderboard-sticky-col leaderboard-sticky-col--player">Player</th>
-              <th scope="col">Score</th>
+              <th scope="col" class="text-nowrap">{{ score_column_header }}</th>
               <th scope="col">Wins</th>
               <th scope="col">Games</th>
               <th scope="col" class="text-nowrap">Win %</th>
@@ -196,9 +214,17 @@
               >
                 <td class="leaderboard-sticky-col leaderboard-sticky-col--rank">{{ row.rank }}</td>
                 <td class="leaderboard-sticky-col leaderboard-sticky-col--player">
-                  {% include "includes/player_type_icon.html" with player=row.player %}{{ row.player.display_label }}{% if selected_period.apply_bayesian and row.games_played < provisional_threshold %}<span class="badge text-bg-warning ms-1">New</span>{% endif %}
+                  {% include "includes/player_type_icon.html" with player=row.player %}{{ row.player.display_label }}{% if selected_period.apply_bayesian and selected_algorithm == "bayesian" and row.games_played < provisional_threshold %}<span class="badge text-bg-warning ms-1">New</span>{% endif %}
                 </td>
-                <td>{{ row.rank_score|floatformat:1 }}</td>
+                <td>
+                  {% if selected_algorithm == "win_percent" %}
+                    {{ row.win_pct|floatformat:0 }}%
+                  {% elif selected_algorithm == "win_total" %}
+                    {{ row.wins|floatformat:-1 }}
+                  {% else %}
+                    {{ row.rank_score|floatformat:1 }}
+                  {% endif %}
+                </td>
                 <td>{{ row.wins|floatformat:-1 }}</td>
                 <td>{{ row.games_played|floatformat:-1 }}</td>
                 <td>{{ row.win_pct|floatformat:0 }}%</td>

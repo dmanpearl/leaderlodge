@@ -14,13 +14,30 @@ standing. Rank 1 is the best.
 
 ---
 
-## Scope
+## Rank algorithms
+
+The leaderboard **Rank Algorithm** filter chooses how `#` is ordered. Every
+option uses the same group, game type, period, and other filters.
+
+| Algorithm | How `#` is ordered |
+|-----------|--------------------|
+| **Bayesian (default)** | Lodge rank score from finish points, with experience adjustment on all-time boards. The steps below explain only this algorithm. |
+| **Win Percent** | Highest win rate first. A player with one win in one game is at 100%. No Bayesian / experience adjustment. |
+| **Wins Total** | Most wins first. No Bayesian / experience adjustment. |
+
+Win Percent and Wins Total are raw stats over the filtered games. They do not
+use finish points or the Bayesian factor. Switch back to **Bayesian** for the
+Lodge ranking described in the rest of this page.
+
+---
+
+## Scope (Bayesian)
 
 - Standings are computed separately for each `(group, game_type_code)` pair.
-- A player who plays dominos and mahjongg has two independent rank scores.
-- **All-time** leaderboards apply Bayesian experience adjustment (see Step 8).
-- **Period** leaderboards (year, month, date range) show raw averages only;
-  experience weighting is disabled for those windows.
+- A player who plays dominos and mahjongg has two independent Bayesian scores.
+- **All-time** Bayesian boards apply experience adjustment (see Step 8).
+- **Period** Bayesian boards (year, month, date range) show raw finish-point
+  averages only; experience weighting is disabled for those windows.
 
 ---
 

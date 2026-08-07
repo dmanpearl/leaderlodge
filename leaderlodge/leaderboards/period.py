@@ -345,8 +345,14 @@ def build_leaderboard_query(
     player_type: str = "",
     location_id: int | None = None,
     game_filters=None,
+    algorithm: str = "",
     extra: dict[str, str] | None = None,
 ) -> str:
+    from leaderlodge.leaderboards.algorithms import (
+        ALGORITHM_BAYESIAN,
+        resolve_rank_algorithm,
+    )
+
     params: dict[str, str] = {}
     if group_id:
         params["group"] = group_id
@@ -363,6 +369,11 @@ def build_leaderboard_query(
         params["location"] = str(location_id)
     if game_filters is not None:
         params.update(game_filters.query_params())
+    # Bayesian is the default; omit it from URLs.
+    if algorithm:
+        resolved = resolve_rank_algorithm(algorithm)
+        if resolved != ALGORITHM_BAYESIAN:
+            params["algorithm"] = resolved
     if extra:
         params.update(extra)
     return urlencode(params)
@@ -377,6 +388,7 @@ def leaderboard_filter_summary(
     player_type_label: str = "",
     location_name: str = "",
     game_filter_labels: list[str] | None = None,
+    algorithm_label: str = "",
 ) -> str:
     parts = [group_name]
     if game_type_name:
@@ -391,4 +403,6 @@ def leaderboard_filter_summary(
         parts.append(location_name)
     if game_filter_labels:
         parts.extend(game_filter_labels)
+    if algorithm_label:
+        parts.append(algorithm_label)
     return ", ".join(parts)

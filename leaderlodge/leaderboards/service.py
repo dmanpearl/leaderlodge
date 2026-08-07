@@ -23,6 +23,10 @@ from leaderlodge.games.registry import GAME_TYPES, ScoreDirection, get_game_type
 from leaderlodge.games.registry import game_type_supports_shutout, get_game_type
 from leaderlodge.games.shutouts import shutout_counts_by_player
 from leaderlodge.games.standings import standings_weight_expression
+from leaderlodge.leaderboards.algorithms import (
+    DEFAULT_ALGORITHM,
+    sort_key_for_algorithm,
+)
 from leaderlodge.leaderboards.game_filters import apply_game_filters_to_results_qs
 from leaderlodge.leaderboards.period import (
     LeaderboardPeriod,
@@ -43,7 +47,6 @@ from leaderlodge.leaderboards.ranking import (
     ordinal_place_label,
     partner_rank_pill_class,
     rank_score_magnitude_for_result,
-    rank_score_sort_key,
     team_member_finish_credit,
 )
 
@@ -219,6 +222,7 @@ def get_player_rank_detail(
     period: LeaderboardPeriod | None = None,
     game_size: int | None = None,
     game_filters: LeaderboardGameFilters | None = None,
+    algorithm: str = DEFAULT_ALGORITHM,
 ) -> PlayerRankDetail | None:
     from django.conf import settings
 
@@ -276,6 +280,7 @@ def get_player_rank_detail(
     rankings = _assign_ranks(
         [row for row in standings if row.games_played > 0],
         low_wins=low_wins,
+        algorithm=algorithm,
     )
     rank_by_player = {row.player.pk: row.rank for row in rankings}
     ranking = replace(ranking_row, rank=rank_by_player.get(player.pk))
@@ -580,9 +585,13 @@ def get_player_rankings(
     game_size: int | None = None,
     player_type: str = "",
     game_filters: LeaderboardGameFilters | None = None,
+    algorithm: str = DEFAULT_ALGORITHM,
 ) -> list[PlayerRanking]:
     """
-    Return ranked players for a group, ordered by rank score.
+    Return ranked players for a group, ordered by the selected algorithm.
+
+    Default algorithm is Bayesian rank score. Win Percent and Wins Total reorder
+    the same standings rows. See docs/rank-scoring.md.
 
     When game_type_code is set, only that game type is included.
     When game_type_code is None, all game types with recorded games are
@@ -590,7 +599,7 @@ def get_player_rankings(
 
     Players with no recorded games are omitted. Team sides credit the team
     entity at full value and each member at an experience-weighted share; solo
-    results credit full finish points. See docs/rank-scoring.md.
+    results credit full finish points.
     """
     if game_type_code is not None:
         game_type_codes = [game_type_code]
@@ -614,7 +623,7 @@ def get_player_rankings(
         )
         active = [row for row in standings if row.games_played > 0]
         low_wins = get_game_type(code).score_direction == ScoreDirection.LOW_WINS
-        rankings.extend(_assign_ranks(active, low_wins=low_wins))
+        rankings.extend(_assign_ranks(active, low_wins=low_wins, algorithm=algorithm))
 
     return rankings
 
@@ -1050,10 +1059,12 @@ def _assign_ranks(
     rows: list[PlayerRanking],
     *,
     low_wins: bool = False,
+    algorithm: str = DEFAULT_ALGORITHM,
 ) -> list[PlayerRanking]:
+    sort_key = sort_key_for_algorithm(algorithm)
     ordered = sorted(
         rows,
-        key=lambda row: rank_score_sort_key(row, low_wins=low_wins),
+        key=lambda row: sort_key(row, low_wins=low_wins),
     )
     ranked: list[PlayerRanking] = []
     current_rank = 1
@@ -1062,8 +1073,8 @@ def _assign_ranks(
             prev = ordered[i - 1]
             # Advance rank only when the rank-determining fields differ.
             # display_label is a tiebreaker for stable ordering only.
-            prev_key = rank_score_sort_key(prev, low_wins=low_wins)[:3]
-            curr_key = rank_score_sort_key(row, low_wins=low_wins)[:3]
+            prev_key = sort_key(prev, low_wins=low_wins)[:3]
+            curr_key = sort_key(row, low_wins=low_wins)[:3]
             if curr_key != prev_key:
                 current_rank = i + 1
         ranked.append(replace(row, rank=current_rank))

@@ -2,11 +2,11 @@
 {% load static %}
 
 {% block title %}How Ranking Works | LeaderLodge{% endblock %}
-{% block meta_description %}How LeaderLodge computes player rank scores from recorded games: finish points, score magnitude, team credit, and the Bayesian experience adjustment.{% endblock %}
+{% block meta_description %}How LeaderLodge ranks players: Bayesian (default) rank score from finish points, plus Win Percent and Wins Total algorithms on the leaderboard.{% endblock %}
 {% block og_title %}How Ranking Works in LeaderLodge{% endblock %}
-{% block og_description %}How LeaderLodge computes player rank scores from recorded games: finish points, score magnitude, team credit, and the Bayesian experience adjustment.{% endblock %}
+{% block og_description %}How LeaderLodge ranks players: Bayesian (default) finish-point ranking, plus Win Percent and Wins Total on the leaderboard.{% endblock %}
 {% block twitter_title %}How Ranking Works in LeaderLodge{% endblock %}
-{% block twitter_description %}How LeaderLodge computes player rank scores from recorded games.{% endblock %}
+{% block twitter_description %}How LeaderLodge ranks players with Bayesian, Win Percent, and Wins Total.{% endblock %}
 
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/about.css' %}" />
@@ -18,8 +18,10 @@
     <div class="col-12 col-lg-8">
       <h1 class="h3 mb-1">How ranking works</h1>
       <p class="text-muted mb-4">
-        Every rank score is computed from your recorded games. This page walks through the
-        same logic used on the leaderboard, step by step.
+        Use <strong>Rank Algorithm</strong> on the leaderboard to switch between
+        Bayesian (default), Win Percent, and Wins Total. Win Percent and Wins Total
+        are raw stats. The step-by-step below is for the <strong>Bayesian</strong>
+        Lodge ranking only.
       </p>
 
       <div class="card mb-4">

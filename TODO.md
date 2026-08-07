@@ -213,16 +213,17 @@
       - Reuse prefetched results in finish-points (no double scan). Shell paints recent games + skeletons; `/dashboard/leaderboard-cards/` fills ranked cards via fetch.
 - [x] 45f6f04 Docs: Add new game references to docs (Gin Rummy, Cribbage, Phase 10, Darts, Cornhole)
       - features.md list; About/AI Insights meta, OG/Twitter, JSON-LD featureList; demo seeds for all ten types.
-- [x] Cribbage Skunk: Modify shutout behavior to support Cribbage 61/90 skunk/double-skunk
+- [x] 79861a6 Cribbage Skunk: Modify shutout behavior to support Cribbage 61/90 skunk/double-skunk
+- [x] Leaderboard: Add filtering for Shutouts (Pickles and Skunks)
+- [x] Leaderboard Algorithm: Provide rank algorithm selector that includes default, win-percent, win-total. Supports range
 
 ## Open Items
 
+- [ ] Leaderboard Streaks: Add streak algorithms: longest win streak (includes ties), longest current win streak (w/ties), longest streak within a range. Add streak stats to Matchup view if applicable
+- [ ] Leaderboard Additional Algorithms: points-percent, points-total
 - [ ] Icons: Need a better Skunk icon for Cribbage
 - [ ] Icons: Need separate icons for Gin Rummy and Progressive Rummy
-- [ ] Leaderboard: Add filtering for Shutouts (Pickles and Skunks)
-- [ ] Pickleball: Rename 'ScoreType' to 'PickleballScoreType'
 - [ ] Game Type: Add Canasta, Euchre
-- [ ] Leaderboard Algorithm/Streaks: provide rank algorithm selector that includes default, streak, win-percent, win-total, points-percent, points-total. streaks (win, unbeaten, current, total/range, head-to-head/matchup
 - [ ] Mah Jongg: Support style: American or Chinese (Japanese? Hong Kong? Chinese variants?)
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

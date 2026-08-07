@@ -253,7 +253,7 @@ def test_rank_detail_shows_selected_period_label(client, user, group):
         reverse("leaderboards:detail"),
         {
             "group": str(group.pk),
-            "game_type_code": "dominos",
+            "type": "dominos",
             "player": str(player.pk),
             "year": "2026",
             "month": "6",
