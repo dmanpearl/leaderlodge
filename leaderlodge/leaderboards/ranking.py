@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 TIE_WIN_POINTS_FACTOR = 0.5
-FINISH_POINTS_EXPONENT = 1.0
 LOW_WINS_REFERENCE_SCORE = 500
 
 
@@ -119,7 +118,7 @@ def compute_finish_points(
     slots_above_last = player_count - 1.0
     placement_distance = max(player_count - placement - 1.0, 0.0)
     ratio = placement_distance / slots_above_last
-    points = (ratio**FINISH_POINTS_EXPONENT) * player_count * weight
+    points = ratio * player_count * weight
     if is_tie:
         points *= TIE_WIN_POINTS_FACTOR
     if score_magnitude is not None:

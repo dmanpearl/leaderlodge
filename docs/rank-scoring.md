@@ -137,8 +137,6 @@ Then:
 side_finish_points = placement_ratio × player_count × weight × score_magnitude
 ```
 
-The exponent on `placement_ratio` is `FINISH_POINTS_EXPONENT` (currently `1`).
-
 **Ties** multiply the result by `0.5` (`TIE_WIN_POINTS_FACTOR`).
 
 **Examples** (no tie, `weight = 1`, winner):

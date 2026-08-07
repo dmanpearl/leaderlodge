@@ -38,7 +38,6 @@ from leaderlodge.leaderboards.streaks import (
     streaks_by_player_from_participant_results,
 )
 from leaderlodge.leaderboards.ranking import (
-    FINISH_POINTS_EXPONENT,
     SORTABLE_COLUMNS,
     TIE_WIN_POINTS_FACTOR,
     FinishPointsCredit,
@@ -175,7 +174,6 @@ class PlayerRankDetail:
     half_game_count: int
     podium_count: int
     podium_pct: float
-    finish_points_exponent: float
     partner_breakdown: tuple[PartnerBreakdown, ...] = ()
 
 
@@ -591,7 +589,6 @@ def get_player_rank_detail(
         half_game_count=half_game_count,
         podium_count=podium_count,
         podium_pct=compute_percentage(podium_count, game_count),
-        finish_points_exponent=FINISH_POINTS_EXPONENT,
         partner_breakdown=partner_breakdown,
     )
 

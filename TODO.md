@@ -218,11 +218,11 @@
 - [x] 1cef446 Leaderboard Algorithm: Provide rank algorithm selector that includes default, win-percent, win-total. Supports range
 - [x] 8c1c2cf Dashboard loading: Make the empty loading (skeleton) cards obey current spin-down preferences, so when they get populated they already will have their open/closed states.
 - [x] 6e54acc Leaderboard Streaks: Add streak algorithms: longest win streak (includes ties), longest current win streak (w/ties), longest streak within a range. Add streak stats to Matchup view if applicable
-- [x] Bug: Team labels kept last initial (Nancy M) when the player is unique in-group but exists in another group (https://leaderlodge.com/admin/feedback/feedback/32)
+- [x] 0fe4555 Bug: Team labels kept last initial (Nancy M) when the player is unique in-group but exists in another group (https://leaderlodge.com/admin/feedback/feedback/32)
+- [x] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
 
 ## Open Items
 
-- [ ] Leaderboard Additional Algorithms: points-percent, points-total
 - [ ] Icons: Need a better Skunk icon for Cribbage
 - [ ] Icons: Need separate icons for Gin Rummy and Progressive Rummy
 - [ ] Game Type: Add Canasta, Euchre
@@ -247,13 +247,11 @@
 - [ ] Mobile: Group roster row actions — replace Bootstrap dropdown (`templates/groups/includes/roster_player_actions.html`, "Invite with email", "Remove from Group") with inline icon buttons or a native `<select>` action menu on ≤767px. Avoid dropdown scroll clipping and small hit targets. Keep desktop dropdown if preferred.
 - [ ] Mobile: Group roster invite — replace Bootstrap modal (`#roster-invite-modal` in `templates/groups/group_detail.html`) with inline expandable form below the row or a dedicated page on mobile. Email field should stay `type="email"` in normal document flow (keyboard-safe). Preserve POST to `groups:player_invite`.
 - [ ] Mobile: Group members role select — inline `form-select-sm` role dropdown in members table (`templates/groups/group_detail.html`) needs ≥44px tap targets on mobile; consider row action sheet or full-width select below username. POST to `groups:member_update_role` unchanged.
-- [ ] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
-- [ ] Bug: Domino stats do not match seed spreadsheet. Trace and resolve.
 - [ ] Add Contact form.
 - [ ] iOS: Build native mobile app for iPhone and iPad
 - [ ] Android: Build native mobile app for Android
@@ -263,6 +261,7 @@
       - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
 - [/] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
 - [keep] Hall of Fame: Revisit the need for this view. Consider removal
+- [/] Leaderboard Additional Algorithms: points-percent, points-total
 
 ## AI showcase
 

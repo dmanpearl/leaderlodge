@@ -8,7 +8,6 @@ from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.leaderboards.ranking import (
-    FINISH_POINTS_EXPONENT,
     LOW_WINS_REFERENCE_SCORE,
     TIE_WIN_POINTS_FACTOR,
     FinishPointsCredit,
@@ -90,7 +89,6 @@ def test_compute_finish_points():
     assert compute_finish_points(
         player_count=2, placement=0, is_tie=True
     ) == pytest.approx(2.0 * TIE_WIN_POINTS_FACTOR)
-    assert FINISH_POINTS_EXPONENT == 1.0
 
 
 def test_mahjongg_wall_game_losers_earn_no_finish_points(user, group):
