@@ -219,7 +219,8 @@
 - [x] 8c1c2cf Dashboard loading: Make the empty loading (skeleton) cards obey current spin-down preferences, so when they get populated they already will have their open/closed states.
 - [x] 6e54acc Leaderboard Streaks: Add streak algorithms: longest win streak (includes ties), longest current win streak (w/ties), longest streak within a range. Add streak stats to Matchup view if applicable
 - [x] 0fe4555 Bug: Team labels kept last initial (Nancy M) when the player is unique in-group but exists in another group (https://leaderlodge.com/admin/feedback/feedback/32)
-- [x] If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
+- [x] 757325d If we are happy with points * place, remove 'FINISH_POINTS_EXPONENT' (give it some time)
+- [x] Bug: Leaderboard: Pressing a context menu button when others are expanded should close them, but doesn't.
 
 ## Open Items
 

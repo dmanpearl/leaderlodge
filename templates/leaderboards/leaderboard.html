@@ -237,7 +237,7 @@
                   <td>{{ row.loss_pct|floatformat:0 }}%</td>
                 {% endif %}
                 {% if can_manage_members %}
-                  <td class="text-end group-list-actions-col" onclick="event.stopPropagation()">
+                  <td class="text-end group-list-actions-col">
                     {% include "leaderboards/includes/leaderboard_row_actions.html" with row=row %}
                   </td>
                 {% endif %}
@@ -275,7 +275,12 @@
       const navigate = () => {
         window.LeaderLodge.navigate(row.dataset.href);
       };
-      row.addEventListener("click", navigate);
+      row.addEventListener("click", (event) => {
+        if (event.target.closest("a, button, .dropdown-menu, form")) {
+          return;
+        }
+        navigate();
+      });
       row.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
