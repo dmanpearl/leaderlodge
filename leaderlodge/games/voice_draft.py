@@ -18,7 +18,8 @@ from leaderlodge.games.registry import (
     get_game_type,
     normalize_score_type,
 )
-from leaderlodge.groups.models import Group
+from leaderlodge.groups.models import Group, GroupPlayer
+from leaderlodge.groups.names import disambiguate_labels
 from leaderlodge.insights.router import complete_insight
 from leaderlodge.insights.tools.locations import resolve_location_query
 from leaderlodge.insights.tools.players import resolve_player_query
@@ -146,6 +147,43 @@ def _resolve_name(group: Group, name: str) -> dict[str, Any]:
         "ambiguous": False,
         "message": "",
     }
+
+
+def _apply_disambiguated_side_labels(group: Group, sides: list[dict[str, Any]]) -> None:
+    """Replace raw display_label with group-scoped first-name labels.
+
+    Matches Add Player / roster picker so unique names stay "Nancy", not "Nancy M".
+    """
+    player_ids = [
+        player["player_id"]
+        for side in sides
+        for player in side.get("players") or []
+        if player.get("player_id")
+    ]
+    if not player_ids:
+        return
+
+    roster = list(
+        GroupPlayer.objects.filter(
+            group=group,
+            is_active=True,
+            is_team=False,
+        ).select_related("linked_user")
+    )
+    by_pk = {player.pk: player for player in roster}
+    missing_ids = [pk for pk in set(player_ids) if pk not in by_pk]
+    if missing_ids:
+        for player in GroupPlayer.objects.filter(pk__in=missing_ids).select_related(
+            "linked_user"
+        ):
+            by_pk[player.pk] = player
+
+    label_map = disambiguate_labels(list(by_pk.values()))
+    for side in sides:
+        for player in side.get("players") or []:
+            player_id = player.get("player_id")
+            if player_id and player_id in label_map:
+                player["label"] = label_map[player_id]
 
 
 def _resolve_location(
@@ -297,6 +335,8 @@ def parse_recording_transcript(
 
     if len(sides) < 2:
         raise ValueError("Could not find two sides.")
+
+    _apply_disambiguated_side_labels(group, sides)
 
     return {
         "game_type_code": game_type_code,

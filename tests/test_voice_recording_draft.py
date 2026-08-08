@@ -13,7 +13,11 @@ from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.games.voice_draft import parse_recording_transcript
 from leaderlodge.groups.location_geo import LocationGeo
 from leaderlodge.groups.locations import get_or_create_location
-from leaderlodge.groups.services import add_guest_player, create_group_with_owner
+from leaderlodge.groups.services import (
+    add_group_member,
+    add_guest_player,
+    create_group_with_owner,
+)
 from leaderlodge.insights.providers.base import InsightCompletion
 
 
@@ -176,6 +180,59 @@ def test_parse_recording_ambiguous_player_becomes_guest(
     assert not alex_side["player_id"]
     assert draft["ambiguities"]
     assert any("Ambiguous" in msg for msg in draft["ambiguities"])
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_labels_match_add_player_without_initial(mock_complete, db):
+    """AI draft labels must match Add Player: unique first name, no last initial."""
+    david = User.objects.create_user(
+        username="david",
+        password="test-pass-123",
+        first_name="David",
+        last_name="Manpearl",
+    )
+    nancy = User.objects.create_user(
+        username="nancy",
+        password="test-pass-123",
+        first_name="Nancy",
+        last_name="Manpearl",
+    )
+    manpearl = create_group_with_owner(user=david, name="manpearl")
+    add_group_member(group=manpearl, user=nancy)
+    test_group = create_group_with_owner(user=david, name="test")
+    add_group_member(group=test_group, user=nancy)
+
+    nancy_mp = manpearl.players.get(linked_user=nancy)
+    assert nancy_mp.display_label == "Nancy M"
+
+    mock_complete.return_value = _completion(
+        {
+            "score_type": "rally",
+            "location_name": None,
+            "sides": [
+                {"names": ["Nancy"], "score": 35},
+                {"names": ["David"], "score": 35},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=manpearl,
+        transcript="Nancy vs David 35 to 35",
+        user=david,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="pickleball",
+    )
+
+    labels = {
+        player["label"]
+        for side in draft["sides"]
+        for player in side["players"]
+        if player["player_id"]
+    }
+    assert labels == {"Nancy", "David"}
+    assert "Nancy M" not in labels
 
 
 @pytest.mark.django_db
