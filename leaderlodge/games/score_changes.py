@@ -51,11 +51,8 @@ def user_can_edit_game(user: AbstractBaseUser | None, game: Game) -> bool:
     return game.recorded_by_id == user.pk
 
 
-def _require_notes(notes: str) -> str:
-    cleaned = notes.strip()
-    if not cleaned:
-        raise ValidationError("Notes are required explaining why the change was made.")
-    return cleaned
+def _normalize_notes(notes: str) -> str:
+    return (notes or "").strip()
 
 
 def _participant_row_dicts(game: Game) -> list[dict]:
@@ -261,7 +258,7 @@ def apply_game_edits(
     new_half_weight: int | object = _UNCHANGED,
     dry_run: bool = False,
 ) -> RecalculateSummary:
-    notes = _require_notes(notes)
+    notes = _normalize_notes(notes)
     if not user_can_edit_game(user, game):
         raise ValidationError("You do not have permission to edit this game.")
 
@@ -412,7 +409,7 @@ def recalculate_game_results(
     score_updates: dict[int, int] | None = None,
     dry_run: bool = False,
 ) -> RecalculateSummary:
-    notes = _require_notes(notes)
+    notes = _normalize_notes(notes)
     if not user_can_edit_game(user, game):
         raise ValidationError("You do not have permission to edit this game.")
 

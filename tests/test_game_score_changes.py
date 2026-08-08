@@ -286,10 +286,16 @@ def test_member_cannot_edit_other_users_game(client, member_user, dominos_game):
 
 
 @pytest.mark.django_db
-def test_game_edit_requires_notes(client, staff_user, dominos_game):
+def test_game_edit_allows_blank_notes(client, staff_user, dominos_game):
     client.force_login(staff_user)
     participants = list(dominos_game.participant_results.order_by("pk"))
     url = reverse("games:edit_game", kwargs={"pk": dominos_game.pk})
+    response = client.get(url)
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Optional. Explain why this game was edited." in content
+    assert "Required. Explain why this game was edited." not in content
+
     response = client.post(
         url,
         {
@@ -299,9 +305,12 @@ def test_game_edit_requires_notes(client, staff_user, dominos_game):
             "notes": "   ",
         },
     )
-    assert response.status_code == 200
-    form = response.context["form"]
-    assert "notes" in form.errors
+    assert response.status_code == 302
+    dominos_game.refresh_from_db()
+    updated = dominos_game.participant_results.get(pk=participants[1].pk)
+    assert updated.score == 35
+    log = GameScoreChangeLog.objects.filter(game=dominos_game).latest("pk")
+    assert log.notes == ""
 
 
 @pytest.mark.django_db
@@ -413,9 +422,7 @@ def test_member_can_delete_own_game(client, member_user, member_dominos_game, gr
     response = client.post(reverse("games:delete", kwargs={"pk": game_pk}))
     assert response.status_code == 302
     assert not Game.objects.filter(pk=game_pk).exists()
-    assert response.url == (
-        f"{reverse('games:list')}?group={group.pk}&type=dominos"
-    )
+    assert response.url == (f"{reverse('games:list')}?group={group.pk}&type=dominos")
     log = GameScoreChangeLog.objects.get()
     assert log.event == GameScoreChangeLog.Event.DELETE
     assert log.game_id is None

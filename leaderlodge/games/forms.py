@@ -178,12 +178,13 @@ class GameEditForm(forms.Form):
     location_name = location_name_form_field()
     notes = forms.CharField(
         label="Notes",
-        help_text="Required. Explain why this game was edited.",
+        required=False,
+        help_text="Optional. Explain why this game was edited.",
         widget=forms.Textarea(
             attrs={
                 "class": "form-control",
                 "rows": 3,
-                "placeholder": "Why are these changes being made?",
+                "placeholder": "Optional: why are these changes being made?",
             }
         ),
     )
@@ -231,12 +232,7 @@ class GameEditForm(forms.Form):
             )
 
     def clean_notes(self):
-        notes = self.cleaned_data["notes"].strip()
-        if not notes:
-            raise ValidationError(
-                "Notes are required explaining why the change was made."
-            )
-        return notes
+        return (self.cleaned_data.get("notes") or "").strip()
 
     def resolved_location(self):
         if self.game is None:
