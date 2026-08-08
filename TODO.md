@@ -231,7 +231,7 @@
       - Unified Record Game screen + keyboard-mic / typed draft parse (confirm then save; no auto-save)
 - [x] be9f9ff Record Game 'Reuse >' dropdown overhangs the right of the screen and causes scrolling. Make sure the dropdown options stay within bounds
 - [x] 34eb240 feat(games): optional in-app mic for AI entry
-- [x] Bug: Dashboard > Recent Games card still lists team member as 'Nancy M' when there is no name conflict.
+- [x] 5b6cbcd Bug: Dashboard > Recent Games card still lists team member as 'Nancy M' when there is no name conflict.
 
 ## Open Items
 

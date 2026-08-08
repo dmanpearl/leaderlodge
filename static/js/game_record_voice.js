@@ -207,12 +207,12 @@
       api.collapsePlayerPicker();
     }
     setNotes(notes);
-    setStatus(
-      added >= 2
-        ? "Draft filled. Review players and scores, then Save Game."
-        : "Draft partially filled. Edit as needed.",
-      added >= 2 ? "ok" : "error"
-    );
+    if (added < 2) {
+      setStatus("Draft partially filled. Edit as needed.", "error");
+    } else {
+      // Success is obvious from filled rows; keep status for errors only.
+      setStatus("");
+    }
     return added >= 2;
   }
 
