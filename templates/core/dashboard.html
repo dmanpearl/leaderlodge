@@ -48,7 +48,13 @@
         {% endif %}
       </div>
       {% if is_demo_landing %}
-        <p class="text-muted mb-0 mt-2 d-md-none">Sample games and leaderboards for all supported game types.</p>
+        <p class="text-muted mb-0 mt-2 d-md-none">
+          {% if game_type_locked %}
+            Sample games and leaderboards.
+          {% else %}
+            Sample games and leaderboards for all supported game types.
+          {% endif %}
+        </p>
       {% endif %}
 
       <div class="dashboard-header dashboard-header--desktop d-none d-md-flex flex-row justify-content-between align-items-start gap-2">
@@ -61,7 +67,13 @@
             </h1>
           {% endif %}
           {% if is_demo_landing %}
-            <p class="text-muted mb-0">Sample games and leaderboards for all supported game types.</p>
+            <p class="text-muted mb-0">
+              {% if game_type_locked %}
+                Sample games and leaderboards.
+              {% else %}
+                Sample games and leaderboards for all supported game types.
+              {% endif %}
+            </p>
           {% else %}
             <p class="text-muted mb-0">Welcome, {{ user|user_display_name }}.</p>
           {% endif %}

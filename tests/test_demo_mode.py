@@ -48,9 +48,24 @@ def test_anonymous_dashboard_shows_demo_landing(client, demo_group_flagged):
     assert response.status_code == 200
     content = response.content.decode()
     assert "Demo" in content
-    assert "Sample games" in content
+    assert "Sample games and leaderboards for all supported game types." in content
     assert "Record Game" not in content
     assert "Login to view your own Games, Groups, and Leaders" in content
+
+
+@pytest.mark.django_db
+def test_anonymous_dashboard_demo_blurb_when_game_type_locked(
+    client, demo_group_flagged
+):
+    lock = client.get("/?lock=dominos")
+    assert lock.status_code == 302
+    client.get(lock.url)
+
+    response = client.get(reverse("core:dashboard"))
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Sample games and leaderboards." in content
+    assert "for all supported game types." not in content
 
 
 @pytest.mark.django_db

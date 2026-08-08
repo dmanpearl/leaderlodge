@@ -234,7 +234,7 @@
 - [x] 5b6cbcd Bug: Dashboard > Recent Games card still lists team member as 'Nancy M' when there is no name conflict.
 - [x] 143eeab Record Game: In app mic: while voice recording is active, keep the AI submit button enabled. If the user presses it, then disable voice recording and submit
 - [x] 0fdfc08 Record Game: AI prompt bug: 'charlene and nancy m 51 to 45 at Cafe 50s' > Error: 'Could not find two sides.' in this case 'and' is being used to diferentiate team members, but if there is only one team it can be used as 'vs' instead.
-- [x] System Hint Text: All text fields with interior hint text should use italic font and a lighter color gray to avoid confusion with typed text.
+- [x] 86e8b56 System Hint Text: All text fields with interior hint text should use italic font and a lighter color gray to avoid confusion with typed text.
       - Reference: `.ll-field-hint-input::placeholder` in `static/css/site.css` (Record Game AI entry). Roll out that class to inputs/textareas app-wide. Helper copy below fields stays normal weight/color.
 
 ## Open Items
