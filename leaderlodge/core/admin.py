@@ -11,17 +11,28 @@ class SiteSettingsAdmin(admin.ModelAdmin):
     readonly_fields = ["singleton_key"]
 
     def get_fieldsets(self, request, obj=None):
-        fields = ["notify_email", *NOTIFICATION_LABELS.keys()]
+        notify_fields = ["notify_email", *NOTIFICATION_LABELS.keys()]
         if obj is not None:
-            fields = ["singleton_key", *fields]
+            notify_fields = ["singleton_key", *notify_fields]
         return [
             (
                 "Admin notifications",
                 {
-                    "fields": fields,
+                    "fields": notify_fields,
                     "description": (
                         "Email destination and toggles for operator alerts. "
                         "New notification types can be added in code without a migration."
+                    ),
+                },
+            ),
+            (
+                "Record Game AI",
+                {
+                    "fields": ["ai_game_entry_mic_enabled"],
+                    "description": (
+                        "Experimental in-app mic for AI game entry. "
+                        "Uses browser speech; quality varies by device "
+                        "(often weaker on iPhone Safari than the keyboard mic)."
                     ),
                 },
             ),

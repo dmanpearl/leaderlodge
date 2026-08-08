@@ -361,3 +361,26 @@ def test_record_game_page_includes_voice_controls(client, voice_group, user):
     voice_idx = content.index("data-game-record-voice")
     location_idx = content.index('name="location_name"')
     assert voice_idx < location_idx
+
+
+@override_settings(INSIGHTS_ENABLED=True, OPENAI_API_KEY="test-key")
+@pytest.mark.django_db
+def test_record_game_page_shows_mic_when_site_setting_enabled(
+    client, voice_group, user
+):
+    from leaderlodge.core.models import SiteSettings
+
+    settings_row = SiteSettings.load()
+    settings_row.ai_game_entry_mic_enabled = True
+    settings_row.save(update_fields=["ai_game_entry_mic_enabled"])
+
+    client.force_login(user)
+    response = client.get(
+        reverse("games:create"),
+        {"group": voice_group.pk, "type": "pickleball"},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "data-voice-mic" in content
+    assert "game-record-voice-input-wrap--with-mic" in content
+    assert "data-voice-transcript" in content

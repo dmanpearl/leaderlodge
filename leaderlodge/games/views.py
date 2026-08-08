@@ -14,6 +14,7 @@ from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 
 from leaderlodge.core.decorators import demo_or_login_required
+from leaderlodge.core.models import SiteSettings
 from leaderlodge.groups.names import apply_label_overrides, disambiguate_labels
 from leaderlodge.games.forms import (
     GameRecordForm,
@@ -1042,6 +1043,9 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "record_game_heading": record_game_heading,
             "record_game_heading_icon_url": record_game_heading_icon_url,
             "insights_ready": insights_feature_enabled(),
+            "ai_game_entry_mic_enabled": bool(
+                SiteSettings.load().ai_game_entry_mic_enabled
+            ),
         },
     )
 

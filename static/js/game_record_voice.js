@@ -24,6 +24,7 @@
   const applyBtn = root.querySelector("[data-voice-apply]");
   const applyIcon = root.querySelector("[data-voice-apply-icon]");
   const spinner = root.querySelector("[data-voice-spinner]");
+  const micBtn = root.querySelector("[data-voice-mic]");
   const transcriptEl = root.querySelector("[data-voice-transcript]");
   const statusEl = root.querySelector("[data-voice-status]");
   const notesEl = root.querySelector("[data-voice-notes]");
@@ -31,6 +32,9 @@
   const titleOpen = root.dataset.voiceTitleOpen || titleClosed;
 
   let processing = false;
+  let listening = false;
+  let recognition = null;
+  let finalTranscript = "";
 
   function readStoredOpen() {
     try {
@@ -94,7 +98,7 @@
     if (!applyBtn || !transcriptEl) {
       return;
     }
-    applyBtn.disabled = processing || !transcriptEl.value.trim();
+    applyBtn.disabled = processing || listening || !transcriptEl.value.trim();
   }
 
   function setProcessing(isProcessing) {
@@ -295,6 +299,146 @@
     }
   }
 
+  function speechRecognitionCtor() {
+    return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  }
+
+  function setListening(isListening) {
+    listening = Boolean(isListening);
+    if (micBtn) {
+      micBtn.classList.toggle("is-listening", listening);
+      micBtn.setAttribute("aria-pressed", listening ? "true" : "false");
+      micBtn.setAttribute(
+        "aria-label",
+        listening ? "Stop listening" : "Tap to talk"
+      );
+      micBtn.title = listening ? "Stop listening" : "Tap to talk";
+    }
+    if (applyBtn) {
+      applyBtn.disabled = processing || listening || !transcriptEl?.value.trim();
+    }
+  }
+
+  function stopListening({ keepStatus } = {}) {
+    if (recognition) {
+      try {
+        recognition.onend = null;
+        recognition.stop();
+      } catch (err) {
+        /* ignore */
+      }
+      recognition = null;
+    }
+    setListening(false);
+    if (!keepStatus && transcriptEl && transcriptEl.value.trim()) {
+      setStatus("Transcript ready. Tap Parse when ready.");
+    }
+    syncApplyEnabled();
+  }
+
+  function startListening() {
+    const Ctor = speechRecognitionCtor();
+    if (!Ctor) {
+      setStatus(
+        "In-app mic is not supported here. Tap the text field and use the keyboard mic.",
+        "error"
+      );
+      return;
+    }
+    if (processing) {
+      return;
+    }
+    // Blur the field so the system keyboard does not open during in-app listen.
+    if (transcriptEl && document.activeElement === transcriptEl) {
+      transcriptEl.blur();
+    }
+    finalTranscript = (transcriptEl && transcriptEl.value.trim()) || "";
+    if (finalTranscript) {
+      finalTranscript += " ";
+    }
+
+    recognition = new Ctor();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    recognition.onstart = function () {
+      setListening(true);
+      setStatus("Listening… tap the mic to stop.");
+    };
+    recognition.onerror = function (event) {
+      const code = event && event.error;
+      stopListening({ keepStatus: true });
+      if (code === "not-allowed") {
+        setStatus(
+          "Microphone permission denied. Tap the text field to use the keyboard mic instead.",
+          "error"
+        );
+      } else if (code === "no-speech") {
+        setStatus("No speech heard. Tap the mic to try again.", "error");
+      } else {
+        setStatus(
+          "In-app mic failed. Tap the text field to use the keyboard mic instead.",
+          "error"
+        );
+      }
+    };
+    recognition.onend = function () {
+      if (listening) {
+        // Browser ended the session; treat as stop.
+        setListening(false);
+        if (transcriptEl && transcriptEl.value.trim()) {
+          setStatus("Transcript ready. Tap Parse when ready.");
+        }
+        syncApplyEnabled();
+      }
+      recognition = null;
+    };
+    recognition.onresult = function (event) {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const piece = event.results[i][0].transcript || "";
+        if (event.results[i].isFinal) {
+          finalTranscript += piece;
+        } else {
+          interim += piece;
+        }
+      }
+      if (transcriptEl) {
+        transcriptEl.value = (finalTranscript + interim).trimStart();
+        syncApplyEnabled();
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (err) {
+      stopListening({ keepStatus: true });
+      setStatus("Could not start the microphone.", "error");
+    }
+  }
+
+  if (micBtn) {
+    if (!speechRecognitionCtor()) {
+      micBtn.disabled = true;
+      micBtn.title = "Not supported in this browser";
+      micBtn.setAttribute("aria-label", "Microphone not supported");
+    }
+    micBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (listening) {
+        stopListening();
+        return;
+      }
+      startListening();
+    });
+    // Keep focus off the textarea when activating the mic control.
+    micBtn.addEventListener("mousedown", function (event) {
+      event.preventDefault();
+    });
+  }
+
   if (transcriptEl) {
     transcriptEl.addEventListener("input", syncApplyEnabled);
     transcriptEl.addEventListener("keydown", function (event) {
@@ -302,7 +446,7 @@
         return;
       }
       event.preventDefault();
-      if (!processing && transcriptEl.value.trim()) {
+      if (!processing && !listening && transcriptEl.value.trim()) {
         parseTranscript();
       }
     });
@@ -310,6 +454,9 @@
 
   if (applyBtn) {
     applyBtn.addEventListener("click", function () {
+      if (listening) {
+        stopListening();
+      }
       parseTranscript();
     });
   }

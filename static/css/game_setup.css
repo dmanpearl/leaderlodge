@@ -157,6 +157,66 @@
   width: 100%;
 }
 
+.game-record-voice-input-wrap--with-mic [data-voice-transcript] {
+  padding-left: 2.5rem;
+}
+
+.game-record-voice-mic {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(var(--game-record-voice-accent-rgb), 0.12);
+  color: var(--game-record-voice-accent);
+  line-height: 1;
+  font-size: 1.1rem;
+}
+
+.game-record-voice-mic:hover:not(:disabled),
+.game-record-voice-mic:focus-visible:not(:disabled) {
+  background: var(--game-record-voice-accent);
+  color: #fff;
+}
+
+.game-record-voice-mic:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.game-record-voice-mic.is-listening {
+  background: var(--game-record-voice-accent);
+  color: #fff;
+  animation: game-record-voice-mic-pulse 1s ease-in-out infinite;
+}
+
+@keyframes game-record-voice-mic-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--game-record-voice-accent-rgb), 0.55);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 0.55rem rgba(var(--game-record-voice-accent-rgb), 0);
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-record-voice-mic.is-listening {
+    animation: none;
+    box-shadow: 0 0 0 0.2rem rgba(var(--game-record-voice-accent-rgb), 0.35);
+  }
+}
+
 .game-record-voice-input-wrap [data-voice-transcript] {
   padding-right: 2.5rem;
   border-color: rgba(var(--game-record-voice-accent-rgb), 0.28);

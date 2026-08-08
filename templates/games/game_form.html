@@ -6,7 +6,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=11" />
+  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=12" />
   <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=18" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
@@ -156,7 +156,21 @@
                   <label class="visually-hidden" for="game-record-voice-transcript">
                     Game entry transcript
                   </label>
-                  <div class="game-record-voice-input-wrap">
+                  <div
+                    class="game-record-voice-input-wrap{% if ai_game_entry_mic_enabled %} game-record-voice-input-wrap--with-mic{% endif %}"
+                  >
+                    {% if ai_game_entry_mic_enabled %}
+                      <button
+                        type="button"
+                        class="game-record-voice-mic"
+                        data-voice-mic
+                        title="Tap to talk"
+                        aria-label="Tap to talk"
+                        aria-pressed="false"
+                      >
+                        <i class="bi bi-mic-fill" aria-hidden="true"></i>
+                      </button>
+                    {% endif %}
                     <textarea
                       id="game-record-voice-transcript"
                       class="form-control ll-field-hint-input"
@@ -420,7 +434,7 @@
     <script src="{% static 'js/player_picker.js' %}?v=18"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
-      <script src="{% static 'js/game_record_voice.js' %}?v=10"></script>
+      <script src="{% static 'js/game_record_voice.js' %}?v=11"></script>
     {% endif %}
   {% endif %}
 {% endblock %}

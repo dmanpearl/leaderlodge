@@ -20,6 +20,13 @@ class SiteSettings(models.Model):
         blank=True,
         help_text="Per-type notification toggles. Keys match admin_notification_registry.",
     )
+    ai_game_entry_mic_enabled = models.BooleanField(
+        default=False,
+        help_text=(
+            "Show an in-app microphone on Record Game AI entry (browser speech). "
+            "Users can still tap the text field to type or use the system keyboard mic."
+        ),
+    )
 
     class Meta:
         verbose_name = "Site settings"

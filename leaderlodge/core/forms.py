@@ -11,7 +11,7 @@ from leaderlodge.core.models import SiteSettings
 class _SiteSettingsAdminFormBase(forms.ModelForm):
     class Meta:
         model = SiteSettings
-        fields = ["notify_email"]
+        fields = ["notify_email", "ai_game_entry_mic_enabled"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
