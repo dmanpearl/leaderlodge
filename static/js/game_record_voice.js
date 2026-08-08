@@ -98,7 +98,9 @@
     if (!applyBtn || !transcriptEl) {
       return;
     }
-    applyBtn.disabled = processing || listening || !transcriptEl.value.trim();
+    // While listening, keep Parse enabled so one tap can stop+submit.
+    applyBtn.disabled =
+      processing || !(listening || transcriptEl.value.trim());
   }
 
   function setProcessing(isProcessing) {
@@ -314,9 +316,7 @@
       );
       micBtn.title = listening ? "Stop listening" : "Tap to talk";
     }
-    if (applyBtn) {
-      applyBtn.disabled = processing || listening || !transcriptEl?.value.trim();
-    }
+    syncApplyEnabled();
   }
 
   function stopListening({ keepStatus } = {}) {
@@ -439,6 +439,16 @@
     });
   }
 
+  function stopListeningAndParse() {
+    if (processing) {
+      return;
+    }
+    if (listening) {
+      stopListening({ keepStatus: true });
+    }
+    parseTranscript();
+  }
+
   if (transcriptEl) {
     transcriptEl.addEventListener("input", syncApplyEnabled);
     transcriptEl.addEventListener("keydown", function (event) {
@@ -446,18 +456,15 @@
         return;
       }
       event.preventDefault();
-      if (!processing && !listening && transcriptEl.value.trim()) {
-        parseTranscript();
+      if (!processing && transcriptEl.value.trim()) {
+        stopListeningAndParse();
       }
     });
   }
 
   if (applyBtn) {
     applyBtn.addEventListener("click", function () {
-      if (listening) {
-        stopListening();
-      }
-      parseTranscript();
+      stopListeningAndParse();
     });
   }
 

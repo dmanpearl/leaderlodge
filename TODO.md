@@ -232,10 +232,10 @@
 - [x] be9f9ff Record Game 'Reuse >' dropdown overhangs the right of the screen and causes scrolling. Make sure the dropdown options stay within bounds
 - [x] 34eb240 feat(games): optional in-app mic for AI entry
 - [x] 5b6cbcd Bug: Dashboard > Recent Games card still lists team member as 'Nancy M' when there is no name conflict.
+- [x] Record Game: In app mic: while voice recording is active, keep the AI submit button enabled. If the user presses it, then disable voice recording and submit
 
 ## Open Items
 
-- [ ] Record Game: In app mic: while voice recording is active, keep the AI submit button enabled. If the user presses it, then disable voice recording and submit
 - [ ] Record Game: AI prompt bug: 'charlene and nancy m 51 to 45 at Cafe 50s' > Error: 'Could not find two sides.' in this case 'and' is being used to diferentiate team members, but if there is only one team it can be used as 'vs' instead.
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] System Hint Text: All text fields with interior hint/help text should use italic font and a lighter color gray to avoid confusion with typed text.
