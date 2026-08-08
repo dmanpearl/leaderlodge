@@ -10,7 +10,10 @@ from django.utils import timezone
 from leaderlodge.games.models import Game
 from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
-from leaderlodge.games.voice_draft import parse_recording_transcript
+from leaderlodge.games.voice_draft import (
+    _sides_from_and_to_singles,
+    parse_recording_transcript,
+)
 from leaderlodge.groups.location_geo import LocationGeo
 from leaderlodge.groups.locations import get_or_create_location
 from leaderlodge.groups.services import (
@@ -69,6 +72,52 @@ def _record_pickleball(user, group, *, score_type, location=None, scores=(11, 7)
             for row in rows
         ],
     )
+
+
+def test_sides_from_and_to_singles_recovers_opponents():
+    sides = _sides_from_and_to_singles("charlene and nancy m 51 to 45 at Cafe 50s")
+    assert sides == [
+        {"names": ["charlene"], "score": 51},
+        {"names": ["nancy m"], "score": 45},
+    ]
+
+
+def test_sides_from_and_to_singles_skips_explicit_doubles_vs():
+    assert (
+        _sides_from_and_to_singles("Lucas and Hudson 11 vs Amelia and Aurora 6") is None
+    )
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_repairs_and_to_singles_when_model_returns_one_side(
+    mock_complete, voice_group, user
+):
+    """Model often treats 'A and B 51 to 45' as one doubles side; recover singles."""
+    add_guest_player(group=voice_group, display_name="Charlene")
+    mock_complete.return_value = _completion(
+        {
+            "score_type": None,
+            "location_name": "Cafe 50s",
+            "sides": [
+                {"names": ["Charlene", "Nancy"], "score": 51},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="charlene and nancy m 51 to 45 at Cafe 50s",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="dominos",
+    )
+
+    assert len(draft["sides"]) == 2
+    assert draft["sides"][0]["score"] == 51
+    assert draft["sides"][1]["score"] == 45
+    assert draft["sides"][0]["players"][0]["label"] == "Charlene"
+    assert draft["location_name"] == "Cafe 50s"
 
 
 @pytest.mark.django_db

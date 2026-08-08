@@ -75,9 +75,16 @@ Return ONLY a JSON object (no markdown) with this shape:
   ]
 }
 Rules:
+- Always return exactly two opposing sides when two competitors and two scores are present.
 - sides are opposing sides; each side may have 1 or 2 names (teammates).
 - Prefer Title Case for player names in "names" (Lucas, not lucas).
 - scores are integers when spoken; omit score key if unknown.
+- Singles with "and" + "to": "Charlene and Nancy M 51 to 45" means two singles sides
+  (Charlene score 51, Nancy M score 45). Here "and" separates opponents (like "vs"),
+  not teammates. Same for "A and B 11-9" or "A and B 11 to 9 at Venue".
+- Teammates only when doubles are clear: "A and B vs C and D", "A plus B 11 vs C plus D 9",
+  or explicit team language. Prefer two singles over one doubles side when only two
+  names and two scores appear.
 - Map "rally scoring" / "rally" to score_type "rally"; "traditional" / "side out" to "traditional".
 - location_name is a venue or place only (court, house, street, park). Never a group/club name.
 - If the user says "in group X" / "for group X", put X in mentioned_group and do NOT use it as location_name.
@@ -86,6 +93,14 @@ Rules:
 - Do not invent players or venues not mentioned.
 """
 
+# "A and B 51 to 45" / "A and B 51-45" when the model wrongly collapses to one side.
+_AND_TO_SINGLES = re.compile(
+    r"(?P<a>.+?)\s+and\s+(?P<b>.+?)\s+(?P<s1>\d+)\s*(?:to|-)\s*(?P<s2>\d+)\b",
+    re.IGNORECASE,
+)
+_NAME_JOINER = re.compile(r"\b(?:and|vs\.?|versus|plus|with)\b", re.IGNORECASE)
+_OPPONENT_SEP = re.compile(r"\b(?:vs\.?|versus)\b", re.IGNORECASE)
+
 
 def _title_guest_name(name: str) -> str:
     """Normalize unresolved spoken names for guest display (Lucas, not lucas)."""
@@ -93,6 +108,38 @@ def _title_guest_name(name: str) -> str:
     if not parts:
         return ""
     return " ".join(part[:1].upper() + part[1:] for part in parts)
+
+
+def _sides_from_and_to_singles(transcript: str) -> list[dict[str, Any]] | None:
+    """Recover two singles sides from 'A and B 51 to 45' when the model misses."""
+    text = (transcript or "").strip()
+    if not text or _OPPONENT_SEP.search(text):
+        return None
+    match = _AND_TO_SINGLES.search(text)
+    if not match:
+        return None
+    left = match.group("a").strip(" ,.-")
+    right = match.group("b").strip(" ,.-")
+    if not left or not right:
+        return None
+    if _NAME_JOINER.search(left) or _NAME_JOINER.search(right):
+        return None
+    return [
+        {"names": [left], "score": int(match.group("s1"))},
+        {"names": [right], "score": int(match.group("s2"))},
+    ]
+
+
+def _coerce_two_sides(sides_raw: Any, *, transcript: str) -> list[dict[str, Any]]:
+    """Return a two-side list, repairing common 'and ... to' singles phrasing."""
+    if isinstance(sides_raw, list) and len(sides_raw) >= 2:
+        return sides_raw
+    repaired = _sides_from_and_to_singles(transcript)
+    if repaired:
+        return repaired
+    if isinstance(sides_raw, list):
+        return sides_raw
+    return []
 
 
 def _normalize_game_type_code(raw: str | None) -> str:
@@ -302,8 +349,8 @@ def parse_recording_transcript(
     )
     warnings.extend(location_warnings)
 
-    sides_raw = raw.get("sides") or []
-    if not isinstance(sides_raw, list) or len(sides_raw) < 2:
+    sides_raw = _coerce_two_sides(raw.get("sides") or [], transcript=text)
+    if len(sides_raw) < 2:
         raise ValueError("Could not find two sides with scores.")
 
     sides: list[dict[str, Any]] = []
