@@ -293,8 +293,9 @@ def test_game_edit_allows_blank_notes(client, staff_user, dominos_game):
     response = client.get(url)
     assert response.status_code == 200
     content = response.content.decode()
-    assert "Optional. Explain why this game was edited." in content
     assert "Required. Explain why this game was edited." not in content
+    assert "Optional. Explain why this game was edited." not in content
+    assert "Optional: why are these changes being made?" in content
 
     response = client.post(
         url,

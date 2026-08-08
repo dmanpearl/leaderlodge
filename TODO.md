@@ -237,7 +237,7 @@
 - [x] 86e8b56 System Hint Text: All text fields with interior hint text should use italic font and a lighter color gray to avoid confusion with typed text.
       - Reference: `.ll-field-hint-input::placeholder` in `static/css/site.css` (Record Game AI entry). Roll out that class to inputs/textareas app-wide. Helper copy below fields stays normal weight/color.
 - [x] f4e4e39 Mah Jongg: Support style: American, Chinese Traditional, Hong Kong, Japanese (Riichi), Taiwanese, Chinese Official (MCR). Use country logo for icon
-- [x] Edit Game View: Remove required attribute on Notes field. Update help text accordingly
+- [x] 169c331 Edit Game View: Remove required attribute on Notes field. Update help text accordingly
 
 ## Open Items
 

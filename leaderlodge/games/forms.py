@@ -179,7 +179,6 @@ class GameEditForm(forms.Form):
     notes = forms.CharField(
         label="Notes",
         required=False,
-        help_text="Optional. Explain why this game was edited.",
         widget=forms.Textarea(
             attrs={
                 "class": "form-control",
