@@ -398,16 +398,16 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
 }
 
 /*
- * Interior field hint (placeholder) styling only.
- * Reference instance: Record Game AI entry textarea
- * (templates/games/game_form.html .ll-field-hint-input).
- * Future global rollout: TODO "System Hint Text" (apply .ll-field-hint-input
- * to text inputs/textareas app-wide). Do not italicize helper copy below fields.
+ * Interior field hints (placeholders) app-wide.
+ * Italic + muted gray so hints are not confused with typed text.
+ * Helper copy (.form-text / Django help_text) stays normal weight/color.
+ * .ll-field-hint-input remains as an explicit opt-in alias.
  */
 :root {
   --ll-field-hint-color: #6c757d;
 }
 
+.form-control::placeholder,
 .ll-field-hint-input::placeholder {
   font-style: italic;
   color: var(--ll-field-hint-color);
