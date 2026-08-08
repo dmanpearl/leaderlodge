@@ -232,7 +232,7 @@
 - [x] be9f9ff Record Game 'Reuse >' dropdown overhangs the right of the screen and causes scrolling. Make sure the dropdown options stay within bounds
 - [x] 34eb240 feat(games): optional in-app mic for AI entry
 - [x] 5b6cbcd Bug: Dashboard > Recent Games card still lists team member as 'Nancy M' when there is no name conflict.
-- [x] Record Game: In app mic: while voice recording is active, keep the AI submit button enabled. If the user presses it, then disable voice recording and submit
+- [x] 143eeab Record Game: In app mic: while voice recording is active, keep the AI submit button enabled. If the user presses it, then disable voice recording and submit
 
 ## Open Items
 

@@ -408,7 +408,10 @@ def test_record_game_page_includes_voice_controls(client, voice_group, user):
         in content
     )
     assert 'aria-label="Parse"' in content
+    assert 'aria-label="Clear"' in content
+    assert "data-voice-clear" in content
     assert "bi-check-lg" in content
+    assert "bi-x-lg" in content
     assert "bi-stars" in content
     assert "game-record-voice-panel" in content
     assert "game-record-voice-body" not in content

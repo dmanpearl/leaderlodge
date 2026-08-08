@@ -218,7 +218,7 @@
 }
 
 .game-record-voice-input-wrap [data-voice-transcript] {
-  padding-right: 2.5rem;
+  padding-right: 4.6rem;
   border-color: rgba(var(--game-record-voice-accent-rgb), 0.28);
   /*
    * iOS Safari (and some Android WebViews) zoom the page when a focused
@@ -234,11 +234,18 @@
   font-size: 16px !important;
 }
 
-.game-record-voice-apply {
+.game-record-voice-actions {
   position: absolute;
   top: 0.35rem;
   right: 0.35rem;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.game-record-voice-clear,
+.game-record-voice-apply {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -251,22 +258,33 @@
   background: rgba(var(--game-record-voice-accent-rgb), 0.12);
   color: var(--game-record-voice-accent);
   line-height: 1;
+  font-size: 1.05rem;
+}
+
+.game-record-voice-apply {
   font-size: 1.15rem;
 }
 
+.game-record-voice-clear:hover:not(:disabled),
+.game-record-voice-clear:focus-visible:not(:disabled),
 .game-record-voice-apply:hover:not(:disabled),
 .game-record-voice-apply:focus-visible:not(:disabled) {
   background: var(--game-record-voice-accent);
   color: #fff;
 }
 
+.game-record-voice-clear:disabled,
 .game-record-voice-apply:disabled {
   opacity: 0.4;
   pointer-events: none;
 }
 
+.game-record-voice.is-voice-processing .game-record-voice-clear,
 .game-record-voice.is-voice-processing .game-record-voice-apply {
   pointer-events: none;
+}
+
+.game-record-voice.is-voice-processing .game-record-voice-apply {
   background: var(--game-record-voice-accent);
   color: #fff;
   opacity: 1;

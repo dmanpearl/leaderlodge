@@ -6,7 +6,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=12" />
+  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=13" />
   <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=18" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
@@ -182,22 +182,34 @@
                       autocapitalize="sentences"
                       spellcheck="true"
                     ></textarea>
-                    <button
-                      type="button"
-                      class="game-record-voice-apply"
-                      data-voice-apply
-                      disabled
-                      title="Parse"
-                      aria-label="Parse"
-                    >
-                      <span
-                        class="spinner-border spinner-border-sm d-none"
-                        role="status"
-                        aria-hidden="true"
-                        data-voice-spinner
-                      ></span>
-                      <i class="bi bi-check-lg" data-voice-apply-icon aria-hidden="true"></i>
-                    </button>
+                    <div class="game-record-voice-actions">
+                      <button
+                        type="button"
+                        class="game-record-voice-clear"
+                        data-voice-clear
+                        disabled
+                        title="Clear"
+                        aria-label="Clear"
+                      >
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="game-record-voice-apply"
+                        data-voice-apply
+                        disabled
+                        title="Parse"
+                        aria-label="Parse"
+                      >
+                        <span
+                          class="spinner-border spinner-border-sm d-none"
+                          role="status"
+                          aria-hidden="true"
+                          data-voice-spinner
+                        ></span>
+                        <i class="bi bi-check-lg" data-voice-apply-icon aria-hidden="true"></i>
+                      </button>
+                    </div>
                   </div>
                   <div
                     class="game-record-voice-status small mt-1"
@@ -434,7 +446,7 @@
     <script src="{% static 'js/player_picker.js' %}?v=18"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
-      <script src="{% static 'js/game_record_voice.js' %}?v=13"></script>
+      <script src="{% static 'js/game_record_voice.js' %}?v=14"></script>
     {% endif %}
   {% endif %}
 {% endblock %}

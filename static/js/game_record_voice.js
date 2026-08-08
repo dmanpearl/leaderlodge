@@ -22,6 +22,7 @@
   const toggleBtn = root.querySelector("[data-voice-toggle]");
   const titleEl = root.querySelector("[data-voice-title]");
   const applyBtn = root.querySelector("[data-voice-apply]");
+  const clearBtn = root.querySelector("[data-voice-clear]");
   const applyIcon = root.querySelector("[data-voice-apply-icon]");
   const spinner = root.querySelector("[data-voice-spinner]");
   const micBtn = root.querySelector("[data-voice-mic]");
@@ -95,12 +96,36 @@
   }
 
   function syncApplyEnabled() {
-    if (!applyBtn || !transcriptEl) {
+    if (!transcriptEl) {
       return;
     }
+    const hasText = Boolean(transcriptEl.value.trim());
     // While listening, keep Parse enabled so one tap can stop+submit.
-    applyBtn.disabled =
-      processing || !(listening || transcriptEl.value.trim());
+    if (applyBtn) {
+      applyBtn.disabled = processing || !(listening || hasText);
+    }
+    if (clearBtn) {
+      clearBtn.disabled = processing || !(listening || hasText);
+    }
+  }
+
+  function clearTranscript() {
+    if (processing) {
+      return;
+    }
+    if (listening) {
+      stopListening({ keepStatus: true });
+    }
+    finalTranscript = "";
+    if (transcriptEl) {
+      transcriptEl.value = "";
+    }
+    setStatus("");
+    setNotes([]);
+    syncApplyEnabled();
+    if (transcriptEl) {
+      transcriptEl.focus();
+    }
   }
 
   function setProcessing(isProcessing) {
@@ -465,6 +490,12 @@
   if (applyBtn) {
     applyBtn.addEventListener("click", function () {
       stopListeningAndParse();
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function () {
+      clearTranscript();
     });
   }
 
