@@ -37,7 +37,7 @@ def last_recorded_location_name(
 
 
 def last_recorded_score_type(user: AbstractBaseUser | None, game_type_code: str) -> str:
-    """Prior score mode for this user and type (e.g. rally), or empty."""
+    """Prior score_type / style for this user and type (e.g. rally, american)."""
     from leaderlodge.games.registry import (
         game_type_has_score_type,
         normalize_score_type,

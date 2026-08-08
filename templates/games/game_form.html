@@ -4,9 +4,9 @@
 {% block title %}{{ record_game_heading|default:"Record Game" }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=13" />
+  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=14" />
   <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=18" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
@@ -134,7 +134,7 @@
               class="game-record-voice mb-3"
               data-game-record-voice
               data-voice-title-closed="AI game entry"
-              data-voice-title-open="Speak or type players, teams, score, location{% if score_type_choices %}, score type{% endif %}"
+              data-voice-title-open="Speak or type players, teams, score, location{% if score_type_choices %}, {{ score_type_field_label|default:'score type'|lower }}{% endif %}"
             >
               <button
                 class="game-record-voice-toggle"
@@ -227,18 +227,42 @@
             {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True enable_recent_locations=True %}
           </div>
 
-          {% if score_type_choices %}
+          {% if score_type_choice_options %}
             <div class="mb-3 d-flex align-items-center gap-2" data-score-type-wrap>
-              <label for="game-score-type" class="form-label mb-0">Score type</label>
+              <label for="game-score-type" class="form-label mb-0">{{ score_type_field_label|default:"Score type" }}</label>
+              {% if score_type_icon_url %}
+                <img
+                  src="{{ score_type_icon_url }}"
+                  alt=""
+                  class="game-score-type-icon"
+                  data-score-type-icon
+                  width="28"
+                  height="28"
+                />
+              {% else %}
+                <img
+                  src=""
+                  alt=""
+                  class="game-score-type-icon d-none"
+                  data-score-type-icon
+                  width="28"
+                  height="28"
+                />
+              {% endif %}
               <select
                 id="game-score-type"
                 name="score_type"
                 class="form-select"
-                style="max-width: 12rem;"
+                style="max-width: 14rem;"
+                data-score-type-select
               >
-                {% for value, label in score_type_choices %}
-                  <option value="{{ value }}"{% if score_type == value %} selected{% endif %}>
-                    {{ label }}
+                {% for option in score_type_choice_options %}
+                  <option
+                    value="{{ option.value }}"
+                    data-icon-url="{{ option.icon_url }}"
+                    {% if score_type == option.value %}selected{% endif %}
+                  >
+                    {{ option.label }}
                   </option>
                 {% endfor %}
               </select>
@@ -442,6 +466,7 @@
     {% endif %}
   {% endif %}
   {% if show_roster and game_type and not is_guest_demo %}
+    <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
     <script src="{% static 'js/game_record_form.js' %}?v=6"></script>
     <script src="{% static 'js/player_picker.js' %}?v=18"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>

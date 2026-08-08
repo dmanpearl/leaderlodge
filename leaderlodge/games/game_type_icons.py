@@ -2,7 +2,7 @@
 
 from django.templatetags.static import static
 
-from leaderlodge.games.registry import GAME_TYPES
+from leaderlodge.games.registry import GAME_TYPES, score_type_icon_filename
 
 GAME_TYPE_ICON_IMAGE_PREFIX = "img/game-types/"
 
@@ -28,3 +28,11 @@ def shutout_icon_url(game_type_code: str) -> str:
     if config is None:
         return ""
     return static(f"{GAME_TYPE_ICON_IMAGE_PREFIX}{config.icon_filename}")
+
+
+def score_type_icon_url(game_type_code: str, score_type: str) -> str:
+    """Icon for mahjongg style (or empty for types without style icons)."""
+    relative = score_type_icon_filename(game_type_code, score_type)
+    if not relative:
+        return ""
+    return static(f"{GAME_TYPE_ICON_IMAGE_PREFIX}{relative}")

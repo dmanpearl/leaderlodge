@@ -200,10 +200,11 @@ class GameEditForm(forms.Form):
         game_type = get_game_type(game.game_type_code)
         if game_type.score_types:
             choices = score_type_choices_for(game.game_type_code)
+            initial = game.score_type or game_type.default_score_type or choices[0][0]
             self.fields["score_type"] = forms.ChoiceField(
-                label="Score type",
+                label=game_type.score_type_field_label or "Score type",
                 choices=choices,
-                initial=game.score_type or choices[0][0],
+                initial=initial,
                 widget=forms.Select(attrs={"class": "form-select"}),
             )
         if game_type.supports_half_game:

@@ -4,7 +4,7 @@
 {% block title %}{{ game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=14" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
@@ -39,6 +39,21 @@
     </div>
     <p class="text-muted mb-0">
       {{ game.group.name }} &middot; {{ game.played_on|date:"M j, Y" }}
+      {% if score_type_label %}
+        &middot;
+        <span class="text-nowrap align-middle">
+          {% if score_type_icon_url %}
+            <img
+              src="{{ score_type_icon_url }}"
+              alt=""
+              class="game-score-type-icon game-score-type-icon--inline"
+              width="20"
+              height="20"
+            />
+          {% endif %}
+          {{ score_type_field_label }}: {{ score_type_label }}
+        </span>
+      {% endif %}
       {% if game.location %}
         &middot; {{ game.location.name }}
         {% if can_set_place and google_places_api_key %}

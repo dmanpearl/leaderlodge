@@ -41,8 +41,10 @@ _GAME_FEATURE_PROPERTIES = {
     "score_type": {
         "type": "string",
         "description": (
-            "Pickleball only. traditional or rally. Call list_game_types for "
-            "features and ask_aliases when the user says normal or rally scoring."
+            "Pickleball scoring mode (traditional or rally) or Mah Jongg style "
+            "(american, chinese_trad, hong_kong, japanese, taiwanese, "
+            "chinese_mcr). Call list_game_types for features and ask_aliases "
+            "(e.g. rally, riichi, hong kong, mcr)."
         ),
     },
     "double_game": {

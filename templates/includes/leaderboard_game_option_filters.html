@@ -1,18 +1,36 @@
 {% for feature in game_feature_filters %}
   <div class="col-12 col-sm-6 col-lg-4 col-xl">
     <label for="{{ feature.select_id }}" class="form-label">{{ feature.title }}</label>
-    <select
-      id="{{ feature.select_id }}"
-      name="{{ feature.key }}"
-      class="form-select{% if select_class %} {{ select_class }}{% endif %}"
-      onchange="this.form.submit()"
-    >
-      <option value="" {% if not feature.selected %}selected{% endif %}>{{ feature.all_option_label }}</option>
-      {% for option in feature.options %}
-        <option value="{{ option.code }}" {% if feature.selected == option.code %}selected{% endif %}>
-          {{ option.label }}
-        </option>
-      {% endfor %}
-    </select>
+    <div class="d-flex align-items-center gap-2">
+      {% if feature.selected_icon_url or feature.options.0.icon_url %}
+        <img
+          src="{% if feature.selected_icon_url %}{{ feature.selected_icon_url }}{% endif %}"
+          alt=""
+          class="game-score-type-icon{% if not feature.selected_icon_url %} d-none{% endif %}"
+          data-score-type-filter-icon
+          data-for-select="{{ feature.select_id }}"
+          width="28"
+          height="28"
+        />
+      {% endif %}
+      <select
+        id="{{ feature.select_id }}"
+        name="{{ feature.key }}"
+        class="form-select{% if select_class %} {{ select_class }}{% endif %}"
+        onchange="this.form.submit()"
+        data-score-type-filter-select
+      >
+        <option value="" {% if not feature.selected %}selected{% endif %}>{{ feature.all_option_label }}</option>
+        {% for option in feature.options %}
+          <option
+            value="{{ option.code }}"
+            data-icon-url="{{ option.icon_url }}"
+            {% if feature.selected == option.code %}selected{% endif %}
+          >
+            {{ option.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
   </div>
 {% endfor %}

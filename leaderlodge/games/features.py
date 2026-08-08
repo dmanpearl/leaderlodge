@@ -73,6 +73,49 @@ GAME_FEATURES: tuple[GameFeatureSpec, ...] = (
         ),
     ),
     GameFeatureSpec(
+        key="score_type",
+        title="Style",
+        description=(
+            "Mah Jongg regional style (American, Chinese Traditional, Hong Kong, "
+            "Japanese Riichi, Taiwanese, Chinese Official MCR)."
+        ),
+        game_type_codes=frozenset({"mahjongg"}),
+        storage_field="score_type",
+        binding_kind=FeatureBindingKind.STRING_FIELD,
+        values=(
+            GameFeatureValueSpec(
+                "american",
+                "American",
+                ("american", "nmjl", "national mah jongg"),
+            ),
+            GameFeatureValueSpec(
+                "chinese_trad",
+                "Chinese Traditional",
+                ("chinese traditional", "traditional chinese", "chinese trad"),
+            ),
+            GameFeatureValueSpec(
+                "hong_kong",
+                "Hong Kong",
+                ("hong kong", "hk", "hongkong"),
+            ),
+            GameFeatureValueSpec(
+                "japanese",
+                "Japanese (Riichi)",
+                ("japanese", "riichi", "japan"),
+            ),
+            GameFeatureValueSpec(
+                "taiwanese",
+                "Taiwanese",
+                ("taiwanese", "taiwan", "taiwanese 16"),
+            ),
+            GameFeatureValueSpec(
+                "chinese_mcr",
+                "Chinese Official (MCR)",
+                ("mcr", "chinese official", "chinese mcr", "official"),
+            ),
+        ),
+    ),
+    GameFeatureSpec(
         key="double_game",
         title="Game length",
         description=(
@@ -120,10 +163,6 @@ GAME_FEATURES: tuple[GameFeatureSpec, ...] = (
     ),
 )
 
-_FEATURES_BY_KEY: dict[str, GameFeatureSpec] = {
-    feature.key: feature for feature in GAME_FEATURES
-}
-
 
 def features_for_game_type(game_type_code: str) -> tuple[GameFeatureSpec, ...]:
     return tuple(
@@ -133,11 +172,36 @@ def features_for_game_type(game_type_code: str) -> tuple[GameFeatureSpec, ...]:
     )
 
 
-def get_game_feature(key: str) -> GameFeatureSpec:
-    try:
-        return _FEATURES_BY_KEY[key]
-    except KeyError as exc:
-        raise ValueError(f"Unknown game feature: {key}") from exc
+def get_game_feature(key: str, *, game_type_code: str | None = None) -> GameFeatureSpec:
+    if game_type_code:
+        for feature in features_for_game_type(game_type_code):
+            if feature.key == key:
+                return feature
+    for feature in GAME_FEATURES:
+        if feature.key == key:
+            return feature
+    raise ValueError(f"Unknown game feature: {key}")
+
+
+def _string_field_filter_kwargs(
+    *,
+    field: str,
+    code: str,
+    game_type_code: str,
+    storage_field: str,
+):
+    """Build a Q for string features; default score_type includes legacy blanks."""
+    from django.db.models import Q
+
+    from leaderlodge.games.registry import get_game_type
+
+    exact = Q(**{field: code})
+    if storage_field != "score_type":
+        return exact
+    default = get_game_type(game_type_code).default_score_type
+    if default and code == default:
+        return exact | Q(**{field: ""})
+    return exact
 
 
 def feature_catalog_for_game_type(game_type_code: str) -> list[dict]:
@@ -264,19 +328,29 @@ def leaderboard_filter_rows(
     selections: dict[str, str],
     select_id_prefix: str = "leaderboard",
 ) -> list[dict]:
+    from leaderlodge.games.game_type_icons import score_type_icon_url
+
     rows: list[dict] = []
     for feature in features_for_game_type(game_type_code):
+        options = []
+        for value in feature.values:
+            option = {"code": value.code, "label": value.label, "icon_url": ""}
+            if feature.storage_field == "score_type":
+                option["icon_url"] = score_type_icon_url(game_type_code, value.code)
+            options.append(option)
+        selected = selections.get(feature.key, "")
+        selected_icon_url = ""
+        if selected and feature.storage_field == "score_type":
+            selected_icon_url = score_type_icon_url(game_type_code, selected)
         rows.append(
             {
                 "key": feature.key,
                 "title": feature.title,
                 "select_id": f"{select_id_prefix}-{feature.key.replace('_', '-')}",
-                "selected": selections.get(feature.key, ""),
+                "selected": selected,
+                "selected_icon_url": selected_icon_url,
                 "all_option_label": feature.all_option_label,
-                "options": [
-                    {"code": value.code, "label": value.label}
-                    for value in feature.values
-                ],
+                "options": options,
             }
         )
     return rows
@@ -297,7 +371,14 @@ def apply_feature_selections_to_games_qs(
         if not code:
             continue
         if feature.binding_kind == FeatureBindingKind.STRING_FIELD:
-            games_qs = games_qs.filter(**{feature.storage_field: code})
+            games_qs = games_qs.filter(
+                _string_field_filter_kwargs(
+                    field=feature.storage_field,
+                    code=code,
+                    game_type_code=game_type_code,
+                    storage_field=feature.storage_field,
+                )
+            )
         elif feature.binding_kind == FeatureBindingKind.WEIGHT_FIELD:
             games_qs = games_qs.filter(
                 **{feature.storage_field: _weight_value_from_code(code)}
@@ -384,7 +465,14 @@ def apply_feature_selections_to_results_qs(
             continue
         field = f"game__{feature.storage_field}"
         if feature.binding_kind == FeatureBindingKind.STRING_FIELD:
-            results_qs = results_qs.filter(**{field: code})
+            results_qs = results_qs.filter(
+                _string_field_filter_kwargs(
+                    field=field,
+                    code=code,
+                    game_type_code=game_type_code,
+                    storage_field=feature.storage_field,
+                )
+            )
         elif feature.binding_kind == FeatureBindingKind.WEIGHT_FIELD:
             results_qs = results_qs.filter(**{field: _weight_value_from_code(code)})
     return results_qs

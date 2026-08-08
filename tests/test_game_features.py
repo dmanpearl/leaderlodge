@@ -11,6 +11,12 @@ from leaderlodge.games.features import (
 def test_features_for_game_type_returns_type_specific_specs():
     pickleball = features_for_game_type("pickleball")
     assert [feature.key for feature in pickleball] == ["score_type"]
+    assert pickleball[0].title == "Score type"
+
+    mahjongg = features_for_game_type("mahjongg")
+    assert [feature.key for feature in mahjongg] == ["score_type"]
+    assert mahjongg[0].title == "Style"
+    assert "japanese" in mahjongg[0].valid_codes()
 
     dominos = features_for_game_type("dominos")
     assert [feature.key for feature in dominos] == ["double_game"]
@@ -37,6 +43,13 @@ def test_feature_catalog_includes_ask_aliases():
     )
     assert "normal" in traditional["ask_aliases"]
 
+    mahjongg_catalog = feature_catalog_for_game_type("mahjongg")
+    assert mahjongg_catalog[0]["title"] == "Style"
+    japanese = next(
+        value for value in mahjongg_catalog[0]["values"] if value["code"] == "japanese"
+    )
+    assert "riichi" in japanese["ask_aliases"]
+
     dominos_catalog = feature_catalog_for_game_type("dominos")
     regular = next(
         value for value in dominos_catalog[0]["values"] if value["code"] == "0"
@@ -51,6 +64,12 @@ def test_resolve_feature_selections_from_tool_args():
         game_type_code="pickleball",
     )
     assert selections == {"score_type": "rally"}
+
+    selections = resolve_feature_selections_from_tool_args(
+        {"score_type": "japanese"},
+        game_type_code="mahjongg",
+    )
+    assert selections == {"score_type": "japanese"}
 
     selections = resolve_feature_selections_from_tool_args(
         {"double_game": True},

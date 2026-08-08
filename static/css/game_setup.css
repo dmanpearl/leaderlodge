@@ -12,6 +12,14 @@
   object-fit: contain;
 }
 
+.game-score-type-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
+}
+
 .game-setup-game-type-select {
   flex: 1 1 auto;
   min-width: 0;

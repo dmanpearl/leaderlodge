@@ -58,11 +58,20 @@
 }
 
 .result-badge-shutout-icon,
-.game-list-shutout-icon {
+.game-list-shutout-icon,
+.game-list-style-icon {
   width: 1rem;
   height: 1rem;
   object-fit: contain;
   vertical-align: -0.15em;
+}
+
+.game-list-style-icon {
+  margin-left: 0.15rem;
+}
+
+.game-list-weight-col .game-list-style-icon {
+  display: inline-block;
 }
 
 .result-badge--shutout .result-badge-shutout-icon {
@@ -239,6 +248,22 @@
   width: 1.625rem;
   height: 1.625rem;
   object-fit: contain;
+}
+
+.game-score-type-icon {
+  display: block;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
+}
+
+.game-score-type-icon--inline {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  vertical-align: -0.2rem;
+  margin-right: 0.15rem;
 }
 
 .game-list-title-icon {

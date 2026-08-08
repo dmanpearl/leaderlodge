@@ -15,10 +15,36 @@ class ScoreType(StrEnum):
     RALLY = "rally"
 
 
-SCORE_TYPE_LABELS: dict[ScoreType, str] = {
-    ScoreType.TRADITIONAL: "Traditional",
-    ScoreType.RALLY: "Rally",
+class MahjonggStyle(StrEnum):
+    AMERICAN = "american"
+    CHINESE_TRAD = "chinese_trad"
+    HONG_KONG = "hong_kong"
+    JAPANESE = "japanese"
+    TAIWANESE = "taiwanese"
+    CHINESE_MCR = "chinese_mcr"
+
+
+SCORE_TYPE_LABELS: dict[str, str] = {
+    ScoreType.TRADITIONAL.value: "Traditional",
+    ScoreType.RALLY.value: "Rally",
+    MahjonggStyle.AMERICAN.value: "American",
+    MahjonggStyle.CHINESE_TRAD.value: "Chinese Traditional",
+    MahjonggStyle.HONG_KONG.value: "Hong Kong",
+    MahjonggStyle.JAPANESE.value: "Japanese (Riichi)",
+    MahjonggStyle.TAIWANESE.value: "Taiwanese",
+    MahjonggStyle.CHINESE_MCR.value: "Chinese Official (MCR)",
 }
+
+MAHJONGG_STYLE_ICON_FILES: dict[str, str] = {
+    MahjonggStyle.AMERICAN.value: "mahjongg-styles/mj-american.png",
+    MahjonggStyle.CHINESE_TRAD.value: "mahjongg-styles/mj-chinese-trad.png",
+    MahjonggStyle.HONG_KONG.value: "mahjongg-styles/mj-hong-kong.png",
+    MahjonggStyle.JAPANESE.value: "mahjongg-styles/mj-japan.png",
+    MahjonggStyle.TAIWANESE.value: "mahjongg-styles/mj-taiwan.png",
+    MahjonggStyle.CHINESE_MCR.value: "mahjongg-styles/mj-chinese-mcr.png",
+}
+
+MAHJONGG_STYLES: tuple[str, ...] = tuple(style.value for style in MahjonggStyle)
 
 
 @dataclass(frozen=True)
@@ -46,7 +72,10 @@ class GameTypeDefinition:
     score_direction: ScoreDirection
     win_target_score: int | None
     icon_filename: str
-    score_types: tuple[ScoreType, ...] = ()
+    # Stored on Game.score_type (pickleball scoring modes, mahjongg styles, etc.).
+    score_types: tuple[str, ...] = ()
+    default_score_type: str = ""
+    score_type_field_label: str = "Score type"
     supports_half_game: bool = False
     rank_uses_score_magnitude: bool = True
     shutout: ShutoutConfig | None = None
@@ -98,6 +127,9 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             score_direction=ScoreDirection.HIGH_WINS,
             win_target_score=None,
             icon_filename="mahjongg.png",
+            score_types=MAHJONGG_STYLES,
+            default_score_type=MahjonggStyle.AMERICAN.value,
+            score_type_field_label="Style",
         ),
         "pickleball": GameTypeDefinition(
             code="pickleball",
@@ -109,7 +141,8 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             score_direction=ScoreDirection.HIGH_WINS,
             win_target_score=None,
             icon_filename="pickleball.png",
-            score_types=(ScoreType.TRADITIONAL, ScoreType.RALLY),
+            score_types=(ScoreType.TRADITIONAL.value, ScoreType.RALLY.value),
+            default_score_type=ScoreType.TRADITIONAL.value,
             rank_uses_score_magnitude=False,
             shutout=ShutoutConfig(label="Pickled", icon_filename="pickle.png"),
         ),
@@ -257,9 +290,24 @@ def normalize_half_weight(*, is_half: bool) -> int:
 def score_type_choices_for(code: str) -> list[tuple[str, str]]:
     game_type = get_game_type(code)
     return [
-        (score_type.value, SCORE_TYPE_LABELS[score_type])
-        for score_type in game_type.score_types
+        (value, SCORE_TYPE_LABELS.get(value, value)) for value in game_type.score_types
     ]
+
+
+def score_type_label(code: str, score_type: str) -> str:
+    """Human label for a stored score_type / style value."""
+    if not game_type_has_score_type(code):
+        return ""
+    value = normalize_score_type(code, score_type)
+    return SCORE_TYPE_LABELS.get(value, value)
+
+
+def score_type_icon_filename(code: str, score_type: str) -> str:
+    """Relative static path under img/game-types/, or empty."""
+    if code != "mahjongg":
+        return ""
+    value = normalize_score_type(code, score_type)
+    return MAHJONGG_STYLE_ICON_FILES.get(value, "")
 
 
 def normalize_score_type(code: str, score_type: str) -> str:
@@ -267,9 +315,11 @@ def normalize_score_type(code: str, score_type: str) -> str:
     game_type = get_game_type(code)
     if not game_type.score_types:
         return ""
-    value = (score_type or "").strip() or ScoreType.TRADITIONAL.value
-    valid = {item.value for item in game_type.score_types}
+    default = game_type.default_score_type or game_type.score_types[0]
+    value = (score_type or "").strip() or default
+    valid = set(game_type.score_types)
     if value not in valid:
         labels = ", ".join(sorted(valid))
-        raise ValidationError(f"Score type must be one of: {labels}.")
+        field = game_type.score_type_field_label or "Score type"
+        raise ValidationError(f"{field} must be one of: {labels}.")
     return value

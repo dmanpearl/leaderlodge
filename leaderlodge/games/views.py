@@ -23,7 +23,16 @@ from leaderlodge.games.forms import (
     prepare_participant_rows,
 )
 from leaderlodge.groups.player_search import roster_for_group
-from leaderlodge.games.game_type_icons import game_type_icon_url, shutout_icon_url
+from leaderlodge.games.features import (
+    apply_feature_selections_to_games_qs,
+    leaderboard_filter_rows,
+    resolve_feature_selections,
+)
+from leaderlodge.games.game_type_icons import (
+    game_type_icon_url,
+    score_type_icon_url,
+    shutout_icon_url,
+)
 from leaderlodge.games.list_density import (
     game_list_date_format,
     resolve_game_list_density,
@@ -38,10 +47,11 @@ from leaderlodge.games.list_table import build_game_list_table, show_weight_colu
 from leaderlodge.games.models import Game, GameParticipantResult
 from leaderlodge.games.registry import (
     GAME_TYPES,
-    ScoreType,
     game_type_choices,
+    game_type_has_score_type,
     get_game_type,
     score_type_choices_for,
+    score_type_label,
 )
 from leaderlodge.games.location_field import (
     location_geo_from_form,
@@ -119,6 +129,7 @@ def _game_list_params(request: HttpRequest) -> dict:
         "start_date": request.GET.get("start_date", "").strip(),
         "end_date": request.GET.get("end_date", "").strip(),
         "shutout": request.GET.get("shutout", "").strip(),
+        "score_type": request.GET.get("score_type", "").strip(),
         "sort": sort,
     }
 
@@ -158,6 +169,7 @@ def _resolve_game_list_params(
         "start_date": params.get("start_date", ""),
         "end_date": params.get("end_date", ""),
         "shutout": params.get("shutout", ""),
+        "score_type": params.get("score_type", ""),
         "sort": params["sort"],
     }
     return resolved
@@ -310,6 +322,15 @@ def _filtered_games_queryset(user, params: dict[str, str], period=None):
             shutout_only=True,
         )
 
+    feature_selections = resolve_feature_selections(
+        params, game_type_code=params["game_type"]
+    )
+    games_qs = apply_feature_selections_to_games_qs(
+        games_qs,
+        feature_selections,
+        game_type_code=params["game_type"],
+    )
+
     if params["sort"] == "asc":
         return games_qs.order_by("played_on", "created_at")
     return games_qs.order_by("-played_on", "-created_at")
@@ -363,6 +384,14 @@ def _sanitize_game_list_params(
     if sanitized["game_size"].isdigit():
         if int(sanitized["game_size"]) not in game_size_options:
             sanitized["game_size"] = ""
+    if sanitized.get("score_type"):
+        valid = {
+            value for value, _label in score_type_choices_for(sanitized["game_type"])
+        }
+        if sanitized["score_type"] not in valid:
+            sanitized["score_type"] = ""
+    elif "score_type" not in sanitized:
+        sanitized["score_type"] = ""
     return sanitized
 
 
@@ -395,6 +424,7 @@ def _game_list_has_filters(params: dict[str, str]) -> bool:
             "start_date",
             "end_date",
             "shutout",
+            "score_type",
         )
         if key != "player_type" or params[key]
     )
@@ -448,6 +478,11 @@ def _game_list_filter_summary(
         config = game_type_shutout_config(params["game_type"])
         if config is not None:
             labels.append(config.label)
+
+    if params.get("score_type") and params.get("game_type"):
+        label = score_type_label(params["game_type"], params["score_type"])
+        if label:
+            labels.append(label)
 
     return ", ".join(labels)
 
@@ -685,6 +720,13 @@ def game_list(request: HttpRequest) -> HttpResponse:
             ),
             "shutout_icon_url": (
                 shutout_icon_url(params["game_type"]) if shutout_config else ""
+            ),
+            "game_feature_filters": leaderboard_filter_rows(
+                game_type_code=params["game_type"],
+                selections=resolve_feature_selections(
+                    params, game_type_code=params["game_type"]
+                ),
+                select_id_prefix="filter",
             ),
             **period_ctx,
         },
@@ -948,7 +990,11 @@ def game_create(request: HttpRequest) -> HttpResponse:
     played_on_display = ""
     location_name = ""
     location_geo = location_geo_post_values(None)
-    score_type = ScoreType.TRADITIONAL.value
+    score_type = (
+        game_type.default_score_type
+        if game_type is not None and game_type.score_types
+        else ""
+    )
     selected_setup_game_type_code = ""
     if form.is_bound:
         selected_setup_game_type_code = (form.data.get("game_type_code") or "").strip()
@@ -1019,7 +1065,25 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "score_type_choices": (
                 score_type_choices_for(game_type.code) if game_type else []
             ),
+            "score_type_choice_options": (
+                [
+                    {
+                        "value": value,
+                        "label": label,
+                        "icon_url": score_type_icon_url(game_type.code, value),
+                    }
+                    for value, label in score_type_choices_for(game_type.code)
+                ]
+                if game_type
+                else []
+            ),
+            "score_type_field_label": (
+                game_type.score_type_field_label if game_type else "Score type"
+            ),
             "score_type": score_type,
+            "score_type_icon_url": (
+                score_type_icon_url(game_type.code, score_type) if game_type else ""
+            ),
             "show_roster": show_roster and group is not None and game_type is not None,
             "participant_error": participant_error,
             "played_on_value": played_on_value,
@@ -1262,6 +1326,15 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "game_type_icon_url": game_type_icon_url(game.game_type_code),
             "shutout_icon_url": shutout_icon_url(game.game_type_code),
             "result_rows": result_rows,
+            "score_type_label": (
+                score_type_label(game.game_type_code, game.score_type)
+                if game_type_has_score_type(game.game_type_code)
+                else ""
+            ),
+            "score_type_field_label": game_type.score_type_field_label,
+            "score_type_icon_url": score_type_icon_url(
+                game.game_type_code, game.score_type
+            ),
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
             "is_shutout": is_shutout,
@@ -1357,6 +1430,17 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "form": form,
             "results": results,
             "participant_form_rows": participant_form_rows,
+            "score_type_choice_options": [
+                {
+                    "value": value,
+                    "label": label,
+                    "icon_url": score_type_icon_url(game.game_type_code, value),
+                }
+                for value, label in score_type_choices_for(game.game_type_code)
+            ],
+            "score_type_icon_url": score_type_icon_url(
+                game.game_type_code, game.score_type
+            ),
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
             "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),

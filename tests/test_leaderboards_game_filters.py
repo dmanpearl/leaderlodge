@@ -211,7 +211,7 @@ def test_leaderboard_view_shows_game_option_filters_by_type(client, user, group)
 
     dominos_response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     dominos_content = dominos_response.content.decode()
     assert dominos_response.status_code == 200
@@ -221,13 +221,32 @@ def test_leaderboard_view_shows_game_option_filters_by_type(client, user, group)
 
     pickleball_response = client.get(
         reverse("leaderboards:index"),
-        {"group": str(group.pk), "game_type_code": "pickleball"},
+        {"group": str(group.pk), "type": "pickleball"},
     )
     pickleball_content = pickleball_response.content.decode()
     assert pickleball_response.status_code == 200
     assert 'name="score_type"' in pickleball_content
     assert 'name="double_game"' not in pickleball_content
     assert 'name="half_game"' not in pickleball_content
+    assert (
+        ">Score type<" in pickleball_content
+        or "Score type</label>" in pickleball_content
+    )
+
+
+@pytest.mark.django_db
+def test_leaderboard_view_shows_mahjongg_style_filter_with_icon(client, user, group):
+    client.force_login(user)
+    response = client.get(
+        reverse("leaderboards:index"),
+        {"group": str(group.pk), "type": "mahjongg", "score_type": "japanese"},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'name="score_type"' in content
+    assert "Style" in content
+    assert "mj-japan.png" in content
+    assert 'value="japanese"' in content
 
 
 @pytest.mark.django_db

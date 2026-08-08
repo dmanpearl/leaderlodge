@@ -4,7 +4,7 @@
 {% block title %}{% if game_type_locked and selected_game_type %}{{ selected_game_type.name }}{% else %}Leaderboards{% endif %} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/leaderboards.css' %}" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
@@ -266,6 +266,7 @@
 
 {% block extra_js %}
   <script src="{% static 'js/period_filters.js' %}"></script>
+  <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
   <script src="{% static 'js/leaderboard.js' %}"></script>
   {% if can_manage_members %}
     <script src="{% static 'js/roster_invite_modal.js' %}"></script>

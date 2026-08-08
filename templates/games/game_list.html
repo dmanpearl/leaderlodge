@@ -4,7 +4,7 @@
 {% block title %}{{ selected_game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=16" />
 {% endblock %}
 
 {% block content %}
@@ -110,6 +110,7 @@
         {% include "includes/game_size_filter.html" with select_id="filter-game-size" select_class="game-list-filter-select" %}
         {% include "includes/leaderboard_period_filters.html" with year_select_id="filter-year" month_select_id="filter-month" preset_select_id="filter-period-preset" start_date_id="filter-start-date" end_date_id="filter-end-date" %}
         {% include "includes/shutout_filter.html" with shutout_filter=shutout_filter %}
+        {% include "includes/leaderboard_game_option_filters.html" with game_feature_filters=game_feature_filters select_class="game-list-filter-select" %}
         <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-sort" class="form-label">Sort</label>
           <select id="filter-sort" name="sort" class="form-select game-list-filter-select" onchange="this.form.submit()">
@@ -248,6 +249,14 @@
                       <span class="badge text-bg-secondary game-list-weight-badge">½</span>
                     {% elif row.game.score_type == "rally" %}
                       <span class="badge text-bg-secondary game-list-weight-badge">R</span>
+                    {% endif %}
+                    {% if row.score_type_icon_url %}
+                      <img
+                        src="{{ row.score_type_icon_url }}"
+                        class="game-list-style-icon"
+                        alt="{{ row.score_type_label }}"
+                        title="{{ row.score_type_label }}"
+                      />
                     {% endif %}
                     {% if row.is_shutout and shutout_icon_url %}
                       {% if row.is_double_skunk %}
@@ -397,5 +406,6 @@
 
 {% block extra_js %}
   <script src="{% static 'js/period_filters.js' %}"></script>
+  <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
   <script src="{% static 'js/game_list.js' %}"></script>
 {% endblock %}

@@ -200,6 +200,12 @@
     if (option) {
       select.value = scoreType;
       select.dispatchEvent(new Event("change", { bubbles: true }));
+      if (
+        window.LeaderLodgeScoreTypeSelect &&
+        typeof window.LeaderLodgeScoreTypeSelect.syncIcon === "function"
+      ) {
+        window.LeaderLodgeScoreTypeSelect.syncIcon(select);
+      }
     }
   }
 

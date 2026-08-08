@@ -68,7 +68,7 @@ Return ONLY a JSON object (no markdown) with this shape:
   "mentioned_game_type_code": "pickleball|dominos|progressiverummy|mahjongg|backgammon|ginrummy|cribbage|phase10|darts|cornhole or null",
   "mentioned_group": "group/club name if spoken, else null",
   "mentioned_date": "date string if spoken (any format), else null",
-  "score_type": "traditional|rally or null",
+  "score_type": "traditional|rally|american|chinese_trad|hong_kong|japanese|taiwanese|chinese_mcr or null",
   "location_name": "venue/place string or null",
   "sides": [
     {"names": ["Player A", "optional teammate"], "score": 11}
@@ -85,7 +85,9 @@ Rules:
 - Teammates only when doubles are clear: "A and B vs C and D", "A plus B 11 vs C plus D 9",
   or explicit team language. Prefer two singles over one doubles side when only two
   names and two scores appear.
-- Map "rally scoring" / "rally" to score_type "rally"; "traditional" / "side out" to "traditional".
+- Pickleball score_type: "rally scoring" / "rally" to "rally"; "traditional" / "side out" to "traditional".
+- Mah Jongg score_type is regional style: american, chinese_trad (Chinese Traditional),
+  hong_kong, japanese (Riichi), taiwanese, chinese_mcr (Chinese Official / MCR).
 - location_name is a venue or place only (court, house, street, park). Never a group/club name.
 - If the user says "in group X" / "for group X", put X in mentioned_group and do NOT use it as location_name.
 - If a calendar date is spoken ("on 8/3/2026", "August 3"), put it in mentioned_date.
@@ -339,7 +341,8 @@ def parse_recording_transcript(
             score_type = last_recorded_score_type(user, game_type_code) or (
                 normalize_score_type(game_type_code, "")
             )
-            warnings.append(f"Using score type: {score_type}.")
+            field_label = (game_type.score_type_field_label or "Score type").lower()
+            warnings.append(f"Using {field_label}: {score_type}.")
 
     location_name, location_warnings = _resolve_location(
         group,

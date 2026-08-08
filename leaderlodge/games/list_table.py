@@ -2,8 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from leaderlodge.games.game_type_icons import score_type_icon_url
 from leaderlodge.games.models import Game, GameParticipantResult
-from leaderlodge.games.registry import game_type_supports_shutout
+from leaderlodge.games.registry import (
+    game_type_supports_shutout,
+    score_type_icon_filename,
+    score_type_label,
+)
 from leaderlodge.games.shutouts import is_double_skunk_game, is_shutout_game
 
 WEIGHT_GAME_TYPES = frozenset({"dominos", "progressiverummy", "pickleball"})
@@ -14,6 +19,9 @@ def show_weight_column(*, games: list[Game], game_type_code: str) -> bool:
         return True
     # Shutout icons (Pickled / Skunked) render in this column.
     if game_type_supports_shutout(game_type_code):
+        return True
+    # Mah Jongg style icons (and any future style icons) use this column.
+    if score_type_icon_filename(game_type_code, ""):
         return True
     return any(game.double_weight == 2 or game.half_weight == 2 for game in games)
 
@@ -30,6 +38,8 @@ class GameListRow:
     cells: list[GameListScoreCell]
     is_shutout: bool = False
     is_double_skunk: bool = False
+    score_type_icon_url: str = ""
+    score_type_label: str = ""
 
 
 def result_cell_class(*, result: str, is_double: bool) -> str:
@@ -88,12 +98,18 @@ def build_game_list_table(games: list[Game]) -> tuple[list, list[GameListRow]]:
                         ),
                     )
                 )
+        style_icon = score_type_icon_url(game.game_type_code, game.score_type)
+        style_label = (
+            score_type_label(game.game_type_code, game.score_type) if style_icon else ""
+        )
         rows.append(
             GameListRow(
                 game=game,
                 cells=cells,
                 is_shutout=shutout,
                 is_double_skunk=double_skunk,
+                score_type_icon_url=style_icon,
+                score_type_label=style_label,
             )
         )
 
