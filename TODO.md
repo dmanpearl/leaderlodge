@@ -238,11 +238,11 @@
       - Reference: `.ll-field-hint-input::placeholder` in `static/css/site.css` (Record Game AI entry). Roll out that class to inputs/textareas app-wide. Helper copy below fields stays normal weight/color.
 - [x] f4e4e39 Mah Jongg: Support style: American, Chinese Traditional, Hong Kong, Japanese (Riichi), Taiwanese, Chinese Official (MCR). Use country logo for icon
 - [x] 169c331 Edit Game View: Remove required attribute on Notes field. Update help text accordingly
+- [x] Icons: Need a better Skunk icon for Cribbage
 
 ## Open Items
 
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
-- [ ] Icons: Need a better Skunk icon for Cribbage
 - [ ] Icons: Need separate icons for Gin Rummy and Progressive Rummy
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
