@@ -1,9 +1,4 @@
-.game-record-score-input,
-.player-picker-cta-input,
-#game-record-voice-transcript {
-  /* iOS Safari zooms focused inputs when font-size is below 16px. */
-  font-size: 16px;
-}
+/* Score / picker / voice inputs use .form-control; 16px floor is in site.css. */
 
 .combobox-input-wrap {
   position: relative;

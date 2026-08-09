@@ -574,7 +574,7 @@ span.game-list-title-select {
 
 .game-list-density--compact #game-list-filters .form-select,
 .game-list-density--compact #game-list-filters .form-control {
-  font-size: 0.8125rem;
+  /* font-size stays 16px (site.css) to avoid iOS focus zoom */
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
 }
@@ -634,13 +634,13 @@ span.game-list-title-select {
 }
 
 .game-list-density--dense #game-list-filters .form-select {
-  font-size: 0.6875rem;
+  /* font-size stays 16px (site.css) to avoid iOS focus zoom */
   min-height: 1.5rem;
   padding: 0.1rem 1.5rem 0.1rem 0.3rem;
 }
 
 .game-list-density--dense #game-list-filters .form-control {
-  font-size: 0.6875rem;
+  /* font-size stays 16px (site.css) to avoid iOS focus zoom */
   min-height: 1.5rem;
   padding: 0.1rem 0.3rem;
 }

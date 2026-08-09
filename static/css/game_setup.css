@@ -228,18 +228,12 @@
 .game-record-voice-input-wrap [data-voice-transcript] {
   padding-right: 4.6rem;
   border-color: rgba(var(--game-record-voice-accent-rgb), 0.28);
-  /*
-   * iOS Safari (and some Android WebViews) zoom the page when a focused
-   * input/textarea computes below 16px. Pin px size so rem/root scaling
-   * cannot dip under the threshold.
-   */
-  font-size: 16px !important;
+  /* font-size 16px floor is in site.css (.form-control) */
 }
 
 .game-record-voice-input-wrap [data-voice-transcript]:focus {
   border-color: var(--game-record-voice-accent);
   box-shadow: 0 0 0 0.2rem rgba(var(--game-record-voice-accent-rgb), 0.2);
-  font-size: 16px !important;
 }
 
 .game-record-voice-actions {

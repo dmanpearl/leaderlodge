@@ -240,11 +240,11 @@
 - [x] 169c331 Edit Game View: Remove required attribute on Notes field. Update help text accordingly
 - [x] 227ce37 Icons: Need a better Skunk icon for Cribbage
 - [x] 8a17ca4 Game view row click does not invoke Game detail view (https://leaderlodge.com/admin/feedback/feedback/33)
-- [x] Bug: Progressive Rummy and Mah Jongg only > Occurs when game is locked only > Games View Title is word wrapped to 2 lines, should be only 1 line
+- [x] 95434bb Bug: Progressive Rummy and Mah Jongg only > Occurs when game is locked only > Games View Title is word wrapped to 2 lines, should be only 1 line
+- [x] Don’t allow auto-zoom. Interface is too small (https://leaderlodge.com/admin/feedback/feedback/34)
 
 ## Open Items
 
-- [ ] Don’t allow auto-zoom. Interface is too small (https://leaderlodge.com/admin/feedback/feedback/34)
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] Icons: Need separate icons for Gin Rummy and Progressive Rummy
 - [ ] Game Type: Add Canasta, Euchre

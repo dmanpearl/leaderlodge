@@ -262,7 +262,8 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
 }
 
 .table .form-select-sm {
-  font-size: inherit;
+  /* Keep 16px floor (see form-control rule below); do not inherit table size. */
+  font-size: 16px;
   padding-top: 0.15rem;
   padding-bottom: 0.15rem;
   padding-left: 0.35rem;
@@ -395,6 +396,18 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     width: 100%;
     animation: none;
   }
+}
+
+/*
+ * iOS Safari / WebKit focus zoom: focused inputs below 16px zoom the page.
+ * Pin form controls to 16px app-wide so every screen stays at the same scale.
+ * Table/body text may stay smaller; only focusable controls need this floor.
+ */
+.form-control,
+.form-select,
+.form-control-sm,
+.form-select-sm {
+  font-size: 16px;
 }
 
 /*
