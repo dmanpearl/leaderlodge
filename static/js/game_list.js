@@ -136,7 +136,8 @@
 
   function initTitleSelect() {
     const select = document.getElementById("filter-game-type");
-    if (!select) {
+    // Locked game-type mode renders a <span>, not a <select>.
+    if (!select || select.tagName !== "SELECT") {
       return;
     }
 

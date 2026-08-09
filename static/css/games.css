@@ -322,6 +322,20 @@
   padding: 0;
   cursor: pointer;
   overflow: visible;
+  white-space: nowrap;
+}
+
+/* Locked mode uses a span (not a <select>). Keep long names like
+   Progressive Rummy / Mah Jongg on one line at content width. */
+span.game-list-title-select {
+  display: inline-block;
+  max-width: none;
+  cursor: default;
+}
+
+.game-list-title-select-wrap:has(> span.game-list-title-select) {
+  flex: 0 0 auto;
+  min-width: auto;
 }
 
 .game-list-title-chevron {

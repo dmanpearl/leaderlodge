@@ -156,7 +156,9 @@ def test_locked_hides_game_filter_and_updates_titles(client: Client, django_user
     assert 'id="game-setup-game-type-select"' not in create
     assert 'name="game_type_code"' in create
 
-    leaderboard = client.get(reverse("leaderboards:index"), follow=True).content.decode()
+    leaderboard = client.get(
+        reverse("leaderboards:index"), follow=True
+    ).content.decode()
     assert 'id="game-type-select"' not in leaderboard
     assert 'for="game-type-select"' not in leaderboard
     assert "game-detail-title-icon" in leaderboard
@@ -171,6 +173,27 @@ def test_locked_hides_game_filter_and_updates_titles(client: Client, django_user
     ask = client.get(reverse("insights:ask"), follow=True).content.decode()
     assert 'id="ask-game-type"' not in ask
     assert 'for="ask-game-type"' not in ask
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("lock_code", ["progressiverummy", "mahjongg"])
+def test_locked_games_list_title_is_single_line_span(
+    client: Client, django_user_model, lock_code
+):
+    user = django_user_model.objects.create_user(
+        username=f"locker-{lock_code}", password="test-pass-123"
+    )
+    create_group_with_owner(user=user, name="Club")
+    client.force_login(user)
+    client.get(f"/?lock={lock_code}")
+
+    page = client.get(reverse("games:list"), follow=True).content.decode()
+    name = GAME_TYPES[lock_code].name
+    assert name in page
+    assert (
+        '<span class="game-list-title-select form-select" id="filter-game-type"' in page
+    )
+    assert 'select\n            id="filter-game-type"' not in page
 
 
 @pytest.mark.django_db
