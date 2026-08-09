@@ -2,6 +2,23 @@
   const STATS_STORAGE_KEY = "leaderlodge.gameListStatsOpen";
   const TYPE_STORAGE_KEY = "leaderlodge.gameListTypeOpen";
 
+  function readSessionFlag(storageKey, defaultOpen) {
+    try {
+      const stored = window.sessionStorage.getItem(storageKey);
+      return stored === null ? defaultOpen : stored === "true";
+    } catch (_err) {
+      return defaultOpen;
+    }
+  }
+
+  function writeSessionFlag(storageKey, value) {
+    try {
+      window.sessionStorage.setItem(storageKey, value ? "true" : "false");
+    } catch (_err) {
+      /* Private mode / blocked storage: keep UI working without persistence. */
+    }
+  }
+
   function initCollapseSection({
     collapseId,
     iconId,
@@ -10,12 +27,11 @@
     onToggle,
   }) {
     const collapse = document.getElementById(collapseId);
-    if (!collapse) {
+    if (!collapse || typeof bootstrap === "undefined") {
       return;
     }
 
-    const stored = window.sessionStorage.getItem(storageKey);
-    const shouldOpen = stored === null ? defaultOpen : stored === "true";
+    const shouldOpen = readSessionFlag(storageKey, defaultOpen);
     const instance = bootstrap.Collapse.getOrCreateInstance(collapse, {
       toggle: false,
     });
@@ -27,12 +43,12 @@
     }
 
     collapse.addEventListener("shown.bs.collapse", () => {
-      window.sessionStorage.setItem(storageKey, "true");
+      writeSessionFlag(storageKey, true);
       updateCollapseIcon(iconId, true);
       onToggle?.(true);
     });
     collapse.addEventListener("hidden.bs.collapse", () => {
-      window.sessionStorage.setItem(storageKey, "false");
+      writeSessionFlag(storageKey, false);
       updateCollapseIcon(iconId, false);
       onToggle?.(false);
     });
@@ -157,32 +173,15 @@
     window.addEventListener("resize", resizeTitleSelect);
   }
 
-  function initRowNavigation() {
-    document.querySelectorAll(".game-list-row[data-href]").forEach((row) => {
-      const navigate = () => {
-        window.LeaderLodge.navigate(row.dataset.href);
-      };
-
-      row.addEventListener("click", (event) => {
-        if (event.target.closest("a")) {
-          return;
-        }
-        navigate();
-      });
-      row.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          navigate();
-        }
-      });
-    });
-  }
-
   function init() {
-    initStatsCollapse();
-    initTypeFiltersCollapse();
-    initTitleSelect();
-    initRowNavigation();
+    // Row navigation is handled globally by nav_pending.js ([data-href] delegation).
+    try {
+      initStatsCollapse();
+      initTypeFiltersCollapse();
+      initTitleSelect();
+    } catch (_err) {
+      /* Keep the page usable if collapse/title setup fails. */
+    }
     updateFooterHeader();
     window.addEventListener("resize", updateFooterHeader);
   }

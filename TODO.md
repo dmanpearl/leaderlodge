@@ -238,10 +238,13 @@
       - Reference: `.ll-field-hint-input::placeholder` in `static/css/site.css` (Record Game AI entry). Roll out that class to inputs/textareas app-wide. Helper copy below fields stays normal weight/color.
 - [x] f4e4e39 Mah Jongg: Support style: American, Chinese Traditional, Hong Kong, Japanese (Riichi), Taiwanese, Chinese Official (MCR). Use country logo for icon
 - [x] 169c331 Edit Game View: Remove required attribute on Notes field. Update help text accordingly
-- [x] Icons: Need a better Skunk icon for Cribbage
+- [x] 227ce37 Icons: Need a better Skunk icon for Cribbage
+- [x] Game view row click does not invoke Game detail view (https://leaderlodge.com/admin/feedback/feedback/33)
 
 ## Open Items
 
+- [ ] Bug: Progressive Rummy and Mah Jongg only > Occurs when game is locked only > Games View Title is word wrapped to 2 lines, should be only 1 line
+- [ ] Don’t allow auto-zoom. Interface is too small (https://leaderlodge.com/admin/feedback/feedback/34)
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] Icons: Need separate icons for Gin Rummy and Progressive Rummy
 - [ ] Game Type: Add Canasta, Euchre

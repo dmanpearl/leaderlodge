@@ -4,7 +4,7 @@
 {% block title %}{{ selected_game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=16" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=17" />
 {% endblock %}
 
 {% block content %}
@@ -231,11 +231,15 @@
             {% for row in game_rows %}
               <tr
                 class="game-list-row"
-                role="link"
                 tabindex="0"
                 data-href="{% url 'games:detail' row.game.pk %}"
               >
-                <td class="game-list-nowrap-col">{{ row.game.played_on|date:date_format }}</td>
+                <td class="game-list-nowrap-col">
+                  <a
+                    href="{% url 'games:detail' row.game.pk %}"
+                    class="game-list-row-link"
+                  >{{ row.game.played_on|date:date_format }}</a>
+                </td>
                 {% if show_group_column %}
                   <td class="game-list-nowrap-col">
                     <a href="{% url 'groups:detail' row.game.group.pk %}">{{ row.game.group.name }}</a>
