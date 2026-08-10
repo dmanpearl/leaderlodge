@@ -241,7 +241,8 @@
 - [x] 227ce37 Icons: Need a better Skunk icon for Cribbage
 - [x] 8a17ca4 Game view row click does not invoke Game detail view (https://leaderlodge.com/admin/feedback/feedback/33)
 - [x] 95434bb Bug: Progressive Rummy and Mah Jongg only > Occurs when game is locked only > Games View Title is word wrapped to 2 lines, should be only 1 line
-- [x] Don’t allow auto-zoom. Interface is too small (https://leaderlodge.com/admin/feedback/feedback/34)
+- [x] 26a168f Don’t allow auto-zoom. Interface is too small (https://leaderlodge.com/admin/feedback/feedback/34)
+- [x] New pill: change 'New' to superscripted 'N' at end of the new player's name
 
 ## Open Items
 

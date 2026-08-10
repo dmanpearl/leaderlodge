@@ -1,3 +1,18 @@
+.leaderboard-new-player {
+  display: inline-block;
+  margin-left: 0.25em;
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+  background-color: var(--bs-warning);
+  color: #000;
+  font-size: 0.65em;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.1;
+  vertical-align: super;
+  text-decoration: none;
+}
+
 .leaderboard-view-nav {
   width: 100%;
 }
