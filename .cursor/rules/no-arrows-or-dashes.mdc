@@ -18,4 +18,9 @@ Use instead:
 
 ASCII `->` in code or diagrams is fine when required by syntax (e.g. Mermaid, type hints).
 
-Before finishing edits, scan changed files for U+2192, U+2013, and U+2014.
+Exception (Matchup screen only): before/after value changes in Matchup cells may use
+Unicode right arrow U+2192 (and left arrow U+2190 if a reverse transition is shown).
+Prefer `\u2192` / `\u2190` escapes in Python source so prose scans stay clean.
+
+Before finishing edits, scan changed files for U+2192, U+2013, and U+2014
+(except the Matchup exception above).

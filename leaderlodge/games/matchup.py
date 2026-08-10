@@ -108,6 +108,8 @@ def build_matchup_view(game: Game) -> MatchupView:
 
     h2h_before = _head_to_head_stats(game, players, include_game=False)
     h2h_after = _head_to_head_stats(game, players, include_game=True)
+    career_before = _career_stats(game, include_game=False)
+    career_after = _career_stats(game, include_game=True)
     placements_this_game = {result.player.pk: result.placement for result in results}
     after_place_pct = _place_pct_by_player(
         game,
@@ -120,7 +122,7 @@ def build_matchup_view(game: Game) -> MatchupView:
     rows.append(_this_game_score_row(results, low_wins=low_wins))
     rows.append(_this_game_place_row(results))
     rows.append(_place_pct_row(players, after_place_pct))
-    rows.append(_this_game_result_row(results))
+    rows.append(_this_game_result_row(results, show_losses=game_type.supports_loser))
     rows.extend(
         _leaderboard_rows(
             players,
@@ -133,8 +135,28 @@ def build_matchup_view(game: Game) -> MatchupView:
         )
     )
     rows.extend(
+        _points_rows(
+            players,
+            career_before,
+            career_after,
+            total_label="Points",
+            per_game_label="Points/Game",
+            low_wins=low_wins,
+        )
+    )
+    rows.extend(
         _head_to_head_rows(
             players, h2h_before, h2h_after, show_losses=game_type.supports_loser
+        )
+    )
+    rows.extend(
+        _points_rows(
+            players,
+            h2h_before,
+            h2h_after,
+            total_label="Together points",
+            per_game_label="Together points/Game",
+            low_wins=low_wins,
         )
     )
 
@@ -217,7 +239,7 @@ def _change_direction(
 
 
 def _format_rank(rank: int | None) -> str:
-    return str(rank) if rank is not None else "—"
+    return str(rank) if rank is not None else "-"
 
 
 def _format_weighted(value: float) -> str:
@@ -240,10 +262,20 @@ def _format_streak(value: float | int) -> str:
     return str(int(value))
 
 
+def _format_points_total(value: float | int) -> str:
+    return str(int(value))
+
+
 def _display_place(placement: int | None) -> str:
     if placement is None:
-        return "—"
+        return "-"
     return str(placement + 1)
+
+
+def _points_per_game_value(stats_row) -> float | None:
+    if stats_row is None or stats_row.games_played <= 0:
+        return None
+    return stats_row.total_points / stats_row.games_played
 
 
 def _place_pct_by_player(
@@ -300,7 +332,7 @@ def _after_value_cell(
     formatter,
 ) -> MatchupCell:
     return MatchupCell(
-        display=formatter(value) if value is not None else "—",
+        display=formatter(value) if value is not None else "-",
     )
 
 
@@ -313,14 +345,14 @@ def _delta_cell(
     standing_highlight: StandingHighlight = "",
 ) -> MatchupCell:
     change = _change_direction(before, after, higher_is_better=higher_is_better)
-    before_display = formatter(before) if before is not None else "—"
-    after_display = formatter(after) if after is not None else "—"
+    before_display = formatter(before) if before is not None else "-"
+    after_display = formatter(after) if after is not None else "-"
     if change == "same":
         display = after_display
     elif change == "none":
         display = after_display
     else:
-        display = f"{before_display} → {after_display}"
+        display = f"{before_display} \u2192 {after_display}"
 
     css_class = ""
     if change == "up":
@@ -364,7 +396,7 @@ def _rank_delta_cell(
     if change == "same":
         display = after_display
     else:
-        display = f"{before_display} → {after_display}"
+        display = f"{before_display} \u2192 {after_display}"
 
     css_class = ""
     if change == "up":
@@ -451,17 +483,29 @@ def _place_pct_row(
     )
 
 
-def _this_game_result_row(results) -> MatchupStatRow:
+def _this_game_result_display(result, *, show_losses: bool) -> str:
+    """Win / Tie / Loss when applicable; blank for Played (and Loss if unsupported)."""
+    if result.result == GameParticipantResult.Result.WIN:
+        return "Win"
+    if result.result == GameParticipantResult.Result.TIE:
+        return "Tie"
+    if result.result == GameParticipantResult.Result.LOSS and show_losses:
+        return "Loss"
+    return ""
+
+
+def _this_game_result_row(results, *, show_losses: bool) -> MatchupStatRow:
     cells: list[MatchupCell] = []
     for result in results:
+        display = _this_game_result_display(result, show_losses=show_losses)
         css_class = ""
-        if result.result == GameParticipantResult.Result.WIN:
+        if display == "Win":
             css_class = "matchup-cell--up"
-        elif result.result == GameParticipantResult.Result.LOSS:
+        elif display == "Loss":
             css_class = "matchup-cell--down"
         cells.append(
             MatchupCell(
-                display=result.get_result_display(),
+                display=display,
                 css_class=css_class,
             )
         )
@@ -605,6 +649,51 @@ def _head_to_head_rows(
     return rows
 
 
+def _points_rows(
+    players,
+    before_stats,
+    after_stats,
+    *,
+    total_label: str,
+    per_game_label: str,
+    low_wins: bool,
+) -> list[MatchupStatRow]:
+    higher_is_better = not low_wins
+    total_row = MatchupStatRow(
+        label=total_label,
+        cells=tuple(
+            _delta_cell(
+                (
+                    before_stats[player.pk].total_points
+                    if player.pk in before_stats
+                    else 0
+                ),
+                (
+                    after_stats[player.pk].total_points
+                    if player.pk in after_stats
+                    else 0
+                ),
+                higher_is_better=higher_is_better,
+                formatter=_format_points_total,
+            )
+            for player in players
+        ),
+    )
+    per_game_row = MatchupStatRow(
+        label=per_game_label,
+        cells=tuple(
+            _delta_cell(
+                _points_per_game_value(before_stats.get(player.pk)),
+                _points_per_game_value(after_stats.get(player.pk)),
+                higher_is_better=higher_is_better,
+                formatter=_format_score,
+            )
+            for player in players
+        ),
+    )
+    return [total_row, per_game_row]
+
+
 def _filter_games_through_game(games_qs, game: Game, *, include_game: bool):
     if include_game:
         return games_qs.filter(
@@ -633,11 +722,27 @@ def _head_to_head_games_qs(game: Game, players, *, include_game: bool):
     ).filter(matched_players=len(player_ids), total_players=len(player_ids))
 
 
-def _head_to_head_stats(game: Game, players, *, include_game: bool):
+def _stats_by_player_from_games(games_qs, game_type_code: str):
     stats = build_game_list_stats(
-        games_qs=_head_to_head_games_qs(game, players, include_game=include_game),
-        game_type_code=game.game_type_code,
+        games_qs=games_qs,
+        game_type_code=game_type_code,
     )
     if stats is None:
         return {}
     return {row.player.pk: row for row in stats.players}
+
+
+def _career_stats(game: Game, *, include_game: bool):
+    qs = Game.objects.filter(
+        group=game.group,
+        game_type_code=game.game_type_code,
+    )
+    qs = _filter_games_through_game(qs, game, include_game=include_game)
+    return _stats_by_player_from_games(qs, game.game_type_code)
+
+
+def _head_to_head_stats(game: Game, players, *, include_game: bool):
+    return _stats_by_player_from_games(
+        _head_to_head_games_qs(game, players, include_game=include_game),
+        game.game_type_code,
+    )

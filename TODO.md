@@ -243,15 +243,15 @@
 - [x] 95434bb Bug: Progressive Rummy and Mah Jongg only > Occurs when game is locked only > Games View Title is word wrapped to 2 lines, should be only 1 line
 - [x] 26a168f Don’t allow auto-zoom. Interface is too small (https://leaderlodge.com/admin/feedback/feedback/34)
 - [x] 3c829d2 New pill: change 'New' to superscripted 'N' at end of the new player's name
-- [x] Icons: Need separate icons for Gin Rummy and Progressive Rummy
+- [x] 9fe9d45 Icons: Need separate icons for Gin Rummy and Progressive Rummy
+- [x] Matchup View: Add Points (total, average) and Together points (total, avg). No refactoring or complex queries, ask if difficult
 
 ## Open Items
 
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] Game Type: Add Canasta, Euchre
-- [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI
+- [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI. Replace "+ Teammate" button with an 'Add Teammate' input field and add the teammate directly from that spot. For cleanup, this will require removal of the capability of the 'Add Player' button to convert itself visually into an 'Add Teammate' field
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
-- [ ] Add Favicon
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch
 - [ ] Matchup View: Pick or change players for ad-hoc comparison (`?group=&type=&players=`; optional `&game=` as game instance id when the value is not a known type code/abbr; picker UI)
@@ -269,7 +269,6 @@
 - [ ] Mobile: Group roster invite — replace Bootstrap modal (`#roster-invite-modal` in `templates/groups/group_detail.html`) with inline expandable form below the row or a dedicated page on mobile. Email field should stay `type="email"` in normal document flow (keyboard-safe). Preserve POST to `groups:player_invite`.
 - [ ] Mobile: Group members role select — inline `form-select-sm` role dropdown in members table (`templates/groups/group_detail.html`) needs ≥44px tap targets on mobile; consider row action sheet or full-width select below username. POST to `groups:member_update_role` unchanged.
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
-- [ ] Games and Groups: Explore moving selection UI into a global settings area since they stay persistent for all screens
 - [ ] Ranking and other player data need sort by columns
 - [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
@@ -281,8 +280,7 @@
 - [/] Record game: look ahead incorrectly displayed “no players yet” (https://leaderlodge.com/admin/feedback/feedback/28)
       - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
 - [/] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
-- [keep] Hall of Fame: Revisit the need for this view. Consider removal
-- [/] Leaderboard Additional Algorithms: points-percent, points-total
+- [/] Leaderboard Additional Algorithms: points-percent, points-total (note: streaks already implemented)
 
 ## AI showcase
 
