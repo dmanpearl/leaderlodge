@@ -244,13 +244,13 @@
 - [x] 26a168f Don’t allow auto-zoom. Interface is too small (https://leaderlodge.com/admin/feedback/feedback/34)
 - [x] 3c829d2 New pill: change 'New' to superscripted 'N' at end of the new player's name
 - [x] 9fe9d45 Icons: Need separate icons for Gin Rummy and Progressive Rummy
-- [x] Matchup View: Add Points (total, average) and Together points (total, avg). No refactoring or complex queries, ask if difficult
+- [x] fb9470a Matchup View: Add Points (total, average) and Together points (total, avg). No refactoring or complex queries, ask if difficult
+- [x] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI. Replace "+ Teammate" button with an 'Add Teammate' input field and add the teammate directly from that spot. For cleanup, this will require removal of the capability of the 'Add Player' button to convert itself visually into an 'Add Teammate' field
 
 ## Open Items
 
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] Game Type: Add Canasta, Euchre
-- [ ] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI. Replace "+ Teammate" button with an 'Add Teammate' input field and add the teammate directly from that spot. For cleanup, this will require removal of the capability of the 'Add Player' button to convert itself visually into an 'Add Teammate' field
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
 - [ ] Leaderboard: Share > Creates static short perma-link that doesn't need auth for current filtered leaderboard and shares via standard platform share menus (low priority)
 - [ ] Add recent_updates.yaml list and behavior aka rating-ranch

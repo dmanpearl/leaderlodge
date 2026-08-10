@@ -27,6 +27,18 @@
   margin: 0 0 -1px;
 }
 
+/* Teammate picker: escape table-responsive overflow clipping. */
+.combobox-list--portal {
+  position: fixed;
+  z-index: 1080;
+  margin: 0;
+}
+
+.combobox-list--portal.combobox-list--above {
+  /* top/bottom are set in JS from the input's viewport box */
+  bottom: auto;
+}
+
 .combobox-option {
   padding: 0.375rem 0.75rem;
   cursor: pointer;
@@ -189,18 +201,18 @@
   flex-shrink: 0;
 }
 
-.player-picker-cta--teammate .player-picker-cta-label {
-  color: var(--bs-success);
-}
-
-.player-picker-cta--teammate .player-picker-cta-input {
+.game-record-teammate-input {
+  min-width: 8.5rem;
+  max-width: 11rem;
   border-color: var(--bs-success);
   box-shadow: 0 0.125rem 0.5rem rgba(25, 135, 84, 0.12);
 }
 
-.player-picker-cta--teammate
-  .player-picker-field:focus-within
-  .player-picker-cta-input {
+.game-record-teammate-input:focus {
   border-color: var(--bs-success);
   box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.2);
+}
+
+[data-add-teammate-wrap].d-none {
+  display: none !important;
 }

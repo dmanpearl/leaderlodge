@@ -300,9 +300,9 @@
           ? ` <span class="text-muted small ms-1">${row.dataset.primaryDetail}</span>`
           : ""
     }`;
-    const addBtn = row.querySelector("[data-add-teammate]");
-    if (addBtn) {
-      addBtn.classList.toggle("d-none", hasTeammate);
+    const addWrap = row.querySelector("[data-add-teammate-wrap]");
+    if (addWrap) {
+      addWrap.classList.toggle("d-none", hasTeammate);
     }
     row.dataset.hasTeammate = hasTeammate ? "1" : "";
   }
@@ -355,7 +355,21 @@
               }
             </span>
             <span class="d-flex align-items-center gap-1 flex-shrink-0">
-              <button type="button" class="btn btn-sm btn-outline-primary" data-add-teammate><span class="d-none d-sm-inline">Add Teammate</span><span class="d-sm-none">+ Teammate</span></button>
+              <div class="combobox-input-wrap" data-add-teammate-wrap>
+                <input
+                  type="text"
+                  class="form-control form-control-sm game-record-teammate-input"
+                  data-add-teammate
+                  placeholder="Add Teammate"
+                  aria-label="Add Teammate"
+                  name="ll_teammate_search"
+                  autocomplete="ll-player"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  readonly
+                />
+              </div>
               <button type="button" class="btn btn-sm btn-outline-secondary" data-remove-participant aria-label="Remove player">&times;</button>
             </span>
           </div>
@@ -509,10 +523,6 @@
       this.tbody = tbody;
       this.form = form;
       this.defaultParticipantScore = form.dataset.defaultParticipantScore ?? "";
-      this.addPlayerLabelText = "Add player";
-      this.addTeammateLabelText = "Add Teammate";
-      this.pickerLabelTextEl = form.querySelector("[data-player-picker-label-text]");
-      this.pickerExpandedEl = form.querySelector("[data-player-picker-expanded]");
       this.suggestions = [];
       this.activeIndex = -1;
       this.isOpen = false;
@@ -541,7 +551,6 @@
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
       window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
-      this.teammateTargetRow = null;
       this.panel = form.querySelector("[data-player-picker-panel]");
       this.expandButton = form.querySelector("[data-player-picker-expand]");
       this.collapseButton = form.querySelector("[data-player-picker-collapse]");
@@ -552,23 +561,12 @@
         this.collapseButton.addEventListener("click", () => this.collapsePicker());
       }
       tbody.addEventListener("click", (event) => {
-        const addTeammate = event.target.closest("[data-add-teammate]");
-        if (addTeammate) {
-          const row = addTeammate.closest("[data-game-row]");
-          if (row) {
-            this.setTeammateTarget(row);
-          }
-          return;
-        }
         const button = event.target.closest("[data-remove-participant]");
         if (!button) {
           return;
         }
         const row = button.closest("[data-game-row]");
         if (row) {
-          if (this.teammateTargetRow === row) {
-            this.clearTeammateTarget();
-          }
           row.remove();
           this.scheduleSuggestionRefresh();
         }
@@ -701,22 +699,9 @@
       this.renderSuggestions();
     }
 
-    isPickingTeammate() {
-      return Boolean(this.teammateTargetRow && this.teammateTargetRow.isConnected);
-    }
-
-    rosterForCurrentMode() {
-      // Teammates must be individual people; existing teams cannot nest as a
-      // teammate on another side.
-      if (this.isPickingTeammate()) {
-        return this.roster.filter((entry) => entry.kind !== "team");
-      }
-      return this.roster;
-    }
-
     refreshSuggestions() {
       const query = this.input.value;
-      const roster = this.rosterForCurrentMode();
+      const roster = this.roster;
       const matches = filterRoster(roster, query);
       const existing = this.existingRowKeys();
       this.suggestions = matches
@@ -820,8 +805,7 @@
         return;
       }
       const existing = this.existingRowKeys();
-      const roster = this.rosterForCurrentMode();
-      const rosterMatch = roster.find(
+      const rosterMatch = this.roster.find(
         (entry) =>
           rosterEntryMatchesLabel(entry, trimmed) &&
           !entryIsIneligible(this.tbody, entry, existing, this.roster)
@@ -837,12 +821,7 @@
     }
 
     addParticipant({ entry, guestName }) {
-      const teammateRow = this.teammateTargetRow;
       if (entry?.kind === "team") {
-        // Teams are only valid as whole sides, never as a teammate pick.
-        if (teammateRow && teammateRow.isConnected) {
-          return;
-        }
         if (
           entryIsIneligible(
             this.tbody,
@@ -864,22 +843,6 @@
       }
 
       const rowEntry = buildRowEntry({ entry, guestName });
-      if (teammateRow && teammateRow.isConnected) {
-        const ok = assignTeammate(teammateRow, rowEntry);
-        this.clearTeammateTarget();
-        if (!ok) {
-          this.input.setAttribute(
-            "placeholder",
-            "Player already on a side"
-          );
-          window.setTimeout(() => {
-            this.input.setAttribute("placeholder", "Type player");
-          }, 1500);
-        } else {
-          this.scheduleSuggestionRefresh();
-        }
-        return;
-      }
       if (
         entry &&
         entryIsIneligible(
@@ -901,27 +864,6 @@
       ) {
         this.scheduleSuggestionRefresh();
       }
-    }
-
-    setPickerLabelText(text) {
-      if (this.pickerLabelTextEl) {
-        this.pickerLabelTextEl.textContent = text;
-      }
-    }
-
-    setTeammateTarget(row) {
-      this.teammateTargetRow = row;
-      this.setPickerLabelText(this.addTeammateLabelText);
-      this.pickerExpandedEl?.classList.add("player-picker-cta--teammate");
-      this.input.setAttribute("placeholder", "Type teammate");
-      this.expandPicker({ focus: true });
-    }
-
-    clearTeammateTarget() {
-      this.teammateTargetRow = null;
-      this.setPickerLabelText(this.addPlayerLabelText);
-      this.pickerExpandedEl?.classList.remove("player-picker-cta--teammate");
-      this.input.setAttribute("placeholder", "Type player");
     }
 
     open() {
@@ -946,6 +888,347 @@
         return;
       }
       adjustListPlacement(this.listEl, this.input);
+    }
+  }
+
+  class TeammatePicker {
+    constructor(roster, tbody) {
+      this.roster = roster.filter((entry) => entry.kind !== "team");
+      this.tbody = tbody;
+      this.input = null;
+      this.row = null;
+      this.suggestions = [];
+      this.activeIndex = -1;
+      this.isOpen = false;
+      this.skipRefresh = false;
+      this.placeholder = "Add Teammate";
+
+      this.listEl = document.createElement("ul");
+      this.listEl.className = "combobox-list combobox-list--portal";
+      this.listEl.setAttribute("role", "listbox");
+      this.listEl.hidden = true;
+      this.listId = "teammate-picker-suggestions";
+      this.listEl.id = this.listId;
+      document.body.appendChild(this.listEl);
+
+      this.onViewportChange = () => this.reposition();
+      window.addEventListener("resize", this.onViewportChange);
+      window.addEventListener("scroll", this.onViewportChange, true);
+      window.visualViewport?.addEventListener("resize", this.onViewportChange);
+      window.visualViewport?.addEventListener("scroll", this.onViewportChange);
+
+      tbody.addEventListener("focusin", (event) => {
+        const input = event.target.closest("[data-add-teammate]");
+        if (input && tbody.contains(input)) {
+          this.activate(input);
+        }
+      });
+      tbody.addEventListener("input", (event) => {
+        const input = event.target.closest("[data-add-teammate]");
+        if (input && input === this.input) {
+          this.onInput();
+        }
+      });
+      tbody.addEventListener("keydown", (event) => {
+        const input = event.target.closest("[data-add-teammate]");
+        if (input && input === this.input) {
+          this.onKeyDown(event);
+        }
+      });
+      tbody.addEventListener("focusout", (event) => {
+        const input = event.target.closest("[data-add-teammate]");
+        if (input && input === this.input) {
+          this.onBlur();
+        }
+      });
+
+      tbody.querySelectorAll("[data-add-teammate]").forEach((input) => {
+        this.prepareInput(input);
+      });
+    }
+
+    prepareInput(input) {
+      if (input.dataset.teammatePrepared === "1") {
+        return;
+      }
+      input.dataset.teammatePrepared = "1";
+      input.setAttribute("role", "combobox");
+      input.setAttribute("aria-autocomplete", "list");
+      input.setAttribute("aria-expanded", "false");
+      input.setAttribute("aria-controls", this.listId);
+      suppressBrowserSuggestions(input);
+    }
+
+    activate(input) {
+      this.prepareInput(input);
+      if (this.input === input) {
+        this.onFocus();
+        return;
+      }
+      this.close();
+      this.input = input;
+      this.row = input.closest("[data-game-row]");
+      this.onFocus();
+    }
+
+    onInput() {
+      if (!this.input) {
+        return;
+      }
+      if (this.skipRefresh) {
+        this.skipRefresh = false;
+        if (!this.input.value.trim()) {
+          return;
+        }
+      }
+      this.refreshSuggestions();
+    }
+
+    onFocus() {
+      if (!this.skipRefresh) {
+        this.refreshSuggestions();
+      }
+    }
+
+    onBlur() {
+      window.setTimeout(() => this.close(), 150);
+    }
+
+    onKeyDown(event) {
+      if (!this.isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+        this.refreshSuggestions();
+      }
+      if (!this.isOpen) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          this.tryAddGuestFromInput();
+        }
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        this.moveActive(1);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        this.moveActive(-1);
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (this.activeIndex >= 0) {
+          this.selectSuggestion(this.suggestions[this.activeIndex]);
+        } else {
+          this.tryAddGuestFromInput();
+        }
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        this.close();
+      }
+    }
+
+    moveActive(delta) {
+      if (this.suggestions.length === 0) {
+        return;
+      }
+      if (this.activeIndex < 0) {
+        this.activeIndex = delta > 0 ? 0 : this.suggestions.length - 1;
+      } else {
+        this.activeIndex =
+          (this.activeIndex + delta + this.suggestions.length) %
+          this.suggestions.length;
+      }
+      this.renderSuggestions();
+    }
+
+    refreshSuggestions() {
+      if (!this.input || !this.row) {
+        return;
+      }
+      const query = this.input.value;
+      const matches = filterRoster(this.roster, query);
+      const existing = existingRowKeys(this.tbody);
+      this.suggestions = matches
+        .filter(
+          (entry) => !entryIsIneligible(this.tbody, entry, existing, this.roster)
+        )
+        .map((entry) => ({ type: "player", entry }));
+
+      const trimmed = query.trim();
+      if (trimmed) {
+        const exactRosterMatch = this.roster.some((entry) =>
+          rosterEntryMatchesLabel(entry, trimmed)
+        );
+        const guestKey = rowKeyForEntry({ guestName: trimmed });
+        if (
+          !exactRosterMatch &&
+          !existing.has(guestKey) &&
+          !this.suggestions.some(
+            (item) =>
+              item.type === "guest" && labelsMatch(item.entry.guestName, trimmed)
+          )
+        ) {
+          this.suggestions.push({
+            type: "guest",
+            entry: { guestName: trimmed },
+          });
+        }
+      }
+
+      this.activeIndex = -1;
+      if (this.suggestions.length === 0) {
+        this.close();
+        return;
+      }
+      this.open();
+      this.renderSuggestions();
+    }
+
+    renderSuggestions() {
+      if (!this.input) {
+        return;
+      }
+      this.listEl.innerHTML = "";
+      this.suggestions.forEach((item, index) => {
+        const option = document.createElement("li");
+        option.className = "combobox-option";
+        option.setAttribute("role", "option");
+        option.id = `${this.listId}-opt-${index}`;
+
+        if (item.type === "guest") {
+          option.textContent = `Add guest "${item.entry.guestName}"`;
+        } else {
+          const entry = item.entry;
+          const detail = entry.username
+            ? entry.username
+            : entry.kind === "guest"
+              ? "guest"
+              : "";
+          option.innerHTML = `<span>${entry.label}</span>${
+            detail
+              ? ` <span class="text-muted small">${detail}</span>`
+              : ""
+          }`;
+        }
+
+        if (index === this.activeIndex) {
+          option.classList.add("combobox-option--active");
+          option.setAttribute("aria-selected", "true");
+          this.input.setAttribute("aria-activedescendant", option.id);
+        } else {
+          option.setAttribute("aria-selected", "false");
+        }
+
+        option.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+          this.selectSuggestion(item);
+        });
+        this.listEl.appendChild(option);
+      });
+      this.reposition();
+    }
+
+    selectSuggestion(item) {
+      if (item.type === "guest") {
+        this.assignFromEntry({ guestName: item.entry.guestName });
+      } else {
+        this.assignFromEntry({ entry: item.entry });
+      }
+    }
+
+    tryAddGuestFromInput() {
+      if (!this.input) {
+        return;
+      }
+      const trimmed = this.input.value.trim();
+      if (!trimmed) {
+        return;
+      }
+      const existing = existingRowKeys(this.tbody);
+      const rosterMatch = this.roster.find(
+        (entry) =>
+          rosterEntryMatchesLabel(entry, trimmed) &&
+          !entryIsIneligible(this.tbody, entry, existing, this.roster)
+      );
+      if (rosterMatch) {
+        this.assignFromEntry({ entry: rosterMatch });
+      } else {
+        this.assignFromEntry({ guestName: trimmed });
+      }
+    }
+
+    assignFromEntry({ entry, guestName }) {
+      if (!this.row || !this.row.isConnected || !this.input) {
+        return;
+      }
+      const row = this.row;
+      const input = this.input;
+      const rowEntry = buildRowEntry({ entry, guestName });
+      const ok = assignTeammate(row, rowEntry);
+      this.skipRefresh = true;
+      input.value = "";
+      this.close();
+      if (!ok) {
+        input.setAttribute("placeholder", "Player already on a side");
+        window.setTimeout(() => {
+          input.setAttribute("placeholder", this.placeholder);
+        }, 1500);
+        input.focus();
+        return;
+      }
+      const scoreInput = row.querySelector("[data-score-input]");
+      if (scoreInput) {
+        scoreInput.focus();
+      }
+    }
+
+    open() {
+      if (!this.input) {
+        return;
+      }
+      this.isOpen = true;
+      this.listEl.hidden = false;
+      this.input.setAttribute("aria-expanded", "true");
+      this.reposition();
+    }
+
+    close() {
+      this.isOpen = false;
+      this.activeIndex = -1;
+      this.suggestions = [];
+      this.listEl.hidden = true;
+      this.listEl.innerHTML = "";
+      if (this.input) {
+        this.input.setAttribute("aria-expanded", "false");
+        this.input.removeAttribute("aria-activedescendant");
+      }
+    }
+
+    reposition() {
+      if (!this.isOpen || !this.input) {
+        return;
+      }
+      // Portaled to document.body with fixed coords so .table-responsive
+      // overflow does not clip the list to the Side row.
+      const inputRect = this.input.getBoundingClientRect();
+      const listEl = this.listEl;
+      const spaceBelow = viewportHeight() - inputRect.bottom;
+      const spaceAbove = inputRect.top;
+      const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
+      const placeAbove =
+        spaceBelow < preferredHeight && spaceAbove > spaceBelow;
+      const available = placeAbove ? spaceAbove : spaceBelow;
+
+      listEl.classList.toggle("combobox-list--above", placeAbove);
+      listEl.style.left = `${Math.max(8, inputRect.left)}px`;
+      listEl.style.width = `${Math.max(inputRect.width, 160)}px`;
+      listEl.style.right = "auto";
+      listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
+      if (placeAbove) {
+        listEl.style.top = "auto";
+        listEl.style.bottom = `${Math.max(8, viewportHeight() - inputRect.top)}px`;
+      } else {
+        listEl.style.bottom = "auto";
+        listEl.style.top = `${inputRect.bottom}px`;
+      }
     }
   }
 
@@ -975,6 +1258,10 @@
       roster,
       tbody,
       form
+    );
+    window.LeaderLodgeRecordGame.teammatePicker = new TeammatePicker(
+      roster,
+      tbody
     );
   }
 

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
   <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=14" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=18" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=20" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
@@ -306,14 +306,24 @@
                           {% endif %}
                         </span>
                         <span class="d-flex align-items-center gap-1 flex-shrink-0">
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary{% if row.teammate_player_id or row.teammate_guest_name %} d-none{% endif %}"
-                            data-add-teammate
+                          <div
+                            class="combobox-input-wrap{% if row.teammate_player_id or row.teammate_guest_name %} d-none{% endif %}"
+                            data-add-teammate-wrap
                           >
-                            <span class="d-none d-sm-inline">Add Teammate</span>
-                            <span class="d-sm-none">+ Teammate</span>
-                          </button>
+                            <input
+                              type="text"
+                              class="form-control form-control-sm game-record-teammate-input"
+                              data-add-teammate
+                              placeholder="Add Teammate"
+                              aria-label="Add Teammate"
+                              name="ll_teammate_search"
+                              autocomplete="ll-player"
+                              autocorrect="off"
+                              autocapitalize="off"
+                              spellcheck="false"
+                              readonly
+                            />
+                          </div>
                           <button type="button" class="btn btn-sm btn-outline-secondary" data-remove-participant aria-label="Remove player">&times;</button>
                         </span>
                       </div>
@@ -468,7 +478,7 @@
   {% if show_roster and game_type and not is_guest_demo %}
     <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
     <script src="{% static 'js/game_record_form.js' %}?v=6"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=18"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=20"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
       <script src="{% static 'js/game_record_voice.js' %}?v=14"></script>
