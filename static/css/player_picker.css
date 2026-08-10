@@ -201,9 +201,17 @@
   flex-shrink: 0;
 }
 
+[data-add-teammate-wrap] {
+  flex: 0 1 auto;
+  width: 6.75rem;
+  max-width: 6.75rem;
+  min-width: 0;
+}
+
 .game-record-teammate-input {
-  min-width: 8.5rem;
-  max-width: 11rem;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   border-color: var(--bs-success);
   box-shadow: 0 0.125rem 0.5rem rgba(25, 135, 84, 0.12);
 }
@@ -211,6 +219,13 @@
 .game-record-teammate-input:focus {
   border-color: var(--bs-success);
   box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.2);
+}
+
+@media (max-width: 575.98px) {
+  [data-add-teammate-wrap] {
+    width: 5.9rem;
+    max-width: 5.9rem;
+  }
 }
 
 [data-add-teammate-wrap].d-none {

@@ -360,8 +360,8 @@
                   type="text"
                   class="form-control form-control-sm game-record-teammate-input"
                   data-add-teammate
-                  placeholder="Add Teammate"
-                  aria-label="Add Teammate"
+                  placeholder="Teammate"
+                  aria-label="Teammate"
                   name="ll_teammate_search"
                   autocomplete="ll-player"
                   autocorrect="off"
@@ -397,6 +397,10 @@
       `;
 
     tbody.appendChild(row);
+    const teammateInput = row.querySelector("[data-add-teammate]");
+    if (teammateInput) {
+      window.LeaderLodgeRecordGame?.teammatePicker?.prepareInput?.(teammateInput);
+    }
     const scoreInput = row.querySelector("[data-score-input]");
     if (defaultParticipantScore !== "") {
       scoreInput.value = defaultParticipantScore;
@@ -901,7 +905,7 @@
       this.activeIndex = -1;
       this.isOpen = false;
       this.skipRefresh = false;
-      this.placeholder = "Add Teammate";
+      this.placeholder = "Teammate";
 
       this.listEl = document.createElement("ul");
       this.listEl.className = "combobox-list combobox-list--portal";
@@ -916,6 +920,23 @@
       window.addEventListener("scroll", this.onViewportChange, true);
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
       window.visualViewport?.addEventListener("scroll", this.onViewportChange);
+
+      // iOS: unlock readonly on touchstart/mousedown before focus so the
+      // keyboard opens (and stays) when tapping Teammate, including when
+      // switching focus from the footer Add player field.
+      const unlockForPointer = (event) => {
+        const input = event.target.closest("[data-add-teammate]");
+        if (!input || !tbody.contains(input)) {
+          return;
+        }
+        this.prepareInput(input);
+        input.removeAttribute("readonly");
+      };
+      tbody.addEventListener("touchstart", unlockForPointer, {
+        passive: true,
+        capture: true,
+      });
+      tbody.addEventListener("mousedown", unlockForPointer, { capture: true });
 
       tbody.addEventListener("focusin", (event) => {
         const input = event.target.closest("[data-add-teammate]");
@@ -938,6 +959,10 @@
       tbody.addEventListener("focusout", (event) => {
         const input = event.target.closest("[data-add-teammate]");
         if (input && input === this.input) {
+          const next = event.relatedTarget;
+          if (next && this.listEl.contains(next)) {
+            return;
+          }
           this.onBlur();
         }
       });
@@ -948,7 +973,7 @@
     }
 
     prepareInput(input) {
-      if (input.dataset.teammatePrepared === "1") {
+      if (!input || input.dataset.teammatePrepared === "1") {
         return;
       }
       input.dataset.teammatePrepared = "1";
@@ -961,6 +986,7 @@
 
     activate(input) {
       this.prepareInput(input);
+      input.removeAttribute("readonly");
       if (this.input === input) {
         this.onFocus();
         return;

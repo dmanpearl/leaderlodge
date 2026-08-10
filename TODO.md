@@ -245,7 +245,7 @@
 - [x] 3c829d2 New pill: change 'New' to superscripted 'N' at end of the new player's name
 - [x] 9fe9d45 Icons: Need separate icons for Gin Rummy and Progressive Rummy
 - [x] fb9470a Matchup View: Add Points (total, average) and Together points (total, avg). No refactoring or complex queries, ask if difficult
-- [x] Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI. Replace "+ Teammate" button with an 'Add Teammate' input field and add the teammate directly from that spot. For cleanup, this will require removal of the capability of the 'Add Player' button to convert itself visually into an 'Add Teammate' field
+- [x] 916698c Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI. Replace "+ Teammate" button with an 'Add Teammate' input field and add the teammate directly from that spot. For cleanup, this will require removal of the capability of the 'Add Player' button to convert itself visually into an 'Add Teammate' field
 
 ## Open Items
 
