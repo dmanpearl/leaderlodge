@@ -19,8 +19,8 @@
   }
 
   const panel = document.getElementById("game-record-voice-panel");
-  const toggleBtn = root.querySelector("[data-voice-toggle]");
-  const titleEl = root.querySelector("[data-voice-title]");
+  const toggleBtns = Array.from(root.querySelectorAll("[data-voice-toggle]"));
+  const helpBtn = root.querySelector("[data-voice-help]");
   const applyBtn = root.querySelector("[data-voice-apply]");
   const clearBtn = root.querySelector("[data-voice-clear]");
   const applyIcon = root.querySelector("[data-voice-apply-icon]");
@@ -29,8 +29,6 @@
   const transcriptEl = root.querySelector("[data-voice-transcript]");
   const statusEl = root.querySelector("[data-voice-status]");
   const notesEl = root.querySelector("[data-voice-notes]");
-  const titleClosed = root.dataset.voiceTitleClosed || "AI game entry";
-  const titleOpen = root.dataset.voiceTitleOpen || titleClosed;
 
   let processing = false;
   let listening = false;
@@ -155,12 +153,9 @@
 
   function syncOpenChrome(isOpen) {
     root.classList.toggle("is-voice-open", isOpen);
-    if (titleEl) {
-      titleEl.textContent = isOpen ? titleOpen : titleClosed;
-    }
-    if (toggleBtn) {
-      toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    }
+    toggleBtns.forEach((btn) => {
+      btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
   }
 
   function currentGameType() {
@@ -502,6 +497,20 @@
   if (clearBtn) {
     clearBtn.addEventListener("click", function () {
       clearTranscript();
+    });
+  }
+
+  if (helpBtn && window.bootstrap && bootstrap.Popover) {
+    bootstrap.Popover.getOrCreateInstance(helpBtn);
+    helpBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    document.addEventListener("click", function (event) {
+      if (event.target.closest("[data-voice-help], .popover")) {
+        return;
+      }
+      bootstrap.Popover.getInstance(helpBtn)?.hide();
     });
   }
 

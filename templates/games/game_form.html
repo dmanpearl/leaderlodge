@@ -6,7 +6,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=14" />
+  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=24" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
@@ -133,24 +133,48 @@
             <div
               class="game-record-voice mb-3"
               data-game-record-voice
-              data-voice-title-closed="AI game entry"
-              data-voice-title-open="Speak or type players, teams, score, location{% if score_type_choices %}, {{ score_type_field_label|default:'score type'|lower }}{% endif %}"
             >
-              <button
-                class="game-record-voice-toggle"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#game-record-voice-panel"
-                aria-expanded="false"
-                aria-controls="game-record-voice-panel"
-                data-voice-toggle
-              >
-                <span class="game-record-voice-toggle-leading">
-                  <i class="bi bi-stars game-record-voice-stars" aria-hidden="true"></i>
-                  <span class="game-record-voice-title" data-voice-title>AI game entry</span>
-                </span>
-                <i class="bi bi-chevron-right game-record-voice-chevron" data-voice-chevron aria-hidden="true"></i>
-              </button>
+              <div class="game-record-voice-header">
+                <button
+                  class="game-record-voice-toggle"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#game-record-voice-panel"
+                  aria-expanded="false"
+                  aria-controls="game-record-voice-panel"
+                  data-voice-toggle
+                >
+                  <span class="game-record-voice-toggle-leading">
+                    <i class="bi bi-stars game-record-voice-stars" aria-hidden="true"></i>
+                    <span class="game-record-voice-title" data-voice-title>AI game entry</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="game-record-voice-help"
+                  data-voice-help
+                  data-bs-toggle="popover"
+                  data-bs-trigger="click"
+                  data-bs-placement="bottom"
+                  title="AI game entry"
+                  data-bs-content="Speak or type players, teams, score, location{% if score_type_choices %}, {{ score_type_field_label|default:'score type'|lower }}{% endif %}"
+                  aria-label="About AI game entry"
+                >
+                  <i class="bi bi-info-circle" aria-hidden="true"></i>
+                </button>
+                <button
+                  type="button"
+                  class="game-record-voice-chevron-btn"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#game-record-voice-panel"
+                  aria-expanded="false"
+                  aria-controls="game-record-voice-panel"
+                  aria-label="Expand or collapse AI game entry"
+                  data-voice-toggle
+                >
+                  <i class="bi bi-chevron-right game-record-voice-chevron" data-voice-chevron aria-hidden="true"></i>
+                </button>
+              </div>
               <div id="game-record-voice-panel" class="collapse">
                 <div class="game-record-voice-panel-inner">
                   <label class="visually-hidden" for="game-record-voice-transcript">
@@ -481,7 +505,7 @@
     <script src="{% static 'js/player_picker.js' %}?v=24"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
-      <script src="{% static 'js/game_record_voice.js' %}?v=14"></script>
+      <script src="{% static 'js/game_record_voice.js' %}?v=15"></script>
     {% endif %}
   {% endif %}
 {% endblock %}

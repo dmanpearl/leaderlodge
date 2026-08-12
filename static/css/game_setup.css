@@ -75,14 +75,22 @@
   );
 }
 
+.game-record-voice-header {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding-right: 0.35rem;
+}
+
 .game-record-voice-toggle {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.75rem;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
-  padding: 0.7rem 0.85rem 0.7rem 1.05rem;
+  padding: 0.7rem 0.35rem 0.7rem 1.05rem;
   border: 0;
   background: transparent;
   color: var(--game-record-voice-accent);
@@ -121,17 +129,43 @@
   letter-spacing: 0.01em;
 }
 
-.game-record-voice.is-voice-open .game-record-voice-title {
-  font-weight: 400;
-  font-size: 0.925rem;
-  letter-spacing: 0;
+.game-record-voice-help,
+.game-record-voice-chevron-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0.7rem 0.45rem;
+  border: 0;
+  background: transparent;
+  color: var(--game-record-voice-accent);
+  line-height: 1;
+}
+
+.game-record-voice-help {
+  font-size: 1rem;
+  opacity: 0.85;
+}
+
+.game-record-voice-help:hover,
+.game-record-voice-help:focus-visible,
+.game-record-voice-chevron-btn:hover,
+.game-record-voice-chevron-btn:focus-visible {
+  color: var(--game-record-voice-accent-hover);
+}
+
+.game-record-voice-help:focus-visible,
+.game-record-voice-chevron-btn:focus-visible {
+  outline: 2px solid var(--game-record-voice-accent);
+  outline-offset: -2px;
 }
 
 .game-record-voice-chevron {
   flex-shrink: 0;
   width: 1rem;
   font-size: 1rem;
-  color: var(--game-record-voice-accent);
+  color: inherit;
   opacity: 0.85;
   transform: rotate(0deg);
   transition: transform 0.2s ease;
