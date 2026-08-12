@@ -200,6 +200,31 @@
         this.recentButton.addEventListener("click", this.onRecentClick);
       }
 
+      this.onDocumentPointerDown = (event) => {
+        if (!this.isOpen) {
+          return;
+        }
+        const target = event.target;
+        if (!(target instanceof Node)) {
+          return;
+        }
+        if (this.listEl.contains(target)) {
+          return;
+        }
+        if (target === this.input || this.input.contains(target)) {
+          return;
+        }
+        if (
+          this.recentButton &&
+          (target === this.recentButton || this.recentButton.contains(target))
+        ) {
+          return;
+        }
+        this.forceRecent = false;
+        this.close();
+      };
+      document.addEventListener("pointerdown", this.onDocumentPointerDown, true);
+
       initLocationClearButton(this.input);
       this.loadLocationsForSelectedGroup();
     }
@@ -266,14 +291,24 @@
       if (this.recentLocations.length === 0) {
         return;
       }
+      // Do not focus the location input: on mobile that opens the keyboard and
+      // the subsequent viewport/blur cycle often closes the recent list.
       this.forceRecent = true;
-      this.input.focus();
+      if (this.isOpen && this.listEl.dataset.recentOpen === "1") {
+        this.forceRecent = false;
+        this.close();
+        return;
+      }
       this.refreshSuggestions({ forceRecent: true });
+      if (this.isOpen) {
+        this.listEl.dataset.recentOpen = "1";
+      }
     }
 
     onInput(event) {
       syncLocationFieldButtons(this.input);
       this.forceRecent = false;
+      delete this.listEl.dataset.recentOpen;
       if (this.skipRefresh) {
         this.skipRefresh = false;
         return;
@@ -293,6 +328,10 @@
 
     onBlur() {
       window.setTimeout(() => {
+        // Keep a Recent-opened list visible while the input is not focused.
+        if (this.listEl.dataset.recentOpen === "1") {
+          return;
+        }
         this.close();
       }, 150);
     }
@@ -376,6 +415,8 @@
 
     selectSuggestion(location) {
       this.skipRefresh = true;
+      this.forceRecent = false;
+      delete this.listEl.dataset.recentOpen;
       this.input.value = location.name;
       syncLocationFieldButtons(this.input);
       this.input.dispatchEvent(
@@ -400,6 +441,7 @@
       this.suggestions = [];
       this.listEl.hidden = true;
       this.listEl.innerHTML = "";
+      delete this.listEl.dataset.recentOpen;
       this.input.setAttribute("aria-expanded", "false");
       this.input.removeAttribute("aria-activedescendant");
     }
