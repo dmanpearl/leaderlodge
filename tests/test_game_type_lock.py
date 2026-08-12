@@ -146,15 +146,18 @@ def test_locked_hides_game_filter_and_updates_titles(client: Client, django_user
     client.get("/?lock=dominos")
 
     nav = client.get(reverse("core:dashboard")).content.decode()
-    assert "Show all game types" in nav
+    assert "Unlock: Show all game types" in nav
     assert "Show Dominos only" not in nav
+    assert "Lock: Dominos only" not in nav
     assert "Lock Game Type" not in nav
 
     create = client.get(reverse("games:create")).content.decode()
     assert "Dominos - Record Game" in create
     assert "game-detail-title-icon" in create
-    assert 'id="game-setup-game-type-select"' not in create
+    assert "game-setup-game-type-wrap" not in create
     assert 'name="game_type_code"' in create
+    assert 'type="hidden"' in create
+    assert 'value="dominos"' in create
 
     leaderboard = client.get(
         reverse("leaderboards:index"), follow=True
@@ -206,5 +209,6 @@ def test_account_menu_lock_label_uses_preferred_type(client: Client, django_user
     client.get("/?type=pickleball")
 
     content = client.get(reverse("core:dashboard")).content.decode()
-    assert "Show Pickleball only" in content
-    assert "Show all game types" not in content
+    assert "Lock: Pickleball only" in content
+    assert "Unlock: Show all game types" not in content
+    assert "Show Pickleball only" not in content

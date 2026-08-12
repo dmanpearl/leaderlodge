@@ -247,11 +247,12 @@
 - [x] fb9470a Matchup View: Add Points (total, average) and Together points (total, avg). No refactoring or complex queries, ask if difficult
 - [x] e92261b Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI. Replace "+ Teammate" button with an 'Add Teammate' input field and add the teammate directly from that spot. For cleanup, this will require removal of the capability of the 'Add Player' button to convert itself visually into an 'Add Teammate' field
 - [x] 1edf62c Bug: Record game: 'Recent' button does not work in production on mobile (it works in production and development on browser). It brings up the keyboard inappropriately and does not bring up a list of recent locations. (https://leaderlodge.com/admin/feedback/feedback/36)
-- [x] 01aeed2 AI Game Entry: Remove alternate title when expanded 'Speak to type players, teams, score, location, score type'. Move the alternate title to a help text accessible with an info icon to the right of 'AI Game Entry'. Beware of conflicts with the spin-down chevron control
+- [x] 01aeed2, 96c50e9 AI Game Entry: Remove alternate title when expanded 'Speak to type players, teams, score, location, score type'. Move the alternate title to a help text accessible with an info icon to the right of 'AI Game Entry'. Beware of conflicts with the spin-down chevron control
+- [x] Update lock menu item title > To lock: ”Lock: Domino only”, To unlock: “Unlock: Show all game types” (https://leaderlodge.com/admin/feedback/feedback/35)
 
 ## Open Items
 
-- [ ] Update lock menu item title > To lock: ”Lock: Domino only”, To unlock: “Unlock: Show all game types” (https://leaderlodge.com/admin/feedback/feedback/35)
+- [ ] AI Game Entry help text: Make game-type specific. Pickleball: 'e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, rally scoring, in Santa Monica'. Other game types need different examples than 'rally', or nothing. Ok to leave 'Santa Monica' for all
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
