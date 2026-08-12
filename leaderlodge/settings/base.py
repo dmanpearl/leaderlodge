@@ -192,7 +192,6 @@ DEMO_MODE_ENABLED = os.environ.get("DEMO_MODE_ENABLED", "true").lower() in (
     "yes",
 )
 
-MIN_GAMES_FOR_LEADERBOARD = 1
 LEADERBOARD_BAYESIAN_K = 20
 # Team pairings accumulate their own game count far more slowly than an
 # individual pooling games across every partner, so team-context shrinkage

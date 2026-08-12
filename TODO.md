@@ -249,7 +249,7 @@
 - [x] 1edf62c Bug: Record game: 'Recent' button does not work in production on mobile (it works in production and development on browser). It brings up the keyboard inappropriately and does not bring up a list of recent locations. (https://leaderlodge.com/admin/feedback/feedback/36)
 - [x] 01aeed2, 96c50e9 AI Game Entry: Remove alternate title when expanded 'Speak to type players, teams, score, location, score type'. Move the alternate title to a help text accessible with an info icon to the right of 'AI Game Entry'. Beware of conflicts with the spin-down chevron control
 - [x] f1bc6f3 Update lock menu item title > To lock: ”Lock: Domino only”, To unlock: “Unlock: Show all game types” (https://leaderlodge.com/admin/feedback/feedback/35)
-- [x] AI Game Entry help text: Make game-type specific. Pickleball: 'e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, rally scoring, in Santa Monica'. Other game types need different examples than 'rally', or nothing. Ok to leave 'Santa Monica' for all
+- [x] 8e5c8ce AI Game Entry help text: Make game-type specific. Pickleball: 'e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, rally scoring, in Santa Monica'. Other game types need different examples than 'rally', or nothing. Ok to leave 'Santa Monica' for all
 
 ## Open Items
 
@@ -274,7 +274,6 @@
 - [ ] Mobile: Group members role select — inline `form-select-sm` role dropdown in members table (`templates/groups/group_detail.html`) needs ≥44px tap targets on mobile; consider row action sheet or full-width select below username. POST to `groups:member_update_role` unchanged.
 - [ ] Game Stats and Game List: Provide capability to selectively hide group players via a list of 'hidden' attributes
 - [ ] Ranking and other player data need sort by columns
-- [ ] Database settings: Move hardcoded MIN_GAMES_FOR_LEADERBOARD into configurable settings
 - [ ] Mobile Game list must fit entire table for 2 player games. Ellipsize location
 - [ ] Add Contact form.
 - [ ] iOS: Build native mobile app for iPhone and iPad
