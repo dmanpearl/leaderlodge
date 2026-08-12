@@ -455,9 +455,11 @@ def test_record_game_page_includes_voice_controls(client, voice_group, user):
     assert 'data-voice-help' in content
     assert "bi-info-circle" in content
     assert (
-        'data-bs-content="Speak or type players, teams, score, location, score type"'
+        'data-bs-content="Speak or type players, teams, score, location, score type. '
+        'AI will fill the game fields below based on your casual description."'
         in content
     )
+    assert 'title="How it works"' in content
     assert "data-voice-title-open" not in content
     assert 'aria-label="Parse"' in content
     assert 'aria-label="Clear"' in content

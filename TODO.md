@@ -247,7 +247,7 @@
 - [x] fb9470a Matchup View: Add Points (total, average) and Together points (total, avg). No refactoring or complex queries, ask if difficult
 - [x] e92261b Fix Add Teamate UX: Needs better linear flow to avoid up/down movements in UI. Replace "+ Teammate" button with an 'Add Teammate' input field and add the teammate directly from that spot. For cleanup, this will require removal of the capability of the 'Add Player' button to convert itself visually into an 'Add Teammate' field
 - [x] 1edf62c Bug: Record game: 'Recent' button does not work in production on mobile (it works in production and development on browser). It brings up the keyboard inappropriately and does not bring up a list of recent locations. (https://leaderlodge.com/admin/feedback/feedback/36)
-- [x] AI Game Entry: Remove alternate title when expanded 'Speak to type players, teams, score, location, score type'. Move the alternate title to a help text accessible with an info icon to the right of 'AI Game Entry'. Beware of conflicts with the spin-down chevron control
+- [x] 01aeed2 AI Game Entry: Remove alternate title when expanded 'Speak to type players, teams, score, location, score type'. Move the alternate title to a help text accessible with an info icon to the right of 'AI Game Entry'. Beware of conflicts with the spin-down chevron control
 
 ## Open Items
 
