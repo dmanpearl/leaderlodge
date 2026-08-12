@@ -16,6 +16,7 @@ from django.views.decorators.http import require_POST
 from leaderlodge.core.decorators import demo_or_login_required
 from leaderlodge.core.models import SiteSettings
 from leaderlodge.groups.names import apply_label_overrides, disambiguate_labels
+from leaderlodge.games.ai_entry_copy import ai_entry_example, ai_entry_help_content
 from leaderlodge.games.forms import (
     GameRecordForm,
     GameEditForm,
@@ -1109,6 +1110,10 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "insights_ready": insights_feature_enabled(),
             "ai_game_entry_mic_enabled": bool(
                 SiteSettings.load().ai_game_entry_mic_enabled
+            ),
+            "ai_entry_example": (ai_entry_example(game_type.code) if game_type else ""),
+            "ai_entry_help_content": (
+                ai_entry_help_content(game_type.code) if game_type else ""
             ),
         },
     )

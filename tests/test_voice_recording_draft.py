@@ -452,15 +452,20 @@ def test_record_game_page_includes_voice_controls(client, voice_group, user):
     assert "data-game-record-voice" in content
     assert "data-parse-recording-url" in content
     assert "AI game entry" in content
-    assert 'data-voice-help' in content
+    assert "data-voice-help" in content
     assert "bi-info-circle" in content
+    assert "rally scoring, in Santa Monica" in content
+    assert "Speak or type players, teams, score, location, score type." in content
     assert (
-        'data-bs-content="Speak or type players, teams, score, location, score type. '
-        'AI will fill the game fields below based on your casual description."'
+        "AI will fill the game fields below based on your casual description."
         in content
     )
     assert 'title="How it works"' in content
     assert "data-voice-title-open" not in content
+    assert (
+        'placeholder="e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, '
+        'rally scoring, in Santa Monica"' in content
+    )
     assert 'aria-label="Parse"' in content
     assert 'aria-label="Clear"' in content
     assert "data-voice-clear" in content

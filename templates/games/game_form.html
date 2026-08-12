@@ -157,7 +157,7 @@
                   data-bs-trigger="click"
                   data-bs-placement="bottom"
                   title="How it works"
-                  data-bs-content="Speak or type players, teams, score, location{% if score_type_choices %}, {{ score_type_field_label|default:'score type'|lower }}{% endif %}. AI will fill the game fields below based on your casual description."
+                  data-bs-content="{{ ai_entry_help_content }}"
                   aria-label="How AI game entry works"
                 >
                   <i class="bi bi-info-circle" aria-hidden="true"></i>
@@ -200,7 +200,7 @@
                       class="form-control ll-field-hint-input"
                       rows="2"
                       data-voice-transcript
-                      placeholder="e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, rally"
+                      placeholder="e.g. {{ ai_entry_example }}"
                       autocomplete="off"
                       autocorrect="on"
                       autocapitalize="sentences"
