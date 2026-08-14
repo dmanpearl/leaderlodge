@@ -183,6 +183,8 @@ def can_view_group(user: AbstractBaseUser | None, group: Group) -> bool:
         return True
     if user is None or not user.is_authenticated:
         return False
+    if user.is_staff:
+        return True
     return user_is_member(user, group)
 
 
