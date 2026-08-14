@@ -207,7 +207,9 @@ def _insights_template_context(request: HttpRequest) -> dict:
 
 @demo_or_login_required
 def leaderboard_index(request: HttpRequest) -> HttpResponse:
-    groups = list(visible_groups(request.user).order_by("name"))
+    groups = list(
+        visible_groups(request.user, session=request.session).order_by("name")
+    )
     requested_group = request.GET.get("group") if "group" in request.GET else None
     selected_group = resolve_view_group(
         request,
@@ -425,7 +427,9 @@ def _hall_of_fame_needs_redirect(
 
 @demo_or_login_required
 def hall_of_fame(request: HttpRequest) -> HttpResponse:
-    groups = list(visible_groups(request.user).order_by("name"))
+    groups = list(
+        visible_groups(request.user, session=request.session).order_by("name")
+    )
     requested_group = request.GET.get("group") if "group" in request.GET else None
     selected_group = resolve_view_group(
         request,
@@ -520,7 +524,9 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
 
 @demo_or_login_required
 def rank_detail(request: HttpRequest) -> HttpResponse:
-    groups = list(visible_groups(request.user).order_by("name"))
+    groups = list(
+        visible_groups(request.user, session=request.session).order_by("name")
+    )
     requested_group = request.GET.get("group") if "group" in request.GET else None
     selected_group = resolve_view_group(
         request,

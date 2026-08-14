@@ -1,0 +1,12 @@
+{% if spectator_mode %}
+  <div class="spectator-mode-banner d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span>
+      <i class="bi bi-eye-fill" aria-hidden="true"></i>
+      Spectator Mode &mdash; Viewing {{ group.name }}
+    </span>
+    <form method="post" action="{% url 'groups:spectator_mode_exit' group.pk %}" class="m-0">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-light">Exit</button>
+    </form>
+  </div>
+{% endif %}

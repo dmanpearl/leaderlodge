@@ -60,13 +60,21 @@ from leaderlodge.groups.permissions import (
     roster_remove_state,
 )
 from leaderlodge.groups.player_combine import combine_players, preview_combine_players
+from leaderlodge.core.audit import (
+    EVENT_SPECTATOR_MODE_ENTERED,
+    EVENT_SPECTATOR_MODE_EXITED,
+    log_event,
+)
 from leaderlodge.groups.services import (
     add_guest_player,
     can_manage_group_members,
     can_view_group,
     create_group_with_owner,
+    grant_spectator_access,
+    is_group_spectator,
     remove_group_member,
     remove_roster_player,
+    revoke_spectator_access,
     user_is_member,
     visible_groups,
 )
@@ -268,6 +276,12 @@ def _group_detail_context(group: Group, request: HttpRequest) -> dict:
         "period_show_custom_dates": period_ctx["period_show_custom_dates"],
         "period_label": period_ctx["period_label"],
         "player_form": GroupPlayerForm(group=group),
+        "spectator_mode": (
+            request.user.is_authenticated
+            and request.user.is_staff
+            and actor_membership is None
+            and is_group_spectator(request.session, group.pk)
+        ),
     }
 
 
@@ -335,7 +349,17 @@ def group_edit(request: HttpRequest, pk: int) -> HttpResponse:
 @demo_or_login_required
 def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
     group = get_object_or_404(Group, pk=pk)
-    if not can_view_group(request.user, group):
+    if not can_view_group(request.user, group, session=request.session):
+        if (
+            request.user.is_authenticated
+            and request.user.is_staff
+            and not user_is_member(request.user, group)
+        ):
+            return render(
+                request,
+                "groups/spectator_mode_confirm.html",
+                {"group": group},
+            )
         raise Http404
 
     if request.user.is_authenticated:
@@ -348,10 +372,41 @@ def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
+@login_required
+@require_POST
+def spectator_mode_enter(request: HttpRequest, pk: int) -> HttpResponse:
+    group = get_object_or_404(Group, pk=pk)
+    if not request.user.is_staff or user_is_member(request.user, group):
+        raise Http404
+
+    if grant_spectator_access(request.session, group):
+        log_event(
+            event_type=EVENT_SPECTATOR_MODE_ENTERED,
+            request=request,
+            target=group,
+            payload={"group_name": group.name},
+        )
+    return redirect("groups:detail", pk=group.pk)
+
+
+@login_required
+@require_POST
+def spectator_mode_exit(request: HttpRequest, pk: int) -> HttpResponse:
+    group = get_object_or_404(Group, pk=pk)
+    if revoke_spectator_access(request.session, group.pk):
+        log_event(
+            event_type=EVENT_SPECTATOR_MODE_EXITED,
+            request=request,
+            target=group,
+            payload={"group_name": group.name},
+        )
+    return redirect("groups:list")
+
+
 @demo_or_login_required
 def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
     group = get_object_or_404(Group, pk=pk)
-    if not can_view_group(request.user, group):
+    if not can_view_group(request.user, group, session=request.session):
         raise Http404
 
     locations = [{"name": location.name} for location in locations_for_group(group)]
@@ -372,7 +427,7 @@ def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
 @demo_or_login_required
 def group_players_search(request: HttpRequest, pk: int) -> JsonResponse:
     group = get_object_or_404(Group, pk=pk)
-    if not can_view_group(request.user, group):
+    if not can_view_group(request.user, group, session=request.session):
         raise Http404
 
     query = request.GET.get("q", "")
@@ -933,7 +988,7 @@ def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
     )
 
     group = get_object_or_404(Group, pk=pk)
-    if not can_view_group(request.user, group):
+    if not can_view_group(request.user, group, session=request.session):
         raise Http404
 
     library = ensure_group_location_library(group)
@@ -1024,6 +1079,11 @@ def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
                 f"{reverse('games:list')}?group={group.pk}&location={location.pk}"
             ),
             "games_map_url": f"{reverse('games:map')}?{urlencode(map_query)}",
+            "spectator_mode": (
+                request.user.is_staff
+                and not user_is_member(request.user, group)
+                and is_group_spectator(request.session, group.pk)
+            ),
         },
     )
 

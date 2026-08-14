@@ -426,3 +426,22 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
   color: var(--ll-field-hint-color);
   opacity: 1;
 }
+
+/*
+ * Spectator Mode banner. Deliberately high-contrast and sticky so it stays
+ * visible while a staff member is viewing a group they don't belong to.
+ */
+.spectator-mode-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  background-color: #b02a37;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  margin: -1rem -1rem 1rem;
+  font-weight: 600;
+}
+
+.spectator-mode-banner .bi-eye-fill {
+  margin-right: 0.25rem;
+}

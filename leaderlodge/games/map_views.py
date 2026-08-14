@@ -166,7 +166,9 @@ def _map_filter_query(params: dict[str, str]) -> str:
 
 @demo_or_login_required
 def game_map(request: HttpRequest) -> HttpResponse:
-    groups = list(visible_groups(request.user).order_by("name"))
+    groups = list(
+        visible_groups(request.user, session=request.session).order_by("name")
+    )
     raw = _map_params(request)
     params = _resolve_map_params(request, raw, groups)
 
@@ -311,7 +313,9 @@ def game_map(request: HttpRequest) -> HttpResponse:
 
 @demo_or_login_required
 def map_locations_api(request: HttpRequest) -> JsonResponse:
-    groups = list(visible_groups(request.user).order_by("name"))
+    groups = list(
+        visible_groups(request.user, session=request.session).order_by("name")
+    )
     raw = _map_params(request)
     params = _resolve_map_params(request, raw, groups)
     selected_group = resolve_map_group(

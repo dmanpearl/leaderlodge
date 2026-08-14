@@ -11,6 +11,7 @@
 {% endblock %}
 
 {% block content %}
+  {% include "includes/spectator_mode_banner.html" with group=group %}
   {{ location_data|json_script:"location-data" }}
 
   <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">

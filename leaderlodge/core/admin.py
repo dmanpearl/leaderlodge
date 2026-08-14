@@ -2,7 +2,35 @@ from django.contrib import admin
 
 from leaderlodge.core.admin_notification_registry import NOTIFICATION_LABELS
 from leaderlodge.core.forms import SiteSettingsAdminForm
-from leaderlodge.core.models import SiteSettings
+from leaderlodge.core.models import AuditLog, SiteSettings
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ["created_at", "event_type", "actor", "target", "ip_address"]
+    list_filter = ["event_type"]
+    search_fields = ["actor__username", "event_type", "ip_address"]
+    date_hierarchy = "created_at"
+    readonly_fields = [
+        "actor",
+        "event_type",
+        "content_type",
+        "object_id",
+        "target",
+        "payload",
+        "ip_address",
+        "session_key",
+        "created_at",
+    ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(SiteSettings)

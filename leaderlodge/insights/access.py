@@ -52,7 +52,7 @@ def resolve_player_insight_target(
     raw_start_date: str = "",
     raw_end_date: str = "",
 ) -> tuple[Group, GroupPlayer, str, LeaderboardPeriod]:
-    groups = list(visible_groups(user).order_by("name"))
+    groups = list(visible_groups(user, session=request.session).order_by("name"))
     group_ids = {str(group.pk) for group in groups}
     if group_id not in group_ids:
         raise InsightAccessError("Group not found.")
@@ -94,7 +94,7 @@ def resolve_group_insight_target(
 ) -> tuple[Group, str, LeaderboardPeriod | None, str | None]:
     from leaderlodge.insights.context.group import SCOPE_HALL_OF_FAME, SCOPE_LEADERBOARD
 
-    groups = list(visible_groups(user).order_by("name"))
+    groups = list(visible_groups(user, session=request.session).order_by("name"))
     group_ids = {str(group.pk) for group in groups}
     if group_id not in group_ids:
         raise InsightAccessError("Group not found.")
@@ -135,7 +135,7 @@ def resolve_matchup_insight_target(
     from leaderlodge.groups.services import can_view_group
 
     game = Game.objects.filter(pk=game_id).select_related("group", "location").first()
-    if game is None or not can_view_group(user, game.group):
+    if game is None or not can_view_group(user, game.group, session=request.session):
         raise InsightAccessError("Game not found.")
     return game
 
@@ -152,7 +152,7 @@ def resolve_ask_target(
     raw_start_date: str = "",
     raw_end_date: str = "",
 ) -> tuple[Group, str | None, LeaderboardPeriod]:
-    groups = list(visible_groups(user).order_by("name"))
+    groups = list(visible_groups(user, session=request.session).order_by("name"))
     group_ids = {str(group.pk) for group in groups}
     if group_id not in group_ids:
         raise InsightAccessError("Group not found.")

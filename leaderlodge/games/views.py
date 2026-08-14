@@ -192,8 +192,8 @@ def _game_list_redirect_query(params: dict[str, str], page: str | None) -> str:
     return urlencode(query_params)
 
 
-def _games_queryset_for_filter_choices(user, params: dict[str, str]):
-    games_qs = Game.objects.filter(group__in=visible_groups(user))
+def _games_queryset_for_filter_choices(user, params: dict[str, str], session=None):
+    games_qs = Game.objects.filter(group__in=visible_groups(user, session=session))
     if params["group"].isdigit():
         games_qs = games_qs.filter(group_id=int(params["group"]))
     if params["game_type"] in GAME_TYPES:
@@ -253,7 +253,7 @@ def _apply_period_params(params: dict[str, str], period) -> dict[str, str]:
     return updated
 
 
-def _filtered_games_queryset(user, params: dict[str, str], period=None):
+def _filtered_games_queryset(user, params: dict[str, str], period=None, session=None):
     from leaderlodge.leaderboards.period import (
         LeaderboardPeriod,
         filter_results_by_period,
@@ -261,9 +261,9 @@ def _filtered_games_queryset(user, params: dict[str, str], period=None):
         available_leaderboard_periods,
     )
 
-    games_qs = _games_queryset_for_filter_choices(user, params).select_related(
-        "group", "recorded_by", "location"
-    )
+    games_qs = _games_queryset_for_filter_choices(
+        user, params, session=session
+    ).select_related("group", "recorded_by", "location")
 
     if params["game_type"] not in GAME_TYPES:
         return games_qs.none()
@@ -337,16 +337,16 @@ def _filtered_games_queryset(user, params: dict[str, str], period=None):
     return games_qs.order_by("-played_on", "-created_at")
 
 
-def _location_choices_for_game_list(user, params: dict[str, str]):
-    games_qs = _games_queryset_for_filter_choices(user, params).filter(
+def _location_choices_for_game_list(user, params: dict[str, str], session=None):
+    games_qs = _games_queryset_for_filter_choices(user, params, session=session).filter(
         location__isnull=False,
     )
     location_ids = games_qs.values_list("location_id", flat=True).distinct()
     return Location.objects.filter(pk__in=location_ids).order_by("name")
 
 
-def _player_choices_for_game_list(user, params: dict[str, str]):
-    games_qs = _games_queryset_for_filter_choices(user, params)
+def _player_choices_for_game_list(user, params: dict[str, str], session=None):
+    games_qs = _games_queryset_for_filter_choices(user, params, session=session)
     player_ids = (
         GameParticipantResult.objects.filter(game__in=games_qs)
         .values_list("player_id", flat=True)
@@ -362,8 +362,8 @@ def _player_choices_for_game_list(user, params: dict[str, str]):
     return players_qs.order_by("group__name", "display_name", "pk")
 
 
-def _game_size_choices_for_game_list(user, params: dict[str, str]):
-    games_qs = _games_queryset_for_filter_choices(user, params)
+def _game_size_choices_for_game_list(user, params: dict[str, str], session=None):
+    games_qs = _games_queryset_for_filter_choices(user, params, session=session)
     return available_game_sizes(games_qs)
 
 
@@ -616,7 +616,7 @@ def _played_on_value_and_display(form: GameRecordForm) -> tuple[str, str]:
 
 @demo_or_login_required
 def game_list(request: HttpRequest) -> HttpResponse:
-    groups = visible_groups(request.user).order_by("name")
+    groups = visible_groups(request.user, session=request.session).order_by("name")
     params = _game_list_params(request)
     resolved_params = _resolve_game_list_params(request, params, groups)
     if _game_list_params_changed(params, resolved_params):
@@ -630,11 +630,19 @@ def game_list(request: HttpRequest) -> HttpResponse:
     groups = list(groups)
     selected_period, period_ctx = _game_list_period(params, groups)
     params = _apply_period_params(params, selected_period)
-    locations = _location_choices_for_game_list(request.user, params)
-    players = _player_choices_for_game_list(request.user, params)
-    game_size_options = _game_size_choices_for_game_list(request.user, params)
+    locations = _location_choices_for_game_list(
+        request.user, params, session=request.session
+    )
+    players = _player_choices_for_game_list(
+        request.user, params, session=request.session
+    )
+    game_size_options = _game_size_choices_for_game_list(
+        request.user, params, session=request.session
+    )
     params = _sanitize_game_list_params(params, locations, players, game_size_options)
-    games_qs = _filtered_games_queryset(request.user, params, period=selected_period)
+    games_qs = _filtered_games_queryset(
+        request.user, params, period=selected_period, session=request.session
+    )
     selected_game_type = get_game_type(params["game_type"])
     shutout_config = selected_game_type.shutout
     list_stats = build_game_list_stats(
@@ -663,7 +671,7 @@ def game_list(request: HttpRequest) -> HttpResponse:
         stats_player_count=stats_player_count,
     )
 
-    groups = visible_groups(request.user).order_by("name")
+    groups = visible_groups(request.user, session=request.session).order_by("name")
     has_any_games = Game.objects.filter(group__in=groups).exists()
     summary_params = dict(params)
     summary_params["period_label"] = period_ctx.get("period_label", "")
@@ -1228,7 +1236,7 @@ def game_matchup(request: HttpRequest) -> HttpResponse:
         ).prefetch_related("participant_results__player__linked_user"),
         pk=game_id,
     )
-    if not can_view_group(request.user, game.group):
+    if not can_view_group(request.user, game.group, session=request.session):
         raise Http404
 
     matchup = build_matchup_view(game)
@@ -1259,7 +1267,7 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
         ),
         pk=pk,
     )
-    if not can_view_group(request.user, game.group):
+    if not can_view_group(request.user, game.group, session=request.session):
         raise Http404
 
     game_type = get_game_type(game.game_type_code)
@@ -1367,9 +1375,9 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
         ),
         pk=pk,
     )
-    if not can_view_group(request.user, game.group) or not user_can_edit_game(
-        request.user, game
-    ):
+    if not can_view_group(
+        request.user, game.group, session=request.session
+    ) or not user_can_edit_game(request.user, game):
         raise Http404
 
     game_type = get_game_type(game.game_type_code)
@@ -1465,9 +1473,9 @@ def game_delete(request: HttpRequest, pk: int) -> HttpResponse:
         ),
         pk=pk,
     )
-    if not can_view_group(request.user, game.group) or not user_can_edit_game(
-        request.user, game
-    ):
+    if not can_view_group(
+        request.user, game.group, session=request.session
+    ) or not user_can_edit_game(request.user, game):
         raise Http404
 
     group_id = game.group_id

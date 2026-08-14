@@ -178,14 +178,46 @@ def demo_group_exists() -> bool:
     return get_demo_group() is not None
 
 
-def can_view_group(user: AbstractBaseUser | None, group: Group) -> bool:
+SPECTATOR_SESSION_KEY = "spectator_mode.group_ids"
+
+
+def is_group_spectator(session, group_id: int) -> bool:
+    """Whether the current session holds an explicit Spectator Mode grant for group_id."""
+    if session is None:
+        return False
+    return group_id in session.get(SPECTATOR_SESSION_KEY, [])
+
+
+def grant_spectator_access(session, group: Group) -> bool:
+    """Record a Spectator Mode grant in the session. Returns True if newly granted."""
+    grants = session.setdefault(SPECTATOR_SESSION_KEY, [])
+    if group.pk in grants:
+        return False
+    grants.append(group.pk)
+    session.modified = True
+    return True
+
+
+def revoke_spectator_access(session, group_id: int) -> bool:
+    """Remove a Spectator Mode grant from the session. Returns True if it was present."""
+    grants = session.get(SPECTATOR_SESSION_KEY, [])
+    if group_id not in grants:
+        return False
+    grants.remove(group_id)
+    session.modified = True
+    return True
+
+
+def can_view_group(user: AbstractBaseUser | None, group: Group, session=None) -> bool:
     if group.is_demo and settings.DEMO_MODE_ENABLED:
         return True
     if user is None or not user.is_authenticated:
         return False
-    if user.is_staff:
+    if user_is_member(user, group):
         return True
-    return user_is_member(user, group)
+    if user.is_staff and is_group_spectator(session, group.pk):
+        return True
+    return False
 
 
 def can_edit_group(user: AbstractBaseUser | None, group: Group) -> bool:
@@ -202,10 +234,14 @@ def can_manage_group_members(user: AbstractBaseUser | None, group: Group) -> boo
     return can_manage_members(get_membership(user, group))
 
 
-def visible_groups(user: AbstractBaseUser | None):
+def visible_groups(user: AbstractBaseUser | None, session=None):
+    """Groups the user may browse: memberships, the demo group, and, for
+    staff, any groups currently granted via Spectator Mode."""
     group_ids: set[int] = set()
     if user and user.is_authenticated:
         group_ids.update(user_groups(user).values_list("pk", flat=True))
+        if user.is_staff and session is not None:
+            group_ids.update(session.get(SPECTATOR_SESSION_KEY, []))
     demo = get_demo_group()
     if demo is not None:
         group_ids.add(demo.pk)

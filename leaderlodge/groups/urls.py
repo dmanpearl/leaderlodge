@@ -9,6 +9,16 @@ urlpatterns = [
     path("new/", views.group_create, name="create"),
     path("<int:pk>/", views.group_detail, name="detail"),
     path("<int:pk>/edit/", views.group_edit, name="edit"),
+    path(
+        "<int:pk>/spectator-mode/enter/",
+        views.spectator_mode_enter,
+        name="spectator_mode_enter",
+    ),
+    path(
+        "<int:pk>/spectator-mode/exit/",
+        views.spectator_mode_exit,
+        name="spectator_mode_exit",
+    ),
     path("<int:pk>/locations/", views.group_locations, name="locations"),
     path(
         "<int:pk>/locations/manage/",

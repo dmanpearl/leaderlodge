@@ -693,7 +693,9 @@ def ask_page(request: HttpRequest) -> HttpResponse:
     if not insights_ui_enabled():
         raise Http404()
 
-    groups = list(visible_groups(request.user).order_by("name"))
+    groups = list(
+        visible_groups(request.user, session=request.session).order_by("name")
+    )
     requested_group = request.GET.get("group") if "group" in request.GET else None
     selected_group = resolve_view_group(
         request,

@@ -8,7 +8,13 @@
       "Bash(echo \"exit: $?\")",
       "Bash(pytest tests/test_feedback.py -v)",
       "Bash(xargs ls)",
-      "Bash(python3 manage.py shell -c ' *)"
+      "Bash(python3 manage.py shell -c ' *)",
+      "Bash(python3 *)",
+      "Bash(xargs -I{} dirname {})",
+      "Bash(curl *)",
+      "Bash(pkill -f \"manage.py runserver 8000\")",
+      "Bash(git check-ignore *)",
+      "Bash(env)"
     ]
   }
 }
