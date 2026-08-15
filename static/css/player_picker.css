@@ -226,8 +226,24 @@
     width: 5.9rem;
     max-width: 5.9rem;
   }
+
+  /* The name label is already tight next to the score/action controls on
+     narrow screens; the "Team" pill is decoration, not information the
+     dropdown menu already covers by naming each player explicitly. */
+  .participant-team-badge {
+    display: none;
+  }
 }
 
 [data-add-teammate-wrap].d-none {
   display: none !important;
+}
+
+[data-team-menu-wrap].d-none {
+  display: none !important;
+}
+
+[data-team-menu-wrap] .btn {
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
 }

@@ -275,6 +275,21 @@
     };
   }
 
+  function detailBadge(rowEntry) {
+    const detail =
+      rowEntry.username ||
+      (rowEntry.id && rowEntry.kind === "guest"
+        ? "Guest"
+        : rowEntry.id
+          ? ""
+          : "New guest");
+    return detail === "Guest" || detail === "New guest"
+      ? `<span class="badge text-bg-secondary">${detail}</span>`
+      : detail
+        ? `(${detail})`
+        : "";
+  }
+
   function sideLabel(primaryLabel, teammateLabel) {
     if (!teammateLabel) {
       return primaryLabel;
@@ -295,7 +310,7 @@
     const hasTeammate = Boolean(teammateLabel);
     labelEl.innerHTML = `${sideLabel(primaryLabel, teammateLabel)}${
       hasTeammate
-        ? ' <span class="badge text-bg-primary ms-1">Team</span>'
+        ? ' <span class="badge text-bg-primary ms-1 participant-team-badge">Team</span>'
         : row.dataset.primaryDetail
           ? ` <span class="text-muted small ms-1">${row.dataset.primaryDetail}</span>`
           : ""
@@ -303,6 +318,17 @@
     const addWrap = row.querySelector("[data-add-teammate-wrap]");
     if (addWrap) {
       addWrap.classList.toggle("d-none", hasTeammate);
+    }
+    const menuWrap = row.querySelector("[data-team-menu-wrap]");
+    const menu = row.querySelector("[data-team-menu]");
+    if (menuWrap && menu) {
+      menuWrap.classList.toggle("d-none", !hasTeammate);
+      menu.innerHTML = hasTeammate
+        ? `
+          <li><button type="button" class="dropdown-item" data-remove-member="primary">Remove ${primaryLabel}</button></li>
+          <li><button type="button" class="dropdown-item" data-remove-member="teammate">Remove ${teammateLabel}</button></li>
+        `
+        : "";
     }
     row.dataset.hasTeammate = hasTeammate ? "1" : "";
   }
@@ -325,19 +351,7 @@
       ? String(rowEntry.id)
       : `guest:${normalizeForMatch(rowEntry.guestName)}`;
     row.dataset.primaryLabel = rowEntry.label;
-    const detail =
-      rowEntry.username ||
-      (rowEntry.id && rowEntry.kind === "guest"
-        ? "Guest"
-        : rowEntry.id
-          ? ""
-          : "New guest");
-    row.dataset.primaryDetail =
-      detail === "Guest" || detail === "New guest"
-        ? `<span class="badge text-bg-secondary">${detail}</span>`
-        : detail
-          ? `(${detail})`
-          : "";
+    row.dataset.primaryDetail = detailBadge(rowEntry);
 
     const initialScoreAttr = defaultParticipantScore
       ? ` data-initial-score="${defaultParticipantScore}"`
@@ -370,6 +384,18 @@
                   readonly
                 />
               </div>
+              <div class="dropdown d-none" data-team-menu-wrap>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  aria-label="Remove one player from this team"
+                >
+                  <i class="bi bi-three-dots" aria-hidden="true"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" data-team-menu></ul>
+              </div>
               <button type="button" class="btn btn-sm btn-outline-secondary" data-remove-participant aria-label="Remove player">&times;</button>
             </span>
           </div>
@@ -400,6 +426,20 @@
     const teammateInput = row.querySelector("[data-add-teammate]");
     if (teammateInput) {
       window.LeaderLodgeRecordGame?.teammatePicker?.prepareInput?.(teammateInput);
+    }
+    const teamMenuToggle = row.querySelector(
+      "[data-team-menu-wrap] [data-bs-toggle='dropdown']"
+    );
+    if (teamMenuToggle && window.bootstrap?.Dropdown) {
+      // Table rows sit in a horizontally-scrolling .table-responsive
+      // wrapper, which clips a menu positioned relative to its trigger.
+      // Popper's "fixed" strategy positions against the viewport instead.
+      new window.bootstrap.Dropdown(teamMenuToggle, {
+        popperConfig: (defaultConfig) => ({
+          ...defaultConfig,
+          strategy: "fixed",
+        }),
+      });
     }
     const scoreInput = row.querySelector("[data-score-input]");
     if (defaultParticipantScore !== "") {
@@ -483,8 +523,45 @@
     row.querySelector('[name="participant_teammate_guest_name"]').value = teammateGuest;
     row.dataset.teammateLabel = rowEntry.label;
     row.dataset.teammateKey = teammateKey;
+    row.dataset.teammateDetail = detailBadge(rowEntry);
     updateSideLabel(row);
     return true;
+  }
+
+  function removeTeammate(row) {
+    row.querySelector('[name="participant_teammate_player_id"]').value = "";
+    row.querySelector('[name="participant_teammate_guest_name"]').value = "";
+    delete row.dataset.teammateLabel;
+    delete row.dataset.teammateKey;
+    delete row.dataset.teammateDetail;
+    updateSideLabel(row);
+  }
+
+  function promoteTeammateToPrimary(row) {
+    const teammateId = row.querySelector(
+      '[name="participant_teammate_player_id"]'
+    ).value;
+    const teammateGuest = row.querySelector(
+      '[name="participant_teammate_guest_name"]'
+    ).value;
+    const teammateLabel = row.dataset.teammateLabel || "";
+    if (!teammateLabel) {
+      return;
+    }
+    const teammateDetail = row.dataset.teammateDetail || "";
+
+    row.querySelector('[name="participant_player_id"]').value = teammateId;
+    row.querySelector('[name="participant_guest_name"]').value = teammateGuest;
+    row.dataset.rowKey = teammateId
+      ? `player-${teammateId}`
+      : `guest-${normalizeForMatch(teammateGuest)}`;
+    row.dataset.playerId = teammateId
+      ? teammateId
+      : `guest:${normalizeForMatch(teammateGuest)}`;
+    row.dataset.primaryLabel = teammateLabel;
+    row.dataset.primaryDetail = teammateDetail;
+
+    removeTeammate(row);
   }
 
   function attachListToInput(input, listEl) {
@@ -596,14 +673,26 @@
         this.collapseButton.addEventListener("click", () => this.collapsePicker());
       }
       tbody.addEventListener("click", (event) => {
-        const button = event.target.closest("[data-remove-participant]");
-        if (!button) {
+        const removeButton = event.target.closest("[data-remove-participant]");
+        if (removeButton) {
+          const row = removeButton.closest("[data-game-row]");
+          if (row) {
+            row.remove();
+            this.scheduleSuggestionRefresh();
+          }
           return;
         }
-        const row = button.closest("[data-game-row]");
-        if (row) {
-          row.remove();
-          this.scheduleSuggestionRefresh();
+        const memberButton = event.target.closest("[data-remove-member]");
+        if (memberButton) {
+          const row = memberButton.closest("[data-game-row]");
+          if (!row) {
+            return;
+          }
+          if (memberButton.dataset.removeMember === "primary") {
+            promoteTeammateToPrimary(row);
+          } else {
+            removeTeammate(row);
+          }
         }
       });
     }
