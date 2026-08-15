@@ -531,6 +531,7 @@
       this.activeIndex = -1;
       this.isOpen = false;
       this.skipRefresh = false;
+      this.suppressBlurCommit = false;
 
       this.listEl = document.createElement("ul");
       this.listEl.className = "combobox-list";
@@ -562,6 +563,11 @@
         this.expandButton.addEventListener("click", () => this.expandPicker());
       }
       if (this.collapseButton) {
+        // Cancelling the picker should not commit whatever was left typed
+        // in the input; set this before the click's blur fires.
+        this.collapseButton.addEventListener("mousedown", () => {
+          this.suppressBlurCommit = true;
+        });
         this.collapseButton.addEventListener("click", () => this.collapsePicker());
       }
       tbody.addEventListener("click", (event) => {
@@ -655,7 +661,19 @@
     }
 
     onBlur() {
-      window.setTimeout(() => this.close(), 150);
+      window.setTimeout(() => {
+        // iOS: dismissing the keyboard via the accessory bar's checkmark
+        // blurs the field without a keydown event, so an entry the user
+        // typed but never pressed Enter on would otherwise be silently
+        // dropped instead of locked in like Enter does. Cancelling via
+        // the collapse button opts out via suppressBlurCommit.
+        if (this.suppressBlurCommit) {
+          this.suppressBlurCommit = false;
+        } else {
+          this.tryAddGuestFromInput();
+        }
+        this.close();
+      }, 150);
     }
 
     onKeyDown(event) {
@@ -1017,7 +1035,14 @@
     }
 
     onBlur() {
-      window.setTimeout(() => this.close(), 150);
+      window.setTimeout(() => {
+        // iOS: dismissing the keyboard via the accessory bar's checkmark
+        // blurs the field without a keydown event, so an entry the user
+        // typed but never pressed Enter on would otherwise be silently
+        // dropped instead of locked in like Enter does.
+        this.tryAddGuestFromInput();
+        this.close();
+      }, 150);
     }
 
     onKeyDown(event) {

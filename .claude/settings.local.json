@@ -15,7 +15,8 @@
       "Bash(pkill -f \"manage.py runserver 8000\")",
       "Bash(git check-ignore *)",
       "Bash(env)",
-      "Bash(node --check static/js/location_autocomplete.js)"
+      "Bash(node --check static/js/location_autocomplete.js)",
+      "Bash(node --check static/js/player_picker.js)"
     ]
   }
 }
