@@ -556,6 +556,31 @@
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
       window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
+      // iOS: tapping a non-focusable area (plain text, page background) to
+      // dismiss the keyboard does not reliably fire a native blur event, so
+      // onBlur alone can miss it. Detect the outside tap directly and
+      // commit immediately, before the tap's own focus change happens.
+      this.onDocumentPointerDown = (event) => {
+        const target = event.target;
+        if (!(target instanceof Node)) {
+          return;
+        }
+        if (target === input || input.contains(target)) {
+          return;
+        }
+        if (this.listEl.contains(target)) {
+          return;
+        }
+        if (
+          this.collapseButton &&
+          (target === this.collapseButton || this.collapseButton.contains(target))
+        ) {
+          return;
+        }
+        this.commitPendingEntry();
+      };
+      document.addEventListener("pointerdown", this.onDocumentPointerDown, true);
+
       this.panel = form.querySelector("[data-player-picker-panel]");
       this.expandButton = form.querySelector("[data-player-picker-expand]");
       this.collapseButton = form.querySelector("[data-player-picker-collapse]");
@@ -661,19 +686,24 @@
     }
 
     onBlur() {
-      window.setTimeout(() => {
-        // iOS: dismissing the keyboard via the accessory bar's checkmark
-        // blurs the field without a keydown event, so an entry the user
-        // typed but never pressed Enter on would otherwise be silently
-        // dropped instead of locked in like Enter does. Cancelling via
-        // the collapse button opts out via suppressBlurCommit.
-        if (this.suppressBlurCommit) {
-          this.suppressBlurCommit = false;
-        } else {
-          this.tryAddGuestFromInput();
-        }
-        this.close();
-      }, 150);
+      // Backstop for onDocumentPointerDown: covers blur triggers that
+      // aren't a pointer event (e.g. Tab). tryAddGuestFromInput() clears
+      // the input once it commits, so a second call here is a no-op.
+      window.setTimeout(() => this.commitPendingEntry(), 150);
+    }
+
+    commitPendingEntry() {
+      // iOS: dismissing the keyboard, or tapping elsewhere on the page,
+      // does not reliably fire a native blur event on the input, so an
+      // entry the user typed but never pressed Enter on would otherwise
+      // be silently dropped instead of locked in like Enter does.
+      // Cancelling via the collapse button opts out via suppressBlurCommit.
+      if (this.suppressBlurCommit) {
+        this.suppressBlurCommit = false;
+      } else {
+        this.tryAddGuestFromInput();
+      }
+      this.close();
     }
 
     onKeyDown(event) {
@@ -985,6 +1015,29 @@
         }
       });
 
+      // iOS: tapping a non-focusable area (plain text, page background) to
+      // dismiss the keyboard does not reliably fire a native blur/focusout
+      // event, so onBlur alone can miss it. Detect the outside tap
+      // directly and commit immediately, before the tap's own focus
+      // change (and activate()'s row switch) happens.
+      this.onDocumentPointerDown = (event) => {
+        if (!this.input) {
+          return;
+        }
+        const target = event.target;
+        if (!(target instanceof Node)) {
+          return;
+        }
+        if (target === this.input || this.input.contains(target)) {
+          return;
+        }
+        if (this.listEl.contains(target)) {
+          return;
+        }
+        this.commitPendingEntry();
+      };
+      document.addEventListener("pointerdown", this.onDocumentPointerDown, true);
+
       tbody.querySelectorAll("[data-add-teammate]").forEach((input) => {
         this.prepareInput(input);
       });
@@ -1009,7 +1062,11 @@
         this.onFocus();
         return;
       }
-      this.close();
+      // Commit whatever was pending on the previously active row before
+      // switching, in case the tap that moved focus here landed on
+      // another teammate field directly (skipping onDocumentPointerDown's
+      // outside-tap check, since the tap was on this picker's own input).
+      this.commitPendingEntry();
       this.input = input;
       this.row = input.closest("[data-game-row]");
       this.onFocus();
@@ -1035,14 +1092,19 @@
     }
 
     onBlur() {
-      window.setTimeout(() => {
-        // iOS: dismissing the keyboard via the accessory bar's checkmark
-        // blurs the field without a keydown event, so an entry the user
-        // typed but never pressed Enter on would otherwise be silently
-        // dropped instead of locked in like Enter does.
-        this.tryAddGuestFromInput();
-        this.close();
-      }, 150);
+      // Backstop for onDocumentPointerDown: covers blur triggers that
+      // aren't a pointer event (e.g. Tab). tryAddGuestFromInput() clears
+      // the input once it commits, so a second call here is a no-op.
+      window.setTimeout(() => this.commitPendingEntry(), 150);
+    }
+
+    commitPendingEntry() {
+      // iOS: dismissing the keyboard, or tapping elsewhere on the page,
+      // does not reliably fire a native blur event on the input, so an
+      // entry the user typed but never pressed Enter on would otherwise
+      // be silently dropped instead of locked in like Enter does.
+      this.tryAddGuestFromInput();
+      this.close();
     }
 
     onKeyDown(event) {

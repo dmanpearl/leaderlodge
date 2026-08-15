@@ -252,7 +252,7 @@
 - [x] 8e5c8ce AI Game Entry help text: Make game-type specific. Pickleball: 'e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, rally scoring, in Santa Monica'. Other game types need different examples than 'rally', or nothing. Ok to leave 'Santa Monica' for all
 - [x] 4aeaec9 Spectator Mode: As a staff user, I want to be able to view the Games of a group I don't belong to
 - [x] d314d47 Bug: Location 'Reuse' does not open list on mobile (iOS) when virtual keyboard is already open (https://leaderlodge.com/admin/feedback/feedback/37)
-- [x] Bug: Teammates are getting lost after saving 2x2 Pickleball games with teammates. The problem is that the teammates don't get locked in until the virtual keyboard 'Enter' key is pressed. Dismissing the keyboard with the checkmark at the top of the keyboard is not sufficient. Secondary bug: On iPhone, the teammate field is so wide, that the new team 'player1+player2' can no longer fit in the row. To solve, we must disappear the Add Teammate field after the last supported teammate gets entered
+- [x] c20e122 Bug: Teammates are getting lost after saving 2x2 Pickleball games with teammates. The problem is that the teammates don't get locked in until the virtual keyboard 'Enter' key is pressed. Dismissing the keyboard with the checkmark at the top of the keyboard is not sufficient. Secondary bug: On iPhone, the teammate field is so wide, that the new team 'player1+player2' can no longer fit in the row. To solve, we must disappear the Add Teammate field after the last supported teammate gets entered
 
 ## Open Items
 
