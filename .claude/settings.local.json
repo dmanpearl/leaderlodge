@@ -14,7 +14,8 @@
       "Bash(curl *)",
       "Bash(pkill -f \"manage.py runserver 8000\")",
       "Bash(git check-ignore *)",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(node --check static/js/location_autocomplete.js)"
     ]
   }
 }

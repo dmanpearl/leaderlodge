@@ -250,13 +250,13 @@
 - [x] 01aeed2, 96c50e9 AI Game Entry: Remove alternate title when expanded 'Speak to type players, teams, score, location, score type'. Move the alternate title to a help text accessible with an info icon to the right of 'AI Game Entry'. Beware of conflicts with the spin-down chevron control
 - [x] f1bc6f3 Update lock menu item title > To lock: ”Lock: Domino only”, To unlock: “Unlock: Show all game types” (https://leaderlodge.com/admin/feedback/feedback/35)
 - [x] 8e5c8ce AI Game Entry help text: Make game-type specific. Pickleball: 'e.g. Lucas and Hudson 11 vs Amelia and Aurora 6, rally scoring, in Santa Monica'. Other game types need different examples than 'rally', or nothing. Ok to leave 'Santa Monica' for all
-- [ ] As a superuser, I want to be able to view the Games of a group I don't belong to
+- [x] 4aeaec9 Spectator Mode: As a staff user, I want to be able to view the Games of a group I don't belong to
+- [x] Bug: Location 'Reuse' does not open list on mobile (iOS) when virtual keyboard is already open (https://leaderlodge.com/admin/feedback/feedback/37)
 
 ## Open Items
 
 - [ ] Process: Establish a production backup routine and pre-deploy safety checklist. Confirm whether Railway's Postgres plan includes automated backups; add an independent scheduled `pg_dump` to external storage regardless. Document a checklist: snapshot before migrations, review each migration for destructive operations before it ships, never run mutating shell/ORM commands directly against production (read-only queries or a replica only).
 - [ ] User account profile picture, probably requires Cloudinary
-- [ ] Bug: Location 'Reuse' does not open list on mobile (iOS) when virtual keyboard is already open (https://leaderlodge.com/admin/feedback/feedback/37)
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

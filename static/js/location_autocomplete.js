@@ -299,10 +299,42 @@
         this.close();
         return;
       }
+      if (document.activeElement === this.input) {
+        // The keyboard is already open (user was typing). iOS reports
+        // getBoundingClientRect() relative to the layout viewport, which
+        // does not line up with the keyboard-shrunk visual viewport, so
+        // the list's available space is computed wrong and gets clipped.
+        // Dismiss the keyboard first and open once the viewport settles.
+        this.input.blur();
+        this.openRecentAfterViewportSettle();
+        return;
+      }
+      this.openRecentNow();
+    }
+
+    openRecentNow() {
       this.refreshSuggestions({ forceRecent: true });
       if (this.isOpen) {
         this.listEl.dataset.recentOpen = "1";
       }
+    }
+
+    openRecentAfterViewportSettle() {
+      const viewport = window.visualViewport;
+      let settled = false;
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        viewport?.removeEventListener("resize", finish);
+        window.clearTimeout(fallbackTimer);
+        this.openRecentNow();
+      };
+      viewport?.addEventListener("resize", finish);
+      // Fallback in case blur doesn't change the viewport (no keyboard was
+      // actually open, or a browser without visualViewport support).
+      const fallbackTimer = window.setTimeout(finish, 350);
     }
 
     onInput(event) {
