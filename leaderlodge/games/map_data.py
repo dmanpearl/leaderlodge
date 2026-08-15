@@ -10,14 +10,18 @@ from django.db.models import Count, Q, QuerySet
 from leaderlodge.games.models import Game
 from leaderlodge.games.registry import GAME_TYPES, game_type_abbr
 from leaderlodge.groups.models import Group, Location
-from leaderlodge.groups.services import can_view_group, visible_groups
+from leaderlodge.groups.services import visible_groups
 
 
 def resolve_map_group(*, user, group_id: str, groups: list[Group] | None = None):
+    # `available` (whether caller-supplied or computed here) is already the
+    # permission-scoped list, so membership in it is sufficient — a separate
+    # can_view_group() re-check here previously required session context
+    # this function doesn't have, and silently dropped Spectator Mode grants.
     available = groups if groups is not None else list(visible_groups(user))
     if group_id.isdigit():
         group = next((g for g in available if g.pk == int(group_id)), None)
-        if group is not None and can_view_group(user, group):
+        if group is not None:
             return group
     if available:
         return available[0]

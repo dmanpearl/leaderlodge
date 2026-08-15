@@ -362,7 +362,14 @@ def group_detail(request: HttpRequest, pk: int) -> HttpResponse:
             )
         raise Http404
 
-    if request.user.is_authenticated:
+    # Spectator Mode grants viewing, not real membership. Persisting a
+    # spectated group as the user's preferred group would leak into
+    # ordinary browsing (e.g. the navbar's "Record Game" link, which the
+    # user can't actually record into), and unlike the session-scoped
+    # spectator grant itself, this preference survives logout.
+    if request.user.is_authenticated and (
+        user_is_member(request.user, group) or group.is_demo
+    ):
         persist_group_id(request, group.pk)
 
     return render(

@@ -215,6 +215,7 @@ def leaderboard_index(request: HttpRequest) -> HttpResponse:
         request,
         requested=requested_group,
         available_groups=groups,
+        session=request.session,
     )
 
     played_game_type_codes = (
@@ -435,6 +436,7 @@ def hall_of_fame(request: HttpRequest) -> HttpResponse:
         request,
         requested=requested_group,
         available_groups=groups,
+        session=request.session,
     )
     resolved_group_id = str(selected_group.pk) if selected_group else ""
     granularity = resolve_hall_of_fame_granularity(
@@ -532,6 +534,7 @@ def rank_detail(request: HttpRequest) -> HttpResponse:
         request,
         requested=requested_group,
         available_groups=groups,
+        session=request.session,
     )
     game_type_code = requested_game_type_token(request) or preferred_game_type_code(
         request

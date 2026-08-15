@@ -154,6 +154,7 @@ def _resolve_game_list_params(
             request,
             requested=params["group"],
             available_groups=groups,
+            session=request.session,
         ),
         "game_type": resolve_game_type_code(
             request,

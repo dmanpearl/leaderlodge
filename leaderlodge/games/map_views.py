@@ -58,6 +58,7 @@ def _resolve_map_params(request: HttpRequest, params: dict[str, str], groups) ->
         request,
         requested=params["group"],
         available_groups=groups,
+        session=request.session,
     )
     if is_game_type_locked(request):
         resolved["game_type"] = preferred_game_type_code(request)

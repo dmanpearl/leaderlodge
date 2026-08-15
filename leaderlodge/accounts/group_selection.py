@@ -6,6 +6,7 @@ from django.http import HttpRequest
 
 from leaderlodge.accounts.ui_settings import get_ui_settings, set_ui_settings
 from leaderlodge.groups.models import Group
+from leaderlodge.groups.services import is_group_spectator
 
 GROUP_SELECTION_NAMESPACE = "group_selection"
 GROUP_ID_KEY = "group_id"
@@ -45,12 +46,18 @@ def resolve_group_id(
     *,
     requested: str | None,
     available_groups,
+    session=None,
 ) -> str:
     """
     Pick a group id from the query param, saved preference, or first available.
 
     Always returns a specific group when any are visible. There is no
     "all groups" mode — the active group is persisted for the session/profile.
+
+    A group only reachable through a Spectator Mode grant (see `session`) is
+    never persisted: it's not the user's own group, and remembering it would
+    leak into ordinary browsing (e.g. the navbar's "Record Game" link) after
+    the spectator session ends.
     """
     available_ids = _available_group_ids(available_groups)
     if not available_ids:
@@ -69,7 +76,7 @@ def resolve_group_id(
     else:
         chosen = available_ids[0]
 
-    if explicit or not saved:
+    if (explicit or not saved) and not is_group_spectator(session, int(chosen)):
         _persist_group_id(request, chosen)
 
     return chosen
@@ -80,11 +87,13 @@ def resolve_view_group(
     *,
     requested: str | None,
     available_groups,
+    session=None,
 ) -> Group | None:
     group_id = resolve_group_id(
         request,
         requested=requested,
         available_groups=available_groups,
+        session=session,
     )
     if not group_id:
         return None

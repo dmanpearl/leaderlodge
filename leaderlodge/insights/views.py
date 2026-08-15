@@ -701,6 +701,7 @@ def ask_page(request: HttpRequest) -> HttpResponse:
         request,
         requested=requested_group,
         available_groups=groups,
+        session=request.session,
     )
 
     game_type_codes = [
