@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
   <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=15" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=24" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=25" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
@@ -47,6 +47,9 @@
           data-score-direction="{{ game_type.score_direction }}"
           data-win-target-score="{% if game_type.win_target_score %}{{ game_type.win_target_score }}{% endif %}"
           data-default-participant-score="{{ default_participant_score }}"
+          {% if game_type.no_score_tie %}
+            data-no-score-points="{{ game_type.no_score_points }}"
+          {% endif %}
         {% endif %}
       >
         {% csrf_token %}
@@ -293,6 +296,20 @@
             </div>
           {% endif %}
 
+          {% if game_type.no_score_tie %}
+            <div class="form-check mb-3">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="no-score-toggle"
+                data-no-score-toggle
+              />
+              <label class="form-check-label" for="no-score-toggle">
+                {{ game_type.no_score_label }}
+              </label>
+            </div>
+          {% endif %}
+
           {{ roster|json_script:"game-roster-data" }}
 
           <div class="table-responsive">
@@ -487,7 +504,7 @@
   <script>
     document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
   </script>
-  <script src="{% static 'js/location_autocomplete.js' %}?v=12"></script>
+  <script src="{% static 'js/location_autocomplete.js' %}?v=13"></script>
   <script src="{% static 'js/game_setup.js' %}?v=1"></script>
   {% if not is_guest_demo %}
     <script src="{% static 'js/game_setup_reuse.js' %}?v=8"></script>
@@ -501,8 +518,8 @@
   {% endif %}
   {% if show_roster and game_type and not is_guest_demo %}
     <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
-    <script src="{% static 'js/game_record_form.js' %}?v=6"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=24"></script>
+    <script src="{% static 'js/game_record_form.js' %}?v=7"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=25"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
       <script src="{% static 'js/game_record_voice.js' %}?v=15"></script>

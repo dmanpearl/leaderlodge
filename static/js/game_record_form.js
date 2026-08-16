@@ -228,6 +228,11 @@
 
     const scheduleUpdate = () => {
       window.requestAnimationFrame(() => {
+        const noScoreToggle = form.querySelector("[data-no-score-toggle]");
+        if (noScoreToggle && noScoreToggle.checked) {
+          // Keep a player added mid-wall-game consistent with the rest.
+          applyNoScore(form);
+        }
         updateForm(form);
       });
     };
@@ -237,6 +242,39 @@
     tbody.addEventListener("click", (event) => {
       if (event.target.closest("[data-remove-participant]")) {
         scheduleUpdate();
+      }
+    });
+  }
+
+  function applyNoScore(form) {
+    const points = form.dataset.noScorePoints || "0";
+    form.querySelectorAll("[data-score-input]").forEach((input) => {
+      input.value = points;
+      input.dataset.scoreTouched = "true";
+      input.readOnly = true;
+    });
+    updateForm(form);
+  }
+
+  function clearNoScore(form) {
+    form.querySelectorAll("[data-score-input]").forEach((input) => {
+      input.readOnly = false;
+      input.value = "0";
+      input.dataset.scoreTouched = "true";
+    });
+    updateForm(form);
+  }
+
+  function initNoScoreToggle(form) {
+    const toggle = form.querySelector("[data-no-score-toggle]");
+    if (!toggle) {
+      return;
+    }
+    toggle.addEventListener("change", () => {
+      if (toggle.checked) {
+        applyNoScore(form);
+      } else {
+        clearNoScore(form);
       }
     });
   }
@@ -285,6 +323,7 @@
     });
 
     watchParticipantRows(form);
+    initNoScoreToggle(form);
     updateForm(form);
   }
 

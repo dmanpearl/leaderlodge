@@ -79,6 +79,11 @@ class GameTypeDefinition:
     supports_half_game: bool = False
     rank_uses_score_magnitude: bool = True
     shutout: ShutoutConfig | None = None
+    # Convenience checkbox for outcomes with no winner (e.g. Mah Jongg's wall
+    # game): checking it fills every player's score with no_score_points.
+    no_score_tie: bool = False
+    no_score_points: int = 0
+    no_score_label: str = ""
 
 
 def _load_registry() -> dict[str, GameTypeDefinition]:
@@ -130,6 +135,9 @@ def _load_registry() -> dict[str, GameTypeDefinition]:
             score_types=MAHJONGG_STYLES,
             default_score_type=MahjonggStyle.AMERICAN.value,
             score_type_field_label="Style",
+            no_score_tie=True,
+            no_score_points=10,
+            no_score_label="Wall Game",
         ),
         "pickleball": GameTypeDefinition(
             code="pickleball",
