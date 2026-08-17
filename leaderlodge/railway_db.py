@@ -12,8 +12,16 @@ class RailwayDatabaseConfigError(RuntimeError):
 
 
 def running_on_railway_container() -> bool:
-    """True when Django is serving inside a deployed Railway container."""
-    return bool(os.environ.get("PORT")) and bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+    """True when Django is running inside Railway (migrate, collectstatic, or serve)."""
+    return bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+
+
+def _parse_kv_variable(stdout: str, key: str) -> str:
+    prefix = f"{key}="
+    for line in stdout.splitlines():
+        if line.startswith(prefix):
+            return line[len(prefix) :].strip()
+    return ""
 
 
 def fetch_railway_postgres_public_url() -> str:
@@ -28,12 +36,28 @@ def fetch_railway_postgres_public_url() -> str:
         return ""
 
     service = os.environ.get("RAILWAY_POSTGRES_SERVICE", "Postgres")
-    commands = [
-        ["railway", "variable", "list", "--service", service, "--kv"],
-        ["railway", "variables", "--service", service, "--kv"],
+    commands: list[tuple[list[str], str]] = [
+        (
+            [
+                "railway",
+                "variables",
+                "get",
+                "DATABASE_PUBLIC_URL",
+                "--service",
+                service,
+            ],
+            "raw",
+        ),
+        (
+            ["railway", "variable", "list", "--service", service, "--kv"],
+            "kv",
+        ),
+        (
+            ["railway", "variables", "--service", service, "--kv"],
+            "kv",
+        ),
     ]
-    prefix = "DATABASE_PUBLIC_URL="
-    for command in commands:
+    for command, mode in commands:
         try:
             result = subprocess.run(
                 command,
@@ -48,9 +72,15 @@ def fetch_railway_postgres_public_url() -> str:
         if result.returncode != 0:
             continue
 
-        for line in result.stdout.splitlines():
-            if line.startswith(prefix):
-                return line[len(prefix) :].strip()
+        if mode == "raw":
+            value = result.stdout.strip()
+            if value:
+                return value
+            continue
+
+        value = _parse_kv_variable(result.stdout, "DATABASE_PUBLIC_URL")
+        if value:
+            return value
     return ""
 
 
