@@ -43,6 +43,9 @@ def test_matchup_view_shows_players_and_stats(client, user, group):
     assert "Matchup" in content
     assert players[0].display_label in content
     assert players[1].display_label in content
+    assert "player-type-icon" in content
+    assert "bi bi-person-check player-type-icon" in content  # owner/user column
+    assert "bi bi-person player-type-icon" in content  # guest column
     assert "Leaderboard rank" in content
     assert "Current streak" in content
     assert "Longest streak" in content

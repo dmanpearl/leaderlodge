@@ -739,6 +739,11 @@ span.game-list-title-select {
 .matchup-table thead th.matchup-player-col {
   font-size: 0.8125rem;
   font-weight: 600;
+  white-space: normal;
+}
+
+.matchup-table thead .game-list-player-col-header {
+  max-width: 100%;
 }
 
 .matchup-table thead .matchup-sticky-label-col {

@@ -254,7 +254,8 @@
 - [x] d314d47 Bug: Location 'Reuse' does not open list on mobile (iOS) when virtual keyboard is already open (https://leaderlodge.com/admin/feedback/feedback/37)
 - [x] c20e122 Bug: Teammates are getting lost after saving 2x2 Pickleball games with teammates. The problem is that the teammates don't get locked in until the virtual keyboard 'Enter' key is pressed. Dismissing the keyboard with the checkmark at the top of the keyboard is not sufficient. Secondary bug: On iPhone, the teammate field is so wide, that the new team 'player1+player2' can no longer fit in the row. To solve, we must disappear the Add Teammate field after the last supported teammate gets entered
 - [x] a5a431a Record Game: Add a delete teammate capability as a small 'x' directly after each side. ex: 'side1+side2' > 'side1<x>+side2<x>'. Consider removing the "Team" pill on mobile only due to taking up too much real estate
-- [x] Mah Jongg: Need ‘Wall Game’ checkbox to auto give everybody 10 point tie (https://leaderlodge.com/admin/feedback/feedback/40)
+- [x] cd429c9 Mah Jongg: Need ‘Wall Game’ checkbox to auto give everybody 10 point tie (https://leaderlodge.com/admin/feedback/feedback/40)
+- [x] Matchup view: Header row user display names need icons like Games view list (https://leaderlodge.com/admin/feedback/feedback/42)
 
 ## Open Items
 
@@ -300,3 +301,8 @@
 - [ ] AI: Public write-up: why the LLM never computes rankings (blog, Linkedin, or README section)
 - [ ] AI: Privacy FAQ: what stats and names are sent to AI providers
 - [ ] AI: Demo mode: pre-generated/canned insights for anonymous visitors (no live API call)
+- [/] Make ask the lodge capable of recording a game (https://leaderlodge.com/admin/feedback/feedback/41)
+      - Needs the capability to navigate to the game screen and parse the information for the user to edit or save. 
+      - It should be able to specify game-type, but game-type would default to current game preference.
+      - We have to decide if game-type would be overridden by game locking.
+      - How to decide when to navigate to the Record Game screen. Recommend a button in the Ask screen after ask determines that the prompt is probably a request to record a game. This will allow the user to view the debug information if set.

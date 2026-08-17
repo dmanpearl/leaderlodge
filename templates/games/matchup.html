@@ -4,7 +4,7 @@
 {% block title %}Matchup | {{ game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=9" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=10" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
@@ -45,7 +45,7 @@
             <th scope="col" class="matchup-sticky-label-col">Stat</th>
             {% for column in matchup.players %}
               <th scope="col" class="text-center matchup-player-col{% if column.standing_highlight == 'overtook' %} matchup-player-col--up{% elif column.standing_highlight == 'overtaken' %} matchup-player-col--down{% endif %}">
-                {{ column.player.display_label }}
+                {% include "includes/game_list_player_col_header.html" with player=column.player game_type_code=game.game_type_code %}
               </th>
             {% endfor %}
           </tr>
