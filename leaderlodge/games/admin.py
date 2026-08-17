@@ -1,8 +1,10 @@
 from django.contrib import admin
 from django.db.models import Max
 from django.forms.models import BaseInlineFormSet
+from django.utils.html import format_html
 
 from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChangeLog
+from leaderlodge.games.snapshot_diff import format_snapshot_diff
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.validators import validate_participant_results
 from leaderlodge.groups.models import Group
@@ -98,6 +100,7 @@ class GameScoreChangeLogAdmin(admin.ModelAdmin):
         "notes",
         "old_snapshot",
         "new_snapshot",
+        "differences",
     )
     fieldsets = (
         (
@@ -118,10 +121,19 @@ class GameScoreChangeLogAdmin(admin.ModelAdmin):
                 "fields": (
                     "old_snapshot",
                     "new_snapshot",
+                    "differences",
                 )
             },
         ),
     )
+
+    @admin.display(description="Differences")
+    def differences(self, obj: GameScoreChangeLog) -> str:
+        text = format_snapshot_diff(obj.old_snapshot or {}, obj.new_snapshot or {})
+        return format_html(
+            "<pre style='white-space: pre-wrap; margin: 0;'>{}</pre>",
+            text,
+        )
 
     @admin.display(description="Game")
     def game_label(self, obj: GameScoreChangeLog) -> str:

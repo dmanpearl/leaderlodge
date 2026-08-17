@@ -258,10 +258,10 @@
 - [x] 4d32273 Matchup view: Header row user display names need icons like Games view list (https://leaderlodge.com/admin/feedback/feedback/42)
 - [x] c6a01d4 Process: Establish a production backup routine and pre-deploy safety checklist. Confirm whether Railway's Postgres plan includes automated backups [No: Not available without 'Pro' plan]; add an independent `pg_dump` to external storage. Document a checklist: snapshot before migrations, review each migration for destructive operations before it ships, never run mutating shell/ORM commands directly against production (read-only queries or a replica only)
 - [x] 3390af2 Edit game view needs remove, add, or replace for teammates and players; today only whole-side delete works. If removal that would leave too few sides for the game type. Block add that would create too many sides for the game type
+- [x] Game Edit Log Admin view: Show an immutable/read-only 'Differences' field after the two snapshot fields
 
 ## Open Items
 
-- [ ] Game Edit Log Admin view: Show an immutable/read-only 'Differences' field after the two snapshot fields
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
