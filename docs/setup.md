@@ -119,6 +119,9 @@ Log out and open http://127.0.0.1:8000/ to confirm the demo landing page. Set `D
 
 ### Railway production
 
+Before deploys with migrations, back up production PostgreSQL. See
+[Production backup](backup.md).
+
 After deploy (migrate runs automatically via `railway.json`):
 
 ```bash

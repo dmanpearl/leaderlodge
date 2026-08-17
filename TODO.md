@@ -255,11 +255,11 @@
 - [x] c20e122 Bug: Teammates are getting lost after saving 2x2 Pickleball games with teammates. The problem is that the teammates don't get locked in until the virtual keyboard 'Enter' key is pressed. Dismissing the keyboard with the checkmark at the top of the keyboard is not sufficient. Secondary bug: On iPhone, the teammate field is so wide, that the new team 'player1+player2' can no longer fit in the row. To solve, we must disappear the Add Teammate field after the last supported teammate gets entered
 - [x] a5a431a Record Game: Add a delete teammate capability as a small 'x' directly after each side. ex: 'side1+side2' > 'side1<x>+side2<x>'. Consider removing the "Team" pill on mobile only due to taking up too much real estate
 - [x] cd429c9 Mah Jongg: Need ‘Wall Game’ checkbox to auto give everybody 10 point tie (https://leaderlodge.com/admin/feedback/feedback/40)
-- [x] Matchup view: Header row user display names need icons like Games view list (https://leaderlodge.com/admin/feedback/feedback/42)
+- [x] 4d32273 Matchup view: Header row user display names need icons like Games view list (https://leaderlodge.com/admin/feedback/feedback/42)
+- [x] Process: Establish a production backup routine and pre-deploy safety checklist. Confirm whether Railway's Postgres plan includes automated backups [No: Not available without 'Pro' plan]; add an independent `pg_dump` to external storage. Document a checklist: snapshot before migrations, review each migration for destructive operations before it ships, never run mutating shell/ORM commands directly against production (read-only queries or a replica only)
 
 ## Open Items
 
-- [ ] Process: Establish a production backup routine and pre-deploy safety checklist. Confirm whether Railway's Postgres plan includes automated backups; add an independent scheduled `pg_dump` to external storage regardless. Document a checklist: snapshot before migrations, review each migration for destructive operations before it ships, never run mutating shell/ORM commands directly against production (read-only queries or a replica only).
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Record Game: Team editor need a way to swap out a teammate if entered incorrectly. Current method requires deleting the team and reentering a new player+teammate
 - [ ] Game Type: Add Canasta, Euchre

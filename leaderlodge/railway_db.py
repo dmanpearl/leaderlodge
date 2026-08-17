@@ -29,9 +29,10 @@ def fetch_railway_postgres_public_url() -> str:
 
     service = os.environ.get("RAILWAY_POSTGRES_SERVICE", "Postgres")
     commands = [
-        ["railway", "variables", "get", "DATABASE_PUBLIC_URL", "--service", service],
+        ["railway", "variable", "list", "--service", service, "--kv"],
         ["railway", "variables", "--service", service, "--kv"],
     ]
+    prefix = "DATABASE_PUBLIC_URL="
     for command in commands:
         try:
             result = subprocess.run(
@@ -47,14 +48,6 @@ def fetch_railway_postgres_public_url() -> str:
         if result.returncode != 0:
             continue
 
-        if command[-1] == service and command[-2] == "--service":
-            # `variables get` prints the raw value.
-            value = result.stdout.strip()
-            if value:
-                return value
-            continue
-
-        prefix = "DATABASE_PUBLIC_URL="
         for line in result.stdout.splitlines():
             if line.startswith(prefix):
                 return line[len(prefix) :].strip()

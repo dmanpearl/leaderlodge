@@ -19,6 +19,9 @@ staticfiles/
 # Environment
 .env
 
+# Local database dumps (see docs/backup.md)
+backups/
+
 # IDE
 .idea/
 .vscode/

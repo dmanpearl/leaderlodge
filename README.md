@@ -90,6 +90,9 @@ Production email setup (Brevo + Porkbun DNS): [docs/setup.md#production-email-br
 4. Deploy. `railway.json` runs migrate, collectstatic, and gunicorn on each deploy.
 5. Custom domains and DNS are configured in Railway → Networking (see Porkbun ALIAS/CNAME targets from `railway domain status`).
 
+Before milestone deploys with migrations, run a production `pg_dump`. See
+[Production backup](docs/backup.md).
+
 `railway run python manage.py ...` resolves the public Postgres URL automatically. If the web service has no `DATABASE_PUBLIC_URL` reference yet, settings read it from the Postgres service via the linked Railway CLI. You can also put the public URL in `.env` as `DATABASE_URL` (rating-ranch style).
 
 ### Bootstrap production data
@@ -128,6 +131,7 @@ Admin notification email (signup, invites, game edits, feedback): [Site settings
 
 ## Documentation
 
+- [Production backup](docs/backup.md): `pg_dump` before milestone deploys, restore, pre-deploy checklist
 - [Local development setup](docs/setup.md) — settings, tests, day-to-day commands, **previewing transactional email**
 - [Management commands](docs/management-commands.md) — full inventory of project `manage.py` commands
 - [Features](docs/features.md) — product capabilities, including [game type lock and URL params](docs/features.md#game-type-lock-and-url-params)
