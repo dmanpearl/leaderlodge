@@ -7,6 +7,7 @@ from leaderlodge.games.registry import (
     ScoreType,
 )
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
+from tests.conftest import edit_game_participant_post
 from tests.test_games import _load_roster_post, _save_game_post
 
 
@@ -97,13 +98,11 @@ def test_edit_pickleball_score_type(client, user, group):
 
     response = client.post(
         url,
-        {
-            "played_on": game.played_on.isoformat(),
-            "score_type": ScoreType.RALLY.value,
-            f"score_{participants[0].pk}": participants[0].score,
-            f"score_{participants[1].pk}": participants[1].score,
-            "notes": "Imported as traditional by mistake.",
-        },
+        edit_game_participant_post(
+            game,
+            score_type=ScoreType.RALLY.value,
+            notes="Imported as traditional by mistake.",
+        ),
     )
     assert response.status_code == 302
     game.refresh_from_db()

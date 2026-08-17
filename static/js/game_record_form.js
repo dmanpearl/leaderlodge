@@ -140,7 +140,8 @@
       return `Too many scores entered (${current}; ${maxPlayers} max). Remove ${extra} ${noun}.`;
     }
     if (current < minPlayers) {
-      return "Enter a score for each player.";
+      const noun = minPlayers === 1 ? "side" : "sides";
+      return `Need at least ${minPlayers} ${noun} before saving (currently ${current}).`;
     }
     return "";
   }
@@ -215,7 +216,10 @@
   }
 
   function refreshGameRecordForm() {
-    updateForm(document.getElementById("game-record-form"));
+    updateForm(
+      document.getElementById("game-record-form") ||
+        document.getElementById("game-edit-form")
+    );
   }
 
   window.LeaderLodgeUpdateGameRecordForm = refreshGameRecordForm;
@@ -240,7 +244,9 @@
     const observer = new MutationObserver(scheduleUpdate);
     observer.observe(tbody, { childList: true, subtree: true });
     tbody.addEventListener("click", (event) => {
-      if (event.target.closest("[data-remove-participant]")) {
+      if (
+        event.target.closest("[data-remove-side], [data-side-action]")
+      ) {
         scheduleUpdate();
       }
     });
@@ -293,7 +299,9 @@
   }
 
   function initGameRecordForm() {
-    const form = document.getElementById("game-record-form");
+    const form =
+      document.getElementById("game-record-form") ||
+      document.getElementById("game-edit-form");
     if (!form) {
       return;
     }

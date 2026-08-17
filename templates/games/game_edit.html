@@ -6,6 +6,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=31" />
   {% if google_places_api_key and can_set_place %}
     <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
   {% endif %}
@@ -61,13 +62,23 @@
   <form
     method="post"
     id="game-edit-form"
+    autocomplete="off"
     data-location-group-id="{{ game.group.pk }}"
+    data-min-players="{{ game_type.min_players }}"
+    data-max-players="{{ game_type.max_players }}"
+    data-supports-loser="{% if game_type.supports_loser %}true{% else %}false{% endif %}"
+    data-score-direction="{{ game_type.score_direction }}"
+    data-win-target-score="{% if game_type.win_target_score %}{{ game_type.win_target_score }}{% endif %}"
+    data-default-participant-score="{{ default_participant_score }}"
   >
     {% csrf_token %}
     <div class="card-header">Changes</div>
     <div class="card-body">
       {% if form.non_field_errors %}
         <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      {% if participant_error %}
+        <div class="alert alert-danger">{{ participant_error }}</div>
       {% endif %}
 
       <div class="row align-items-center mb-2 g-2">
@@ -163,34 +174,195 @@
         </div>
       {% endif %}
 
-      {% for row in participant_form_rows %}
-        <div class="row align-items-center mb-2 g-2 game-edit-player-row" data-participant-row="{{ row.result.pk }}">
-          <label class="col-4 col-form-label" for="{{ row.score_field.id_for_label }}">{{ row.score_field.label }}</label>
-          <div class="col">
-            {{ row.score_field }}
-          </div>
-          <div class="col-auto d-flex align-items-center gap-1">
+      {{ roster|json_script:"game-roster-data" }}
+
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0 game-record-table">
+          <thead>
+            <tr>
+              <th scope="col">Player</th>
+              <th scope="col" class="game-record-col--score">Score</th>
+              <th scope="col" class="game-record-col--result">Result</th>
+            </tr>
+          </thead>
+          <tbody data-participant-rows>
+            <tr data-participant-empty class="text-muted{% if participant_rows %} d-none{% endif %}">
+              <td colspan="3">No players yet. Add players below.</td>
+            </tr>
+            {% for row in participant_rows %}
+              <tr
+                data-game-row
+                data-row-key="{% if row.player_id %}player-{{ row.player_id }}{% else %}guest-{{ row.guest_name|lower }}{% endif %}"
+                data-player-id="{% if row.player_id %}{{ row.player_id }}{% else %}guest:{{ row.guest_name }}{% endif %}"
+                data-primary-label="{% if row.teammate_display_label and row.player %}{{ row.player.display_label }}{% elif row.guest_name %}{{ row.guest_name }}{% else %}{{ row.display_label }}{% endif %}"
+                {% if row.teammate_display_label %}data-teammate-label="{{ row.teammate_display_label }}"{% endif %}
+                {% if row.teammate_player_id or row.teammate_guest_name %}data-has-teammate="1"{% endif %}
+              >
+                <td>
+                  <div class="d-flex align-items-center justify-content-between gap-2 participant-label">
+                    <span data-side-label>
+                      {{ row.display_label }}
+                      {% if row.teammate_player_id or row.teammate_guest_name %}
+                        <span class="badge text-bg-primary ms-1">Team</span>
+                      {% elif row.player and row.player.linked_user %}
+                        <span class="text-muted small">({{ row.player.linked_user.username }})</span>
+                      {% elif row.player %}
+                        <span class="badge text-bg-secondary ms-1">Guest</span>
+                      {% else %}
+                        <span class="badge text-bg-secondary ms-1">New guest</span>
+                      {% endif %}
+                    </span>
+                    <span class="d-flex align-items-center gap-1 flex-shrink-0">
+                      <div
+                        class="combobox-input-wrap{% if row.teammate_player_id or row.teammate_guest_name %} d-none{% endif %}"
+                        data-add-teammate-wrap
+                      >
+                        <input
+                          type="text"
+                          class="form-control form-control-sm game-record-teammate-input"
+                          data-add-teammate
+                          placeholder="Teammate"
+                          aria-label="Teammate"
+                          name="ll_teammate_search"
+                          autocomplete="ll-player"
+                          autocorrect="off"
+                          autocapitalize="off"
+                          spellcheck="false"
+                          readonly
+                        />
+                      </div>
+                      {% if row.teammate_player_id or row.teammate_guest_name %}
+                      <div class="dropdown" data-side-menu-wrap>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          aria-label="Side options"
+                        >
+                          <i class="bi bi-three-dots" aria-hidden="true"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" data-side-menu></ul>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger d-none"
+                        data-remove-side
+                        aria-label="Remove side"
+                        title="Remove side"
+                      >
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      </button>
+                      {% else %}
+                      <div class="dropdown d-none" data-side-menu-wrap>
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary"
+                          data-bs-toggle="dropdown"
+                          aria-expanded="false"
+                          aria-label="Side options"
+                        >
+                          <i class="bi bi-three-dots" aria-hidden="true"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" data-side-menu></ul>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        data-remove-side
+                        aria-label="Remove side"
+                        title="Remove side"
+                      >
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      </button>
+                      {% endif %}
+                    </span>
+                  </div>
+                  <input type="hidden" name="participant_player_id" value="{{ row.player_id }}" />
+                  <input type="hidden" name="participant_guest_name" value="{{ row.guest_name }}" />
+                  <input type="hidden" name="participant_teammate_player_id" value="{{ row.teammate_player_id }}" />
+                  <input type="hidden" name="participant_teammate_guest_name" value="{{ row.teammate_guest_name }}" />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    name="participant_score"
+                    class="form-control form-control-sm game-record-score-input"
+                    data-score-input
+                    value="{{ row.score }}"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                  />
+                </td>
+                <td data-result-cell></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div
+        class="game-record-picker-panel is-player-picker-collapsed"
+        data-player-picker-panel
+      >
+        <button
+          type="button"
+          class="btn game-record-add-toggle"
+          data-player-picker-expand
+          aria-expanded="false"
+          aria-controls="player-picker-expanded"
+          title="Add player"
+        >
+          <i class="bi bi-plus-lg" aria-hidden="true"></i>
+          <span class="visually-hidden">Add player</span>
+        </button>
+
+        <div class="game-record-footer">
+          <div
+            id="player-picker-expanded"
+            class="game-record-picker-block"
+            data-player-picker-expanded
+            hidden
+          >
             <button
               type="button"
-              class="btn btn-sm btn-outline-danger game-edit-remove-btn"
-              title="Remove player"
-              aria-label="Remove {{ row.result.player.display_label }}"
+              class="btn btn-link text-decoration-none p-0 form-label player-picker-cta-label d-flex align-items-center gap-2"
+              data-player-picker-collapse
+              aria-expanded="false"
+              aria-controls="player-picker-expanded"
+              title="Hide add player"
             >
-              <i class="bi bi-trash" aria-hidden="true"></i>
+              <i class="bi bi-person-plus-fill" aria-hidden="true"></i>
+              <span data-player-picker-label-text>Add player</span>
             </button>
-            {{ row.remove_field }}
-          </div>
-        </div>
-        {% if row.score_field.errors %}
-          <div class="row mb-2 g-2">
-            <div class="col offset-4">
-              <div class="invalid-feedback d-block">{{ row.score_field.errors }}</div>
+            <div class="player-picker-wrap player-picker-cta-wrap">
+              <div class="combobox-input-wrap player-picker-field">
+                <input
+                  type="text"
+                  id="player-picker-input"
+                  class="form-control player-picker-cta-input"
+                  data-player-picker
+                  name="ll_player_search"
+                  placeholder="Type player"
+                  autocomplete="ll-player"
+                  autocorrect="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  readonly
+                />
+              </div>
             </div>
           </div>
-        {% endif %}
-      {% endfor %}
+          <div class="game-record-save-col">
+            <div class="game-record-feedback small" data-score-feedback role="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
 
-      <div class="row align-items-start mb-0 g-2">
+      <div class="row align-items-start mb-0 g-2 mt-2">
         <label class="col-4 col-form-label" for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
         <div class="col-8">
           {{ form.notes }}
@@ -205,7 +377,7 @@
     </div>
   </form>
     <div class="card-footer d-flex flex-wrap gap-2 align-items-center">
-      <button type="submit" form="game-edit-form" class="btn btn-primary">Save changes</button>
+      <button type="submit" form="game-edit-form" class="btn btn-primary" data-save-button>Save changes</button>
       <a href="{% url 'games:detail' pk=game.pk %}" class="btn btn-outline-secondary">Cancel</a>
       <form
         method="post"
@@ -237,42 +409,6 @@
     <script src="{% static 'js/location_map.js' %}?v=3"></script>
     <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
   {% endif %}
-  <script>
-    (function () {
-      function setRowRemovedState(row, removed) {
-        const scoreInput = row.querySelector(".game-edit-score-input");
-        const removeInput = row.querySelector(".game-edit-remove-input");
-        const btn = row.querySelector(".game-edit-remove-btn");
-        const icon = btn.querySelector("i");
-
-        removeInput.value = removed ? "true" : "";
-        scoreInput.disabled = removed;
-        row.classList.toggle("game-edit-player-row--removed", removed);
-
-        if (removed) {
-          btn.classList.replace("btn-outline-danger", "btn-outline-secondary");
-          icon.className = "bi bi-arrow-counterclockwise";
-          btn.title = "Undo remove";
-          btn.setAttribute("aria-label", btn.getAttribute("aria-label").replace("Remove ", "Undo remove "));
-        } else {
-          btn.classList.replace("btn-outline-secondary", "btn-outline-danger");
-          icon.className = "bi bi-trash";
-          btn.title = "Remove player";
-          btn.setAttribute("aria-label", btn.getAttribute("aria-label").replace("Undo remove ", "Remove "));
-        }
-      }
-
-      document.querySelectorAll(".game-edit-player-row").forEach(function (row) {
-        const removeInput = row.querySelector(".game-edit-remove-input");
-        if (removeInput && removeInput.value) {
-          setRowRemovedState(row, true);
-        }
-        const btn = row.querySelector(".game-edit-remove-btn");
-        btn.addEventListener("click", function () {
-          const isRemoved = row.classList.contains("game-edit-player-row--removed");
-          setRowRemovedState(row, !isRemoved);
-        });
-      });
-    })();
-  </script>
+  <script src="{% static 'js/player_picker.js' %}?v=31"></script>
+  <script src="{% static 'js/game_record_form.js' %}?v=17"></script>
 {% endblock %}

@@ -23,6 +23,7 @@ from leaderlodge.games.forms import (
     parse_participants_from_post,
     prepare_participant_rows,
 )
+from leaderlodge.games.reuse_players import participant_rows_for_edit_game
 from leaderlodge.groups.player_search import roster_for_group
 from leaderlodge.games.features import (
     apply_feature_selections_to_games_qs,
@@ -1385,9 +1386,19 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
     results = list(
         game.participant_results.select_related("player").order_by("placement", "pk")
     )
+    participant_error = None
+    lineup_rows = None
+
     if request.method == "POST":
         form = GameEditForm(request.POST, game=game)
-        if form.is_valid():
+        if request.POST.getlist("participant_player_id"):
+            try:
+                parsed = parse_participants_from_post(request.POST, group=game.group)
+                prepare_participant_rows(parsed, game.game_type_code)
+                lineup_rows = parsed
+            except ValidationError as exc:
+                participant_error = str(exc)
+        if form.is_valid() and participant_error is None:
             try:
                 edit_kwargs = {
                     "game": game,
@@ -1395,6 +1406,7 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
                     "notes": form.cleaned_data["notes"],
                     "score_updates": form.score_updates(),
                     "participant_removals": form.participant_removals(),
+                    "lineup_rows": lineup_rows,
                     "new_location": form.resolved_location(),
                     "new_played_on": form.cleaned_data["played_on"],
                 }
@@ -1413,14 +1425,12 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
     else:
         form = GameEditForm(game=game)
 
-    participant_form_rows = [
-        {
-            "result": r,
-            "score_field": form[f"score_{r.pk}"],
-            "remove_field": form[f"remove_{r.pk}"],
-        }
-        for r in results
-    ]
+    if request.method == "POST" and request.POST.getlist("participant_player_id"):
+        participant_rows = _participant_rows_from_post(game.group, request.POST)
+    else:
+        participant_rows = participant_rows_for_edit_game(game)
+
+    roster = roster_for_group(game.group, game_type_code=game.game_type_code)
 
     can_set_place = (
         can_manage_group_members(request.user, game.group)
@@ -1443,7 +1453,12 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "game_type_icon_url": game_type_icon_url(game.game_type_code),
             "form": form,
             "results": results,
-            "participant_form_rows": participant_form_rows,
+            "participant_rows": participant_rows,
+            "participant_error": participant_error,
+            "roster": roster,
+            "default_participant_score": default_participant_score_value(
+                game.game_type_code
+            ),
             "score_type_choice_options": [
                 {
                     "value": value,

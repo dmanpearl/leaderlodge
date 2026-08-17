@@ -7,6 +7,7 @@ from leaderlodge.games.models import GameParticipantResult, GameScoreChangeLog
 from leaderlodge.games.registry import MahjonggStyle, normalize_score_type
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
+from tests.conftest import edit_game_participant_post
 
 
 @pytest.fixture
@@ -220,14 +221,14 @@ def test_edit_mahjongg_style(client, user, group):
     assert MahjonggStyle.JAPANESE.value in content
     assert "mj-american.png" in content
 
-    post = {
-        "played_on": game.played_on.isoformat(),
-        "score_type": MahjonggStyle.JAPANESE.value,
-        "notes": "Recorded American by mistake.",
-    }
-    for participant in participants:
-        post[f"score_{participant.pk}"] = participant.score
-    response = client.post(url, post)
+    response = client.post(
+        url,
+        edit_game_participant_post(
+            game,
+            score_type=MahjonggStyle.JAPANESE.value,
+            notes="Recorded American by mistake.",
+        ),
+    )
     assert response.status_code == 302
     game.refresh_from_db()
     assert game.score_type == MahjonggStyle.JAPANESE.value

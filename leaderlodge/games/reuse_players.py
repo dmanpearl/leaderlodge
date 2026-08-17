@@ -35,8 +35,9 @@ def recent_games_for_reuse(
     )
 
 
-def participant_rows_from_game(game: Game) -> list[dict]:
-    """Sides from a specific game, ready for the Record Game roster form."""
+def _build_participant_rows_from_results(
+    game: Game, *, include_scores: bool
+) -> list[dict]:
     from leaderlodge.groups.names import apply_label_overrides
     from leaderlodge.groups.teams import team_member_players
 
@@ -58,6 +59,7 @@ def participant_rows_from_game(game: Game) -> list[dict]:
         player = result.player
         if not player.is_active:
             continue
+        score = result.score if include_scores else ""
         if player.is_team:
             members = team_member_players(player)
             if not members:
@@ -76,24 +78,37 @@ def participant_rows_from_game(game: Game) -> list[dict]:
                     ),
                     "display_label": player.display_label,
                     "played": True,
-                    "score": "",
+                    "score": score,
                 }
             )
             continue
+        guest_name = ""
+        if not player.linked_user_id:
+            guest_name = player.display_name
         rows.append(
             {
                 "player": player,
-                "player_id": player.pk,
-                "guest_name": "",
+                "player_id": player.pk if player.linked_user_id else "",
+                "guest_name": guest_name,
                 "teammate_player_id": "",
                 "teammate_guest_name": "",
                 "teammate_display_label": "",
                 "display_label": player.display_label,
                 "played": True,
-                "score": "",
+                "score": score,
             }
         )
     return rows
+
+
+def participant_rows_for_edit_game(game: Game) -> list[dict]:
+    """Sides from a game with scores, for the Edit Game participant table."""
+    return _build_participant_rows_from_results(game, include_scores=True)
+
+
+def participant_rows_from_game(game: Game) -> list[dict]:
+    """Sides from a specific game, ready for the Record Game roster form."""
+    return _build_participant_rows_from_results(game, include_scores=False)
 
 
 def previous_game_participant_rows(group: Group, game_type_code: str) -> list[dict]:

@@ -290,6 +290,164 @@
         : "";
   }
 
+  function getRecordForm(tbody) {
+    return tbody
+      ? tbody.closest("#game-record-form, #game-edit-form")
+      : null;
+  }
+
+  function isEditForm(form) {
+    return form?.id === "game-edit-form";
+  }
+
+  function getSideLimits(form) {
+    if (!form) {
+      return { min: 0, max: Number.MAX_SAFE_INTEGER };
+    }
+    const min = Number.parseInt(form.dataset.minPlayers, 10);
+    const max = Number.parseInt(form.dataset.maxPlayers, 10);
+    return {
+      min: Number.isNaN(min) ? 0 : min,
+      max: Number.isNaN(max) ? Number.MAX_SAFE_INTEGER : max,
+    };
+  }
+
+  function countSides(tbody) {
+    if (!tbody) {
+      return 0;
+    }
+    return tbody.querySelectorAll("[data-game-row]").length;
+  }
+
+  function canAddSide(form, tbody) {
+    const { max } = getSideLimits(form);
+    return countSides(tbody) < max;
+  }
+
+  function rowControlsHtml() {
+    return `
+              <div class="dropdown d-none" data-side-menu-wrap>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  aria-label="Side options"
+                >
+                  <i class="bi bi-three-dots" aria-hidden="true"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" data-side-menu></ul>
+              </div>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-danger d-none"
+                data-remove-side
+                aria-label="Remove side"
+                title="Remove side"
+              >
+                <i class="bi bi-trash" aria-hidden="true"></i>
+              </button>
+    `;
+  }
+
+  function initRowMenuDropdown(row) {
+    const toggle = row.querySelector(
+      "[data-side-menu-wrap] [data-bs-toggle='dropdown']"
+    );
+    if (!toggle || toggle.dataset.rowMenuReady === "1") {
+      return;
+    }
+    toggle.dataset.rowMenuReady = "1";
+    if (window.bootstrap?.Dropdown) {
+      new window.bootstrap.Dropdown(toggle, {
+        popperConfig: (defaultConfig) => ({
+          ...defaultConfig,
+          strategy: "fixed",
+        }),
+      });
+    }
+  }
+
+  function buildSideActions(row) {
+    const actions = [{ action: "remove-side", label: "Remove side" }];
+    const hasTeammate = Boolean(row.dataset.teammateLabel);
+    if (hasTeammate) {
+      const primaryLabel = row.dataset.primaryLabel || "player";
+      const teammateLabel = row.dataset.teammateLabel || "";
+      actions.push({
+        action: "remove-teammate",
+        label: `Remove ${teammateLabel}`,
+      });
+      actions.push({
+        action: "remove-primary",
+        label: `Remove ${primaryLabel}`,
+      });
+    }
+    return actions;
+  }
+
+  function appendSideActionMenuItem(menu, action, label) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "dropdown-item d-flex align-items-center gap-2";
+    button.dataset.sideAction = action;
+    const icon = document.createElement("i");
+    icon.className = "bi bi-trash side-action-trash";
+    icon.setAttribute("aria-hidden", "true");
+    const text = document.createElement("span");
+    text.textContent = label;
+    button.appendChild(icon);
+    button.appendChild(text);
+    item.appendChild(button);
+    menu.appendChild(item);
+  }
+
+  function updateSideActions(row) {
+    const menuWrap = row.querySelector("[data-side-menu-wrap]");
+    const menu = row.querySelector("[data-side-menu]");
+    const soloRemoveBtn = row.querySelector("[data-remove-side]");
+    if (!menuWrap || !menu) {
+      return;
+    }
+
+    const actions = buildSideActions(row);
+    if (actions.length === 1) {
+      menuWrap.classList.add("d-none");
+      menu.replaceChildren();
+      if (soloRemoveBtn) {
+        soloRemoveBtn.classList.remove("d-none");
+      }
+      return;
+    }
+
+    if (soloRemoveBtn) {
+      soloRemoveBtn.classList.add("d-none");
+    }
+    menuWrap.classList.remove("d-none");
+    menu.replaceChildren();
+    actions.forEach(({ action, label }) => {
+      appendSideActionMenuItem(menu, action, label);
+    });
+    initRowMenuDropdown(row);
+  }
+
+  function refreshSideLimitsUI(form, tbody) {
+    if (!form || !tbody) {
+      return;
+    }
+    tbody.querySelectorAll("[data-game-row]").forEach((row) => {
+      updateSideLabel(row, form, tbody);
+    });
+    const expandBtn = form.querySelector("[data-player-picker-expand]");
+    if (expandBtn) {
+      expandBtn.disabled = !canAddSide(form, tbody);
+    }
+    if (window.LeaderLodgeUpdateGameRecordForm) {
+      window.LeaderLodgeUpdateGameRecordForm();
+    }
+  }
+
   function sideLabel(primaryLabel, teammateLabel) {
     if (!teammateLabel) {
       return primaryLabel;
@@ -299,11 +457,13 @@
       .join("+");
   }
 
-  function updateSideLabel(row) {
+  function updateSideLabel(row, form, tbody) {
     const labelEl = row.querySelector("[data-side-label]");
     if (!labelEl) {
       return;
     }
+    const body = tbody || row.closest("[data-participant-rows]");
+    const gameForm = form || getRecordForm(body);
     const primaryLabel =
       row.dataset.primaryLabel || labelEl.dataset.primaryLabel || "";
     const teammateLabel = row.dataset.teammateLabel || "";
@@ -319,21 +479,21 @@
     if (addWrap) {
       addWrap.classList.toggle("d-none", hasTeammate);
     }
-    const menuWrap = row.querySelector("[data-team-menu-wrap]");
-    const menu = row.querySelector("[data-team-menu]");
-    if (menuWrap && menu) {
-      menuWrap.classList.toggle("d-none", !hasTeammate);
-      menu.innerHTML = hasTeammate
-        ? `
-          <li><button type="button" class="dropdown-item" data-remove-member="primary">Remove ${primaryLabel}</button></li>
-          <li><button type="button" class="dropdown-item" data-remove-member="teammate">Remove ${teammateLabel}</button></li>
-        `
-        : "";
-    }
     row.dataset.hasTeammate = hasTeammate ? "1" : "";
+    updateSideActions(row);
   }
 
-  function appendParticipantRow(tbody, rowEntry, defaultParticipantScore, focusEl) {
+  function appendParticipantRow(
+    tbody,
+    rowEntry,
+    defaultParticipantScore,
+    focusEl,
+    form
+  ) {
+    const gameForm = form || getRecordForm(tbody);
+    if (gameForm && !canAddSide(gameForm, tbody)) {
+      return false;
+    }
     const rowKey = rowKeyForEntry(
       rowEntry.id ? { id: rowEntry.id } : { guestName: rowEntry.guestName }
     );
@@ -384,19 +544,7 @@
                   readonly
                 />
               </div>
-              <div class="dropdown d-none" data-team-menu-wrap>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  aria-label="Remove one player from this team"
-                >
-                  <i class="bi bi-three-dots" aria-hidden="true"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" data-team-menu></ul>
-              </div>
-              <button type="button" class="btn btn-sm btn-outline-secondary" data-remove-participant aria-label="Remove player">&times;</button>
+              ${rowControlsHtml()}
             </span>
           </div>
           <input type="hidden" name="participant_player_id" value="${rowEntry.id || ""}" />
@@ -427,20 +575,7 @@
     if (teammateInput) {
       window.LeaderLodgeRecordGame?.teammatePicker?.prepareInput?.(teammateInput);
     }
-    const teamMenuToggle = row.querySelector(
-      "[data-team-menu-wrap] [data-bs-toggle='dropdown']"
-    );
-    if (teamMenuToggle && window.bootstrap?.Dropdown) {
-      // Table rows sit in a horizontally-scrolling .table-responsive
-      // wrapper, which clips a menu positioned relative to its trigger.
-      // Popper's "fixed" strategy positions against the viewport instead.
-      new window.bootstrap.Dropdown(teamMenuToggle, {
-        popperConfig: (defaultConfig) => ({
-          ...defaultConfig,
-          strategy: "fixed",
-        }),
-      });
-    }
+    updateSideLabel(row, gameForm, tbody);
     const scoreInput = row.querySelector("[data-score-input]");
     if (defaultParticipantScore !== "") {
       scoreInput.value = defaultParticipantScore;
@@ -451,7 +586,11 @@
     return true;
   }
 
-  function appendTeamRow(tbody, entry, defaultParticipantScore, focusEl) {
+  function appendTeamRow(tbody, entry, defaultParticipantScore, focusEl, form) {
+    const gameForm = form || getRecordForm(tbody);
+    if (gameForm && !canAddSide(gameForm, tbody)) {
+      return false;
+    }
     const members = entry.members;
     if (!members || members.length < 2) {
       return false;
@@ -469,7 +608,8 @@
       tbody,
       primaryEntry,
       defaultParticipantScore,
-      null
+      null,
+      gameForm
     );
     if (!added) {
       return false;
@@ -488,17 +628,14 @@
     return true;
   }
 
-  function assignTeammate(row, rowEntry) {
-    const teammateId = rowEntry.id ? String(rowEntry.id) : "";
-    const teammateGuest = rowEntry.guestName || "";
+  function teammateAssignmentAllowed(row, rowEntry, tbody) {
     const teammateKey = rowEntry.id
       ? `player-${rowEntry.id}`
       : `guest-${normalizeForMatch(rowEntry.guestName)}`;
     if (row.dataset.rowKey === teammateKey) {
       return false;
     }
-    const tbody = row.closest("tbody");
-    if (tbody && rowEntry.id && playersAlreadyInGame(tbody).has(Number(rowEntry.id))) {
+    if (rowEntry.id && playersAlreadyInGame(tbody).has(Number(rowEntry.id))) {
       const primaryId = row.dataset.playerId;
       const onThisRow =
         (primaryId && Number(primaryId) === Number(rowEntry.id)) ||
@@ -507,24 +644,36 @@
         return false;
       }
     }
-    if (tbody && existingRowKeys(tbody).has(teammateKey) && row.dataset.rowKey !== teammateKey) {
-      // Teammate already on another side.
-      const alreadyOnSide = Array.from(tbody.querySelectorAll("[data-game-row]")).some(
+    if (
+      existingRowKeys(tbody).has(teammateKey) &&
+      row.dataset.rowKey !== teammateKey
+    ) {
+      return !Array.from(tbody.querySelectorAll("[data-game-row]")).some(
         (other) =>
           other !== row &&
           (other.dataset.rowKey === teammateKey ||
             other.dataset.teammateKey === teammateKey)
       );
-      if (alreadyOnSide) {
-        return false;
-      }
     }
+    return true;
+  }
+
+  function assignTeammate(row, rowEntry) {
+    const tbody = row.closest("tbody");
+    if (!tbody || !teammateAssignmentAllowed(row, rowEntry, tbody)) {
+      return false;
+    }
+    const teammateId = rowEntry.id ? String(rowEntry.id) : "";
+    const teammateGuest = rowEntry.guestName || "";
+    const teammateKey = rowEntry.id
+      ? `player-${rowEntry.id}`
+      : `guest-${normalizeForMatch(rowEntry.guestName)}`;
     row.querySelector('[name="participant_teammate_player_id"]').value = teammateId;
     row.querySelector('[name="participant_teammate_guest_name"]').value = teammateGuest;
     row.dataset.teammateLabel = rowEntry.label;
     row.dataset.teammateKey = teammateKey;
     row.dataset.teammateDetail = detailBadge(rowEntry);
-    updateSideLabel(row);
+    updateSideLabel(row, getRecordForm(tbody), tbody);
     return true;
   }
 
@@ -534,7 +683,8 @@
     delete row.dataset.teammateLabel;
     delete row.dataset.teammateKey;
     delete row.dataset.teammateDetail;
-    updateSideLabel(row);
+    const tbody = row.closest("[data-participant-rows]");
+    updateSideLabel(row, getRecordForm(tbody), tbody);
   }
 
   function promoteTeammateToPrimary(row) {
@@ -562,6 +712,64 @@
     row.dataset.primaryDetail = teammateDetail;
 
     removeTeammate(row);
+    const tbody = row.closest("[data-participant-rows]");
+    updateSideLabel(row, getRecordForm(tbody), tbody);
+  }
+
+  function rosterEntryForRowMember(row, slot, roster) {
+    const playerId =
+      slot === "primary"
+        ? row.querySelector('[name="participant_player_id"]').value.trim()
+        : row.querySelector('[name="participant_teammate_player_id"]').value.trim();
+    const guestName =
+      slot === "primary"
+        ? row.querySelector('[name="participant_guest_name"]').value.trim()
+        : row.querySelector('[name="participant_teammate_guest_name"]').value.trim();
+    if (playerId) {
+      const entry = roster.find((item) => String(item.id) === playerId);
+      if (entry) {
+        return entry;
+      }
+    }
+    const label =
+      slot === "primary"
+        ? row.dataset.primaryLabel
+        : row.dataset.teammateLabel;
+    return {
+      id: playerId || "",
+      label: label || guestName || "Guest",
+      username: null,
+      kind: playerId ? "member" : "guest",
+      guestName: guestName || "",
+    };
+  }
+
+  function hydrateParticipantRow(row, roster, form, tbody) {
+    const body = tbody || row.closest("[data-participant-rows]");
+    const gameForm = form || getRecordForm(body);
+    if (!row.dataset.primaryLabel) {
+      const hydrated = rosterEntryForRowMember(row, "primary", roster);
+      row.dataset.primaryLabel = hydrated.label;
+      row.dataset.primaryDetail = detailBadge(hydrated);
+    }
+    const teammateId = row
+      .querySelector('[name="participant_teammate_player_id"]')
+      ?.value?.trim();
+    const teammateGuest = row
+      .querySelector('[name="participant_teammate_guest_name"]')
+      ?.value?.trim();
+    if (teammateId || teammateGuest) {
+      if (!row.dataset.teammateLabel) {
+        const hydrated = rosterEntryForRowMember(row, "teammate", roster);
+        row.dataset.teammateLabel = hydrated.label;
+        row.dataset.teammateDetail = detailBadge(hydrated);
+      }
+      row.dataset.teammateKey = teammateId
+        ? `player-${teammateId}`
+        : `guest-${normalizeForMatch(teammateGuest)}`;
+    }
+    initRowMenuDropdown(row);
+    updateSideLabel(row, gameForm, body);
   }
 
   function attachListToInput(input, listEl) {
@@ -673,28 +881,44 @@
         this.collapseButton.addEventListener("click", () => this.collapsePicker());
       }
       tbody.addEventListener("click", (event) => {
-        const removeButton = event.target.closest("[data-remove-participant]");
-        if (removeButton) {
-          const row = removeButton.closest("[data-game-row]");
+        const soloRemoveButton = event.target.closest("[data-remove-side]");
+        if (soloRemoveButton) {
+          const row = soloRemoveButton.closest("[data-game-row]");
           if (row) {
-            row.remove();
-            this.scheduleSuggestionRefresh();
+            this.handleSideAction(row, "remove-side");
           }
           return;
         }
-        const memberButton = event.target.closest("[data-remove-member]");
-        if (memberButton) {
-          const row = memberButton.closest("[data-game-row]");
+        const actionButton = event.target.closest("[data-side-action]");
+        if (actionButton) {
+          const row = actionButton.closest("[data-game-row]");
           if (!row) {
             return;
           }
-          if (memberButton.dataset.removeMember === "primary") {
-            promoteTeammateToPrimary(row);
-          } else {
-            removeTeammate(row);
-          }
+          this.handleSideAction(row, actionButton.dataset.sideAction);
         }
       });
+    }
+
+    refreshSideLimitsUI() {
+      refreshSideLimitsUI(this.form, this.tbody);
+    }
+
+    handleSideAction(row, action) {
+      switch (action) {
+        case "remove-side":
+          row.remove();
+          break;
+        case "remove-teammate":
+          removeTeammate(row);
+          break;
+        case "remove-primary":
+          promoteTeammateToPrimary(row);
+          break;
+        default:
+          return;
+      }
+      this.refreshSideLimitsUI();
     }
 
     scheduleSuggestionRefresh() {
@@ -846,10 +1070,12 @@
       const matches = filterRoster(roster, query);
       const existing = this.existingRowKeys();
       this.suggestions = matches
-        .filter(
-          (entry) =>
-            !entryIsIneligible(this.tbody, entry, existing, this.roster)
-        )
+        .filter((entry) => {
+          if (entry.kind === "team") {
+            return false;
+          }
+          return !entryIsIneligible(this.tbody, entry, existing, this.roster);
+        })
         .map((entry) => ({ type: "player", entry }));
 
       const trimmed = query.trim();
@@ -858,9 +1084,10 @@
           rosterEntryMatchesLabel(entry, trimmed)
         );
         const guestKey = rowKeyForEntry({ guestName: trimmed });
+        const guestAllowed = !existing.has(guestKey);
         if (
+          guestAllowed &&
           !exactRosterMatch &&
-          !existing.has(guestKey) &&
           !this.suggestions.some(
             (item) =>
               item.type === "guest" && labelsMatch(item.entry.guestName, trimmed)
@@ -962,6 +1189,8 @@
     }
 
     addParticipant({ entry, guestName }) {
+      const rowEntry = buildRowEntry({ entry, guestName });
+
       if (entry?.kind === "team") {
         if (
           entryIsIneligible(
@@ -977,13 +1206,13 @@
           this.tbody,
           entry,
           this.defaultParticipantScore,
-          this.input
+          this.input,
+          this.form
         );
-        this.scheduleSuggestionRefresh();
+        this.refreshSideLimitsUI();
         return;
       }
 
-      const rowEntry = buildRowEntry({ entry, guestName });
       if (
         entry &&
         entryIsIneligible(
@@ -1000,10 +1229,11 @@
           this.tbody,
           rowEntry,
           this.defaultParticipantScore,
-          this.input
+          this.input,
+          this.form
         )
       ) {
-        this.scheduleSuggestionRefresh();
+        this.refreshSideLimitsUI();
       }
     }
 
@@ -1435,7 +1665,9 @@
   }
 
   function initPlayerPicker() {
-    const form = document.getElementById("game-record-form");
+    const form =
+      document.getElementById("game-record-form") ||
+      document.getElementById("game-edit-form");
     if (!form) {
       return;
     }
@@ -1465,6 +1697,16 @@
       roster,
       tbody
     );
+    if (isEditForm(form)) {
+      tbody.querySelectorAll("[data-game-row]").forEach((row) => {
+        hydrateParticipantRow(row, roster, form, tbody);
+      });
+    } else {
+      tbody.querySelectorAll("[data-game-row]").forEach((row) => {
+        updateSideLabel(row, form, tbody);
+      });
+    }
+    refreshSideLimitsUI(form, tbody);
   }
 
   if (document.readyState === "loading") {
@@ -1493,9 +1735,14 @@
     }
   };
   window.LeaderLodgeRecordGame.appendSide = function appendSide(side) {
-    const form = document.getElementById("game-record-form");
-    const tbody = document.querySelector("[data-participant-rows]");
+    const form =
+      document.getElementById("game-record-form") ||
+      document.getElementById("game-edit-form");
+    const tbody = form?.querySelector("[data-participant-rows]");
     if (!form || !tbody || !side || !Array.isArray(side.players)) {
+      return false;
+    }
+    if (!canAddSide(form, tbody)) {
       return false;
     }
     const empty = tbody.querySelector("[data-participant-empty]");
@@ -1516,7 +1763,7 @@
       kind: players[0].player_id ? "member" : "guest",
       username: null,
     };
-    if (!appendParticipantRow(tbody, primary, scoreValue, null)) {
+    if (!appendParticipantRow(tbody, primary, scoreValue, null, form)) {
       return false;
     }
     const rows = tbody.querySelectorAll("[data-game-row]");
@@ -1536,6 +1783,7 @@
       scoreInput.value = String(side.score);
       scoreInput.dispatchEvent(new Event("input", { bubbles: true }));
     }
+    window.LeaderLodgeRecordGame?.picker?.refreshSideLimitsUI?.();
     return true;
   };
 })();

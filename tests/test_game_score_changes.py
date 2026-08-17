@@ -9,6 +9,8 @@ from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChang
 from leaderlodge.games.score_changes import change_game_score, recalculate_game_results
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 
+from tests.conftest import edit_game_participant_post
+
 Result = GameParticipantResult.Result
 
 
@@ -188,17 +190,14 @@ def test_game_edit_location_only(client, staff_user, dominos_game, group):
 
     resolve_game_location(group=group, location_name="Clubhouse")
     client.force_login(staff_user)
-    participants = list(dominos_game.participant_results.order_by("pk"))
     url = reverse("games:edit_game", kwargs={"pk": dominos_game.pk})
     response = client.post(
         url,
-        {
-            "played_on": dominos_game.played_on.isoformat(),
-            "location_name": "Clubhouse",
-            f"score_{participants[0].pk}": participants[0].score,
-            f"score_{participants[1].pk}": participants[1].score,
-            "notes": "Recorded in the wrong room.",
-        },
+        edit_game_participant_post(
+            dominos_game,
+            location_name="Clubhouse",
+            notes="Recorded in the wrong room.",
+        ),
     )
     assert response.status_code == 302
     dominos_game.refresh_from_db()
@@ -261,15 +260,12 @@ def test_member_can_edit_own_game(client, member_user, member_dominos_game):
     response = client.get(url)
     assert response.status_code == 200
 
-    response = client.post(
-        url,
-        {
-            "played_on": member_dominos_game.played_on.isoformat(),
-            f"score_{participants[0].pk}": participants[0].score,
-            f"score_{participants[1].pk}": 35,
-            "notes": "Fixed my typo.",
-        },
-    )
+    post = edit_game_participant_post(member_dominos_game, notes="Fixed my typo.")
+    post["participant_score"] = [
+        str(participants[0].score),
+        "35",
+    ]
+    response = client.post(url, post)
     assert response.status_code == 302
     member_dominos_game.refresh_from_db()
     winner = member_dominos_game.participant_results.get(player=participants[1].player)
@@ -297,18 +293,15 @@ def test_game_edit_allows_blank_notes(client, staff_user, dominos_game):
     assert "Optional. Explain why this game was edited." not in content
     assert "Optional: why are these changes being made?" in content
 
-    response = client.post(
-        url,
-        {
-            "played_on": dominos_game.played_on.isoformat(),
-            f"score_{participants[0].pk}": participants[0].score,
-            f"score_{participants[1].pk}": 35,
-            "notes": "   ",
-        },
-    )
+    post = edit_game_participant_post(dominos_game, notes="   ")
+    post["participant_score"] = [
+        str(participants[0].score),
+        "35",
+    ]
+    response = client.post(url, post)
     assert response.status_code == 302
     dominos_game.refresh_from_db()
-    updated = dominos_game.participant_results.get(pk=participants[1].pk)
+    updated = dominos_game.participant_results.get(player=participants[1].player)
     assert updated.score == 35
     log = GameScoreChangeLog.objects.filter(game=dominos_game).latest("pk")
     assert log.notes == ""
@@ -324,12 +317,11 @@ def test_game_edit_played_on_via_form(client, staff_user, dominos_game):
     url = reverse("games:edit_game", kwargs={"pk": dominos_game.pk})
     response = client.post(
         url,
-        {
-            "played_on": new_date.isoformat(),
-            f"score_{participants[0].pk}": participants[0].score,
-            f"score_{participants[1].pk}": participants[1].score,
-            "notes": "Recorded on the wrong calendar day.",
-        },
+        edit_game_participant_post(
+            dominos_game,
+            played_on=new_date.isoformat(),
+            notes="Recorded on the wrong calendar day.",
+        ),
     )
     assert response.status_code == 302
     dominos_game.refresh_from_db()
@@ -386,15 +378,11 @@ def test_edit_progressive_rummy_half_game(client, staff_user, progressiverummy_g
 
     response = client.post(
         url,
-        {
-            "played_on": game.played_on.isoformat(),
-            "is_half_game": "on",
-            **{
-                f"score_{participant.pk}": participant.score
-                for participant in participants
-            },
-            "notes": "Played a shortened round.",
-        },
+        edit_game_participant_post(
+            game,
+            is_half_game="on",
+            notes="Played a shortened round.",
+        ),
     )
     assert response.status_code == 302
     game.refresh_from_db()
@@ -423,7 +411,9 @@ def test_member_can_delete_own_game(client, member_user, member_dominos_game, gr
     response = client.post(reverse("games:delete", kwargs={"pk": game_pk}))
     assert response.status_code == 302
     assert not Game.objects.filter(pk=game_pk).exists()
-    assert response.url == (f"{reverse('games:list')}?group={group.pk}&type=dominos")
+    assert response.url == (
+        f"{reverse('games:list')}?group={group.pk}&game_type_code=dominos"
+    )
     log = GameScoreChangeLog.objects.get()
     assert log.event == GameScoreChangeLog.Event.DELETE
     assert log.game_id is None

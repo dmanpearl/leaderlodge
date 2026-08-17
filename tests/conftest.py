@@ -16,3 +16,23 @@ def _clear_geoip_cache():
     lookup_ip.cache_clear()
     yield
     lookup_ip.cache_clear()
+
+
+def edit_game_participant_post(game, **extra):
+    from leaderlodge.games.reuse_players import participant_rows_for_edit_game
+
+    rows = participant_rows_for_edit_game(game)
+    post = {
+        "played_on": game.played_on.isoformat(),
+        "participant_player_id": [str(r.get("player_id") or "") for r in rows],
+        "participant_guest_name": [r.get("guest_name") or "" for r in rows],
+        "participant_teammate_player_id": [
+            str(r.get("teammate_player_id") or "") for r in rows
+        ],
+        "participant_teammate_guest_name": [
+            r.get("teammate_guest_name") or "" for r in rows
+        ],
+        "participant_score": [str(r["score"]) for r in rows],
+    }
+    post.update(extra)
+    return post

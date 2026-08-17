@@ -245,6 +245,49 @@ def delete_game(*, game: Game, user: AbstractBaseUser) -> GameScoreChangeLog:
 
 
 @transaction.atomic
+def _lineup_rows_differ(game: Game, new_rows: list[dict]) -> bool:
+    current = list(game.participant_results.select_related("player").order_by("pk"))
+    if len(current) != len(new_rows):
+        return True
+    for existing, row in zip(current, new_rows, strict=False):
+        if existing.player_id != row["player"].pk:
+            return True
+        if existing.score != row["score"]:
+            return True
+        if existing.result != row.get("result"):
+            return True
+        if existing.placement != row.get("placement"):
+            return True
+    return False
+
+
+def _replace_game_lineup(game: Game, rows: list[dict]) -> tuple[int, bool]:
+    old_double_weight = game.double_weight
+    new_double_weight = compute_double_weight(rows, game.game_type_code)
+    double_weight_changed = old_double_weight != new_double_weight
+
+    game.participant_results.all().delete()
+    for row in rows:
+        GameParticipantResult.objects.create(
+            game=game,
+            player=row["player"],
+            score=row["score"],
+            result=row["result"],
+            placement=row["placement"],
+        )
+
+    game.player_count = len(rows)
+    update_fields = ["player_count"]
+    if double_weight_changed:
+        game.double_weight = new_double_weight
+        update_fields.append("double_weight")
+    game.save(update_fields=update_fields)
+    if "_prefetched_objects_cache" in game.__dict__:
+        del game.__dict__["_prefetched_objects_cache"]
+    game.validate_participant_results()
+    return len(rows), double_weight_changed
+
+
 def apply_game_edits(
     *,
     game: Game,
@@ -252,6 +295,7 @@ def apply_game_edits(
     notes: str,
     score_updates: dict[int, int] | None = None,
     participant_removals: set[int] | None = None,
+    lineup_rows: list[dict] | None = None,
     new_location: Location | None | object = _UNCHANGED,
     new_played_on: date | object = _UNCHANGED,
     new_score_type: str | object = _UNCHANGED,
@@ -286,9 +330,16 @@ def apply_game_edits(
         resolved_half_weight = new_half_weight
         half_weight_changed = resolved_half_weight != game.half_weight
 
+    lineup_changed = False
+    lineup_participants_updated = 0
+    lineup_double_weight_changed = False
+    if lineup_rows is not None and _lineup_rows_differ(game, lineup_rows):
+        lineup_changed = True
+
     if (
         not updates
         and not removals
+        and not lineup_changed
         and not location_changed
         and not date_changed
         and not score_type_changed
@@ -317,7 +368,21 @@ def apply_game_edits(
     rows: list[dict] | None = None
     new_double_weight = game.double_weight
 
-    if updates or removals:
+    if lineup_changed and lineup_rows is not None:
+        rows = [
+            {
+                "participant_result": None,
+                "player": row["player"],
+                "score": row["score"],
+                "result": row["result"],
+                "placement": row["placement"],
+            }
+            for row in lineup_rows
+        ]
+        new_double_weight = compute_double_weight(lineup_rows, game.game_type_code)
+        double_weight_changed = new_double_weight != game.double_weight
+        participants_updated = len(lineup_rows)
+    elif updates or removals:
         rows, new_double_weight, participants_updated, double_weight_changed = (
             _compute_participant_updates(game, score_updates=updates)
         )
@@ -359,7 +424,11 @@ def apply_game_edits(
             participants_removed=participants_removed,
         )
 
-    if updates or removals:
+    if lineup_changed and lineup_rows is not None:
+        participants_updated, double_weight_changed = _replace_game_lineup(
+            game, lineup_rows
+        )
+    elif updates or removals:
         _save_participant_updates(
             game,
             rows=rows,
