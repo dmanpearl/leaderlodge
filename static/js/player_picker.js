@@ -457,6 +457,21 @@
       .join("+");
   }
 
+  function resolvePrimaryLabel(row, labelEl) {
+    let primaryLabel =
+      row.dataset.primaryLabel || labelEl?.dataset.primaryLabel || "";
+    if (primaryLabel) {
+      return primaryLabel;
+    }
+    const guestName = row
+      .querySelector('[name="participant_guest_name"]')
+      ?.value?.trim();
+    if (guestName) {
+      return guestName;
+    }
+    return "";
+  }
+
   function updateSideLabel(row, form, tbody) {
     const labelEl = row.querySelector("[data-side-label]");
     if (!labelEl) {
@@ -464,8 +479,15 @@
     }
     const body = tbody || row.closest("[data-participant-rows]");
     const gameForm = form || getRecordForm(body);
-    const primaryLabel =
-      row.dataset.primaryLabel || labelEl.dataset.primaryLabel || "";
+    let primaryLabel = resolvePrimaryLabel(row, labelEl);
+    if (primaryLabel && !row.dataset.primaryLabel) {
+      row.dataset.primaryLabel = primaryLabel;
+      if (!row.dataset.primaryDetail) {
+        row.dataset.primaryDetail = detailBadge(
+          buildRowEntry({ guestName: primaryLabel })
+        );
+      }
+    }
     const teammateLabel = row.dataset.teammateLabel || "";
     const hasTeammate = Boolean(teammateLabel);
     labelEl.innerHTML = `${sideLabel(primaryLabel, teammateLabel)}${
@@ -1697,15 +1719,9 @@
       roster,
       tbody
     );
-    if (isEditForm(form)) {
-      tbody.querySelectorAll("[data-game-row]").forEach((row) => {
-        hydrateParticipantRow(row, roster, form, tbody);
-      });
-    } else {
-      tbody.querySelectorAll("[data-game-row]").forEach((row) => {
-        updateSideLabel(row, form, tbody);
-      });
-    }
+    tbody.querySelectorAll("[data-game-row]").forEach((row) => {
+      hydrateParticipantRow(row, roster, form, tbody);
+    });
     refreshSideLimitsUI(form, tbody);
   }
 

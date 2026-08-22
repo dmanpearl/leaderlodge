@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
   <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=15" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=31" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=32" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
@@ -330,6 +330,8 @@
                     data-game-row
                     data-row-key="{% if row.player_id %}player-{{ row.player_id }}{% else %}guest-{{ row.guest_name|lower }}{% endif %}"
                     data-player-id="{% if row.player_id %}{{ row.player_id }}{% else %}guest:{{ row.guest_name }}{% endif %}"
+                    data-primary-label="{% if row.teammate_display_label and row.player %}{{ row.player.display_label }}{% elif row.guest_name %}{{ row.guest_name }}{% else %}{{ row.display_label }}{% endif %}"
+                    {% if row.teammate_display_label %}data-teammate-label="{{ row.teammate_display_label }}"{% endif %}
                     {% if row.teammate_player_id or row.teammate_guest_name %}data-has-teammate="1"{% endif %}
                   >
                     <td>
@@ -563,7 +565,7 @@
   {% if show_roster and game_type and not is_guest_demo %}
     <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
     <script src="{% static 'js/game_record_form.js' %}?v=17"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=31"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=32"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
       <script src="{% static 'js/game_record_voice.js' %}?v=15"></script>
