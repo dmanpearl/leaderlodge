@@ -151,6 +151,17 @@ def test_navbar_links_include_saved_group(client, user, group, other_group):
 
 
 @pytest.mark.django_db
+def test_navbar_mobile_brand_and_account_record_game(client, user, group):
+    client.force_login(user)
+    content = client.get(reverse("core:dashboard")).content.decode()
+
+    assert "navbar-brand-text--compact" in content
+    assert 'class="visually-hidden d-md-none">LeaderLodge</span>' in content
+    assert "Ask the Lodge" in content
+    assert "Record game" in content
+
+
+@pytest.mark.django_db
 def test_anonymous_visitor_maintains_group_between_views(
     client, demo_group_flagged, user
 ):

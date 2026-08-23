@@ -10,7 +10,15 @@
         height="64"
         aria-hidden="true"
       />
-      <span class="navbar-brand-text"><span class="navbar-brand-text-leader">Leader</span><span class="navbar-brand-text-lodge">Lodge</span></span>
+      <span class="navbar-brand-text d-none d-md-inline"
+        ><span class="navbar-brand-text-leader">Leader</span
+        ><span class="navbar-brand-text-lodge">Lodge</span></span
+      >
+      <span class="navbar-brand-text navbar-brand-text--compact d-inline d-md-none" aria-hidden="true"
+        ><span class="navbar-brand-text-leader">L</span
+        ><span class="navbar-brand-text-lodge">L</span></span
+      >
+      <span class="visually-hidden d-md-none">LeaderLodge</span>
     </a>
     {% if user.is_authenticated or demo_mode_enabled %}
       <ul class="navbar-nav navbar-nav-main flex-row align-items-center">
@@ -136,6 +144,17 @@
                 >
                   <i class="bi bi-stars navbar-menu-icon" aria-hidden="true"></i>
                   Ask the Lodge
+                </a>
+              </li>
+            {% endif %}
+            {% if user.is_authenticated or demo_mode_enabled %}
+              <li>
+                <a
+                  class="dropdown-item d-flex align-items-center gap-2{% if navbar_active_section == 'add' %} active{% endif %}"
+                  href="{% url 'games:create' %}{% if preferred_group_id %}?group={{ preferred_group_id }}{% elif demo_group %}?group={{ demo_group.pk }}{% endif %}"
+                >
+                  <i class="bi bi-plus-lg navbar-menu-icon" aria-hidden="true"></i>
+                  Record game
                 </a>
               </li>
             {% endif %}

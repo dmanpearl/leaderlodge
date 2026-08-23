@@ -3,6 +3,10 @@
   --insights-accent-hover: #6d28d9;
 }
 
+html {
+  overflow-x: clip;
+}
+
 nav.navbar.bg-primary {
   --bs-navbar-padding-y: 0.3125rem;
 }
@@ -29,6 +33,19 @@ nav.navbar.bg-primary {
     "Helvetica Neue Condensed", "Arial Narrow", var(--bs-font-sans-serif);
   font-stretch: condensed;
   font-variation-settings: "wdth" 80;
+}
+
+.navbar-brand-text--compact {
+  font-size: 1.125rem;
+  letter-spacing: 0.02em;
+}
+
+nav.navbar .dropdown-menu {
+  max-width: min(20rem, calc(100vw - 1rem));
+}
+
+nav.navbar .dropdown-item {
+  white-space: normal;
 }
 
 nav.navbar.bg-primary .navbar-nav .nav-link {
@@ -62,8 +79,12 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     font-size: 1.25em;
   }
 
-  nav.navbar.bg-primary .navbar-brand-text {
+  nav.navbar.bg-primary .navbar-brand-text:not(.navbar-brand-text--compact) {
     font-size: 1rem;
+  }
+
+  nav.navbar.bg-primary .navbar-brand-text--compact {
+    font-size: 1.0625rem;
   }
 }
 
