@@ -810,6 +810,106 @@
     return window.visualViewport?.height ?? window.innerHeight;
   }
 
+  function visibleViewportBounds() {
+    const vv = window.visualViewport;
+    if (!vv) {
+      const height = document.documentElement.clientHeight;
+      return { top: 0, left: 0, bottom: height, height };
+    }
+    return {
+      top: vv.offsetTop,
+      left: vv.offsetLeft,
+      bottom: vv.offsetTop + vv.height,
+      height: vv.height,
+    };
+  }
+
+  function layoutViewportHeight() {
+    return document.documentElement.clientHeight;
+  }
+
+  function isUsableAnchorRect(rect) {
+    return Boolean(rect && (rect.width > 0 || rect.height > 0));
+  }
+
+  function positionPortaledComboboxList(listEl, input) {
+    if (!input || !input.isConnected) {
+      return false;
+    }
+    const rect = input.getBoundingClientRect();
+    if (!isUsableAnchorRect(rect)) {
+      return false;
+    }
+
+    const visible = visibleViewportBounds();
+    const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
+    const spaceBelow = visible.bottom - rect.bottom;
+    const spaceAbove = rect.top - visible.top;
+    const placeAbove =
+      spaceBelow < preferredHeight && spaceAbove > spaceBelow;
+    const available = placeAbove ? spaceAbove : spaceBelow;
+
+    listEl.classList.toggle("combobox-list--above", placeAbove);
+    listEl.style.left = `${Math.max(8, rect.left)}px`;
+    listEl.style.width = `${Math.max(rect.width, 160)}px`;
+    listEl.style.right = "auto";
+    listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
+
+    if (placeAbove) {
+      listEl.style.top = "auto";
+      listEl.style.bottom = `${Math.max(
+        8,
+        layoutViewportHeight() - rect.top
+      )}px`;
+    } else {
+      listEl.style.bottom = "auto";
+      listEl.style.top = `${Math.max(visible.top + 8, rect.bottom)}px`;
+    }
+    return true;
+  }
+
+  function clearPortaledRepositionTimers(picker) {
+    if (!picker.repositionTimers?.length) {
+      return;
+    }
+    picker.repositionTimers.forEach((id) => {
+      window.clearTimeout(id);
+      window.cancelAnimationFrame(id);
+    });
+    picker.repositionTimers = [];
+  }
+
+  function schedulePortaledComboboxReposition(picker) {
+    if (!picker.isOpen || !picker.input) {
+      return;
+    }
+    clearPortaledRepositionTimers(picker);
+    picker.repositionTimers = [];
+
+    const run = () => {
+      if (picker.isOpen && picker.input) {
+        positionPortaledComboboxList(picker.listEl, picker.input);
+      }
+    };
+
+    let attempts = 0;
+    const tryFrame = () => {
+      if (!picker.isOpen || !picker.input) {
+        return;
+      }
+      attempts += 1;
+      const ok = positionPortaledComboboxList(picker.listEl, picker.input);
+      if (!ok && attempts < 6) {
+        const frameId = window.requestAnimationFrame(tryFrame);
+        picker.repositionTimers.push(frameId);
+      }
+    };
+    picker.repositionTimers.push(window.requestAnimationFrame(tryFrame));
+    // iOS: keyboard open and visual-viewport pan settle after focus.
+    picker.repositionTimers.push(window.setTimeout(run, 100));
+    picker.repositionTimers.push(window.setTimeout(run, 350));
+  }
+
   function adjustListPlacement(listEl, input) {
     listEl.classList.remove("combobox-list--above");
     const inputRect = input.getBoundingClientRect();
@@ -1303,8 +1403,13 @@
       this.listId = "teammate-picker-suggestions";
       this.listEl.id = this.listId;
       document.body.appendChild(this.listEl);
+      this.repositionTimers = [];
 
-      this.onViewportChange = () => this.reposition();
+      this.onViewportChange = () => {
+        if (this.isOpen && this.input) {
+          positionPortaledComboboxList(this.listEl, this.input);
+        }
+      };
       window.addEventListener("resize", this.onViewportChange);
       window.addEventListener("scroll", this.onViewportChange, true);
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
@@ -1577,7 +1682,7 @@
         });
         this.listEl.appendChild(option);
       });
-      this.reposition();
+      this.scheduleReposition();
     }
 
     selectSuggestion(item) {
@@ -1641,13 +1746,14 @@
       this.isOpen = true;
       this.listEl.hidden = false;
       this.input.setAttribute("aria-expanded", "true");
-      this.reposition();
+      this.scheduleReposition();
     }
 
     close() {
       this.isOpen = false;
       this.activeIndex = -1;
       this.suggestions = [];
+      clearPortaledRepositionTimers(this);
       this.listEl.hidden = true;
       this.listEl.innerHTML = "";
       if (this.input) {
@@ -1656,33 +1762,15 @@
       }
     }
 
+    scheduleReposition() {
+      schedulePortaledComboboxReposition(this);
+    }
+
     reposition() {
       if (!this.isOpen || !this.input) {
         return;
       }
-      // Portaled to document.body with fixed coords so .table-responsive
-      // overflow does not clip the list to the Side row.
-      const inputRect = this.input.getBoundingClientRect();
-      const listEl = this.listEl;
-      const spaceBelow = viewportHeight() - inputRect.bottom;
-      const spaceAbove = inputRect.top;
-      const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
-      const placeAbove =
-        spaceBelow < preferredHeight && spaceAbove > spaceBelow;
-      const available = placeAbove ? spaceAbove : spaceBelow;
-
-      listEl.classList.toggle("combobox-list--above", placeAbove);
-      listEl.style.left = `${Math.max(8, inputRect.left)}px`;
-      listEl.style.width = `${Math.max(inputRect.width, 160)}px`;
-      listEl.style.right = "auto";
-      listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
-      if (placeAbove) {
-        listEl.style.top = "auto";
-        listEl.style.bottom = `${Math.max(8, viewportHeight() - inputRect.top)}px`;
-      } else {
-        listEl.style.bottom = "auto";
-        listEl.style.top = `${inputRect.bottom}px`;
-      }
+      positionPortaledComboboxList(this.listEl, this.input);
     }
   }
 

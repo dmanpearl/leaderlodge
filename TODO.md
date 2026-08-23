@@ -259,14 +259,15 @@
 - [x] c6a01d4 Process: Establish a production backup routine and pre-deploy safety checklist. Confirm whether Railway's Postgres plan includes automated backups [No: Not available without 'Pro' plan]; add an independent `pg_dump` to external storage. Document a checklist: snapshot before migrations, review each migration for destructive operations before it ships, never run mutating shell/ORM commands directly against production (read-only queries or a replica only)
 - [x] 3390af2 Edit game view needs remove, add, or replace for teammates and players; today only whole-side delete works. If removal that would leave too few sides for the game type. Block add that would create too many sides for the game type
 - [x] 6edcca3 Game Edit Log Admin view: Show an immutable/read-only 'Differences' field after the two snapshot fields
-- [x] Bug: Record Game: Player names don’t show (https://leaderlodge.com/admin/feedback/feedback/45)
+- [x] 800e30f Bug: Record Game: Player names don’t show (https://leaderlodge.com/admin/feedback/feedback/45)
+- [x] Bug: Record Game: Add Teammate type-ahead match list appears pegged to top of screen, partially obscured by notch. Should be adjacent to Teammate input field. Affects iPhone in production on mobile (works correctly in local and in prod browser)
 
 ## Open Items
 
+- [ ] Bug: iPhone 13 navbar too big to show '+' record gamme button. Many text overflow issues. May be high magnification. Look into disabling magnification
 - [ ] Record Game: after game, Reuse button should be context menu showing a list of previous sets of players instead of just reusing the most recent previous players (https://leaderlodge.com/admin/feedback/feedback/46)
 - [ ] Feature request add additional types, including ‘location’ (https://leaderlodge.com/admin/feedback/feedback/44)
 - [ ] Record game location issue: dictation “Bluey’s“ did not find the gps place at the location (https://leaderlodge.com/admin/feedback/feedback/43)
-- [ ] Bug: iPhone 13 navbar too big to show '+' record gamme button. Many text overflow issues. May be high magnification. Look into disabling magnification
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
