@@ -56,3 +56,15 @@ def test_merge_score_still_rejects_short_prefix_into_longer_name():
     candidate = normalize_for_fuzzy_match("Zinqué Venice, Los Angeles, CA")
     assert score_location_match(query, candidate) < 0
     assert score_location_resolve_match(query, candidate) > 0
+
+
+@pytest.mark.django_db
+def test_resolve_location_apostrophe_matches_stored_places_label(user):
+    group = create_group_with_owner(user=user, name="Test")
+    full = get_or_create_location(
+        library=group.location_library,
+        name="Blueys Mar Vista, Los Angeles, CA",
+    )
+
+    assert resolve_location_query(group, "Bluey's").pk == full.pk
+    assert resolve_location_query(group, "Blueys").pk == full.pk

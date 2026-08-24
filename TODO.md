@@ -263,11 +263,11 @@
 - [x] e152eb1, 85b33e7 Bug: Record Game: Add Teammate type-ahead match list appears pegged to top of screen, partially obscured by notch. Should be adjacent to Teammate input field. Affects iPhone in production on mobile (works correctly in local and in prod browser)
 - [x] 07b5647, 35c69ce, 6a9bc18 Bug: iPhone 13 navbar too big to show '+' record gamme button. Many text overflow issues. May be high magnification. Look into disabling magnification
 - [x] 4998325 Feedback request: Change 'Game' to 'Item' and add additional items, including 'Location' and 'Other', Remove 'All Games' (https://leaderlodge.com/admin/feedback/feedback/44)
-- [x] Record Game: after game, Reuse button should be context menu showing a list of previous sets of players instead of just reusing the most recent previous players (https://leaderlodge.com/admin/feedback/feedback/46)
+- [x] 4019146 Record Game: after game, Reuse button should be context menu showing a list of previous sets of players instead of just reusing the most recent previous players (https://leaderlodge.com/admin/feedback/feedback/46)
+- [x] Record game location issue: dictation “Bluey’s“ did not find the gps place at the location (https://leaderlodge.com/admin/feedback/feedback/43)
 
 ## Open Items
 
-- [ ] Record game location issue: dictation “Bluey’s“ did not find the gps place at the location (https://leaderlodge.com/admin/feedback/feedback/43)
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

@@ -12,7 +12,7 @@
 
   function normalizeForMatch(value) {
     const folded = foldAccents(value.trim().toLowerCase());
-    return folded.replace(/[^a-z0-9\s']/g, "");
+    return folded.replace(/[^a-z0-9\s']/g, "").replace(/'/g, "");
   }
 
   function scoreLocation(query, name) {
@@ -187,6 +187,7 @@
       window.addEventListener("resize", this.onViewportChange);
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
       window.visualViewport?.addEventListener("scroll", this.onViewportChange);
+      this.input.locationAutocompleteInstance = this;
       if (this.groupSelect) {
         this.groupSelect.addEventListener("change", this.onGroupChange);
       }
@@ -484,6 +485,41 @@
       }
       adjustListPlacement(this.listEl, this.input);
     }
+
+    tryAutoSelectFromQuery(query) {
+      const cleaned = query.trim();
+      if (!cleaned || this.locations.length === 0) {
+        return false;
+      }
+
+      const scored = this.locations
+        .map((location) => ({
+          location,
+          score: scoreLocation(cleaned, location.name),
+        }))
+        .filter((item) => item.score >= 80)
+        .sort((a, b) => {
+          if (b.score !== a.score) {
+            return b.score - a.score;
+          }
+          return a.location.name.localeCompare(b.location.name);
+        });
+
+      if (scored.length !== 1) {
+        if (scored.length > 1) {
+          this.input.value = cleaned;
+          syncLocationFieldButtons(this.input);
+          this.suggestions = scored.map((item) => item.location);
+          this.activeIndex = -1;
+          this.open();
+          this.renderSuggestions();
+        }
+        return false;
+      }
+
+      this.selectSuggestion(scored[0].location);
+      return true;
+    }
   }
 
   function initLocationAutocomplete() {
@@ -500,6 +536,16 @@
       new LocationAutocomplete(input, groupSelect, urlTemplate, fixedGroupId);
     });
   }
+
+  window.LeaderLodgeLocationAutocomplete = {
+    resolveInput(input) {
+      const instance = input?.locationAutocompleteInstance;
+      if (!instance) {
+        return false;
+      }
+      return instance.tryAutoSelectFromQuery(input.value.trim());
+    },
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initLocationAutocomplete);

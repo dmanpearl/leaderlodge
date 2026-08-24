@@ -550,7 +550,7 @@
   <script>
     document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
   </script>
-  <script src="{% static 'js/location_autocomplete.js' %}?v=13"></script>
+  <script src="{% static 'js/location_autocomplete.js' %}?v=14"></script>
   <script src="{% static 'js/game_setup.js' %}?v=1"></script>
   {% if not is_guest_demo %}
     <script src="{% static 'js/game_setup_reuse.js' %}?v=8"></script>
@@ -568,7 +568,7 @@
     <script src="{% static 'js/player_picker.js' %}?v=34"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
-      <script src="{% static 'js/game_record_voice.js' %}?v=15"></script>
+      <script src="{% static 'js/game_record_voice.js' %}?v=16"></script>
     {% endif %}
   {% endif %}
 {% endblock %}

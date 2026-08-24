@@ -31,7 +31,9 @@ def normalize_location_name(name: str) -> str:
 
 def normalize_for_fuzzy_match(name: str) -> str:
     base = normalize_location_name(name)
-    return re.sub(r"[^a-z0-9\s']+", "", base)
+    cleaned = re.sub(r"[^a-z0-9\s']+", "", base)
+    # Spoken "Bluey's" vs stored "Blueys Mar Vista" should still match.
+    return cleaned.replace("'", "")
 
 
 def score_location_match(query_normalized: str, candidate_normalized: str) -> int:

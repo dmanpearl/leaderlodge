@@ -181,6 +181,9 @@
     input.value = name;
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
+    if (window.LeaderLodgeLocationAutocomplete?.resolveInput) {
+      window.LeaderLodgeLocationAutocomplete.resolveInput(input);
+    }
   }
 
   function applyScoreType(scoreType) {
