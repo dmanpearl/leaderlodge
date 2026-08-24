@@ -2,7 +2,11 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from leaderlodge.games.registry import GAME_TYPES
+from leaderlodge.feedback.items import (
+    FEEDBACK_ITEM_OTHER,
+    feedback_item_label,
+    is_valid_feedback_item_code,
+)
 
 
 class Feedback(models.Model):
@@ -40,8 +44,8 @@ class Feedback(models.Model):
     game_type_code = models.CharField(
         max_length=30,
         blank=True,
-        default="",
-        help_text='Empty means "All games". Otherwise a code from the game registry.',
+        default=FEEDBACK_ITEM_OTHER,
+        help_text="Feedback item code: app-area tag or game registry code.",
     )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -87,16 +91,9 @@ class Feedback(models.Model):
         return f"{self.get_feedback_type_display()}: {self.title}"
 
     def clean(self) -> None:
-        if self.game_type_code and self.game_type_code not in GAME_TYPES:
-            raise ValidationError(
-                {
-                    "game_type_code": "Choose a valid game type or leave blank for all games."
-                }
-            )
+        if self.game_type_code and not is_valid_feedback_item_code(self.game_type_code):
+            raise ValidationError({"game_type_code": "Choose a valid item."})
 
     @property
     def game_type_label(self) -> str:
-        if not self.game_type_code:
-            return "All games"
-        game_type = GAME_TYPES.get(self.game_type_code)
-        return game_type.name if game_type else self.game_type_code
+        return feedback_item_label(self.game_type_code)

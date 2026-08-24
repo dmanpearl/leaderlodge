@@ -3,6 +3,13 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.urls import reverse
 
+from leaderlodge.feedback.items import (
+    FEEDBACK_ITEM_LOCATION,
+    FEEDBACK_ITEM_OTHER,
+    FEEDBACK_ITEM_USER_ACCOUNTS,
+    feedback_item_choices,
+    feedback_item_label,
+)
 from leaderlodge.feedback.models import Feedback
 
 
@@ -21,6 +28,27 @@ def test_feedback_create_requires_login(client):
     assert response.status_code == 302
     assert reverse("accounts:login") in response.url
     assert "next=" in response.url
+
+
+@pytest.mark.django_db
+def test_feedback_form_item_field_and_choices(client, user):
+    client.force_login(user)
+    page = client.get(reverse("feedback:create"))
+    content = page.content.decode()
+    assert page.status_code == 200
+    assert ">Item</label>" in content or 'for="id_game_type_code"' in content
+    assert "All games" not in content
+    assert ">Location</option>" in content
+    assert ">User Accounts</option>" in content
+    assert ">Groups</option>" in content
+    assert ">Leaderboards</option>" in content
+    assert ">Dominos</option>" in content
+    assert ">Other</option>" in content
+    assert 'value="other" selected' in content
+
+    labels = [label for _code, label in feedback_item_choices()]
+    assert labels[0] == "Other"
+    assert labels.index("Location") < labels.index("Dominos")
 
 
 @pytest.mark.django_db
@@ -52,6 +80,24 @@ def test_feedback_create_submits_and_emails_user(client, user):
     assert len(mail.outbox) == 1
     assert mail.outbox[0].to == ["david@example.com"]
     assert "Score did not save" in mail.outbox[0].body
+    assert "Item: Dominos" in mail.outbox[0].body
+
+
+@pytest.mark.django_db
+def test_feedback_create_defaults_item_to_other(client, user):
+    client.force_login(user)
+    response = client.post(
+        reverse("feedback:create"),
+        {
+            "feedback_type": Feedback.FeedbackType.FEATURE,
+            "title": "Dark mode",
+            "description": "",
+        },
+    )
+    assert response.status_code == 302
+    feedback = Feedback.objects.get()
+    assert feedback.game_type_code == FEEDBACK_ITEM_OTHER
+    assert feedback_item_label(feedback.game_type_code) == "Other"
 
 
 @pytest.mark.django_db
@@ -69,16 +115,23 @@ def test_feedback_create_allows_empty_details(client, user):
         reverse("feedback:create"),
         {
             "feedback_type": Feedback.FeedbackType.FEATURE,
-            "game_type_code": "",
-            "title": "Dark mode",
+            "game_type_code": FEEDBACK_ITEM_LOCATION,
+            "title": "Map pin drift",
             "description": "",
         },
     )
     assert response.status_code == 302
     assert response.url == reverse("feedback:thanks")
     feedback = Feedback.objects.get()
-    assert feedback.title == "Dark mode"
+    assert feedback.title == "Map pin drift"
     assert feedback.description == ""
+    assert feedback.game_type_code == FEEDBACK_ITEM_LOCATION
+
+
+@pytest.mark.django_db
+def test_feedback_item_labels_for_app_areas():
+    assert feedback_item_label(FEEDBACK_ITEM_USER_ACCOUNTS) == "User Accounts"
+    assert feedback_item_label("") == "Other"
 
 
 @pytest.mark.django_db
@@ -93,7 +146,7 @@ def test_feedback_create_without_email_still_saves(client, db):
         reverse("feedback:create"),
         {
             "feedback_type": Feedback.FeedbackType.COMMENT,
-            "game_type_code": "",
+            "game_type_code": FEEDBACK_ITEM_OTHER,
             "title": "Nice app",
             "description": "Enjoying LeaderLodge.",
         },
