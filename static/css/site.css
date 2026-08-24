@@ -189,6 +189,12 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
   height: 2rem;
 }
 
+@media (max-width: 767.98px) and (orientation: portrait) {
+  .dashboard-header--mobile .page-header-logo {
+    display: none;
+  }
+}
+
 .dashboard-mobile-welcome {
   font-size: 0.9375rem;
   line-height: 1.2;

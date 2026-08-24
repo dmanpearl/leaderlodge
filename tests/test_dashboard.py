@@ -38,6 +38,7 @@ def test_dashboard_welcome_uses_display_name(client, user, group):
     assert "Welcome, David." in content
     assert "Welcome, david." not in content
     assert 'class="page-header-logo"' in content
+    assert "bi-plus-lg" in content and "Record Game" in content
     assert "dashboard-header--mobile" in content
     assert "dashboard-mobile-welcome" in content
     assert ">Dashboard</span>" in content
@@ -210,7 +211,7 @@ def test_dashboard_keeps_collapse_when_multiple_game_type_cards(client, user, gr
         'data-collapse-storage-key="leaderlodge.dashboardLeaderboard.pickleball.Open"'
         in content
     )
-    assert 'data-dashboard-collapse' in content
+    assert "data-dashboard-collapse" in content
     assert 'id="dashboard-leaderboard-dominos"' in content
     assert "dashboard-leaderboard-skeletons" in content
 
