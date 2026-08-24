@@ -261,7 +261,7 @@
 - [x] 6edcca3 Game Edit Log Admin view: Show an immutable/read-only 'Differences' field after the two snapshot fields
 - [x] 800e30f Bug: Record Game: Player names don’t show (https://leaderlodge.com/admin/feedback/feedback/45)
 - [x] e152eb1 Bug: Record Game: Add Teammate type-ahead match list appears pegged to top of screen, partially obscured by notch. Should be adjacent to Teammate input field. Affects iPhone in production on mobile (works correctly in local and in prod browser)
-- [x] 07b5647, 35c69ce Bug: iPhone 13 navbar too big to show '+' record gamme button. Many text overflow issues. May be high magnification. Look into disabling magnification
+- [x] 07b5647, 35c69ce, 6a9bc18 Bug: iPhone 13 navbar too big to show '+' record gamme button. Many text overflow issues. May be high magnification. Look into disabling magnification
 
 ## Open Items
 

@@ -34,11 +34,6 @@
   margin: 0;
 }
 
-.combobox-list--portal.combobox-list--above {
-  /* top/bottom are set in JS from the input's viewport box */
-  bottom: auto;
-}
-
 .combobox-option {
   padding: 0.375rem 0.75rem;
   cursor: pointer;
