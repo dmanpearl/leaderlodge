@@ -45,9 +45,54 @@ def test_save_game_detail_shows_record_again(client, user, group):
     assert "record-again-new__label" in content
     assert "Pick" in content
     assert "Reuse" in content
+    assert "Reuse &gt;" not in content
+    assert "reuse-players-menu" in content
     assert "Reuse Players" not in content
     assert f"/games/new/?pick_from={game.pk}" in content
     assert f"/games/new/?reuse_from={game.pk}" in content
+
+
+@pytest.mark.django_db
+def test_record_again_reuse_menu_lists_previous_lineups(client, user, group):
+    from datetime import date
+
+    from leaderlodge.games.models import GameParticipantResult
+    from leaderlodge.games.services import ParticipantInput, record_game
+    from leaderlodge.groups.services import add_guest_player
+
+    players = list(group.players.order_by("pk")[:2])
+    other = add_guest_player(group=group, display_name="Alex")
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="dominos",
+        played_on=date(2026, 1, 1),
+        participants=[
+            ParticipantInput(
+                player=players[0],
+                score=30,
+                result=GameParticipantResult.Result.WIN,
+                placement=0,
+            ),
+            ParticipantInput(
+                player=other,
+                score=20,
+                result=GameParticipantResult.Result.PLAYED,
+                placement=1,
+            ),
+        ],
+    )
+    client.force_login(user)
+    response = _record_game(client, group)
+    older = Game.objects.get(group=group, played_on=date(2026, 1, 1))
+    newer = Game.objects.order_by("-pk").first()
+    assert response.status_code == 302
+
+    detail = client.get(response["Location"])
+    content = detail.content.decode()
+    assert "reuse-players-menu-item" in content
+    assert f"/games/new/?reuse_from={newer.pk}" in content
+    assert f"/games/new/?reuse_from={older.pk}" in content
 
 
 @pytest.mark.django_db

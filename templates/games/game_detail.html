@@ -4,7 +4,7 @@
 {% block title %}{{ game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=16" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
@@ -207,13 +207,32 @@
           >
             Pick
           </a>
-          <a
-            href="{% url 'games:create' %}?reuse_from={{ game.pk }}"
-            class="btn btn-primary d-inline-flex align-items-center justify-content-center"
-            title="Record another game with the same players"
+          <button
+            type="button"
+            class="btn btn-primary dropdown-toggle record-again-reuse-btn"
+            data-bs-toggle="dropdown"
+            data-bs-display="static"
+            data-bs-popper-config='{"strategy":"fixed"}'
+            aria-expanded="false"
+            title="Reuse players from a previous game"
+            aria-label="Reuse players from a previous game"
+            {% if not record_again_reuse_options %}disabled{% endif %}
           >
             Reuse
-          </a>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end reuse-players-menu">
+            {% for option in record_again_reuse_options %}
+              <li>
+                <a
+                  class="dropdown-item reuse-players-menu-item"
+                  href="{% url 'games:create' %}?reuse_from={{ option.game_id }}"
+                  title="{{ option.summary }}"
+                >
+                  {{ option.summary }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
       <a

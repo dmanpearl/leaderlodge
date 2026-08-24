@@ -1297,6 +1297,11 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
         can_edit_group(request.user, game.group)
         and request.GET.get("record_again") == "1"
     )
+    record_again_reuse_options = []
+    if show_record_again:
+        record_again_reuse_options = reuse_players_summary(
+            game.group, game.game_type_code
+        ).get("options", [])
     from leaderlodge.games.shutouts import (
         is_double_skunk_game,
         is_shutout_game,
@@ -1365,6 +1370,7 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "location_game_count": location_game_count,
             "google_places_api_key": google_places_api_key,
             "show_record_again": show_record_again,
+            "record_again_reuse_options": record_again_reuse_options,
         },
     )
 

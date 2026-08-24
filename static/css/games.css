@@ -812,6 +812,24 @@ span.game-list-title-select {
   justify-content: center;
 }
 
+.record-again-new .reuse-players-menu {
+  max-width: min(24rem, calc(100vw - 1.25rem));
+  width: max-content;
+  right: 0;
+  left: auto !important;
+}
+
+.record-again-new .reuse-players-menu-item {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: min(24rem, calc(100vw - 1.25rem));
+}
+
+.record-again-new .reuse-players-menu > li + li {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
 .game-record-score-input {
   min-width: 3rem;
   max-width: 6rem;

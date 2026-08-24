@@ -136,10 +136,15 @@ def _lineup_key(rows: list[dict]) -> frozenset:
     """Order-independent roster identity, including team pairings."""
     sides: list[frozenset[int]] = []
     for row in rows:
+        player = row.get("player")
         player_id = row.get("player_id")
-        if not player_id:
+        member_ids: set[int] = set()
+        if player_id:
+            member_ids.add(int(player_id))
+        elif player is not None:
+            member_ids.add(int(player.pk))
+        else:
             continue
-        member_ids = {int(player_id)}
         teammate_id = row.get("teammate_player_id")
         if teammate_id:
             member_ids.add(int(teammate_id))
