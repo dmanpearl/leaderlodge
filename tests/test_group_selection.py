@@ -155,8 +155,11 @@ def test_navbar_mobile_brand_and_account_record_game(client, user, group):
     client.force_login(user)
     content = client.get(reverse("core:dashboard")).content.decode()
 
-    assert "navbar-brand-text--compact" in content
-    assert 'class="visually-hidden d-md-none">LeaderLodge</span>' in content
+    assert "navbar-brand-duck" in content
+    assert (
+        'class="navbar-brand-sr-only-mobile visually-hidden">LeaderLodge</span>'
+        in content
+    )
     assert "Ask the Lodge" in content
     assert "Record game" in content
 

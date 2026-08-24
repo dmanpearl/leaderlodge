@@ -1,7 +1,7 @@
 {% load static %}
 <nav class="navbar navbar-expand navbar-dark bg-primary">
   <div class="container d-flex flex-nowrap align-items-center gap-1">
-    <a class="navbar-brand d-inline-flex align-items-center gap-2 py-0 me-auto me-md-2" href="{% url 'core:dashboard' %}">
+    <a class="navbar-brand d-inline-flex align-items-center gap-0 gap-md-2 py-0 me-auto me-md-2" href="{% url 'core:dashboard' %}">
       <img
         src="{% static 'img/brand/navbar-logo.png' %}"
         alt=""
@@ -10,15 +10,20 @@
         height="64"
         aria-hidden="true"
       />
-      <span class="navbar-brand-text d-none d-md-inline"
+      <span class="navbar-brand-duck-wrap" aria-hidden="true">
+        <img
+          src="{% static 'img/brand/navbar-duck.png' %}"
+          alt=""
+          class="navbar-brand-duck"
+          width="64"
+          height="64"
+        />
+      </span>
+      <span class="navbar-brand-text"
         ><span class="navbar-brand-text-leader">Leader</span
         ><span class="navbar-brand-text-lodge">Lodge</span></span
       >
-      <span class="navbar-brand-text navbar-brand-text--compact d-inline d-md-none" aria-hidden="true"
-        ><span class="navbar-brand-text-leader">L</span
-        ><span class="navbar-brand-text-lodge">L</span></span
-      >
-      <span class="visually-hidden d-md-none">LeaderLodge</span>
+      <span class="navbar-brand-sr-only-mobile visually-hidden">LeaderLodge</span>
     </a>
     {% if user.is_authenticated or demo_mode_enabled %}
       <ul class="navbar-nav navbar-nav-main flex-row align-items-center">
@@ -101,6 +106,7 @@
             id="accountMenu"
             role="button"
             data-bs-toggle="dropdown"
+            data-bs-popper-config='{"strategy":"fixed"}'
             aria-expanded="false"
             aria-label="{% if user_email_verified %}{{ user_display_name }}, email verified{% else %}{{ user_display_name }}{% endif %}"
           >
@@ -109,7 +115,7 @@
               {% include "includes/account_display_name.html" with badge_variant="navbar" %}
             </span>
           </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountMenu">
+          <ul class="dropdown-menu dropdown-menu-end navbar-account-dropdown" aria-labelledby="accountMenu">
             <li class="d-md-none">
               <h6 class="dropdown-header mb-0">
                 {% include "includes/account_display_name.html" with badge_variant="dropdown" %}
@@ -172,7 +178,7 @@
                 <form method="post" action="{% url 'accounts:lock_game_type' %}">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{{ request.get_full_path }}" />
-                  <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                  <button type="submit" class="dropdown-item dropdown-item--game-type-lock d-flex align-items-center gap-2">
                     <i class="bi bi-lock navbar-menu-icon" aria-hidden="true"></i>
                     Lock: {{ preferred_game_type_name|default:"game type" }} only
                   </button>
@@ -227,13 +233,14 @@
             id="guestAccountMenu"
             role="button"
             data-bs-toggle="dropdown"
+            data-bs-popper-config='{"strategy":"fixed"}'
             aria-expanded="false"
             aria-label="Account"
           >
             <i class="bi bi-person navbar-user-icon" aria-hidden="true"></i>
             <span class="navbar-account-label d-none d-md-inline">Account</span>
           </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="guestAccountMenu">
+          <ul class="dropdown-menu dropdown-menu-end navbar-account-dropdown" aria-labelledby="guestAccountMenu">
             <li>
               <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'accounts:signup' %}">
                 <i class="bi bi-person-plus navbar-menu-icon" aria-hidden="true"></i>
@@ -261,7 +268,7 @@
                   <form method="post" action="{% url 'accounts:lock_game_type' %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}" />
-                    <button type="submit" class="dropdown-item d-flex align-items-center gap-2">
+                    <button type="submit" class="dropdown-item dropdown-item--game-type-lock d-flex align-items-center gap-2">
                       <i class="bi bi-lock navbar-menu-icon" aria-hidden="true"></i>
                       Lock: {{ preferred_game_type_name|default:"game type" }} only
                     </button>
