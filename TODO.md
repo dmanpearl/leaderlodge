@@ -267,7 +267,8 @@
 - [x] a68d2b0 Record game location issue: dictation “Bluey’s“ did not find the gps place at the location (https://leaderlodge.com/admin/feedback/feedback/43)
 - [x] bc4a7f4 Game edit Location Bug: When a pin is added to a location and the updated  game is saved, the interface reports 'No changes were made'. This is probably due to changing the location record, not the game itself. Solution must remove the notification and report the change in the edit game log.
 - [x] 7d230de Map screen 'Use my location' button change to GPS crosshair icon.
-- [x] Navbar home icon mobile: If there is enough room in the mobile navbar, display navbar-logo instead of the smaller navbar-duck.
+- [x] c933fa4 Navbar home icon mobile: If there is enough room in the mobile navbar, display navbar-logo instead of the smaller navbar-duck.
+- [x] Game edit email revamp to show actual changes. Too many emails skip some fields so old and new look identical
 
 ## Open Items
 
@@ -275,7 +276,6 @@
 - [ ] Map button should launch map initialized to current location, but zoomed out to the size of a municipality. It currently shows the entire united states. If the user presses 'Use my location', then use standard localized zoom amount.
 - [ ] Map screen 'Use my location' (crosshair icon) and 'Pin lookup' are confusing to the user. Implement a UX plan that solves the confusion. Perhaps solution could be an icon, but 'search' would conflict with other search option. Solution might be to move "Search" button inside of the search field right justified as an 'Enter' icon. Then the 'Pin lookup' label could be a composite pin+search icon. What is best icon for 'Pin lookup'?
 - [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
-- [ ] Game edit email revamp to show actual changes. Too many emails skip some fields so old and new look identical
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

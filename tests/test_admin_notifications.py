@@ -180,6 +180,65 @@ def test_apply_game_edits_notifies_admin(site_settings, user):
     assert len(admin_messages) == 1
     assert "game edited" in admin_messages[0].subject.lower()
     assert "Dom Club" in admin_messages[0].subject
+    assert "Changes:" in admin_messages[0].body
+    assert "score 20 to 35" in admin_messages[0].body
+
+
+@pytest.mark.django_db
+def test_game_change_email_includes_location_pin_diff(site_settings, user):
+    from django.utils import timezone
+
+    from leaderlodge.games.models import Game, GameParticipantResult
+    from leaderlodge.groups.location_geo import location_geo
+    from leaderlodge.groups.locations import resolve_game_location
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    location = resolve_game_location(group=group, location_name="Kitchen")
+    from leaderlodge.groups.services import add_guest_player
+
+    add_guest_player(group=group, display_name="Pat")
+    players = list(group.players.order_by("pk"))
+    game = Game.objects.create(
+        group=group,
+        game_type_code="dominos",
+        played_on=timezone.localdate(),
+        recorded_by=user,
+        player_count=2,
+        location=location,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[0],
+        score=30,
+        result=GameParticipantResult.Result.WIN,
+        placement=0,
+    )
+    GameParticipantResult.objects.create(
+        game=game,
+        player=players[1],
+        score=20,
+        result=GameParticipantResult.Result.PLAYED,
+        placement=1,
+    )
+    mail.outbox.clear()
+    apply_game_edits(
+        game=game,
+        user=user,
+        notes="Pinned Kitchen on the map.",
+        pre_resolve_location_geo=(None, None),
+        new_location=resolve_game_location(
+            group=group,
+            location_name="Kitchen",
+            geo=location_geo(lat=34.0522, lon=-118.2437),
+        ),
+    )
+    admin_messages = [
+        message for message in mail.outbox if TEST_NOTIFY_EMAIL in message.to
+    ]
+    assert len(admin_messages) == 1
+    body = admin_messages[0].body
+    assert "location pin: (none) to 34.0522, -118.2437" in body
+    assert "--- Before ---" not in body
 
 
 @pytest.mark.django_db
@@ -223,6 +282,8 @@ def test_delete_game_notifies_admin_as_delete_event(site_settings, user):
     assert "game deleted" in admin_messages[0].subject.lower()
     assert "game edited" not in admin_messages[0].subject.lower()
     assert "Dom Club" in admin_messages[0].subject
+    assert "Changes:" in admin_messages[0].body
+    assert "Game deleted" in admin_messages[0].body
     log = GameScoreChangeLog.objects.get()
     assert log.event == GameScoreChangeLog.Event.DELETE
     assert log.game_id is None
