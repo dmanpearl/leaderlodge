@@ -234,6 +234,17 @@ def can_manage_group_members(user: AbstractBaseUser | None, group: Group) -> boo
     return can_manage_members(get_membership(user, group))
 
 
+def can_assign_location_place(user: AbstractBaseUser | None, group: Group) -> bool:
+    """Assign-mode map picker: shared Location row (managers, or staff on Demo)."""
+    if can_manage_group_members(user, group):
+        return True
+    if group.is_demo and user is not None and user.is_authenticated:
+        return bool(
+            getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)
+        )
+    return False
+
+
 def visible_groups(user: AbstractBaseUser | None, session=None):
     """Groups the user may browse: memberships, the demo group, and, for
     staff, any groups currently granted via Spectator Mode."""

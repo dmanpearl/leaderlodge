@@ -55,6 +55,34 @@ def _normalize_notes(notes: str) -> str:
     return (notes or "").strip()
 
 
+def _location_snapshot_dict(
+    location: Location | None,
+    *,
+    lat: float | None | object = _UNCHANGED,
+    lon: float | None | object = _UNCHANGED,
+) -> dict[str, Any] | None:
+    if location is None:
+        return None
+    resolved_lat = location.lat if lat is _UNCHANGED else lat
+    resolved_lon = location.lon if lon is _UNCHANGED else lon
+    return {
+        "id": location.pk,
+        "name": location.name,
+        "lat": resolved_lat,
+        "lon": resolved_lon,
+    }
+
+
+def _location_geo_changed(
+    *,
+    old_lat: float | None,
+    old_lon: float | None,
+    new_lat: float | None,
+    new_lon: float | None,
+) -> bool:
+    return old_lat != new_lat or old_lon != new_lon
+
+
 def _participant_row_dicts(game: Game) -> list[dict]:
     return [
         {
@@ -75,6 +103,8 @@ def _game_snapshot(
     *,
     rows: list[dict] | None = None,
     location: Location | None | object = _UNCHANGED,
+    location_lat: float | None | object = _UNCHANGED,
+    location_lon: float | None | object = _UNCHANGED,
     double_weight: int | object = _UNCHANGED,
     played_on: date | object = _UNCHANGED,
     score_type: str | object = _UNCHANGED,
@@ -116,10 +146,10 @@ def _game_snapshot(
         "score_type": resolved_score_type,
         "double_weight": resolved_double_weight,
         "half_weight": resolved_half_weight,
-        "location": (
-            {"id": resolved_location.pk, "name": resolved_location.name}
-            if resolved_location
-            else None
+        "location": _location_snapshot_dict(
+            resolved_location,
+            lat=location_lat,
+            lon=location_lon,
         ),
         "participants": participants,
     }
@@ -300,6 +330,7 @@ def apply_game_edits(
     new_played_on: date | object = _UNCHANGED,
     new_score_type: str | object = _UNCHANGED,
     new_half_weight: int | object = _UNCHANGED,
+    pre_resolve_location_geo: tuple[float | None, float | None] | None = None,
     dry_run: bool = False,
 ) -> RecalculateSummary:
     notes = _normalize_notes(notes)
@@ -309,6 +340,22 @@ def apply_game_edits(
     updates = score_updates or {}
     removals = set(participant_removals or [])
     location_changed = new_location is not _UNCHANGED and game.location != new_location
+    resolved_location = (
+        new_location if new_location is not _UNCHANGED else game.location
+    )
+    location_geo_changed = False
+    if (
+        pre_resolve_location_geo is not None
+        and resolved_location is not None
+        and not location_changed
+    ):
+        old_lat, old_lon = pre_resolve_location_geo
+        location_geo_changed = _location_geo_changed(
+            old_lat=old_lat,
+            old_lon=old_lon,
+            new_lat=resolved_location.lat,
+            new_lon=resolved_location.lon,
+        )
     date_changed = new_played_on is not _UNCHANGED and game.played_on != new_played_on
     current_score_type = game.score_type or normalize_score_type(
         game.game_type_code, ""
@@ -341,6 +388,7 @@ def apply_game_edits(
         and not removals
         and not lineup_changed
         and not location_changed
+        and not location_geo_changed
         and not date_changed
         and not score_type_changed
         and not half_weight_changed
@@ -350,7 +398,19 @@ def apply_game_edits(
             "or game settings before saving."
         )
 
-    old_snapshot = _game_snapshot(game)
+    old_snapshot = _game_snapshot(
+        game,
+        location_lat=(
+            pre_resolve_location_geo[0]
+            if pre_resolve_location_geo is not None
+            else _UNCHANGED
+        ),
+        location_lon=(
+            pre_resolve_location_geo[1]
+            if pre_resolve_location_geo is not None
+            else _UNCHANGED
+        ),
+    )
     participants_removed = 0
 
     if removals:
@@ -387,9 +447,6 @@ def apply_game_edits(
             _compute_participant_updates(game, score_updates=updates)
         )
 
-    resolved_location = (
-        new_location if new_location is not _UNCHANGED else game.location
-    )
     resolved_played_on = (
         new_played_on if new_played_on is not _UNCHANGED else game.played_on
     )

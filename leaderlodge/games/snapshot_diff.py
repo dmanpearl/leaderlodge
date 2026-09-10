@@ -30,6 +30,17 @@ def _location_name(snapshot: dict[str, Any]) -> str:
     return str(location.get("name") or "(none)")
 
 
+def _location_pin(snapshot: dict[str, Any]) -> str:
+    location = snapshot.get("location")
+    if not location:
+        return "(none)"
+    lat = location.get("lat")
+    lon = location.get("lon")
+    if lat is None or lon is None:
+        return "(none)"
+    return f"{lat}, {lon}"
+
+
 def _participants_by_id(snapshot: dict[str, Any]) -> dict[int, dict[str, Any]]:
     return {
         participant["player_id"]: participant
@@ -113,6 +124,11 @@ def format_snapshot_diff(
     new_location = _location_name(new)
     if old_location != new_location:
         lines.append(f"location: {old_location} to {new_location}")
+    else:
+        old_pin = _location_pin(old)
+        new_pin = _location_pin(new)
+        if old_pin != new_pin:
+            lines.append(f"location pin: {old_pin} to {new_pin}")
 
     old_by_id = _participants_by_id(old)
     new_by_id = _participants_by_id(new)

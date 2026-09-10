@@ -67,6 +67,7 @@ from leaderlodge.core.audit import (
 )
 from leaderlodge.groups.services import (
     add_guest_player,
+    can_assign_location_place,
     can_manage_group_members,
     can_view_group,
     create_group_with_owner,
@@ -1194,7 +1195,7 @@ def location_set_place(request: HttpRequest, pk: int, loc_pk: int) -> JsonRespon
     from leaderlodge.groups.locations import ensure_group_location_library
 
     group = get_object_or_404(Group, pk=pk)
-    if not can_manage_group_members(request.user, group):
+    if not can_assign_location_place(request.user, group):
         raise Http404
 
     library = ensure_group_location_library(group)

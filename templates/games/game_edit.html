@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
   <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=33" />
-  {% if google_places_api_key and can_set_place %}
+  {% if google_places_api_key and can_use_location_map %}
     <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
   {% endif %}
 {% endblock %}
@@ -94,7 +94,7 @@
       <div class="row align-items-center mb-2 g-2">
         <label for="{{ form.location_name.id_for_label }}" class="col-4 col-form-label">{{ form.location_name.label }}</label>
         <div class="col-8">
-          {% include "games/includes/location_field.html" with field=form.location_name show_label=False %}
+          {% include "games/includes/location_field.html" with field=form.location_name form=form show_label=False enable_record_map=can_use_location_map %}
           {% if can_set_place and google_places_api_key %}
             <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
               <span class="d-inline-flex align-items-center text-nowrap">{% spaceless %}
@@ -116,6 +116,8 @@
               {% endif %}
             </div>
             <div class="form-text">Assign saves the pin on the location row. You do not need Save changes for that.</div>
+          {% elif can_use_location_map and google_places_api_key and not can_set_place %}
+            <div class="form-text">Use Map above, then Save changes to store the pin on this location.</div>
           {% endif %}
         </div>
       </div>
@@ -391,7 +393,7 @@
     </div>
   </div>
 
-  {% if can_set_place and google_places_api_key %}
+  {% if can_use_location_map and google_places_api_key %}
     {% include "groups/includes/location_set_place_modal.html" %}
   {% endif %}
 {% endblock %}
@@ -405,7 +407,7 @@
   {% if google_places_api_key %}
     <script src="{% static 'js/location_lookup.js' %}?v=7"></script>
   {% endif %}
-  {% if can_set_place and google_places_api_key %}
+  {% if can_use_location_map and google_places_api_key %}
     <script src="{% static 'js/location_map.js' %}?v=3"></script>
     <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
   {% endif %}

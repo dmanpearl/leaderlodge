@@ -264,10 +264,13 @@
 - [x] 07b5647, 35c69ce, 6a9bc18 Bug: iPhone 13 navbar too big to show '+' record gamme button. Many text overflow issues. May be high magnification. Look into disabling magnification
 - [x] 4998325 Feedback request: Change 'Game' to 'Item' and add additional items, including 'Location' and 'Other', Remove 'All Games' (https://leaderlodge.com/admin/feedback/feedback/44)
 - [x] 4019146 Record Game: after game, Reuse button should be context menu showing a list of previous sets of players instead of just reusing the most recent previous players (https://leaderlodge.com/admin/feedback/feedback/46)
-- [x] Record game location issue: dictation “Bluey’s“ did not find the gps place at the location (https://leaderlodge.com/admin/feedback/feedback/43)
+- [x] a68d2b0 Record game location issue: dictation “Bluey’s“ did not find the gps place at the location (https://leaderlodge.com/admin/feedback/feedback/43)
+- [x] Game edit Location Bug: When a pin is added to a location and the updated  game is saved, the interface reports 'No changes were made'. This is probably due to changing the location record, not the game itself. Solution must remove the notification and report the change in the edit game log.
 
 ## Open Items
 
+- [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
+- [ ] Game edit email revamp to show actual changes. Too many emails skip some fields so old and new look identical
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
@@ -295,10 +298,6 @@
 - [ ] Android: Build native mobile app for Android
 - [ ] Delete Group: Make a UI for deleting group, warn user about deleting x number of games, access from Groups View, Group Detail View, and/or Group Edit
 - [ ] If/when LeaderLodge becomes an installable PWA (`display: standalone`), design real in-app navigation chrome (back button and/or persistent nav bar), since the browser Back/URL bar disappear in standalone mode
-- [/] Record game: look ahead incorrectly displayed “no players yet” (https://leaderlodge.com/admin/feedback/feedback/28)
-      - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
-- [/] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
-- [/] Leaderboard Additional Algorithms: points-percent, points-total (note: streaks already implemented)
 
 ## AI showcase
 
@@ -308,6 +307,13 @@
 - [ ] AI: Public write-up: why the LLM never computes rankings (blog, Linkedin, or README section)
 - [ ] AI: Privacy FAQ: what stats and names are sent to AI providers
 - [ ] AI: Demo mode: pre-generated/canned insights for anonymous visitors (no live API call)
+
+# Deferred
+
+- [/] Record game: look ahead incorrectly displayed “no players yet” (https://leaderlodge.com/admin/feedback/feedback/28)
+      - Was scoring a game of Dominoes in the Manpearl group between Nancy and David, and add players look ahead said no players yet, although we have literally over 1000 games together. Perhaps this was due to weak internet signal.
+- [/] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
+- [/] Leaderboard Additional Algorithms: points-percent, points-total (note: streaks already implemented)
 - [/] Make ask the lodge capable of recording a game (https://leaderlodge.com/admin/feedback/feedback/41)
       - Needs the capability to navigate to the game screen and parse the information for the user to edit or save. 
       - It should be able to specify game-type, but game-type would default to current game preference.

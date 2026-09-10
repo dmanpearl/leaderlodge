@@ -84,6 +84,7 @@ from leaderlodge.games.score_changes import (
 )
 from leaderlodge.groups.models import Group, GroupPlayer, Location
 from leaderlodge.groups.services import (
+    can_assign_location_place,
     can_edit_group,
     can_manage_group_members,
     can_view_group,
@@ -1276,7 +1277,9 @@ def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
     results = list(game.participant_results.order_by("placement", "pk"))
     apply_label_overrides([r.player for r in results])
     can_invite_guests = can_manage_group_members(request.user, game.group)
-    can_set_place = can_invite_guests and game.location is not None
+    can_set_place = can_assign_location_place(request.user, game.group) and (
+        game.location is not None
+    )
     location_is_geocoded = bool(
         game.location
         and game.location.lat is not None
@@ -1406,6 +1409,12 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
                 participant_error = str(exc)
         if form.is_valid() and participant_error is None:
             try:
+                pre_resolve_location_geo = None
+                if game.location_id:
+                    pre_resolve_location_geo = (
+                        game.location.lat,
+                        game.location.lon,
+                    )
                 edit_kwargs = {
                     "game": game,
                     "user": request.user,
@@ -1415,6 +1424,7 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
                     "lineup_rows": lineup_rows,
                     "new_location": form.resolved_location(),
                     "new_played_on": form.cleaned_data["played_on"],
+                    "pre_resolve_location_geo": pre_resolve_location_geo,
                 }
                 if form.has_score_type_field():
                     edit_kwargs["new_score_type"] = form.cleaned_score_type()
@@ -1438,10 +1448,11 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
 
     roster = roster_for_group(game.group, game_type_code=game.game_type_code)
 
-    can_set_place = (
-        can_manage_group_members(request.user, game.group)
-        and game.location_id is not None
+    google_places_api_key = getattr(settings, "GOOGLE_PLACES_API_KEY", "")
+    can_set_place = can_assign_location_place(request.user, game.group) and (
+        game.location_id is not None
     )
+    can_use_location_map = bool(google_places_api_key)
     location_game_count = 0
     if game.location_id:
         from leaderlodge.games.models import Game as GameModel
@@ -1478,8 +1489,9 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             ),
             "is_double": game.double_weight == 2,
             "is_half": game.half_weight == 2,
-            "google_places_api_key": getattr(settings, "GOOGLE_PLACES_API_KEY", ""),
+            "google_places_api_key": google_places_api_key,
             "can_set_place": can_set_place,
+            "can_use_location_map": can_use_location_map,
             "location_game_count": location_game_count,
         },
     )

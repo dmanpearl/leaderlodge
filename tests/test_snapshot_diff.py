@@ -86,10 +86,30 @@ def test_format_snapshot_diff_delete_event():
     assert diff == "Game deleted\nRemoved: Alice"
 
 
+def test_format_snapshot_diff_location_pin_change():
+    old_snapshot = {
+        "location": {"id": 1, "name": "Kitchen", "lat": None, "lon": None},
+        "participants": [],
+    }
+    new_snapshot = {
+        "location": {
+            "id": 1,
+            "name": "Kitchen",
+            "lat": 34.0522,
+            "lon": -118.2437,
+        },
+        "participants": [],
+    }
+
+    diff = format_snapshot_diff(old_snapshot, new_snapshot)
+
+    assert diff == "location pin: (none) to 34.0522, -118.2437"
+
+
 def test_format_snapshot_diff_no_changes():
     snapshot = {
         "played_on": "2026-06-30",
-        "location": None,
+        "location": {"id": 1, "name": "Kitchen", "lat": 34.0, "lon": -118.0},
         "participants": [
             {
                 "player_id": 1,
