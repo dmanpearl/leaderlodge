@@ -210,9 +210,14 @@
 
     document.dispatchEvent(
       new CustomEvent("location-map-apply", {
-        detail: { name: input?.value || name || "" },
+        detail: {
+          name: input?.value || name || "",
+          lat: geo.lat,
+          lon: geo.lon,
+        },
       }),
     );
+    document.dispatchEvent(new CustomEvent("location-geo-change"));
     if (input) {
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }

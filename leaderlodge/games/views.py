@@ -1453,6 +1453,11 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
         game.location_id is not None
     )
     can_use_location_map = bool(google_places_api_key)
+    location_is_geocoded = bool(
+        game.location_id
+        and game.location.lat is not None
+        and game.location.lon is not None
+    )
     location_game_count = 0
     if game.location_id:
         from leaderlodge.games.models import Game as GameModel
@@ -1492,6 +1497,7 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "google_places_api_key": google_places_api_key,
             "can_set_place": can_set_place,
             "can_use_location_map": can_use_location_map,
+            "location_is_geocoded": location_is_geocoded,
             "location_game_count": location_game_count,
         },
     )

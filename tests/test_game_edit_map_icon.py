@@ -102,12 +102,16 @@ def member_unpinned_location_game(member_user, group):
 
 @override_settings(GOOGLE_PLACES_API_KEY="test-browser-key")
 @pytest.mark.django_db
-def test_group_owner_sees_assign_map_on_edit_game(client, staff_user, unpinned_location_game):
+def test_group_owner_sees_assign_map_on_edit_game(
+    client, staff_user, unpinned_location_game
+):
     client.force_login(staff_user)
     url = reverse("games:edit_game", kwargs={"pk": unpinned_location_game.pk})
     content = client.get(url).content.decode()
     assert "data-location-set-place" in content
+    assert "data-location-pin-status" in content
     assert "No pin yet for this location" in content
+    assert "location-geocoded-badge d-none" in content
 
 
 @override_settings(GOOGLE_PLACES_API_KEY="test-browser-key")
@@ -120,6 +124,7 @@ def test_member_sees_record_map_on_edit_game(
     content = client.get(url).content.decode()
     assert "data-location-record-place" in content
     assert "data-location-set-place" not in content
+    assert "data-location-pin-status" in content
 
 
 @override_settings(GOOGLE_PLACES_API_KEY="test-browser-key")

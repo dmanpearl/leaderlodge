@@ -95,9 +95,10 @@
         <label for="{{ form.location_name.id_for_label }}" class="col-4 col-form-label">{{ form.location_name.label }}</label>
         <div class="col-8">
           {% include "games/includes/location_field.html" with field=form.location_name form=form show_label=False enable_record_map=can_use_location_map %}
-          {% if can_set_place and google_places_api_key %}
-            <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
-              <span class="d-inline-flex align-items-center text-nowrap">{% spaceless %}
+          {% if can_use_location_map and google_places_api_key %}
+            {% include "games/includes/location_pin_status.html" with is_geocoded=location_is_geocoded %}
+            {% if can_set_place %}
+              <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
                 <button
                   type="button"
                   class="btn btn-sm btn-outline-secondary"
@@ -107,17 +108,14 @@
                   data-game-count="{{ location_game_count }}"
                   {% if game.location.lat %}data-lat="{{ game.location.lat }}"{% endif %}
                   {% if game.location.lon %}data-lon="{{ game.location.lon }}"{% endif %}
-                  title="Map"
-                  aria-label="Map"
-                ><i class="bi bi-map" aria-hidden="true"></i></button>{% if game.location.lat and game.location.lon %}&nbsp;<span class="badge text-bg-success location-geocoded-badge" title="Pin set"><i class="bi bi-pin-fill" aria-hidden="true"></i><span class="visually-hidden">Pin set</span></span>{% endif %}
-              {% endspaceless %}</span>
-              {% if not game.location.lat or not game.location.lon %}
-                <span class="text-muted small">No pin yet for this location</span>
-              {% endif %}
-            </div>
-            <div class="form-text">Assign saves the pin on the location row. You do not need Save changes for that.</div>
-          {% elif can_use_location_map and google_places_api_key and not can_set_place %}
-            <div class="form-text">Use Map above, then Save changes to store the pin on this location.</div>
+                  title="Assign pin on map"
+                  aria-label="Assign pin on map"
+                ><i class="bi bi-map" aria-hidden="true"></i></button>
+              </div>
+              <div class="form-text">Assign saves the pin on the location row. You do not need Save changes for that.</div>
+            {% else %}
+              <div class="form-text">Use Map above, then Save changes to store the pin on this location.</div>
+            {% endif %}
           {% endif %}
         </div>
       </div>
@@ -410,6 +408,7 @@
   {% if can_use_location_map and google_places_api_key %}
     <script src="{% static 'js/location_map.js' %}?v=3"></script>
     <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
+    <script src="{% static 'js/location_pin_status.js' %}?v=1"></script>
   {% endif %}
   <script src="{% static 'js/player_picker.js' %}?v=34"></script>
   <script src="{% static 'js/game_record_form.js' %}?v=17"></script>

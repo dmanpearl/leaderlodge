@@ -107,6 +107,7 @@
       const input = geoInput(key);
       if (input) input.value = value === null || value === undefined ? "" : value;
     }
+    document.dispatchEvent(new CustomEvent("location-geo-change"));
   }
 
   function clearGeoFields() {

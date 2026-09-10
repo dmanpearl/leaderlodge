@@ -265,10 +265,13 @@
 - [x] 4998325 Feedback request: Change 'Game' to 'Item' and add additional items, including 'Location' and 'Other', Remove 'All Games' (https://leaderlodge.com/admin/feedback/feedback/44)
 - [x] 4019146 Record Game: after game, Reuse button should be context menu showing a list of previous sets of players instead of just reusing the most recent previous players (https://leaderlodge.com/admin/feedback/feedback/46)
 - [x] a68d2b0 Record game location issue: dictation “Bluey’s“ did not find the gps place at the location (https://leaderlodge.com/admin/feedback/feedback/43)
-- [x] Game edit Location Bug: When a pin is added to a location and the updated  game is saved, the interface reports 'No changes were made'. This is probably due to changing the location record, not the game itself. Solution must remove the notification and report the change in the edit game log.
+- [x] bc4a7f4 Game edit Location Bug: When a pin is added to a location and the updated  game is saved, the interface reports 'No changes were made'. This is probably due to changing the location record, not the game itself. Solution must remove the notification and report the change in the edit game log.
 
 ## Open Items
 
+- [ ] Map button should launch map initialized to current location, but zoomed out to the size of a municipality. It currently shows the entire united states. If the user presses 'Use my location', then use standard localized zoom amount.
+- [ ] Map screen 'Use my location' button change to GPS target icon.
+- [ ] Map screen 'Use my location' and 'Pin lookup' are confusing to the user. Implement a UX plan that solves the confusion.
 - [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
 - [ ] Game edit email revamp to show actual changes. Too many emails skip some fields so old and new look identical
 - [ ] User account profile picture, probably requires Cloudinary

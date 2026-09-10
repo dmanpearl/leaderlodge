@@ -83,3 +83,18 @@ def add_location_geo_fields(form: forms.Form) -> None:
 
 def location_geo_from_form(form: forms.Form) -> LocationGeo | None:
     return location_geo_from_mapping(form.cleaned_data)
+
+
+def set_location_geo_form_initials(form: forms.Form, location) -> None:
+    """Seed hidden geo fields from a Location row (Edit game)."""
+    if location is None or location.lat is None or location.lon is None:
+        return
+    form.fields["location_lat"].initial = location.lat
+    form.fields["location_lon"].initial = location.lon
+    form.fields["location_city"].initial = location.city or ""
+    form.fields["location_state"].initial = location.state or ""
+    form.fields["location_country"].initial = location.country or ""
+    form.fields["location_postal_code"].initial = location.postal_code or ""
+    form.fields["location_street_address"].initial = location.street_address or ""
+    form.fields["location_place_id"].initial = location.place_id or ""
+    form.fields["location_geocode_source"].initial = location.geocode_source or ""

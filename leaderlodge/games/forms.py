@@ -5,6 +5,7 @@ from django.utils import timezone
 from leaderlodge.games.location_field import (
     add_location_geo_fields,
     location_geo_from_form,
+    set_location_geo_form_initials,
     location_name_form_field,
 )
 from leaderlodge.games.models import Game, GameParticipantResult
@@ -197,6 +198,7 @@ class GameEditForm(forms.Form):
         self.fields["played_on"].initial = game.played_on
         if game.location_id:
             self.fields["location_name"].initial = game.location.name
+            set_location_geo_form_initials(self, game.location)
         game_type = get_game_type(game.game_type_code)
         if game_type.score_types:
             choices = score_type_choices_for(game.game_type_code)

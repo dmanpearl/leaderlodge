@@ -1,0 +1,14 @@
+<div class="d-flex flex-wrap align-items-center gap-2 mt-1" data-location-pin-status>
+  <span
+    class="badge text-bg-success location-geocoded-badge{% if not is_geocoded %} d-none{% endif %}"
+    data-location-pin-badge
+    title="Pin set"
+  >
+    <i class="bi bi-pin-fill" aria-hidden="true"></i>
+    <span class="visually-hidden">Pin set</span>
+  </span>
+  <span
+    class="text-muted small{% if is_geocoded %} d-none{% endif %}"
+    data-location-pin-empty
+  >No pin yet for this location</span>
+</div>
