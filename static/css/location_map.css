@@ -10,6 +10,21 @@
   margin-bottom: 0.75rem;
 }
 
+.location-map-icon-btn {
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--bs-secondary-color, #6c757d);
+  text-decoration: none;
+}
+
+.location-map-icon-btn:hover {
+  color: var(--bs-primary, #0d6efd);
+}
+
+.location-map-icon-btn.text-primary {
+  color: var(--bs-primary, #0d6efd);
+}
+
 .location-map-search-wrap {
   display: flex;
   flex: 1 1 12rem;
