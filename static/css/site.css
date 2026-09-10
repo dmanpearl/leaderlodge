@@ -18,9 +18,15 @@ nav.navbar.bg-primary > .container {
 }
 
 .navbar-brand-logo {
-  display: block;
+  display: none;
   height: 2rem;
   width: auto;
+}
+
+@media (min-width: 768px) {
+  nav.navbar.bg-primary .navbar-brand-logo {
+    display: block;
+  }
 }
 
 .navbar-brand-duck-wrap {
@@ -124,6 +130,16 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     padding: 0.3125rem;
     border-radius: var(--bs-border-radius);
     line-height: 0;
+  }
+
+  nav.navbar.bg-primary.navbar-brand--full-logo .navbar-brand-duck-wrap {
+    display: none;
+  }
+
+  nav.navbar.bg-primary.navbar-brand--full-logo .navbar-brand-logo {
+    display: block;
+    height: 1.375em;
+    width: auto;
   }
 
   nav.navbar.bg-primary .navbar-brand-duck {
