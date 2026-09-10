@@ -65,6 +65,30 @@
     return recentLocations.slice(0, MAX_SUGGESTIONS);
   }
 
+  function locationGeoPayload(location) {
+    if (location?.lat == null || location?.lon == null) {
+      return null;
+    }
+    return {
+      lat: location.lat,
+      lon: location.lon,
+      city: location.city || "",
+      state: location.state || "",
+      country: location.country || "",
+      postal_code: location.postal_code || "",
+      street_address: location.street_address || "",
+      place_id: location.place_id || "",
+      geocode_source: location.geocode_source || "",
+    };
+  }
+
+  function resolveLocationEntry(locations, location) {
+    if (locationGeoPayload(location)) {
+      return location;
+    }
+    return locations.find((entry) => entry.name === location.name) || location;
+  }
+
   function attachListToInput(input, listEl) {
     const existingWrap = input.closest(".location-field-input-wrap");
     if (existingWrap) {
@@ -450,12 +474,16 @@
       this.skipRefresh = true;
       this.forceRecent = false;
       delete this.listEl.dataset.recentOpen;
-      this.input.value = location.name;
+      const resolved = resolveLocationEntry(this.locations, location);
+      this.input.value = resolved.name;
       syncLocationFieldButtons(this.input);
       this.input.dispatchEvent(
         new CustomEvent("location-autocomplete-select", {
           bubbles: true,
-          detail: { name: location.name },
+          detail: {
+            name: resolved.name,
+            geo: locationGeoPayload(resolved),
+          },
         }),
       );
       this.close();

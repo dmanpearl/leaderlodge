@@ -99,6 +99,44 @@ def test_group_locations_api(client, user):
 
 
 @pytest.mark.django_db
+def test_group_locations_api_includes_geo_for_pinned_location(client, user):
+    from leaderlodge.groups.location_geo import GEOCODE_SOURCE_MAP_PIN, location_geo
+    from leaderlodge.groups.locations import resolve_game_location
+
+    group = create_group_with_owner(user=user, name="Dom Club")
+    resolve_game_location(
+        group=group,
+        location_name="Some Random House",
+        geo=location_geo(
+            lat=34.0522,
+            lon=-118.2437,
+            city="Los Angeles",
+            state="CA",
+            country="US",
+            geocode_source=GEOCODE_SOURCE_MAP_PIN,
+        ),
+    )
+    get_or_create_location(library=group.location_library, name="Another Random House")
+
+    client.force_login(user)
+    response = client.get(reverse("groups:locations", kwargs={"pk": group.pk}))
+
+    assert response.status_code == 200
+    data = response.json()
+    pinned = next(
+        row for row in data["locations"] if row["name"] == "Some Random House"
+    )
+    assert pinned["lat"] == pytest.approx(34.0522)
+    assert pinned["lon"] == pytest.approx(-118.2437)
+    assert pinned["city"] == "Los Angeles"
+    assert pinned["geocode_source"] == GEOCODE_SOURCE_MAP_PIN
+    unpinned = next(
+        row for row in data["locations"] if row["name"] == "Another Random House"
+    )
+    assert set(unpinned.keys()) == {"name"}
+
+
+@pytest.mark.django_db
 def test_group_locations_api_requires_membership(client, user):
     group = create_group_with_owner(user=user, name="Dom Club")
     stranger = User.objects.create_user(username="stranger", password="pass")

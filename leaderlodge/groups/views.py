@@ -46,7 +46,10 @@ from leaderlodge.groups.invites import (
     revoke_group_invite,
     send_invite_email,
 )
-from leaderlodge.groups.locations import locations_for_group
+from leaderlodge.groups.locations import (
+    location_autocomplete_payload,
+    locations_for_group,
+)
 from leaderlodge.groups.models import Group, GroupMembership, GroupPlayer, Location
 from leaderlodge.groups.player_search import search_group_players
 from leaderlodge.groups.permissions import (
@@ -417,7 +420,10 @@ def group_locations(request: HttpRequest, pk: int) -> JsonResponse:
     if not can_view_group(request.user, group, session=request.session):
         raise Http404
 
-    locations = [{"name": location.name} for location in locations_for_group(group)]
+    locations = [
+        location_autocomplete_payload(location)
+        for location in locations_for_group(group)
+    ]
     game_type_code = (
         (request.GET.get("game_type_code") or "").strip()
         or (request.GET.get("type") or "").strip()

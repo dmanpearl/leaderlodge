@@ -378,6 +378,26 @@ def location_libraries_for_user(user: AbstractBaseUser):
     return LocationLibrary.objects.filter(groups__memberships__user=user).distinct()
 
 
+def location_autocomplete_payload(location: Location) -> dict:
+    """JSON row for fuzzy location combobox and group locations API."""
+    payload = {"name": location.name}
+    if location.lat is not None and location.lon is not None:
+        payload.update(
+            {
+                "lat": location.lat,
+                "lon": location.lon,
+                "city": location.city or "",
+                "state": location.state or "",
+                "country": location.country or "",
+                "postal_code": location.postal_code or "",
+                "street_address": location.street_address or "",
+                "place_id": location.place_id or "",
+                "geocode_source": location.geocode_source or "",
+            }
+        )
+    return payload
+
+
 def locations_for_group(group: Group):
     library = ensure_group_location_library(group)
     return library.locations.order_by("name")

@@ -108,11 +108,10 @@
                   data-game-count="{{ location_game_count }}"
                   {% if game.location.lat %}data-lat="{{ game.location.lat }}"{% endif %}
                   {% if game.location.lon %}data-lon="{{ game.location.lon }}"{% endif %}
-                  title="Assign pin on map"
+                  title="Assign saves the pin on the location row. You do not need Save changes for that."
                   aria-label="Assign pin on map"
                 ><i class="bi bi-map" aria-hidden="true"></i></button>
               </div>
-              <div class="form-text">Assign saves the pin on the location row. You do not need Save changes for that.</div>
             {% else %}
               <div class="form-text">Use Map above, then Save changes to store the pin on this location.</div>
             {% endif %}
@@ -401,9 +400,9 @@
   <script>
     document.body.dataset.locationsUrlTemplate = "{% url 'groups:locations' 0 %}";
   </script>
-  <script src="{% static 'js/location_autocomplete.js' %}?v=14"></script>
+  <script src="{% static 'js/location_autocomplete.js' %}?v=15"></script>
   {% if google_places_api_key %}
-    <script src="{% static 'js/location_lookup.js' %}?v=7"></script>
+    <script src="{% static 'js/location_lookup.js' %}?v=8"></script>
   {% endif %}
   {% if can_use_location_map and google_places_api_key %}
     <script src="{% static 'js/location_map.js' %}?v=4"></script>

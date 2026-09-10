@@ -536,9 +536,17 @@
     lastFilledValue = name || null;
   });
 
-  // Autocomplete reuse of an existing library name: drop pending Lookup geo.
-  document.addEventListener("location-autocomplete-select", () => {
+  // Autocomplete library pick: reuse saved coords when present, else clear Lookup geo.
+  document.addEventListener("location-autocomplete-select", (event) => {
+    const name = String(event.detail?.name || "").trim();
+    const geo = event.detail?.geo;
+    if (geo?.lat != null && geo?.lon != null) {
+      setGeoFields(geo);
+      lastFilledValue = name || null;
+      return;
+    }
     clearGeoFields();
+    lastFilledValue = name || null;
   });
 
   async function runPlacesLookup(mode) {
