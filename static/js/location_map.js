@@ -1,6 +1,9 @@
 (function () {
   const US_CENTER = { lat: 39.8283, lon: -98.5795 };
   const DEFAULT_ZOOM = 4;
+  /** City / municipality overview when opening the map near the user. */
+  const MUNICIPALITY_ZOOM = 12;
+  /** Street-level zoom after Use my location or placing a pin. */
   const FOCUS_ZOOM = 16;
 
   const NEARBY_TYPES = [
@@ -199,7 +202,7 @@
     async init(initial) {
       await loadGoogleMaps(this.apiKey);
       const { Map } = await google.maps.importLibrary("maps");
-      const center = this._initialCenter(initial);
+      const center = await this._initialCenter(initial);
       this.map = new Map(this.container, {
         center: { lat: center.lat, lng: center.lon },
         zoom: center.zoom,
@@ -225,7 +228,7 @@
       }
     }
 
-    _initialCenter(initial) {
+    async _initialCenter(initial) {
       if (initial?.lat != null && initial?.lon != null) {
         return {
           lat: Number(initial.lat),
@@ -233,7 +236,16 @@
           zoom: initial.zoom || FOCUS_ZOOM,
         };
       }
-      return { ...US_CENTER, zoom: DEFAULT_ZOOM };
+      try {
+        const pos = await getPosition();
+        return {
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          zoom: MUNICIPALITY_ZOOM,
+        };
+      } catch (_err) {
+        return { ...US_CENTER, zoom: DEFAULT_ZOOM };
+      }
     }
 
     destroy() {
@@ -493,6 +505,9 @@
       await this.setPin(pos.coords.latitude, pos.coords.longitude, {
         geocode_source: "gps",
       });
+      if (this.map) {
+        this.map.setZoom(FOCUS_ZOOM);
+      }
       return { lat: pos.coords.latitude, lon: pos.coords.longitude };
     }
 
@@ -518,5 +533,7 @@
     geoFromPlace,
     placeDisplayName,
     extractCityState,
+    MUNICIPALITY_ZOOM,
+    FOCUS_ZOOM,
   };
 })();

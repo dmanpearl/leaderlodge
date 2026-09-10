@@ -334,7 +334,7 @@
 {% block extra_js %}
   {% if google_places_api_key %}
     {% if is_geocoded or can_manage_locations %}
-      <script src="{% static 'js/location_map.js' %}?v=3"></script>
+      <script src="{% static 'js/location_map.js' %}?v=4"></script>
     {% endif %}
     {% if is_geocoded %}
       <script src="{% static 'js/location_detail_map.js' %}?v=1"></script>

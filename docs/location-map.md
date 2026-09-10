@@ -127,6 +127,8 @@ Capabilities:
 
 - Editable Places search (query pre-filled from the location name)
 - Drop pin; **Pin lookup** for nearby Places at the pin
+- Opens centered on device location at municipality zoom when no pin
+  exists yet; **Use my location** drops a pin at street-level zoom
 - Assign with overwrite confirmation when coords already exist
 - Optional adopt Google place name
 
