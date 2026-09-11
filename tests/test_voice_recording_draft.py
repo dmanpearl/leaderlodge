@@ -435,6 +435,7 @@ def test_parse_recording_endpoint_returns_draft(
         }
     )
     client.force_login(user)
+    games_before = Game.objects.count()
     response = client.post(
         reverse("games:parse_recording"),
         data=json.dumps(
@@ -451,7 +452,7 @@ def test_parse_recording_endpoint_returns_draft(
     payload = response.json()
     assert payload["draft"]["game_type_code"] == "pickleball"
     assert payload["draft"]["sides"][0]["score"] == 11
-    assert Game.objects.count() == 0
+    assert Game.objects.count() == games_before
 
 
 @override_settings(INSIGHTS_ENABLED=False, OPENAI_API_KEY="", GOOGLE_AI_API_KEY="")

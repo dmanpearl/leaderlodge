@@ -7,6 +7,8 @@ from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.player_search import (
     DEFAULT_RECENCY,
     recency_ranks_for_group,
+    resolve_participant_player,
+    resolve_typed_player_name,
     roster_for_group,
     search_group_players,
 )
@@ -38,6 +40,31 @@ def _people(group):
 def test_search_group_players_matches_username(group, user):
     results = search_group_players(group, "david")
     assert any(entry["username"] == "david" for entry in results)
+
+
+@pytest.mark.django_db
+def test_resolve_typed_player_name_matches_linked_username(group, user):
+    owner = group.players.filter(linked_user__isnull=False).first()
+    assert resolve_typed_player_name(group=group, name="david") == owner
+
+
+@pytest.mark.django_db
+def test_resolve_participant_player_matches_username_without_player_id(group, user):
+    owner = group.players.filter(linked_user__isnull=False).first()
+    resolved = resolve_participant_player(
+        group=group, player_id=None, guest_name="david"
+    )
+    assert resolved == owner
+    assert resolved.linked_user_id == user.pk
+
+
+@pytest.mark.django_db
+def test_resolve_participant_player_matches_disambiguated_label(group, user):
+    owner = group.players.filter(linked_user__isnull=False).first()
+    resolved = resolve_participant_player(
+        group=group, player_id=None, guest_name=owner.display_label
+    )
+    assert resolved == owner
 
 
 @pytest.mark.django_db

@@ -176,6 +176,49 @@ def guest_name_is_available(group: Group, name: str) -> bool:
     return not group.players.filter(display_name__iexact=cleaned).exists()
 
 
+def resolve_typed_player_name(*, group: Group, name: str) -> GroupPlayer | None:
+    """Match a typed roster/teammate name to an existing player when possible."""
+    cleaned = name.strip()
+    if not cleaned:
+        return None
+
+    seed_lower = cleaned.lower()
+    by_display = (
+        group.players.filter(
+            display_name__iexact=cleaned, is_active=True, is_team=False
+        )
+        .select_related("linked_user")
+        .first()
+    )
+    if by_display is not None:
+        return by_display
+
+    linked_players = group.players.filter(
+        is_active=True, is_team=False, linked_user__isnull=False
+    ).select_related("linked_user")
+    for player in linked_players:
+        user = player.linked_user
+        if user.get_username().lower() == seed_lower:
+            return player
+        first_name = (user.first_name or "").strip().lower()
+        if first_name and first_name == seed_lower:
+            return player
+
+    roster = list(
+        group.players.filter(is_active=True, is_team=False).select_related(
+            "linked_user"
+        )
+    )
+    from leaderlodge.groups.names import apply_label_overrides
+
+    apply_label_overrides(roster)
+    for player in roster:
+        if player.display_label.lower() == seed_lower:
+            return player
+
+    return None
+
+
 def resolve_participant_player(
     *, group: Group, player_id: str | None, guest_name: str | None
 ) -> GroupPlayer | None:
@@ -192,7 +235,7 @@ def resolve_participant_player(
     if not cleaned:
         return None
 
-    existing = group.players.filter(display_name__iexact=cleaned, is_team=False).first()
+    existing = resolve_typed_player_name(group=group, name=cleaned)
     if existing is not None:
         return existing
 

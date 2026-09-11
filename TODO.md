@@ -271,11 +271,12 @@
 - [x] b050152 Game edit email revamp to show actual changes. Too many emails skip some fields so old and new look identical
 - [x] 0ceb4ba Map button should launch map initialized to current location, but zoomed out to the size of a municipality. It currently shows the entire united states. If the user presses 'Use my location', then use standard localized zoom amount.
 - [x] b8a9775 Edit game: Move Location's message "Assign saves the pin on the location row. You do not need Save changes for that." to the hover text. It is ok that it will not be available on mobile.
-- [x] Set place map toolbar: inline Enter search submit, pin-map icon for nearby lookup at pin or map center, crosshair for GPS, unified icon buttons.
+- [x] ffbafdc Set place map toolbar: inline Enter search submit, pin-map icon for nearby lookup at pin or map center, crosshair for GPS, unified icon buttons.
+- [x] Bug: Record game Team field no longer auto looks up existing user. This is recently introduced. Explain why there are no tests to uncover this type of regression.
 
 ## Open Items
 
-- [ ] Bug: Record game Team field no longer auto looks up existing user. This is recently introduced. Explain why there are no tests to uncover this type of regression.
+- [ ] Pickleball needs an easier way to pick teams when recording a game. We currently have only the "Reuse" button to help. Add a button 
 - [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre

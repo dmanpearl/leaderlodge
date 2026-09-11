@@ -1813,6 +1813,12 @@
       roster,
       tbody
     );
+
+    form.addEventListener("submit", () => {
+      window.LeaderLodgeRecordGame.picker?.commitPendingEntry?.();
+      window.LeaderLodgeRecordGame.teammatePicker?.commitPendingEntry?.();
+    });
+
     tbody.querySelectorAll("[data-game-row]").forEach((row) => {
       hydrateParticipantRow(row, roster, form, tbody);
     });

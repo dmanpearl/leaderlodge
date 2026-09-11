@@ -53,7 +53,7 @@ def build_try_it_ask_url(*, demo_group_id: int, example: AskExample) -> str:
 
     params = {
         "group": demo_group_id,
-        "game_type_code": example.game_type_code,
+        "type": example.game_type_code,
         "question": example.primary_question,
     }
     return f"{reverse('insights:ask')}?{urlencode(params)}"

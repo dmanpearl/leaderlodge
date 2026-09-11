@@ -503,11 +503,10 @@ def _resolve_row_player(group, player_id_raw: str, guest_name: str):
         if player is not None:
             display_label = player.display_label
     elif guest_name.strip():
+        from leaderlodge.groups.player_search import resolve_typed_player_name
+
         display_label = guest_name.strip()
-        player = group.players.filter(
-            display_name__iexact=display_label,
-            is_active=True,
-        ).first()
+        player = resolve_typed_player_name(group=group, name=display_label)
     return player, display_label
 
 

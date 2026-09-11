@@ -120,7 +120,7 @@ def test_game_list_stats_use_full_filter_not_current_page(
 
     response = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos", "page": 1},
+        {"group": str(group.pk), "type": "dominos", "page": 1},
     )
     content = response.content.decode()
 
@@ -445,7 +445,7 @@ def test_game_list_stats_table_hides_player_but_game_table_keeps_them(
 
     response = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "progressiverummy"},
+        {"group": str(group.pk), "type": "progressiverummy"},
     )
     content = response.content.decode()
 

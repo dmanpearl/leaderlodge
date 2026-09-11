@@ -66,7 +66,7 @@ def test_game_list_shows_weight_column_when_game_type_filtered(client, user, gro
 
     response = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     content = response.content.decode()
     games_table = content.split("game-list-table ", 1)[1].split("</table>", 1)[0]
@@ -113,7 +113,7 @@ def test_game_list_splits_team_column_headers(client, user, group):
     client.force_login(user)
     response = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "pickleball"},
+        {"group": str(group.pk), "type": "pickleball"},
     )
     content = response.content.decode()
     games_table = content.split("game-list-table ", 1)[1].split("</table>", 1)[0]
@@ -126,11 +126,11 @@ def test_game_list_splits_team_column_headers(client, user, group):
 
     detail_url = reverse("leaderboards:detail")
     assert (
-        f'href="{detail_url}?group={group.pk}&amp;game_type_code=pickleball&amp;player={team.pk}"'
+        f'href="{detail_url}?group={group.pk}&amp;type=pickleball&amp;player={team.pk}"'
         in games_table
     )
     assert (
-        f'href="{detail_url}?group={group.pk}&amp;game_type_code=pickleball&amp;player={opponent.pk}"'
+        f'href="{detail_url}?group={group.pk}&amp;type=pickleball&amp;player={opponent.pk}"'
         in games_table
     )
 
@@ -145,7 +145,7 @@ def test_game_list_column_header_links_to_rank_detail(client, user, group):
 
     response = client.get(
         reverse("games:list"),
-        {"group": str(group.pk), "game_type": "dominos"},
+        {"group": str(group.pk), "type": "dominos"},
     )
     content = response.content.decode()
 

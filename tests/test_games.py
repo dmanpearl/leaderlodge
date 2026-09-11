@@ -528,9 +528,15 @@ def test_reuse_roster_prefills_selected_older_game(client, user, group):
     )
     content = response.content.decode()
     assert response.status_code == 200
-    assert f'data-player-id="{players[0].pk}"' in content
-    assert f'data-player-id="{players[2].pk}"' in content
-    assert f'data-player-id="{players[1].pk}"' not in content
+
+    def expected_player_id(player):
+        if player.linked_user_id:
+            return f'data-player-id="{player.pk}"'
+        return f'data-player-id="guest:{player.display_name}"'
+
+    assert expected_player_id(players[0]) in content
+    assert expected_player_id(players[2]) in content
+    assert expected_player_id(players[1]) not in content
     assert content.count("data-game-row") == 2
 
 
