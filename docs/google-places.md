@@ -170,8 +170,8 @@ includes:
 
 - Editable Places text search (pre-filled from the informal location name)
 - Map with draggable pin (click map to drop)
-- **Pin lookup** (nearby Places at the pin, same types as Near me)
-- Optional **Use my location** (centers map; not the default for assign)
+- **Pin-map icon** (nearby Places at the pin or map center, same types as Near me)
+- **Crosshair icon** for device location (street-level pin when used)
 - **Assign** writes geo to the `Location` row for all games using it
 
 | User action | `geocode_source` |

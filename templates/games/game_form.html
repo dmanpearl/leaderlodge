@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
   {% if google_places_api_key %}
-    <link rel="stylesheet" href="{% static 'css/location_map.css' %}?v=1" />
+    <link rel="stylesheet" href="{% static 'css/location_map.css' %}?v=2" />
   {% endif %}
 {% endblock %}
 {% block content %}
@@ -558,8 +558,8 @@
   {% if google_places_api_key %}
       <script src="{% static 'js/location_lookup.js' %}?v=8"></script>
     {% if not is_guest_demo %}
-      <script src="{% static 'js/location_map.js' %}?v=4"></script>
-      <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
+      <script src="{% static 'js/location_map.js' %}?v=5"></script>
+      <script src="{% static 'js/location_set_place.js' %}?v=5"></script>
     {% endif %}
   {% endif %}
   {% if show_roster and game_type and not is_guest_demo %}

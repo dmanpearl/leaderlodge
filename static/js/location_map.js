@@ -488,13 +488,22 @@
 
     async pinLookup() {
       this.setStatus("");
-      if (!this.marker) {
-        throw new Error("Drop a pin on the map first.");
+      let lat;
+      let lon;
+      if (this.marker) {
+        const pos = this.marker.getPosition();
+        lat = pos.lat();
+        lon = pos.lng();
+      } else if (this.map) {
+        const center = this.map.getCenter();
+        lat = center.lat();
+        lon = center.lng();
+      } else {
+        throw new Error("Map is not ready.");
       }
-      const pos = this.marker.getPosition();
-      const places = await this.nearbySearch(pos.lat(), pos.lng());
+      const places = await this.nearbySearch(lat, lon);
       if (!places.length) {
-        throw new Error("No nearby places found at this pin.");
+        throw new Error("No nearby places found on the map.");
       }
       return places;
     }

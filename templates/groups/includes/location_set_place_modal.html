@@ -25,31 +25,35 @@
           <p class="text-muted small mb-2" id="location-set-place-subtitle"></p>
 
           <div class="location-map-toolbar">
-            <div class="location-map-search-wrap">
+            <div class="location-map-search-wrap combobox-input-wrap">
               <label class="visually-hidden" for="location-map-search-input"
                 >Search places</label
               >
               <input
                 type="search"
                 id="location-map-search-input"
-                class="form-control"
+                class="form-control location-map-search-input"
                 placeholder="Search for a place"
                 autocomplete="off"
               />
               <button
                 type="submit"
-                class="btn btn-outline-primary"
+                class="location-map-search-submit"
                 id="location-map-search-btn"
+                title="Search by place name"
+                aria-label="Search by place name"
               >
-                Search
+                <i class="bi bi-arrow-return-left" aria-hidden="true"></i>
               </button>
             </div>
             <button
               type="button"
-              class="btn btn-outline-secondary btn-sm"
+              class="btn btn-sm btn-link p-0 location-map-icon-btn"
               id="location-map-pin-lookup-btn"
+              title="Find nearby places at the pin"
+              aria-label="Find nearby places at the pin"
             >
-              Pin lookup
+              <i class="bi bi-pin-map" aria-hidden="true"></i>
             </button>
             <button
               type="button"

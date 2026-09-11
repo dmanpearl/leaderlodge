@@ -125,10 +125,10 @@ games at that venue).
 
 Capabilities:
 
-- Editable Places search (query pre-filled from the location name)
-- Drop pin; **Pin lookup** for nearby Places at the pin
-- Opens centered on device location at municipality zoom when no pin
-  exists yet; **Use my location** drops a pin at street-level zoom
+- Places search by name (inline submit icon in the search field)
+- Drop pin; **pin-map icon** finds nearby Places at the pin or map center
+- **Crosshair icon** for device location; opens at municipality zoom when
+  no pin exists yet, then street-level zoom when used
 - Assign with overwrite confirmation when coords already exist
 - Optional adopt Google place name
 

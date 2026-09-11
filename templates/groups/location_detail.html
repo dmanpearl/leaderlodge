@@ -6,7 +6,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/groups.css' %}" />
   {% if google_places_api_key %}
-    <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/location_map.css' %}?v=2" />
   {% endif %}
 {% endblock %}
 
@@ -334,13 +334,13 @@
 {% block extra_js %}
   {% if google_places_api_key %}
     {% if is_geocoded or can_manage_locations %}
-      <script src="{% static 'js/location_map.js' %}?v=4"></script>
+      <script src="{% static 'js/location_map.js' %}?v=5"></script>
     {% endif %}
     {% if is_geocoded %}
       <script src="{% static 'js/location_detail_map.js' %}?v=1"></script>
     {% endif %}
     {% if can_manage_locations %}
-      <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
+      <script src="{% static 'js/location_set_place.js' %}?v=5"></script>
     {% endif %}
   {% endif %}
   {% if can_manage_locations %}

@@ -128,7 +128,6 @@
     adoptNameCheckbox.disabled = true;
     renderSelected(null);
     setAssignButtonLabel("assign");
-    myLocationBtn.classList.remove("text-primary");
     if (picker) {
       picker.destroy();
       picker = null;
@@ -233,15 +232,14 @@
       titleEl.textContent = "Set location";
       subtitleEl.textContent =
         "Search, drop a pin, or use your location. Confirm writes the pin onto this game.";
-      myLocationBtn.classList.add("text-primary");
     } else {
       const count = Number(context.gameCount) || 0;
       titleEl.textContent = `Set place for ${name}`;
-      subtitleEl.textContent =
+      const usage =
         count > 0
           ? `Updates the location row used by ${gameCountLabel(count)}.`
           : "Updates this location row for all linked games.";
-      myLocationBtn.classList.remove("text-primary");
+      subtitleEl.textContent = `${usage} Search by name, drop a pin, or use your location.`;
     }
     setAssignButtonLabel(mode);
     searchInput.value = name === "Location" ? "" : name;

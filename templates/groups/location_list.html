@@ -6,7 +6,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/groups.css' %}" />
   {% if google_places_api_key %}
-    <link rel="stylesheet" href="{% static 'css/location_map.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/location_map.css' %}?v=2" />
   {% endif %}
 {% endblock %}
 
@@ -470,8 +470,8 @@
 
 {% block extra_js %}
   {% if google_places_api_key %}
-    <script src="{% static 'js/location_map.js' %}?v=4"></script>
-    <script src="{% static 'js/location_set_place.js' %}?v=4"></script>
+    <script src="{% static 'js/location_map.js' %}?v=5"></script>
+    <script src="{% static 'js/location_set_place.js' %}?v=5"></script>
   {% endif %}
   <script>
     (function () {
