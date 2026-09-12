@@ -266,27 +266,10 @@
     );
   }
 
-  function isIOSDevice() {
-    return (
-      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-    );
-  }
-
   function unlockComboboxInput(input) {
     if (input) {
       input.removeAttribute("readonly");
     }
-  }
-
-  function restoreMobileKeyboard(input) {
-    if (!input || !isIOSDevice() || document.activeElement !== input) {
-      return;
-    }
-    input.blur();
-    window.requestAnimationFrame(() => {
-      input.focus();
-    });
   }
 
   function openComboboxFromUserGesture(picker, input, { setContext } = {}) {
@@ -306,18 +289,23 @@
 
     if (document.activeElement === input) {
       refresh();
-      restoreMobileKeyboard(input);
-      window.requestAnimationFrame(refresh);
       return;
     }
 
+    picker.pendingGestureRefresh = true;
     input.focus();
-    window.requestAnimationFrame(refresh);
+    window.requestAnimationFrame(() => {
+      picker.pendingGestureRefresh = false;
+      refresh();
+    });
   }
 
   function handleComboboxFocus(picker, input) {
     if (picker.ignoreFocusRefresh) {
       picker.ignoreFocusRefresh = false;
+      return;
+    }
+    if (picker.pendingGestureRefresh) {
       return;
     }
     const trimmed = input ? input.value.trim() : "";
@@ -631,56 +619,13 @@
   }
 
   function initRowMenuDropdown(row) {
-    const menuWrap = row.querySelector("[data-side-menu-wrap]");
-    const toggle = menuWrap?.querySelector("[data-bs-toggle='dropdown']");
-    const menu = row.querySelector("[data-side-menu]");
-    if (!toggle || !menuWrap || !menu || toggle.dataset.rowMenuReady === "1") {
+    const toggle = row.querySelector(
+      "[data-side-menu-wrap] [data-bs-toggle='dropdown']"
+    );
+    if (!toggle || toggle.dataset.rowMenuReady === "1") {
       return;
     }
     toggle.dataset.rowMenuReady = "1";
-
-    const repositionPortaledMenu = () => {
-      if (menu.dataset.portaled !== "1") {
-        return;
-      }
-      const rect = toggle.getBoundingClientRect();
-      menu.style.position = "fixed";
-      menu.style.zIndex = "2000";
-      menu.style.top = `${rect.bottom}px`;
-      menu.style.right = `${Math.max(0, window.innerWidth - rect.right)}px`;
-      menu.style.left = "auto";
-      menu.style.bottom = "auto";
-      menu.style.transform = "none";
-    };
-
-    const bindPortalListeners = () => {
-      window.addEventListener("scroll", repositionPortaledMenu, true);
-      window.addEventListener("resize", repositionPortaledMenu);
-      window.visualViewport?.addEventListener("scroll", repositionPortaledMenu);
-      window.visualViewport?.addEventListener("resize", repositionPortaledMenu);
-    };
-
-    const unbindPortalListeners = () => {
-      window.removeEventListener("scroll", repositionPortaledMenu, true);
-      window.removeEventListener("resize", repositionPortaledMenu);
-      window.visualViewport?.removeEventListener("scroll", repositionPortaledMenu);
-      window.visualViewport?.removeEventListener("resize", repositionPortaledMenu);
-    };
-
-    toggle.addEventListener("show.bs.dropdown", () => {
-      document.body.appendChild(menu);
-      menu.dataset.portaled = "1";
-      repositionPortaledMenu();
-      bindPortalListeners();
-    });
-
-    toggle.addEventListener("hidden.bs.dropdown", () => {
-      unbindPortalListeners();
-      delete menu.dataset.portaled;
-      menu.style.cssText = "";
-      menuWrap.appendChild(menu);
-    });
-
     if (window.bootstrap?.Dropdown) {
       const existing = window.bootstrap.Dropdown.getInstance(toggle);
       if (existing) {
@@ -1274,6 +1219,7 @@
       this.isOpen = false;
       this.allowEmptyOpen = false;
       this.ignoreFocusRefresh = false;
+      this.pendingGestureRefresh = false;
       this.suppressBlurCommit = false;
 
       this.listEl = document.createElement("ul");
@@ -1322,6 +1268,12 @@
           return;
         }
         if (this.listEl.contains(target)) {
+          return;
+        }
+        if (
+          target instanceof Element &&
+          target.closest("[data-side-menu-wrap], [data-side-menu]")
+        ) {
           return;
         }
         if (
@@ -1851,6 +1803,7 @@
       this.isOpen = false;
       this.allowEmptyOpen = false;
       this.ignoreFocusRefresh = false;
+      this.pendingGestureRefresh = false;
       this.suppressBlurCommit = false;
       this.placeholder = "Teammate";
 

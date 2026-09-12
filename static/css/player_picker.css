@@ -38,11 +38,15 @@
   margin: 0;
 }
 
-/* Row ... menu: portaled to body in JS so it clears the footer picker. */
-.dropdown-menu[data-portaled="1"] {
-  position: fixed !important;
-  z-index: 2000 !important;
-  transform: none !important;
+/* Participant rows stack above the footer Add player block. */
+[data-participant-rows] {
+  position: relative;
+  z-index: 2;
+}
+
+/* Row ... menu: fixed Popper + high z-index clears the footer combobox. */
+[data-side-menu-wrap] .dropdown-menu {
+  z-index: 2000;
 }
 
 .combobox-option {
@@ -147,6 +151,8 @@
 
 .game-record-picker-panel {
   margin-top: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .game-record-add-toggle {
