@@ -152,6 +152,41 @@ def test_suggest_deprioritizes_teams_when_mostly_singles(user, group):
 
 
 @pytest.mark.django_db
+def test_suggest_filters_by_query(user, group):
+    today = date(2026, 3, 15)
+    _record_pickleball_doubles(
+        user,
+        group,
+        team_a=("David", "Nancy"),
+        team_b=("Imelda", "Steve"),
+        played_on=today,
+    )
+
+    suggestions = suggest_side_entries(group, "pickleball", query="nan")
+    labels = [item["label"].lower() for item in suggestions]
+
+    assert any("nancy" in label for label in labels)
+    assert not any("steve" in label for label in labels)
+
+
+@pytest.mark.django_db
+def test_suggest_teammate_mode_returns_solo_only(user, group):
+    today = date(2026, 3, 15)
+    _record_pickleball_doubles(
+        user,
+        group,
+        team_a=("David", "Nancy"),
+        team_b=("Imelda", "Steve"),
+        played_on=today,
+    )
+
+    suggestions = suggest_side_entries(group, "pickleball", teammate_mode=True)
+
+    assert suggestions
+    assert all(item["kind"] == "solo" for item in suggestions)
+
+
+@pytest.mark.django_db
 def test_suggest_sides_endpoint(client, user, group):
     today = date(2026, 3, 15)
     _record_pickleball_doubles(

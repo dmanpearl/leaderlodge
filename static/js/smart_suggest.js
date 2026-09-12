@@ -59,49 +59,133 @@
     return tbody.querySelectorAll("[data-game-row]").length < max;
   }
 
+  function readRoster() {
+    try {
+      const rosterEl = document.getElementById("game-roster-data");
+      return rosterEl ? JSON.parse(rosterEl.textContent) : [];
+    } catch (_error) {
+      return [];
+    }
+  }
+
   function rosterEntryForPlayer(roster, player) {
     if (!player || !player.player_id) {
       return null;
     }
-    return roster.find((entry) => String(entry.id) === String(player.player_id)) || null;
+    return (
+      roster.find((entry) => String(entry.id) === String(player.player_id)) ||
+      null
+    );
   }
 
-  function applySuggestion(suggestion, picker, roster) {
-    if (!suggestion || !Array.isArray(suggestion.players) || !picker) {
-      return false;
-    }
-    if (suggestion.kind === "team" && suggestion.players.length > 1) {
-      return window.LeaderLodgeRecordGame.appendSide({
-        players: suggestion.players,
-      });
-    }
-    const player = suggestion.players[0];
+  function buildRowEntryFromPlayer(player) {
+    const roster = readRoster();
     const entry = rosterEntryForPlayer(roster, player);
     if (entry) {
-      picker.addParticipant({ entry });
-      return true;
+      return {
+        id: entry.id,
+        label: entry.label,
+        username: entry.username,
+        kind: entry.kind,
+        guestName: "",
+      };
     }
     if (player.player_id) {
-      picker.addParticipant({
-        entry: {
-          id: player.player_id,
-          label: player.label,
-          kind: "member",
-          username: null,
-        },
-      });
-      return true;
+      return {
+        id: player.player_id,
+        label: player.label,
+        username: null,
+        kind: "member",
+        guestName: "",
+      };
     }
-    picker.addParticipant({ guestName: player.guest_name || player.label });
-    return true;
+    return {
+      id: "",
+      label: player.label || player.guest_name || "Guest",
+      username: null,
+      kind: "guest",
+      guestName: player.guest_name || player.label || "",
+    };
   }
 
-  function renderSuggestions(menu, suggestions, picker, roster) {
+  function applySuggestion(suggestion, context) {
+    if (!suggestion || !Array.isArray(suggestion.players)) {
+      return false;
+    }
+    const picker = window.LeaderLodgeRecordGame?.picker;
+    const roster = readRoster();
+
+    if (context.mode === "teammate" && context.row) {
+      const player = suggestion.players[0];
+      if (!player) {
+        return false;
+      }
+      const teammatePicker = window.LeaderLodgeRecordGame?.teammatePicker;
+      const teammateInput = context.row.querySelector("[data-add-teammate]");
+      if (!teammatePicker || !teammateInput) {
+        return false;
+      }
+      teammatePicker.activate(teammateInput);
+      teammatePicker.assignFromEntry({
+        entry: buildRowEntryFromPlayer(player),
+      });
+      document
+        .querySelector("[data-smart-suggest-teammate-menu].show")
+        ?.classList.remove("show");
+      return true;
+    }
+
+    if (!picker) {
+      return false;
+    }
+    picker.suppressBlurCommit = true;
+    let applied = false;
+    if (suggestion.kind === "team" && suggestion.players.length > 1) {
+      applied = window.LeaderLodgeRecordGame.appendSide({
+        players: suggestion.players,
+      });
+    } else {
+      const player = suggestion.players[0];
+      const entry = rosterEntryForPlayer(roster, player);
+      if (entry) {
+        picker.addParticipant({ entry });
+        applied = true;
+      } else {
+        picker.addParticipant({ entry: buildRowEntryFromPlayer(player) });
+        applied = true;
+      }
+    }
+    if (applied && picker.input) {
+      picker.skipRefresh = true;
+      picker.input.value = "";
+      picker.close();
+    }
+    return applied;
+  }
+
+  function closeSmartSuggestMenus(menu) {
+    if (menu) {
+      menu.classList.remove("show");
+      const toggle = menu
+        .closest(".dropdown")
+        ?.querySelector("[data-bs-toggle='dropdown']");
+      if (toggle && window.bootstrap?.Dropdown) {
+        window.bootstrap.Dropdown.getInstance(toggle)?.hide();
+      }
+    }
+    document
+      .querySelector("[data-smart-suggest-teammate-menu].show")
+      ?.classList.remove("show");
+  }
+
+  function renderSuggestions(menu, suggestions, context) {
     menu.innerHTML = "";
     if (!suggestions.length) {
       const empty = document.createElement("li");
       empty.className = "dropdown-item-text text-muted small";
-      empty.textContent = "No recent players to suggest.";
+      empty.textContent = context.query
+        ? "No matching recent players."
+        : "No recent players to suggest.";
       menu.appendChild(empty);
       return;
     }
@@ -116,30 +200,50 @@
           ? '<span class="badge text-bg-primary ms-1">Team</span>'
           : "";
       button.innerHTML = `<span>${suggestion.label}</span>${badge}`;
+      button.addEventListener("mousedown", (event) => {
+        event.preventDefault();
+      });
       button.addEventListener("click", () => {
-        applySuggestion(suggestion, picker, roster);
+        applySuggestion(suggestion, context);
+        closeSmartSuggestMenus(menu);
       });
       item.appendChild(button);
       menu.appendChild(item);
     });
   }
 
-  async function loadSuggestions(form, menu, button) {
+  function queryForContext(form, context) {
+    if (context.mode === "teammate" && context.row) {
+      const teammateInput = context.row.querySelector("[data-add-teammate]");
+      return teammateInput ? teammateInput.value.trim() : "";
+    }
+    const playerInput = form.querySelector("[data-player-picker]");
+    return playerInput ? playerInput.value.trim() : "";
+  }
+
+  async function loadSuggestions(form, menu, button, context) {
     const url = form.dataset.suggestSidesUrl;
     const group = groupId(form);
     const gameType = gameTypeCode(form);
+    if (!context.queryCaptured) {
+      context.query = queryForContext(form, context);
+    }
+    const query = context.query || "";
+
     if (!url || !group || !gameType) {
-      renderSuggestions(menu, [], null, []);
+      renderSuggestions(menu, [], context);
       button.disabled = true;
       return;
     }
+
     const tbody = form.querySelector("[data-participant-rows]");
-    if (!canAddSide(form, tbody)) {
-      renderSuggestions(menu, [], null, []);
+    if (context.mode === "side" && !canAddSide(form, tbody)) {
+      renderSuggestions(menu, [], context);
       button.disabled = true;
       return;
     }
     button.disabled = false;
+
     const exclude = Array.from(playersAlreadyInGame(tbody)).join(",");
     const params = new URLSearchParams({
       group,
@@ -148,6 +252,13 @@
     if (exclude) {
       params.set("exclude", exclude);
     }
+    if (query) {
+      params.set("q", query);
+    }
+    if (context.mode === "teammate") {
+      params.set("mode", "teammate");
+    }
+
     menu.innerHTML =
       '<li class="dropdown-item-text text-muted small">Loading…</li>';
     try {
@@ -159,18 +270,21 @@
         throw new Error("request failed");
       }
       const payload = await response.json();
-      const picker = window.LeaderLodgeRecordGame?.picker;
-      let roster = [];
-      try {
-        const rosterEl = document.getElementById("game-roster-data");
-        roster = rosterEl ? JSON.parse(rosterEl.textContent) : [];
-      } catch (_error) {
-        roster = [];
-      }
-      renderSuggestions(menu, payload.suggestions || [], picker, roster);
+      renderSuggestions(menu, payload.suggestions || [], context);
     } catch (_error) {
       menu.innerHTML =
         '<li class="dropdown-item-text text-muted small">Could not load suggestions.</li>';
+    }
+  }
+
+  function suppressPickerBlurCommit() {
+    const picker = window.LeaderLodgeRecordGame?.picker;
+    if (picker) {
+      picker.suppressBlurCommit = true;
+    }
+    const teammatePicker = window.LeaderLodgeRecordGame?.teammatePicker;
+    if (teammatePicker) {
+      teammatePicker.skipRefresh = true;
     }
   }
 
@@ -181,29 +295,114 @@
     if (!form || !form.dataset.suggestSidesUrl) {
       return;
     }
-    const button = form.querySelector("[data-smart-suggest]");
-    const menu = form.querySelector("[data-smart-suggest-menu]");
-    if (!button || !menu) {
-      return;
-    }
 
-    button.addEventListener("show.bs.dropdown", () => {
-      window.LeaderLodgeRecordGame?.picker?.close?.();
-      window.LeaderLodgeRecordGame?.teammatePicker?.close?.();
-      loadSuggestions(form, menu, button);
-    });
-
-    const refreshState = () => {
-      const tbody = form.querySelector("[data-participant-rows]");
-      button.disabled = !canAddSide(form, tbody) || !groupId(form) || !gameTypeCode(form);
+    const sideButton = form.querySelector("[data-smart-suggest]");
+    const sideMenu = form.querySelector("[data-smart-suggest-menu]");
+    const sideContext = {
+      mode: "side",
+      row: null,
+      query: "",
+      queryCaptured: false,
     };
-    refreshState();
-    form.addEventListener("change", refreshState);
-    const tbody = form.querySelector("[data-participant-rows]");
-    if (tbody) {
-      const observer = new MutationObserver(refreshState);
-      observer.observe(tbody, { childList: true, subtree: true });
+
+    if (sideButton && sideMenu) {
+      const captureSideQuery = () => {
+        suppressPickerBlurCommit();
+        sideContext.query = queryForContext(form, sideContext);
+        sideContext.queryCaptured = true;
+      };
+      sideButton.addEventListener("pointerdown", captureSideQuery, true);
+      sideButton.addEventListener("mousedown", captureSideQuery);
+      sideButton.addEventListener("touchstart", captureSideQuery, {
+        passive: true,
+      });
+      sideButton.addEventListener("show.bs.dropdown", () => {
+        if (!sideContext.queryCaptured) {
+          captureSideQuery();
+        }
+        window.LeaderLodgeRecordGame?.teammatePicker?.close?.();
+        loadSuggestions(form, sideMenu, sideButton, sideContext);
+      });
+      sideButton.addEventListener("hidden.bs.dropdown", () => {
+        sideContext.queryCaptured = false;
+        sideContext.query = "";
+      });
+
+      const refreshState = () => {
+        const tbody = form.querySelector("[data-participant-rows]");
+        sideButton.disabled =
+          !canAddSide(form, tbody) || !groupId(form) || !gameTypeCode(form);
+      };
+      refreshState();
+      form.addEventListener("change", refreshState);
+      const tbody = form.querySelector("[data-participant-rows]");
+      if (tbody) {
+        const observer = new MutationObserver(refreshState);
+        observer.observe(tbody, { childList: true, subtree: true });
+      }
     }
+
+    let teammateMenu = null;
+    let teammateToggle = null;
+
+    function ensureTeammateMenu() {
+      if (teammateMenu) {
+        return teammateMenu;
+      }
+      teammateMenu = document.createElement("ul");
+      teammateMenu.className =
+        "dropdown-menu dropdown-menu-end smart-suggest-menu smart-suggest-menu--teammate";
+      teammateMenu.dataset.smartSuggestTeammateMenu = "1";
+      teammateMenu.setAttribute("data-smart-suggest-teammate-menu", "");
+      document.body.appendChild(teammateMenu);
+      return teammateMenu;
+    }
+
+    window.LeaderLodgeSmartSuggest = {
+      openForTeammate(row) {
+        if (!row) {
+          return;
+        }
+        const menu = ensureTeammateMenu();
+        const teammateInput = row.querySelector("[data-add-teammate]");
+        const context = {
+          mode: "teammate",
+          row,
+          query: teammateInput ? teammateInput.value.trim() : "",
+          queryCaptured: true,
+        };
+        if (teammateInput) {
+          window.LeaderLodgeRecordGame?.teammatePicker?.activate?.(
+            teammateInput
+          );
+        }
+        loadSuggestions(form, menu, { disabled: false }, context).then(() => {
+          if (!teammateInput) {
+            return;
+          }
+          const rect = teammateInput.getBoundingClientRect();
+          menu.classList.add("show");
+          menu.style.position = "fixed";
+          menu.style.left = `${Math.max(8, rect.left)}px`;
+          menu.style.top = `${rect.bottom}px`;
+          menu.style.minWidth = `${Math.max(rect.width, 160)}px`;
+          menu.style.zIndex = "1090";
+
+          const closeMenu = (event) => {
+            if (
+              event.target instanceof Node &&
+              (menu.contains(event.target) ||
+                teammateInput.contains(event.target))
+            ) {
+              return;
+            }
+            menu.classList.remove("show");
+            document.removeEventListener("pointerdown", closeMenu, true);
+          };
+          document.addEventListener("pointerdown", closeMenu, true);
+        });
+      },
+    };
   }
 
   if (document.readyState === "loading") {

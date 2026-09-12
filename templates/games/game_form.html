@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
   <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=15" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=34" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=35" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
@@ -367,12 +367,12 @@
                               readonly
                             />
                           </div>
-                          {% if row.teammate_player_id or row.teammate_guest_name %}
                           <div class="dropdown" data-side-menu-wrap>
                             <button
                               type="button"
                               class="btn btn-sm btn-outline-secondary"
                               data-bs-toggle="dropdown"
+                              data-bs-display="static"
                               aria-expanded="false"
                               aria-label="Side options"
                             >
@@ -389,29 +389,6 @@
                           >
                             <i class="bi bi-trash" aria-hidden="true"></i>
                           </button>
-                          {% else %}
-                          <div class="dropdown d-none" data-side-menu-wrap>
-                            <button
-                              type="button"
-                              class="btn btn-sm btn-outline-secondary"
-                              data-bs-toggle="dropdown"
-                              aria-expanded="false"
-                              aria-label="Side options"
-                            >
-                              <i class="bi bi-three-dots" aria-hidden="true"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end" data-side-menu></ul>
-                          </div>
-                          <button
-                            type="button"
-                            class="btn btn-sm btn-outline-danger"
-                            data-remove-side
-                            aria-label="Remove side"
-                            title="Remove side"
-                          >
-                            <i class="bi bi-trash" aria-hidden="true"></i>
-                          </button>
-                          {% endif %}
                         </span>
                       </div>
                       <input type="hidden" name="participant_player_id" value="{{ row.player_id }}" />
@@ -590,8 +567,8 @@
   {% if show_roster and game_type and not is_guest_demo %}
     <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
     <script src="{% static 'js/game_record_form.js' %}?v=17"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=36"></script>
-    <script src="{% static 'js/smart_suggest.js' %}?v=1"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=38"></script>
+    <script src="{% static 'js/smart_suggest.js' %}?v=3"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
       <script src="{% static 'js/game_record_voice.js' %}?v=16"></script>

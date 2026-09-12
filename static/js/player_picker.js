@@ -15,6 +15,24 @@
 
   // Browsers (especially iOS Safari) ignore autocomplete=off for name-like
   // fields. Use a non-semantic token plus readonly-until-interaction.
+  function isSmartSuggestInteraction(target) {
+    if (!(target instanceof Node)) {
+      return false;
+    }
+    const closest =
+      typeof target.closest === "function" ? target.closest.bind(target) : null;
+    if (!closest) {
+      return false;
+    }
+    return Boolean(
+      closest("[data-smart-suggest]") ||
+        closest("[data-smart-suggest-menu]") ||
+        closest(".smart-suggest-menu") ||
+        closest("[data-side-action='suggest-teammate']") ||
+        closest("[data-side-menu-wrap]")
+    );
+  }
+
   function suppressBrowserSuggestions(input) {
     input.setAttribute("autocomplete", "ll-player");
     input.setAttribute("autocorrect", "off");
@@ -133,27 +151,38 @@
     return keys;
   }
 
+  function playerIdsForRow(row) {
+    const ids = new Set();
+    if (!row) {
+      return ids;
+    }
+    const primaryHidden = row.querySelector('[name="participant_player_id"]');
+    const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
+    if (primaryValue) {
+      ids.add(Number(primaryValue));
+    } else {
+      const primaryId = row.dataset.playerId;
+      if (primaryId && !String(primaryId).startsWith("guest:")) {
+        ids.add(Number(primaryId));
+      }
+    }
+    const teammateHidden = row.querySelector(
+      '[name="participant_teammate_player_id"]'
+    );
+    const teammateValue = teammateHidden ? teammateHidden.value.trim() : "";
+    if (teammateValue) {
+      ids.add(Number(teammateValue));
+    }
+    return ids;
+  }
+
   function playersAlreadyInGame(tbody) {
     const ids = new Set();
+    if (!tbody) {
+      return ids;
+    }
     tbody.querySelectorAll("[data-game-row]").forEach((row) => {
-      const primaryHidden = row.querySelector('[name="participant_player_id"]');
-      const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
-      if (primaryValue) {
-        ids.add(Number(primaryValue));
-      } else {
-        const primaryId = row.dataset.playerId;
-        if (primaryId && !primaryId.startsWith("guest:")) {
-          ids.add(Number(primaryId));
-        }
-      }
-
-      const teammateHidden = row.querySelector(
-        '[name="participant_teammate_player_id"]'
-      );
-      const teammateValue = teammateHidden ? teammateHidden.value.trim() : "";
-      if (teammateValue) {
-        ids.add(Number(teammateValue));
-      }
+      playerIdsForRow(row).forEach((playerId) => ids.add(playerId));
     });
     return ids;
   }
@@ -238,18 +267,7 @@
       if (row === currentRow) {
         return;
       }
-      const primaryHidden = row.querySelector('[name="participant_player_id"]');
-      const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
-      if (primaryValue) {
-        ids.add(Number(primaryValue));
-      }
-      const teammateHidden = row.querySelector(
-        '[name="participant_teammate_player_id"]'
-      );
-      const teammateValue = teammateHidden ? teammateHidden.value.trim() : "";
-      if (teammateValue) {
-        ids.add(Number(teammateValue));
-      }
+      playerIdsForRow(row).forEach((playerId) => ids.add(playerId));
     });
     return ids;
   }
@@ -264,27 +282,20 @@
     return entrySharesPlayerWithGame(tbody, entry, roster);
   }
 
-  function entryIsIneligibleForTeammate(tbody, row, entry, existing, roster) {
+  function entryIsIneligibleForTeammate(tbody, row, entry, roster) {
     if (entry.kind === "team") {
       return true;
     }
-    const primaryHidden = row?.querySelector('[name="participant_player_id"]');
-    const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
-    if (primaryValue && entry.id && String(entry.id) === primaryValue) {
+    const memberIds = memberIdsForRosterEntry(entry, roster);
+    if (!memberIds.length) {
+      return true;
+    }
+    const rowIds = playerIdsForRow(row);
+    if (memberIds.some((memberId) => rowIds.has(memberId))) {
       return true;
     }
     const blockedIds = playersOnOtherSides(tbody, row);
-    if (
-      memberIdsForRosterEntry(entry, roster).some((memberId) =>
-        blockedIds.has(memberId)
-      )
-    ) {
-      return true;
-    }
-    if (entry.id && existing.has(rowKeyForEntry({ id: entry.id }))) {
-      return true;
-    }
-    return false;
+    return memberIds.some((memberId) => blockedIds.has(memberId));
   }
 
   function rosterEntryMatchesLabel(entry, label) {
@@ -374,7 +385,7 @@
 
   function rowControlsHtml() {
     return `
-              <div class="dropdown d-none" data-side-menu-wrap>
+              <div class="dropdown" data-side-menu-wrap>
                 <button
                   type="button"
                   class="btn btn-sm btn-outline-secondary"
@@ -417,31 +428,45 @@
   }
 
   function buildSideActions(row) {
-    const actions = [{ action: "remove-side", label: "Remove side" }];
+    const actions = [];
     const hasTeammate = Boolean(row.dataset.teammateLabel);
+    if (!hasTeammate) {
+      actions.push({
+        action: "suggest-teammate",
+        label: "Suggest teammate",
+        iconClass: "bi bi-stars side-action-suggest",
+      });
+    }
+    actions.push({
+      action: "remove-side",
+      label: "Remove side",
+      iconClass: "bi bi-trash side-action-trash",
+    });
     if (hasTeammate) {
       const primaryLabel = row.dataset.primaryLabel || "player";
       const teammateLabel = row.dataset.teammateLabel || "";
       actions.push({
         action: "remove-teammate",
         label: `Remove ${teammateLabel}`,
+        iconClass: "bi bi-trash side-action-trash",
       });
       actions.push({
         action: "remove-primary",
         label: `Remove ${primaryLabel}`,
+        iconClass: "bi bi-trash side-action-trash",
       });
     }
     return actions;
   }
 
-  function appendSideActionMenuItem(menu, action, label) {
+  function appendSideActionMenuItem(menu, action, label, iconClass) {
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
     button.className = "dropdown-item d-flex align-items-center gap-2";
     button.dataset.sideAction = action;
     const icon = document.createElement("i");
-    icon.className = "bi bi-trash side-action-trash";
+    icon.className = iconClass || "bi bi-trash side-action-trash";
     icon.setAttribute("aria-hidden", "true");
     const text = document.createElement("span");
     text.textContent = label;
@@ -460,22 +485,13 @@
     }
 
     const actions = buildSideActions(row);
-    if (actions.length === 1) {
-      menuWrap.classList.add("d-none");
-      menu.replaceChildren();
-      if (soloRemoveBtn) {
-        soloRemoveBtn.classList.remove("d-none");
-      }
-      return;
-    }
-
     if (soloRemoveBtn) {
       soloRemoveBtn.classList.add("d-none");
     }
     menuWrap.classList.remove("d-none");
     menu.replaceChildren();
-    actions.forEach(({ action, label }) => {
-      appendSideActionMenuItem(menu, action, label);
+    actions.forEach(({ action, label, iconClass }) => {
+      appendSideActionMenuItem(menu, action, label, iconClass);
     });
     initRowMenuDropdown(row);
   }
@@ -863,31 +879,6 @@
     return window.visualViewport?.height ?? window.innerHeight;
   }
 
-  function fixedAnchorRect(input) {
-    const rect = input.getBoundingClientRect();
-    const vv = window.visualViewport;
-    if (!vv) {
-      return {
-        top: rect.top,
-        left: rect.left,
-        bottom: rect.bottom,
-        right: rect.right,
-        width: rect.width,
-        height: rect.height,
-      };
-    }
-    const offsetTop = vv.offsetTop;
-    const offsetLeft = vv.offsetLeft;
-    return {
-      top: rect.top - offsetTop,
-      left: rect.left - offsetLeft,
-      bottom: rect.bottom - offsetTop,
-      right: rect.right - offsetLeft,
-      width: rect.width,
-      height: rect.height,
-    };
-  }
-
   function isUsableAnchorRect(rect) {
     return Boolean(rect && (rect.width > 0 || rect.height > 0));
   }
@@ -896,33 +887,32 @@
     if (!input || !input.isConnected) {
       return false;
     }
-    const layoutRect = input.getBoundingClientRect();
-    if (!isUsableAnchorRect(layoutRect)) {
+    const rect = input.getBoundingClientRect();
+    if (!isUsableAnchorRect(rect)) {
       return false;
     }
 
-    const anchor = fixedAnchorRect(input);
     const vv = window.visualViewport;
     const visibleHeight = vv?.height ?? window.innerHeight;
     const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
-    const spaceBelow = visibleHeight - anchor.bottom;
-    const spaceAbove = anchor.top;
+    const spaceBelow = visibleHeight - rect.bottom;
+    const spaceAbove = rect.top;
     const placeAbove =
       spaceBelow < preferredHeight && spaceAbove > spaceBelow;
     const available = placeAbove ? spaceAbove : spaceBelow;
 
     listEl.classList.toggle("combobox-list--above", placeAbove);
-    listEl.style.left = `${Math.max(8, anchor.left)}px`;
-    listEl.style.width = `${Math.max(anchor.width, 160)}px`;
+    listEl.style.left = `${Math.max(8, rect.left)}px`;
+    listEl.style.width = `${Math.max(rect.width, 160)}px`;
     listEl.style.right = "auto";
     listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
 
     if (placeAbove) {
       listEl.style.top = "auto";
-      listEl.style.bottom = `${visibleHeight - anchor.top}px`;
+      listEl.style.bottom = `${visibleHeight - rect.top}px`;
     } else {
       listEl.style.bottom = "auto";
-      listEl.style.top = `${anchor.bottom}px`;
+      listEl.style.top = `${rect.bottom}px`;
     }
     return true;
   }
@@ -1043,6 +1033,10 @@
         ) {
           return;
         }
+        if (isSmartSuggestInteraction(target)) {
+          this.suppressBlurCommit = true;
+          return;
+        }
         this.commitPendingEntry();
       };
       document.addEventListener("pointerdown", this.onDocumentPointerDown, true);
@@ -1089,6 +1083,9 @@
       switch (action) {
         case "remove-side":
           row.remove();
+          break;
+        case "suggest-teammate":
+          window.LeaderLodgeSmartSuggest?.openForTeammate?.(row);
           break;
         case "remove-teammate":
           removeTeammate(row);
@@ -1510,7 +1507,13 @@
       });
       tbody.addEventListener("input", (event) => {
         const input = event.target.closest("[data-add-teammate]");
-        if (input && input === this.input) {
+        if (!input || !tbody.contains(input)) {
+          return;
+        }
+        if (input !== this.input) {
+          this.activate(input);
+        }
+        if (input === this.input) {
           this.onInput();
         }
       });
@@ -1548,6 +1551,10 @@
           return;
         }
         if (this.listEl.contains(target)) {
+          return;
+        }
+        if (isSmartSuggestInteraction(target)) {
+          this.skipRefresh = true;
           return;
         }
         this.commitPendingEntry();
@@ -1675,7 +1682,6 @@
       }
       const query = this.input.value;
       const matches = filterRoster(this.roster, query);
-      const existing = existingRowKeys(this.tbody);
       this.suggestions = matches
         .filter(
           (entry) =>
@@ -1683,7 +1689,6 @@
               this.tbody,
               this.row,
               entry,
-              existing,
               this.roster
             )
         )
@@ -1787,7 +1792,6 @@
             this.tbody,
             this.row,
             entry,
-            existing,
             this.roster
           )
       );

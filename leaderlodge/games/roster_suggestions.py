@@ -216,11 +216,28 @@ def _predicted_pairs(
     return predicted
 
 
+def _matches_query(payload: dict, query: str) -> bool:
+    cleaned = query.strip()
+    if not cleaned:
+        return True
+    from leaderlodge.groups.fuzzy import score_fuzzy_match
+
+    if score_fuzzy_match(cleaned, payload["label"]) >= 0:
+        return True
+    for player in payload.get("players") or []:
+        label = player.get("label") or ""
+        if score_fuzzy_match(cleaned, label) >= 0:
+            return True
+    return False
+
+
 def suggest_side_entries(
     group: Group,
     game_type_code: str,
     *,
     exclude_player_ids: set[int] | None = None,
+    query: str = "",
+    teammate_mode: bool = False,
     limit: int = MAX_SUGGESTIONS,
 ) -> list[dict]:
     """Ranked solo and team sides to add next on Record Game."""
@@ -306,12 +323,17 @@ def suggest_side_entries(
             )
         )
 
+    if teammate_mode:
+        candidates = [item for item in candidates if item[2]["kind"] == "solo"]
+
     candidates.sort(key=lambda item: (-item[0], item[1]))
 
     suggestions: list[dict] = []
     seen_labels: set[str] = set()
     seen_member_sets: set[frozenset[int]] = set()
     for _score, _sort_label, payload in candidates:
+        if not _matches_query(payload, query):
+            continue
         label_key = payload["label"].lower()
         member_ids = frozenset(
             player["player_id"]

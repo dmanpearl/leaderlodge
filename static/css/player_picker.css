@@ -210,6 +210,18 @@
   gap: 0.5rem;
 }
 
+.side-action-suggest {
+  color: #7c3aed;
+}
+
+.smart-suggest-menu--teammate {
+  display: none;
+}
+
+.smart-suggest-menu--teammate.show {
+  display: block;
+}
+
 .player-picker-cta-label {
   flex: 0 0 auto;
   font-weight: 600;

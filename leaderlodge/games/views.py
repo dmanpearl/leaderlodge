@@ -1217,10 +1217,15 @@ def game_suggest_sides(request: HttpRequest) -> JsonResponse:
         int(part) for part in exclude_raw.split(",") if part.strip().isdigit()
     }
 
+    query = (request.GET.get("q") or "").strip()
+    teammate_mode = (request.GET.get("mode") or "").strip() == "teammate"
+
     suggestions = suggest_side_entries(
         group,
         game_type_code,
         exclude_player_ids=exclude_ids,
+        query=query,
+        teammate_mode=teammate_mode,
     )
     return JsonResponse({"suggestions": suggestions})
 

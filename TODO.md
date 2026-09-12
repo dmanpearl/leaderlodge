@@ -273,11 +273,11 @@
 - [x] b8a9775 Edit game: Move Location's message "Assign saves the pin on the location row. You do not need Save changes for that." to the hover text. It is ok that it will not be available on mobile.
 - [x] ffbafdc Set place map toolbar: inline Enter search submit, pin-map icon for nearby lookup at pin or map center, crosshair for GPS, unified icon buttons.
 - [x] 95be926 Bug: Record game Team field no longer auto looks up existing user. This is recently introduced. Explain why there are no tests to uncover this type of regression.
-- [x] feat(games): Smart Suggest button beside Add player (violet bi-stars). Ranks recent solos and teams from game history, predicts likely pairs, excludes players already on the table, and adapts solo vs team priority by recent play style. Works for all game types.
+- [x] efbbb5f feat(games): Smart Suggest button beside Add player (violet bi-stars). Ranks recent solos and teams from game history, predicts likely pairs, excludes players already on the table, and adapts solo vs team priority by recent play style. Works for all game types.
 
 ## Open Items
 
-- [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
+- [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox for PR)
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)
