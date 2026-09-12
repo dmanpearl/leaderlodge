@@ -52,6 +52,16 @@
     if (n.includes(q)) {
       return 50 - (n.length - q.length);
     }
+
+    let queryIndex = 0;
+    for (let i = 0; i < n.length && queryIndex < q.length; i += 1) {
+      if (n[i] === q[queryIndex]) {
+        queryIndex += 1;
+      }
+    }
+    if (queryIndex === q.length) {
+      return 10;
+    }
     return -1;
   }
 
@@ -1899,32 +1909,6 @@
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
       window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
-      // iOS: unlock readonly on touchstart/mousedown before focus so the
-      // keyboard opens (and stays) when tapping Teammate, including when
-      // switching focus from the footer Add player field.
-      const unlockForPointer = (event) => {
-        const input = event.target.closest("[data-add-teammate]");
-        if (!input || !tbody.contains(input)) {
-          return;
-        }
-        this.prepareInput(input);
-        openComboboxFromUserGesture(this, input, {
-          setContext: (activeInput) => {
-            if (this.input && this.input !== activeInput) {
-              this.commitPendingEntry();
-            }
-            this.input = activeInput;
-            this.row = activeInput.closest("[data-game-row]");
-          },
-        });
-      };
-      tbody.addEventListener("touchstart", unlockForPointer, {
-        passive: true,
-        capture: true,
-      });
-      tbody.addEventListener("mousedown", unlockForPointer, { capture: true });
-      tbody.addEventListener("pointerdown", unlockForPointer, { capture: true });
-
       tbody.addEventListener("focusin", (event) => {
         const input = event.target.closest("[data-add-teammate]");
         if (input && tbody.contains(input)) {
@@ -1985,7 +1969,10 @@
         if (!(target instanceof Node)) {
           return;
         }
-        if (target === this.input || this.input.contains(target)) {
+        if (target instanceof Element && target.closest("[data-add-teammate]")) {
+          return;
+        }
+        if (this.input && (target === this.input || this.input.contains(target))) {
           return;
         }
         if (this.listEl.contains(target)) {
@@ -2004,6 +1991,18 @@
       });
     }
 
+    openTeammateFromGesture(input) {
+      openComboboxFromUserGesture(this, input, {
+        setContext: (activeInput) => {
+          if (this.input && this.input !== activeInput) {
+            this.commitPendingEntry();
+          }
+          this.input = activeInput;
+          this.row = activeInput.closest("[data-game-row]");
+        },
+      });
+    }
+
     prepareInput(input) {
       if (!input || input.dataset.teammatePrepared === "1") {
         return;
@@ -2014,6 +2013,16 @@
       input.setAttribute("aria-expanded", "false");
       input.setAttribute("aria-controls", this.listId);
       suppressBrowserSuggestions(input);
+
+      const openFromGesture = () => {
+        this.openTeammateFromGesture(input);
+      };
+      input.addEventListener("pointerdown", openFromGesture, true);
+      input.addEventListener("mousedown", openFromGesture, true);
+      input.addEventListener("touchstart", openFromGesture, {
+        passive: true,
+        capture: true,
+      });
     }
 
     activate(input) {
