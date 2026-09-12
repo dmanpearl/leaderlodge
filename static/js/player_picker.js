@@ -363,21 +363,52 @@
     });
   }
 
-  function bindComboboxScrollContainment(listEl) {
-    if (!listEl || listEl.dataset.scrollContainBound === "1") {
+  const comboboxPageScrollLock = {
+    depth: 0,
+    scrollY: 0,
+  };
+
+  function applyComboboxPageScrollLock() {
+    comboboxPageScrollLock.scrollY = window.scrollY;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${comboboxPageScrollLock.scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }
+
+  function releaseComboboxPageScrollLock() {
+    const scrollY = comboboxPageScrollLock.scrollY;
+    document.documentElement.style.overflow = "";
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    window.scrollTo(0, scrollY);
+  }
+
+  function lockComboboxPageScroll() {
+    if (!shouldNudgeMobileKeyboard()) {
       return;
     }
-    listEl.dataset.scrollContainBound = "1";
-    listEl.addEventListener(
-      "touchmove",
-      (event) => {
-        if (listEl.scrollHeight <= listEl.clientHeight + 2) {
-          return;
-        }
-        event.stopPropagation();
-      },
-      { capture: true, passive: true }
-    );
+    comboboxPageScrollLock.depth += 1;
+    if (comboboxPageScrollLock.depth === 1) {
+      applyComboboxPageScrollLock();
+    }
+  }
+
+  function unlockComboboxPageScroll() {
+    if (!shouldNudgeMobileKeyboard()) {
+      return;
+    }
+    comboboxPageScrollLock.depth = Math.max(0, comboboxPageScrollLock.depth - 1);
+    if (comboboxPageScrollLock.depth === 0) {
+      releaseComboboxPageScrollLock();
+    }
   }
 
   function bindComboboxScrollHint(listEl) {
@@ -385,7 +416,6 @@
       return;
     }
     listEl.dataset.scrollHintBound = "1";
-    bindComboboxScrollContainment(listEl);
     listEl.addEventListener("scroll", () => updateComboboxScrollHint(listEl), {
       passive: true,
     });
@@ -1917,17 +1947,25 @@
     }
 
     open() {
+      const wasOpen = this.isOpen;
       this.isOpen = true;
       this.listEl.hidden = false;
       this.input.setAttribute("aria-expanded", "true");
+      if (!wasOpen) {
+        lockComboboxPageScroll();
+      }
       schedulePortaledComboboxReposition(this);
     }
 
     close() {
+      if (!this.isOpen) {
+        return;
+      }
       this.isOpen = false;
       this.activeIndex = -1;
       this.suggestions = [];
       clearPortaledRepositionTimers(this);
+      unlockComboboxPageScroll();
       this.listEl.hidden = true;
       this.listEl.style.visibility = "hidden";
       this.listEl.innerHTML = "";
@@ -2455,18 +2493,26 @@
       if (!this.input) {
         return;
       }
+      const wasOpen = this.isOpen;
       this.isOpen = true;
       this.listEl.hidden = false;
       this.listEl.style.visibility = "hidden";
       this.input.setAttribute("aria-expanded", "true");
+      if (!wasOpen) {
+        lockComboboxPageScroll();
+      }
       this.scheduleReposition();
     }
 
     close() {
+      if (!this.isOpen) {
+        return;
+      }
       this.isOpen = false;
       this.activeIndex = -1;
       this.suggestions = [];
       clearPortaledRepositionTimers(this);
+      unlockComboboxPageScroll();
       this.listEl.hidden = true;
       this.listEl.style.visibility = "";
       this.listEl.innerHTML = "";
