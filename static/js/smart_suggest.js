@@ -125,7 +125,9 @@
       if (!teammatePicker || !teammateInput) {
         return false;
       }
-      teammatePicker.activate(teammateInput);
+      teammatePicker.input = teammateInput;
+      teammatePicker.row = context.row;
+      teammatePicker.smartSuggestOpen = false;
       teammatePicker.assignFromEntry({
         entry: buildRowEntryFromPlayer(player),
       });
@@ -160,6 +162,7 @@
       picker.input.value = "";
       picker.close();
     }
+    picker.smartSuggestOpen = false;
     return applied;
   }
 
@@ -281,10 +284,13 @@
     const picker = window.LeaderLodgeRecordGame?.picker;
     if (picker) {
       picker.suppressBlurCommit = true;
+      picker.smartSuggestOpen = true;
+      picker.close();
     }
     const teammatePicker = window.LeaderLodgeRecordGame?.teammatePicker;
     if (teammatePicker) {
-      teammatePicker.skipRefresh = true;
+      teammatePicker.suppressBlurCommit = true;
+      teammatePicker.close();
     }
   }
 
@@ -326,6 +332,10 @@
       sideButton.addEventListener("hidden.bs.dropdown", () => {
         sideContext.queryCaptured = false;
         sideContext.query = "";
+        const picker = window.LeaderLodgeRecordGame?.picker;
+        if (picker) {
+          picker.smartSuggestOpen = false;
+        }
       });
 
       const refreshState = () => {
@@ -372,7 +382,7 @@
           queryCaptured: true,
         };
         if (teammateInput) {
-          window.LeaderLodgeRecordGame?.teammatePicker?.activate?.(
+          window.LeaderLodgeRecordGame?.teammatePicker?.prepareForSmartSuggest?.(
             teammateInput
           );
         }
@@ -392,11 +402,16 @@
             if (
               event.target instanceof Node &&
               (menu.contains(event.target) ||
-                teammateInput.contains(event.target))
+                teammateInput.contains(event.target) ||
+                event.target.closest?.("[data-side-menu-wrap]"))
             ) {
               return;
             }
             menu.classList.remove("show");
+            const teammatePicker = window.LeaderLodgeRecordGame?.teammatePicker;
+            if (teammatePicker) {
+              teammatePicker.smartSuggestOpen = false;
+            }
             document.removeEventListener("pointerdown", closeMenu, true);
           };
           document.addEventListener("pointerdown", closeMenu, true);

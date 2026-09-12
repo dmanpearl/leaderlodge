@@ -988,6 +988,7 @@
       this.isOpen = false;
       this.skipRefresh = false;
       this.suppressBlurCommit = false;
+      this.smartSuggestOpen = false;
 
       this.listEl = document.createElement("ul");
       this.listEl.className = "combobox-list";
@@ -1085,7 +1086,15 @@
           row.remove();
           break;
         case "suggest-teammate":
-          window.LeaderLodgeSmartSuggest?.openForTeammate?.(row);
+          {
+            const teammatePicker = window.LeaderLodgeRecordGame?.teammatePicker;
+            if (teammatePicker) {
+              teammatePicker.suppressBlurCommit = true;
+              teammatePicker.smartSuggestOpen = true;
+              teammatePicker.close();
+            }
+            window.LeaderLodgeSmartSuggest?.openForTeammate?.(row);
+          }
           break;
         case "remove-teammate":
           removeTeammate(row);
@@ -1215,7 +1224,7 @@
       if (!this.isOpen) {
         if (event.key === "Enter") {
           event.preventDefault();
-          this.tryAddGuestFromInput();
+          this.tryAddGuestFromInput({ allowGuestCreate: true });
         }
         return;
       }
@@ -1231,7 +1240,7 @@
         if (this.activeIndex >= 0) {
           this.selectSuggestion(this.suggestions[this.activeIndex]);
         } else {
-          this.tryAddGuestFromInput();
+          this.tryAddGuestFromInput({ allowGuestCreate: true });
         }
       } else if (event.key === "Escape") {
         event.preventDefault();
@@ -1254,6 +1263,9 @@
     }
 
     refreshSuggestions() {
+      if (this.smartSuggestOpen) {
+        return;
+      }
       const query = this.input.value;
       const roster = this.roster;
       const matches = filterRoster(roster, query);
@@ -1356,7 +1368,7 @@
       this.input.focus();
     }
 
-    tryAddGuestFromInput() {
+    tryAddGuestFromInput({ allowGuestCreate = false } = {}) {
       const trimmed = this.input.value.trim();
       if (!trimmed) {
         return;
@@ -1369,12 +1381,15 @@
       );
       if (rosterMatch) {
         this.addParticipant({ entry: rosterMatch });
-      } else {
+        this.skipRefresh = true;
+        this.input.value = "";
+        this.close();
+      } else if (allowGuestCreate) {
         this.addParticipant({ guestName: trimmed });
+        this.skipRefresh = true;
+        this.input.value = "";
+        this.close();
       }
-      this.skipRefresh = true;
-      this.input.value = "";
-      this.close();
     }
 
     addParticipant({ entry, guestName }) {
@@ -1461,6 +1476,8 @@
       this.activeIndex = -1;
       this.isOpen = false;
       this.skipRefresh = false;
+      this.suppressBlurCommit = false;
+      this.smartSuggestOpen = false;
       this.placeholder = "Teammate";
 
       this.listEl = document.createElement("ul");
@@ -1530,9 +1547,26 @@
           if (next && this.listEl.contains(next)) {
             return;
           }
+          if (next instanceof Node && isSmartSuggestInteraction(next)) {
+            return;
+          }
+          if (next instanceof Element && next.closest("[data-side-menu-wrap]")) {
+            return;
+          }
           this.onBlur();
         }
       });
+      tbody.addEventListener(
+        "pointerdown",
+        (event) => {
+          if (event.target.closest("[data-side-menu-wrap]")) {
+            this.suppressBlurCommit = true;
+            window.LeaderLodgeRecordGame?.picker?.suppressBlurCommit &&
+              (window.LeaderLodgeRecordGame.picker.suppressBlurCommit = true);
+          }
+        },
+        true
+      );
 
       // iOS: tapping a non-focusable area (plain text, page background) to
       // dismiss the keyboard does not reliably fire a native blur/focusout
@@ -1554,7 +1588,7 @@
           return;
         }
         if (isSmartSuggestInteraction(target)) {
-          this.skipRefresh = true;
+          this.suppressBlurCommit = true;
           return;
         }
         this.commitPendingEntry();
@@ -1583,7 +1617,9 @@
       this.prepareInput(input);
       input.removeAttribute("readonly");
       if (this.input === input) {
-        this.onFocus();
+        if (!this.smartSuggestOpen) {
+          this.onFocus();
+        }
         return;
       }
       // Commit whatever was pending on the previously active row before
@@ -1593,7 +1629,20 @@
       this.commitPendingEntry();
       this.input = input;
       this.row = input.closest("[data-game-row]");
-      this.onFocus();
+      if (!this.smartSuggestOpen) {
+        this.onFocus();
+      }
+    }
+
+    prepareForSmartSuggest(input) {
+      window.LeaderLodgeRecordGame?.picker?.close?.();
+      this.prepareInput(input);
+      input.removeAttribute("readonly");
+      this.smartSuggestOpen = true;
+      this.suppressBlurCommit = true;
+      this.close();
+      this.input = input;
+      this.row = input.closest("[data-game-row]");
     }
 
     onInput() {
@@ -1623,10 +1672,10 @@
     }
 
     commitPendingEntry() {
-      // iOS: dismissing the keyboard, or tapping elsewhere on the page,
-      // does not reliably fire a native blur event on the input, so an
-      // entry the user typed but never pressed Enter on would otherwise
-      // be silently dropped instead of locked in like Enter does.
+      if (this.suppressBlurCommit) {
+        this.suppressBlurCommit = false;
+        return;
+      }
       this.tryAddGuestFromInput();
       this.close();
     }
@@ -1638,7 +1687,7 @@
       if (!this.isOpen) {
         if (event.key === "Enter") {
           event.preventDefault();
-          this.tryAddGuestFromInput();
+          this.tryAddGuestFromInput({ allowGuestCreate: true });
         }
         return;
       }
@@ -1654,7 +1703,7 @@
         if (this.activeIndex >= 0) {
           this.selectSuggestion(this.suggestions[this.activeIndex]);
         } else {
-          this.tryAddGuestFromInput();
+          this.tryAddGuestFromInput({ allowGuestCreate: true });
         }
       } else if (event.key === "Escape") {
         event.preventDefault();
@@ -1677,6 +1726,9 @@
     }
 
     refreshSuggestions() {
+      if (this.smartSuggestOpen) {
+        return;
+      }
       if (!this.input || !this.row) {
         return;
       }
@@ -1696,6 +1748,7 @@
 
       const trimmed = query.trim();
       if (trimmed) {
+        const existing = existingRowKeys(this.tbody);
         const exactRosterMatch = this.roster.some((entry) =>
           rosterEntryMatchesLabel(entry, trimmed)
         );
@@ -1776,7 +1829,7 @@
       }
     }
 
-    tryAddGuestFromInput() {
+    tryAddGuestFromInput({ allowGuestCreate = false } = {}) {
       if (!this.input) {
         return;
       }
@@ -1784,7 +1837,6 @@
       if (!trimmed) {
         return;
       }
-      const existing = existingRowKeys(this.tbody);
       const rosterMatch = this.roster.find(
         (entry) =>
           rosterEntryMatchesLabel(entry, trimmed) &&
@@ -1797,7 +1849,7 @@
       );
       if (rosterMatch) {
         this.assignFromEntry({ entry: rosterMatch });
-      } else {
+      } else if (allowGuestCreate) {
         this.assignFromEntry({ guestName: trimmed });
       }
     }
