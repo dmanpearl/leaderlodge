@@ -30,7 +30,11 @@
 /* Teammate picker: escape table-responsive overflow clipping. */
 .combobox-list--portal {
   position: fixed;
-  z-index: 1080;
+  top: auto;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  z-index: 1100;
   margin: 0;
 }
 

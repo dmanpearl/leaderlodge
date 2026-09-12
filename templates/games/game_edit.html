@@ -6,7 +6,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=33" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=34" />
   {% if google_places_api_key and can_use_location_map %}
     <link rel="stylesheet" href="{% static 'css/location_map.css' %}?v=2" />
   {% endif %}
@@ -409,6 +409,6 @@
     <script src="{% static 'js/location_set_place.js' %}?v=5"></script>
     <script src="{% static 'js/location_pin_status.js' %}?v=1"></script>
   {% endif %}
-  <script src="{% static 'js/player_picker.js' %}?v=36"></script>
+  <script src="{% static 'js/player_picker.js' %}?v=37"></script>
   <script src="{% static 'js/game_record_form.js' %}?v=17"></script>
 {% endblock %}

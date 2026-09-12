@@ -851,67 +851,64 @@
     return window.visualViewport?.height ?? window.innerHeight;
   }
 
-  function fixedAnchorRect(input) {
-    const rect = input.getBoundingClientRect();
+  function visibleViewportBounds() {
     const vv = window.visualViewport;
     if (!vv) {
-      return {
-        top: rect.top,
-        left: rect.left,
-        bottom: rect.bottom,
-        right: rect.right,
-        width: rect.width,
-        height: rect.height,
-      };
+      const height = document.documentElement.clientHeight;
+      return { top: 0, left: 0, bottom: height, height };
     }
-    const offsetTop = vv.offsetTop;
-    const offsetLeft = vv.offsetLeft;
     return {
-      top: rect.top - offsetTop,
-      left: rect.left - offsetLeft,
-      bottom: rect.bottom - offsetTop,
-      right: rect.right - offsetLeft,
-      width: rect.width,
-      height: rect.height,
+      top: vv.offsetTop,
+      left: vv.offsetLeft,
+      bottom: vv.offsetTop + vv.height,
+      height: vv.height,
     };
   }
 
+  function layoutViewportHeight() {
+    return document.documentElement.clientHeight;
+  }
+
   function isUsableAnchorRect(rect) {
-    return Boolean(rect && (rect.width > 0 || rect.height > 0));
+    return Boolean(rect && rect.width > 0 && rect.height > 0);
   }
 
   function positionPortaledComboboxList(listEl, input) {
     if (!input || !input.isConnected) {
       return false;
     }
-    const layoutRect = input.getBoundingClientRect();
-    if (!isUsableAnchorRect(layoutRect)) {
+    const rect = input.getBoundingClientRect();
+    if (!isUsableAnchorRect(rect)) {
       return false;
     }
 
-    const anchor = fixedAnchorRect(input);
-    const vv = window.visualViewport;
-    const visibleHeight = vv?.height ?? window.innerHeight;
+    const visible = visibleViewportBounds();
     const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
-    const spaceBelow = visibleHeight - anchor.bottom;
-    const spaceAbove = anchor.top;
+    const spaceBelow = visible.bottom - rect.bottom;
+    const spaceAbove = rect.top - visible.top;
     const placeAbove =
       spaceBelow < preferredHeight && spaceAbove > spaceBelow;
     const available = placeAbove ? spaceAbove : spaceBelow;
 
     listEl.classList.toggle("combobox-list--above", placeAbove);
-    listEl.style.left = `${Math.max(8, anchor.left)}px`;
-    listEl.style.width = `${Math.max(anchor.width, 160)}px`;
+    listEl.style.left = `${Math.max(8, rect.left)}px`;
+    listEl.style.width = `${Math.max(rect.width, 160)}px`;
     listEl.style.right = "auto";
     listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
 
+    // iOS: position:fixed uses layout-viewport coordinates; pair layout
+    // rect edges with visual-viewport bounds for above/below placement.
     if (placeAbove) {
       listEl.style.top = "auto";
-      listEl.style.bottom = `${visibleHeight - anchor.top}px`;
+      listEl.style.bottom = `${Math.max(
+        8,
+        layoutViewportHeight() - rect.top
+      )}px`;
     } else {
       listEl.style.bottom = "auto";
-      listEl.style.top = `${anchor.bottom}px`;
+      listEl.style.top = `${Math.max(visible.top + 8, rect.bottom)}px`;
     }
+    listEl.style.visibility = "visible";
     return true;
   }
 
@@ -955,6 +952,7 @@
     // iOS: keyboard open and visual-viewport pan settle after focus.
     picker.repositionTimers.push(window.setTimeout(run, 100));
     picker.repositionTimers.push(window.setTimeout(run, 350));
+    picker.repositionTimers.push(window.setTimeout(run, 600));
   }
 
   function adjustListPlacement(listEl, input) {
@@ -1828,6 +1826,7 @@
       }
       this.isOpen = true;
       this.listEl.hidden = false;
+      this.listEl.style.visibility = "hidden";
       this.input.setAttribute("aria-expanded", "true");
       this.scheduleReposition();
     }
@@ -1838,6 +1837,7 @@
       this.suggestions = [];
       clearPortaledRepositionTimers(this);
       this.listEl.hidden = true;
+      this.listEl.style.visibility = "";
       this.listEl.innerHTML = "";
       if (this.input) {
         this.input.setAttribute("aria-expanded", "false");
