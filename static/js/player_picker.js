@@ -266,24 +266,62 @@
     );
   }
 
-  function handleComboboxUserActivation(picker, input) {
-    picker.openOnFocus = true;
-    picker.skipRefresh = false;
-    if (input && document.activeElement === input) {
-      picker.openOnFocus = false;
-      picker.refreshSuggestions();
+  function isIOSDevice() {
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+  }
+
+  function unlockComboboxInput(input) {
+    if (input) {
+      input.removeAttribute("readonly");
     }
   }
 
-  function handleComboboxFocus(picker, input) {
-    const trimmed = input ? input.value.trim() : "";
-    if (picker.skipRefresh && !picker.openOnFocus) {
-      picker.skipRefresh = false;
+  function restoreMobileKeyboard(input) {
+    if (!input || !isIOSDevice() || document.activeElement !== input) {
       return;
     }
-    picker.skipRefresh = false;
-    if (picker.openOnFocus || trimmed) {
-      picker.openOnFocus = false;
+    input.blur();
+    window.requestAnimationFrame(() => {
+      input.focus();
+    });
+  }
+
+  function openComboboxFromUserGesture(picker, input, { setContext } = {}) {
+    if (!input || typeof picker.refreshSuggestions !== "function") {
+      return;
+    }
+    unlockComboboxInput(input);
+    picker.allowEmptyOpen = true;
+    picker.ignoreFocusRefresh = false;
+    if (typeof setContext === "function") {
+      setContext(input);
+    }
+
+    const refresh = () => {
+      picker.refreshSuggestions();
+    };
+
+    if (document.activeElement === input) {
+      refresh();
+      restoreMobileKeyboard(input);
+      window.requestAnimationFrame(refresh);
+      return;
+    }
+
+    input.focus();
+    window.requestAnimationFrame(refresh);
+  }
+
+  function handleComboboxFocus(picker, input) {
+    if (picker.ignoreFocusRefresh) {
+      picker.ignoreFocusRefresh = false;
+      return;
+    }
+    const trimmed = input ? input.value.trim() : "";
+    if (picker.allowEmptyOpen || trimmed) {
       picker.refreshSuggestions();
     }
   }
@@ -593,13 +631,56 @@
   }
 
   function initRowMenuDropdown(row) {
-    const toggle = row.querySelector(
-      "[data-side-menu-wrap] [data-bs-toggle='dropdown']"
-    );
-    if (!toggle || toggle.dataset.rowMenuReady === "1") {
+    const menuWrap = row.querySelector("[data-side-menu-wrap]");
+    const toggle = menuWrap?.querySelector("[data-bs-toggle='dropdown']");
+    const menu = row.querySelector("[data-side-menu]");
+    if (!toggle || !menuWrap || !menu || toggle.dataset.rowMenuReady === "1") {
       return;
     }
     toggle.dataset.rowMenuReady = "1";
+
+    const repositionPortaledMenu = () => {
+      if (menu.dataset.portaled !== "1") {
+        return;
+      }
+      const rect = toggle.getBoundingClientRect();
+      menu.style.position = "fixed";
+      menu.style.zIndex = "2000";
+      menu.style.top = `${rect.bottom}px`;
+      menu.style.right = `${Math.max(0, window.innerWidth - rect.right)}px`;
+      menu.style.left = "auto";
+      menu.style.bottom = "auto";
+      menu.style.transform = "none";
+    };
+
+    const bindPortalListeners = () => {
+      window.addEventListener("scroll", repositionPortaledMenu, true);
+      window.addEventListener("resize", repositionPortaledMenu);
+      window.visualViewport?.addEventListener("scroll", repositionPortaledMenu);
+      window.visualViewport?.addEventListener("resize", repositionPortaledMenu);
+    };
+
+    const unbindPortalListeners = () => {
+      window.removeEventListener("scroll", repositionPortaledMenu, true);
+      window.removeEventListener("resize", repositionPortaledMenu);
+      window.visualViewport?.removeEventListener("scroll", repositionPortaledMenu);
+      window.visualViewport?.removeEventListener("resize", repositionPortaledMenu);
+    };
+
+    toggle.addEventListener("show.bs.dropdown", () => {
+      document.body.appendChild(menu);
+      menu.dataset.portaled = "1";
+      repositionPortaledMenu();
+      bindPortalListeners();
+    });
+
+    toggle.addEventListener("hidden.bs.dropdown", () => {
+      unbindPortalListeners();
+      delete menu.dataset.portaled;
+      menu.style.cssText = "";
+      menuWrap.appendChild(menu);
+    });
+
     if (window.bootstrap?.Dropdown) {
       const existing = window.bootstrap.Dropdown.getInstance(toggle);
       if (existing) {
@@ -611,7 +692,7 @@
           strategy: "fixed",
           modifiers: [
             ...(defaultConfig.modifiers || []),
-            { name: "zIndex", options: { zIndex: 1200 } },
+            { name: "zIndex", options: { zIndex: 2000 } },
           ],
         }),
       });
@@ -1191,9 +1272,9 @@
       this.suggestions = [];
       this.activeIndex = -1;
       this.isOpen = false;
-      this.skipRefresh = false;
+      this.allowEmptyOpen = false;
+      this.ignoreFocusRefresh = false;
       this.suppressBlurCommit = false;
-      this.openOnFocus = false;
 
       this.listEl = document.createElement("ul");
       this.listEl.className = "combobox-list";
@@ -1211,7 +1292,7 @@
 
       this.onViewportChange = () => this.reposition();
       const openOnUserActivation = () => {
-        handleComboboxUserActivation(this, input);
+        openComboboxFromUserGesture(this, input);
       };
       input.addEventListener("pointerdown", openOnUserActivation, true);
       input.addEventListener("mousedown", openOnUserActivation, true);
@@ -1370,8 +1451,8 @@
     }
 
     onInput() {
-      if (this.skipRefresh) {
-        this.skipRefresh = false;
+      if (this.ignoreFocusRefresh) {
+        this.ignoreFocusRefresh = false;
         if (!this.input.value.trim()) {
           return;
         }
@@ -1406,8 +1487,7 @@
 
     onKeyDown(event) {
       if (!this.isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
-        this.skipRefresh = false;
-        this.openOnFocus = true;
+        this.allowEmptyOpen = true;
         this.refreshSuggestions();
       }
       if (!this.isOpen) {
@@ -1653,7 +1733,8 @@
       } else {
         this.addParticipant({ entry: item.entry });
       }
-      this.skipRefresh = true;
+      this.allowEmptyOpen = false;
+      this.ignoreFocusRefresh = true;
       this.input.value = "";
       this.close();
       this.input.focus();
@@ -1672,12 +1753,14 @@
       );
       if (rosterMatch) {
         this.addParticipant({ entry: rosterMatch });
-        this.skipRefresh = true;
+        this.allowEmptyOpen = false;
+        this.ignoreFocusRefresh = true;
         this.input.value = "";
         this.close();
       } else if (allowGuestCreate) {
         this.addParticipant({ guestName: trimmed });
-        this.skipRefresh = true;
+        this.allowEmptyOpen = false;
+        this.ignoreFocusRefresh = true;
         this.input.value = "";
         this.close();
       }
@@ -1766,9 +1849,9 @@
       this.suggestions = [];
       this.activeIndex = -1;
       this.isOpen = false;
-      this.skipRefresh = false;
+      this.allowEmptyOpen = false;
+      this.ignoreFocusRefresh = false;
       this.suppressBlurCommit = false;
-      this.openOnFocus = false;
       this.placeholder = "Teammate";
 
       this.listEl = document.createElement("ul");
@@ -1800,8 +1883,15 @@
           return;
         }
         this.prepareInput(input);
-        input.removeAttribute("readonly");
-        handleComboboxUserActivation(this, input);
+        openComboboxFromUserGesture(this, input, {
+          setContext: (activeInput) => {
+            if (this.input && this.input !== activeInput) {
+              this.commitPendingEntry();
+            }
+            this.input = activeInput;
+            this.row = activeInput.closest("[data-game-row]");
+          },
+        });
       };
       tbody.addEventListener("touchstart", unlockForPointer, {
         passive: true,
@@ -1903,27 +1993,21 @@
 
     activate(input) {
       this.prepareInput(input);
-      input.removeAttribute("readonly");
-      if (this.input === input) {
-        this.onFocus();
-        return;
+      unlockComboboxInput(input);
+      if (this.input !== input) {
+        this.commitPendingEntry();
+        this.input = input;
+        this.row = input.closest("[data-game-row]");
       }
-      // Commit whatever was pending on the previously active row before
-      // switching, in case the tap that moved focus here landed on
-      // another teammate field directly (skipping onDocumentPointerDown's
-      // outside-tap check, since the tap was on this picker's own input).
-      this.commitPendingEntry();
-      this.input = input;
-      this.row = input.closest("[data-game-row]");
-      this.onFocus();
+      handleComboboxFocus(this, input);
     }
 
     onInput() {
       if (!this.input) {
         return;
       }
-      if (this.skipRefresh) {
-        this.skipRefresh = false;
+      if (this.ignoreFocusRefresh) {
+        this.ignoreFocusRefresh = false;
         if (!this.input.value.trim()) {
           return;
         }
@@ -1953,8 +2037,7 @@
 
     onKeyDown(event) {
       if (!this.isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
-        this.skipRefresh = false;
-        this.openOnFocus = true;
+        this.allowEmptyOpen = true;
         this.refreshSuggestions();
       }
       if (!this.isOpen) {
@@ -2170,7 +2253,8 @@
       const input = this.input;
       const rowEntry = buildRowEntry({ entry, guestName });
       const ok = assignTeammate(row, rowEntry);
-      this.skipRefresh = true;
+      this.allowEmptyOpen = false;
+      this.ignoreFocusRefresh = true;
       input.value = "";
       this.close();
       if (!ok) {

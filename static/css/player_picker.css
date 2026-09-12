@@ -38,9 +38,11 @@
   margin: 0;
 }
 
-/* Row ... menu above Add player combobox and teammate portaled list. */
-[data-side-menu-wrap] .dropdown-menu {
-  z-index: 1200;
+/* Row ... menu: portaled to body in JS so it clears the footer picker. */
+.dropdown-menu[data-portaled="1"] {
+  position: fixed !important;
+  z-index: 2000 !important;
+  transform: none !important;
 }
 
 .combobox-option {
