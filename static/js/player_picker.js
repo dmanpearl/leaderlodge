@@ -52,16 +52,6 @@
     if (n.includes(q)) {
       return 50 - (n.length - q.length);
     }
-
-    let queryIndex = 0;
-    for (let i = 0; i < n.length && queryIndex < q.length; i += 1) {
-      if (n[i] === q[queryIndex]) {
-        queryIndex += 1;
-      }
-    }
-    if (queryIndex === q.length) {
-      return 10;
-    }
     return -1;
   }
 
@@ -272,6 +262,35 @@
     }
   }
 
+  function shouldNudgeMobileKeyboard() {
+    return window.matchMedia("(pointer: coarse)").matches;
+  }
+
+  function clearComboboxBlurTimer(picker) {
+    if (picker.blurTimer) {
+      window.clearTimeout(picker.blurTimer);
+      picker.blurTimer = null;
+    }
+  }
+
+  function nudgeMobileKeyboard(picker, input) {
+    if (!input || !shouldNudgeMobileKeyboard()) {
+      return;
+    }
+    if (document.activeElement !== input) {
+      return;
+    }
+    picker.suppressBlurCommit = true;
+    clearComboboxBlurTimer(picker);
+    input.blur();
+    window.requestAnimationFrame(() => {
+      input.focus();
+      window.requestAnimationFrame(() => {
+        picker.suppressBlurCommit = false;
+      });
+    });
+  }
+
   function openComboboxFromUserGesture(picker, input, { setContext } = {}) {
     if (!input || typeof picker.refreshSuggestions !== "function") {
       return;
@@ -279,6 +298,7 @@
     unlockComboboxInput(input);
     picker.allowEmptyOpen = true;
     picker.ignoreFocusRefresh = false;
+    clearComboboxBlurTimer(picker);
     if (typeof setContext === "function") {
       setContext(input);
     }
@@ -289,6 +309,7 @@
 
     if (document.activeElement === input) {
       refresh();
+      nudgeMobileKeyboard(picker, input);
       return;
     }
 
@@ -297,6 +318,7 @@
     window.requestAnimationFrame(() => {
       picker.pendingGestureRefresh = false;
       refresh();
+      nudgeMobileKeyboard(picker, input);
     });
   }
 
@@ -619,13 +641,40 @@
   }
 
   function initRowMenuDropdown(row) {
-    const toggle = row.querySelector(
-      "[data-side-menu-wrap] [data-bs-toggle='dropdown']"
-    );
-    if (!toggle || toggle.dataset.rowMenuReady === "1") {
+    const menuWrap = row.querySelector("[data-side-menu-wrap]");
+    const toggle = menuWrap?.querySelector("[data-bs-toggle='dropdown']");
+    const menu = row.querySelector("[data-side-menu]");
+    if (!toggle || !menuWrap || !menu || toggle.dataset.rowMenuReady === "1") {
       return;
     }
     toggle.dataset.rowMenuReady = "1";
+
+    if (menu.dataset.sideMenuClickBound !== "1") {
+      menu.dataset.sideMenuClickBound = "1";
+      menu.addEventListener("click", (event) => {
+        const actionButton = event.target.closest("[data-side-action]");
+        if (!actionButton) {
+          return;
+        }
+        const picker = window.LeaderLodgeRecordGame?.picker;
+        if (picker) {
+          picker.handleSideAction(row, actionButton.dataset.sideAction);
+        }
+        window.bootstrap?.Dropdown.getInstance(toggle)?.hide();
+      });
+    }
+
+    toggle.addEventListener("show.bs.dropdown", () => {
+      document.body.appendChild(menu);
+      menu.dataset.portaled = "1";
+    });
+    toggle.addEventListener("hidden.bs.dropdown", () => {
+      delete menu.dataset.portaled;
+      if (menu.parentElement !== menuWrap) {
+        menuWrap.appendChild(menu);
+      }
+    });
+
     if (window.bootstrap?.Dropdown) {
       const existing = window.bootstrap.Dropdown.getInstance(toggle);
       if (existing) {
@@ -637,7 +686,7 @@
           strategy: "fixed",
           modifiers: [
             ...(defaultConfig.modifiers || []),
-            { name: "zIndex", options: { zIndex: 2000 } },
+            { name: "zIndex", options: { zIndex: 2100 } },
           ],
         }),
       });
@@ -1070,7 +1119,7 @@
     updateSideLabel(row, gameForm, body);
   }
 
-  function attachListToInput(input, listEl) {
+  function ensureComboboxInputWrap(input) {
     let wrap = input.closest(".combobox-input-wrap");
     if (!wrap) {
       wrap = document.createElement("div");
@@ -1078,6 +1127,11 @@
       input.parentNode.insertBefore(wrap, input);
       wrap.appendChild(input);
     }
+    return wrap;
+  }
+
+  function attachListToInput(input, listEl) {
+    const wrap = ensureComboboxInputWrap(input);
     wrap.appendChild(listEl);
     return wrap;
   }
@@ -1221,14 +1275,18 @@
       this.ignoreFocusRefresh = false;
       this.pendingGestureRefresh = false;
       this.suppressBlurCommit = false;
+      this.blurTimer = null;
+      this.repositionTimers = [];
 
+      ensureComboboxInputWrap(input);
       this.listEl = document.createElement("ul");
-      this.listEl.className = "combobox-list";
+      this.listEl.className = "combobox-list combobox-list--portal";
       this.listEl.setAttribute("role", "listbox");
       this.listEl.hidden = true;
+      this.listEl.style.visibility = "hidden";
       this.listId = `${input.id || "player-picker"}-suggestions`;
       this.listEl.id = this.listId;
-      attachListToInput(input, this.listEl);
+      document.body.appendChild(this.listEl);
 
       input.setAttribute("role", "combobox");
       input.setAttribute("aria-autocomplete", "list");
@@ -1236,7 +1294,11 @@
       input.setAttribute("aria-controls", this.listId);
       suppressBrowserSuggestions(input);
 
-      this.onViewportChange = () => this.reposition();
+      this.onViewportChange = () => {
+        if (this.isOpen && this.input) {
+          schedulePortaledComboboxReposition(this);
+        }
+      };
       const openOnUserActivation = () => {
         openComboboxFromUserGesture(this, input);
       };
@@ -1252,6 +1314,7 @@
       input.addEventListener("blur", () => this.onBlur());
       input.addEventListener("focus", () => this.onFocus());
       window.addEventListener("resize", this.onViewportChange);
+      window.addEventListener("scroll", this.onViewportChange, true);
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
       window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
@@ -1413,6 +1476,7 @@
     }
 
     onFocus() {
+      clearComboboxBlurTimer(this);
       handleComboboxFocus(this, this.input);
     }
 
@@ -1420,10 +1484,15 @@
       // Backstop for onDocumentPointerDown: covers blur triggers that
       // aren't a pointer event (e.g. Tab). tryAddGuestFromInput() clears
       // the input once it commits, so a second call here is a no-op.
-      window.setTimeout(() => this.commitPendingEntry(), 150);
+      if (this.suppressBlurCommit) {
+        return;
+      }
+      clearComboboxBlurTimer(this);
+      this.blurTimer = window.setTimeout(() => this.commitPendingEntry(), 150);
     }
 
     commitPendingEntry() {
+      this.blurTimer = null;
       // iOS: dismissing the keyboard, or tapping elsewhere on the page,
       // does not reliably fire a native blur event on the input, so an
       // entry the user typed but never pressed Enter on would otherwise
@@ -1669,7 +1738,7 @@
         });
         this.listEl.appendChild(option);
       });
-      this.reposition();
+      schedulePortaledComboboxReposition(this);
       updateComboboxScrollHint(this.listEl);
     }
 
@@ -1771,14 +1840,16 @@
       this.isOpen = true;
       this.listEl.hidden = false;
       this.input.setAttribute("aria-expanded", "true");
-      this.reposition();
+      schedulePortaledComboboxReposition(this);
     }
 
     close() {
       this.isOpen = false;
       this.activeIndex = -1;
       this.suggestions = [];
+      clearPortaledRepositionTimers(this);
       this.listEl.hidden = true;
+      this.listEl.style.visibility = "hidden";
       this.listEl.innerHTML = "";
       this.input.setAttribute("aria-expanded", "false");
       this.input.removeAttribute("aria-activedescendant");
@@ -1788,7 +1859,7 @@
       if (!this.isOpen) {
         return;
       }
-      adjustListPlacement(this.listEl, this.input);
+      schedulePortaledComboboxReposition(this);
     }
   }
 
@@ -1805,6 +1876,7 @@
       this.ignoreFocusRefresh = false;
       this.pendingGestureRefresh = false;
       this.suppressBlurCommit = false;
+      this.blurTimer = null;
       this.placeholder = "Teammate";
 
       this.listEl = document.createElement("ul");
@@ -1969,6 +2041,7 @@
     }
 
     onFocus() {
+      clearComboboxBlurTimer(this);
       handleComboboxFocus(this, this.input);
     }
 
@@ -1976,10 +2049,15 @@
       // Backstop for onDocumentPointerDown: covers blur triggers that
       // aren't a pointer event (e.g. Tab). tryAddGuestFromInput() clears
       // the input once it commits, so a second call here is a no-op.
-      window.setTimeout(() => this.commitPendingEntry(), 150);
+      if (this.suppressBlurCommit) {
+        return;
+      }
+      clearComboboxBlurTimer(this);
+      this.blurTimer = window.setTimeout(() => this.commitPendingEntry(), 150);
     }
 
     commitPendingEntry() {
+      this.blurTimer = null;
       if (this.suppressBlurCommit) {
         this.suppressBlurCommit = false;
         return;

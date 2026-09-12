@@ -27,26 +27,20 @@
   margin: 0 0 -1px;
 }
 
-/* Teammate picker: escape table-responsive overflow clipping. */
+/* Player/teammate lists portaled to body above location field controls. */
 .combobox-list--portal {
   position: fixed;
   top: auto;
   bottom: auto;
   left: auto;
   right: auto;
-  z-index: 1100;
+  z-index: 2100;
   margin: 0;
 }
 
-/* Participant rows stack above the footer Add player block. */
-[data-participant-rows] {
-  position: relative;
-  z-index: 2;
-}
-
-/* Row ... menu: fixed Popper + high z-index clears the footer combobox. */
-[data-side-menu-wrap] .dropdown-menu {
-  z-index: 2000;
+/* Row ... menu portaled to body in JS; Popper keeps it anchored to the row. */
+[data-side-menu][data-portaled="1"] {
+  z-index: 2100 !important;
 }
 
 .combobox-option {
