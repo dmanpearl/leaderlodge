@@ -133,27 +133,52 @@
     return keys;
   }
 
+  function playerIdsForRow(row) {
+    const ids = new Set();
+    if (!row) {
+      return ids;
+    }
+    const primaryHidden = row.querySelector('[name="participant_player_id"]');
+    const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
+    if (primaryValue) {
+      ids.add(Number(primaryValue));
+    } else {
+      const primaryId = row.dataset.playerId;
+      if (primaryId && !String(primaryId).startsWith("guest:")) {
+        ids.add(Number(primaryId));
+      }
+    }
+    const teammateHidden = row.querySelector(
+      '[name="participant_teammate_player_id"]'
+    );
+    const teammateValue = teammateHidden ? teammateHidden.value.trim() : "";
+    if (teammateValue) {
+      ids.add(Number(teammateValue));
+    }
+    return ids;
+  }
+
   function playersAlreadyInGame(tbody) {
     const ids = new Set();
+    if (!tbody) {
+      return ids;
+    }
     tbody.querySelectorAll("[data-game-row]").forEach((row) => {
-      const primaryHidden = row.querySelector('[name="participant_player_id"]');
-      const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
-      if (primaryValue) {
-        ids.add(Number(primaryValue));
-      } else {
-        const primaryId = row.dataset.playerId;
-        if (primaryId && !primaryId.startsWith("guest:")) {
-          ids.add(Number(primaryId));
-        }
-      }
+      playerIdsForRow(row).forEach((playerId) => ids.add(playerId));
+    });
+    return ids;
+  }
 
-      const teammateHidden = row.querySelector(
-        '[name="participant_teammate_player_id"]'
-      );
-      const teammateValue = teammateHidden ? teammateHidden.value.trim() : "";
-      if (teammateValue) {
-        ids.add(Number(teammateValue));
+  function playersOnOtherSides(tbody, currentRow) {
+    const ids = new Set();
+    if (!tbody) {
+      return ids;
+    }
+    tbody.querySelectorAll("[data-game-row]").forEach((row) => {
+      if (row === currentRow) {
+        return;
       }
+      playerIdsForRow(row).forEach((playerId) => ids.add(playerId));
     });
     return ids;
   }
@@ -237,6 +262,22 @@
       return true;
     }
     return entrySharesPlayerWithGame(tbody, entry, roster);
+  }
+
+  function entryIsIneligibleForTeammate(tbody, row, entry, roster) {
+    if (entry.kind === "team") {
+      return true;
+    }
+    const memberIds = memberIdsForRosterEntry(entry, roster);
+    if (!memberIds.length) {
+      return true;
+    }
+    const rowIds = playerIdsForRow(row);
+    if (memberIds.some((memberId) => rowIds.has(memberId))) {
+      return true;
+    }
+    const blockedIds = playersOnOtherSides(tbody, row);
+    return memberIds.some((memberId) => blockedIds.has(memberId));
   }
 
   function rosterEntryMatchesLabel(entry, label) {
@@ -1154,7 +1195,7 @@
       if (!this.isOpen) {
         if (event.key === "Enter") {
           event.preventDefault();
-          this.tryAddGuestFromInput();
+          this.tryAddGuestFromInput({ allowGuestCreate: true });
         }
         return;
       }
@@ -1170,7 +1211,7 @@
         if (this.activeIndex >= 0) {
           this.selectSuggestion(this.suggestions[this.activeIndex]);
         } else {
-          this.tryAddGuestFromInput();
+          this.tryAddGuestFromInput({ allowGuestCreate: true });
         }
       } else if (event.key === "Escape") {
         event.preventDefault();
@@ -1295,7 +1336,7 @@
       this.input.focus();
     }
 
-    tryAddGuestFromInput() {
+    tryAddGuestFromInput({ allowGuestCreate = false } = {}) {
       const trimmed = this.input.value.trim();
       if (!trimmed) {
         return;
@@ -1308,12 +1349,15 @@
       );
       if (rosterMatch) {
         this.addParticipant({ entry: rosterMatch });
-      } else {
+        this.skipRefresh = true;
+        this.input.value = "";
+        this.close();
+      } else if (allowGuestCreate) {
         this.addParticipant({ guestName: trimmed });
+        this.skipRefresh = true;
+        this.input.value = "";
+        this.close();
       }
-      this.skipRefresh = true;
-      this.input.value = "";
-      this.close();
     }
 
     addParticipant({ entry, guestName }) {
@@ -1400,6 +1444,7 @@
       this.activeIndex = -1;
       this.isOpen = false;
       this.skipRefresh = false;
+      this.suppressBlurCommit = false;
       this.placeholder = "Teammate";
 
       this.listEl = document.createElement("ul");
@@ -1446,7 +1491,13 @@
       });
       tbody.addEventListener("input", (event) => {
         const input = event.target.closest("[data-add-teammate]");
-        if (input && input === this.input) {
+        if (!input || !tbody.contains(input)) {
+          return;
+        }
+        if (input !== this.input) {
+          this.activate(input);
+        }
+        if (input === this.input) {
           this.onInput();
         }
       });
@@ -1463,9 +1514,21 @@
           if (next && this.listEl.contains(next)) {
             return;
           }
+          if (next instanceof Element && next.closest("[data-side-menu-wrap]")) {
+            return;
+          }
           this.onBlur();
         }
       });
+      tbody.addEventListener(
+        "pointerdown",
+        (event) => {
+          if (event.target.closest("[data-side-menu-wrap]")) {
+            this.suppressBlurCommit = true;
+          }
+        },
+        true
+      );
 
       // iOS: tapping a non-focusable area (plain text, page background) to
       // dismiss the keyboard does not reliably fire a native blur/focusout
@@ -1484,6 +1547,10 @@
           return;
         }
         if (this.listEl.contains(target)) {
+          return;
+        }
+        if (target instanceof Element && target.closest("[data-side-menu-wrap]")) {
+          this.suppressBlurCommit = true;
           return;
         }
         this.commitPendingEntry();
@@ -1551,10 +1618,10 @@
     }
 
     commitPendingEntry() {
-      // iOS: dismissing the keyboard, or tapping elsewhere on the page,
-      // does not reliably fire a native blur event on the input, so an
-      // entry the user typed but never pressed Enter on would otherwise
-      // be silently dropped instead of locked in like Enter does.
+      if (this.suppressBlurCommit) {
+        this.suppressBlurCommit = false;
+        return;
+      }
       this.tryAddGuestFromInput();
       this.close();
     }
@@ -1566,7 +1633,7 @@
       if (!this.isOpen) {
         if (event.key === "Enter") {
           event.preventDefault();
-          this.tryAddGuestFromInput();
+          this.tryAddGuestFromInput({ allowGuestCreate: true });
         }
         return;
       }
@@ -1582,7 +1649,7 @@
         if (this.activeIndex >= 0) {
           this.selectSuggestion(this.suggestions[this.activeIndex]);
         } else {
-          this.tryAddGuestFromInput();
+          this.tryAddGuestFromInput({ allowGuestCreate: true });
         }
       } else if (event.key === "Escape") {
         event.preventDefault();
@@ -1613,7 +1680,13 @@
       const existing = existingRowKeys(this.tbody);
       this.suggestions = matches
         .filter(
-          (entry) => !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          (entry) =>
+            !entryIsIneligibleForTeammate(
+              this.tbody,
+              this.row,
+              entry,
+              this.roster
+            )
         )
         .map((entry) => ({ type: "player", entry }));
 
@@ -1699,7 +1772,7 @@
       }
     }
 
-    tryAddGuestFromInput() {
+    tryAddGuestFromInput({ allowGuestCreate = false } = {}) {
       if (!this.input) {
         return;
       }
@@ -1707,15 +1780,19 @@
       if (!trimmed) {
         return;
       }
-      const existing = existingRowKeys(this.tbody);
       const rosterMatch = this.roster.find(
         (entry) =>
           rosterEntryMatchesLabel(entry, trimmed) &&
-          !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          !entryIsIneligibleForTeammate(
+            this.tbody,
+            this.row,
+            entry,
+            this.roster
+          )
       );
       if (rosterMatch) {
         this.assignFromEntry({ entry: rosterMatch });
-      } else {
+      } else if (allowGuestCreate) {
         this.assignFromEntry({ guestName: trimmed });
       }
     }
