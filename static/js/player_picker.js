@@ -420,35 +420,32 @@
     }
   }
 
-  function withComboboxScrollLockPaused(callback) {
-    const savedDepth = comboboxPageScrollLock.depth;
-    if (savedDepth > 0 && shouldNudgeMobileKeyboard()) {
-      releaseComboboxPageScrollLock();
-      comboboxPageScrollLock.depth = 0;
-    }
-    try {
-      callback();
-    } finally {
-      if (savedDepth > 0 && shouldNudgeMobileKeyboard()) {
-        comboboxPageScrollLock.depth = savedDepth;
-        applyComboboxPageScrollLock();
-      }
-    }
-  }
-
   function bindComboboxListTouchScroll(listEl) {
     if (!listEl || listEl.dataset.listTouchScrollBound === "1") {
       return;
     }
     listEl.dataset.listTouchScrollBound = "1";
     let lastTouchY = 0;
+    const markListTouchActive = () => {
+      listEl.dataset.userScrolling = "1";
+    };
+    const clearListTouchActive = () => {
+      delete listEl.dataset.userScrolling;
+    };
     listEl.addEventListener(
       "touchstart",
       (event) => {
+        markListTouchActive();
         lastTouchY = event.touches[0].clientY;
       },
       { passive: true }
     );
+    listEl.addEventListener("touchend", clearListTouchActive, {
+      passive: true,
+    });
+    listEl.addEventListener("touchcancel", clearListTouchActive, {
+      passive: true,
+    });
     listEl.addEventListener(
       "touchmove",
       (event) => {
@@ -1284,53 +1281,31 @@
     return Boolean(rect && rect.width > 0 && rect.height > 0);
   }
 
-  function comboboxInputIsVisible(input, margin = 12) {
-    const visible = visibleViewportBounds();
-    const rect = input.getBoundingClientRect();
-    return (
-      rect.top >= visible.top + margin &&
-      rect.bottom <= visible.bottom - margin
-    );
-  }
-
-  function revealComboboxInput(input) {
-    if (!input?.value.trim()) {
-      return;
-    }
-    if (comboboxInputIsVisible(input)) {
-      return;
-    }
-    withComboboxScrollLockPaused(() => {
-      try {
-        input.scrollIntoView({ block: "center", inline: "nearest" });
-      } catch (_error) {
-        // ignore
-      }
-    });
-  }
-
   function chooseComboboxPlacement({ typing, rect, visible, listScrollHeight }) {
     const spaceBelow = visible.bottom - rect.bottom;
     const spaceAbove = rect.top - visible.top;
     const preferredHeight = Math.min(240, listScrollHeight || 240);
-    const minSide = typing ? 40 : 0;
+    const mobile = shouldNudgeMobileKeyboard();
 
     if (typing) {
-      if (spaceBelow >= minSide) {
+      if (spaceBelow >= spaceAbove && spaceBelow >= 80) {
         return { placeAbove: false, available: spaceBelow };
       }
-      if (spaceAbove >= minSide) {
+      if (spaceAbove >= 80) {
         return { placeAbove: true, available: spaceAbove };
       }
       const placeAbove = spaceAbove > spaceBelow;
       return {
         placeAbove,
-        available: Math.max(placeAbove ? spaceAbove : spaceBelow, 72),
+        available: placeAbove ? spaceAbove : spaceBelow,
       };
     }
 
-    const placeAbove =
+    let placeAbove =
       spaceBelow < preferredHeight && spaceAbove > spaceBelow;
+    if (mobile && spaceBelow >= 80) {
+      placeAbove = false;
+    }
     return {
       placeAbove,
       available: placeAbove ? spaceAbove : spaceBelow,
@@ -1342,16 +1317,12 @@
       return false;
     }
 
-    const typing = Boolean(input.value.trim());
-    if (typing) {
-      revealComboboxInput(input);
-    }
-
     const rect = input.getBoundingClientRect();
     if (!isUsableAnchorRect(rect)) {
       return false;
     }
 
+    const typing = Boolean(input.value.trim());
     const visible = visibleViewportBounds();
     const { placeAbove, available } = chooseComboboxPlacement({
       typing,
@@ -1359,13 +1330,12 @@
       visible,
       listScrollHeight: listEl.scrollHeight,
     });
-    const minMaxHeight = typing ? 72 : 120;
 
     listEl.classList.toggle("combobox-list--above", placeAbove);
     listEl.style.left = `${Math.max(8, rect.left)}px`;
     listEl.style.width = `${Math.max(rect.width, 160)}px`;
     listEl.style.right = "auto";
-    listEl.style.maxHeight = `${Math.max(minMaxHeight, available - 8)}px`;
+    listEl.style.maxHeight = `${Math.min(240, Math.max(available - 8, 48))}px`;
 
     // iOS: position:fixed uses layout-viewport coordinates; pair layout
     // rect edges with visual-viewport bounds for above/below placement.
@@ -1377,20 +1347,11 @@
       )}px`;
     } else {
       listEl.style.bottom = "auto";
-      listEl.style.top = `${Math.max(visible.top + 8, rect.bottom)}px`;
+      listEl.style.top = `${rect.bottom}px`;
     }
     listEl.style.visibility = "visible";
     syncComboboxScrollState(listEl);
     return true;
-  }
-
-  function settlePortaledComboboxList(picker) {
-    if (!picker.isOpen || !picker.input) {
-      return;
-    }
-    positionPortaledComboboxList(picker.listEl, picker.input);
-    syncComboboxScrollState(picker.listEl);
-    positionPortaledComboboxList(picker.listEl, picker.input);
   }
 
   function clearPortaledRepositionTimers(picker) {
@@ -1404,6 +1365,16 @@
     picker.repositionTimers = [];
   }
 
+  function runPortaledComboboxReposition(picker) {
+    if (!picker.isOpen || !picker.input) {
+      return;
+    }
+    if (picker.listEl?.dataset.userScrolling === "1") {
+      return;
+    }
+    positionPortaledComboboxList(picker.listEl, picker.input);
+  }
+
   function schedulePortaledComboboxReposition(picker) {
     if (!picker.isOpen || !picker.input) {
       return;
@@ -1411,38 +1382,11 @@
     clearPortaledRepositionTimers(picker);
     picker.repositionTimers = [];
 
-    const run = () => {
-      if (picker.isOpen && picker.input) {
-        settlePortaledComboboxList(picker);
-      }
-    };
+    const run = () => runPortaledComboboxReposition(picker);
 
-    const runAfterLayout = () => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(run);
-      });
-    };
-
-    let attempts = 0;
-    const tryFrame = () => {
-      if (!picker.isOpen || !picker.input) {
-        return;
-      }
-      attempts += 1;
-      const ok = positionPortaledComboboxList(picker.listEl, picker.input);
-      if (!ok && attempts < 6) {
-        const frameId = window.requestAnimationFrame(tryFrame);
-        picker.repositionTimers.push(frameId);
-        return;
-      }
-      settlePortaledComboboxList(picker);
-    };
-    picker.repositionTimers.push(window.requestAnimationFrame(tryFrame));
-    runAfterLayout();
-    // iOS: keyboard open and visual-viewport pan settle after focus.
-    picker.repositionTimers.push(window.setTimeout(runAfterLayout, 100));
-    picker.repositionTimers.push(window.setTimeout(runAfterLayout, 350));
-    picker.repositionTimers.push(window.setTimeout(runAfterLayout, 600));
+    picker.repositionTimers.push(window.requestAnimationFrame(run));
+    // iOS: keyboard open settles shortly after focus.
+    picker.repositionTimers.push(window.setTimeout(run, 100));
   }
 
   function adjustListPlacement(listEl, input) {
@@ -1515,9 +1459,7 @@
       input.addEventListener("blur", () => this.onBlur());
       input.addEventListener("focus", () => this.onFocus());
       window.addEventListener("resize", this.onViewportChange);
-      window.addEventListener("scroll", this.onViewportChange, true);
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
-      window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
       // iOS: tapping a non-focusable area (plain text, page background) to
       // dismiss the keyboard does not reliably fire a native blur event, so
@@ -2100,13 +2042,11 @@
 
       this.onViewportChange = () => {
         if (this.isOpen && this.input) {
-          positionPortaledComboboxList(this.listEl, this.input);
+          schedulePortaledComboboxReposition(this);
         }
       };
       window.addEventListener("resize", this.onViewportChange);
-      window.addEventListener("scroll", this.onViewportChange, true);
       window.visualViewport?.addEventListener("resize", this.onViewportChange);
-      window.visualViewport?.addEventListener("scroll", this.onViewportChange);
 
       tbody.addEventListener("focusin", (event) => {
         const input = event.target.closest("[data-add-teammate]");
