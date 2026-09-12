@@ -3,6 +3,7 @@
  */
 (function () {
   const MAX_SUGGESTIONS = 8;
+  const MAX_SMART_TEAMS_WHEN_EMPTY = 4;
 
   function foldAccents(value) {
     return value.normalize("NFD").replace(/\p{M}/gu, "");
@@ -64,12 +65,16 @@
     return -1;
   }
 
-  function filterRoster(roster, query) {
+  function filterRoster(
+    roster,
+    query,
+    { limit = MAX_SUGGESTIONS, soloOnly = false, teamsOnly = false } = {}
+  ) {
     if (!query.trim()) {
       return [];
     }
 
-    return roster
+    const ranked = roster
       .map((entry) => {
         let bestScore = scoreMatch(query, entry.label);
         if (entry.username) {
@@ -86,6 +91,15 @@
         return { entry, score: bestScore };
       })
       .filter((item) => item.score >= 0)
+      .filter((item) => {
+        if (soloOnly && item.entry.kind === "team") {
+          return false;
+        }
+        if (teamsOnly && item.entry.kind !== "team") {
+          return false;
+        }
+        return true;
+      })
       .sort((a, b) => {
         // Teams never used for the current game type sort after everything
         // else (including lower-scoring individual matches), so a team's
@@ -104,9 +118,10 @@
           return aRecency - bRecency;
         }
         return a.entry.label.localeCompare(b.entry.label);
-      })
-      .slice(0, MAX_SUGGESTIONS)
-      .map((item) => item.entry);
+      });
+
+    const capped = limit == null ? ranked : ranked.slice(0, limit);
+    return capped.map((item) => item.entry);
   }
 
   function readSmartSuggestions() {
@@ -241,9 +256,33 @@
     return true;
   }
 
-  function requestComboboxOpenOnActivation(picker, input) {
+  function rosterSoloEntry(roster, playerId) {
+    const id = Number(playerId);
+    if (Number.isNaN(id) || id <= 0) {
+      return null;
+    }
+    return roster.find(
+      (entry) => Number(entry.id) === id && entry.kind !== "team"
+    );
+  }
+
+  function handleComboboxUserActivation(picker, input) {
     picker.openOnFocus = true;
-    if (document.activeElement === input && !picker.skipRefresh) {
+    picker.skipRefresh = false;
+    if (input && document.activeElement === input) {
+      picker.openOnFocus = false;
+      picker.refreshSuggestions();
+    }
+  }
+
+  function handleComboboxFocus(picker, input) {
+    const trimmed = input ? input.value.trim() : "";
+    if (picker.skipRefresh && !picker.openOnFocus) {
+      picker.skipRefresh = false;
+      return;
+    }
+    picker.skipRefresh = false;
+    if (picker.openOnFocus || trimmed) {
       picker.openOnFocus = false;
       picker.refreshSuggestions();
     }
@@ -1172,7 +1211,7 @@
 
       this.onViewportChange = () => this.reposition();
       const openOnUserActivation = () => {
-        requestComboboxOpenOnActivation(this, input);
+        handleComboboxUserActivation(this, input);
       };
       input.addEventListener("pointerdown", openOnUserActivation, true);
       input.addEventListener("mousedown", openOnUserActivation, true);
@@ -1341,11 +1380,7 @@
     }
 
     onFocus() {
-      const trimmed = this.input.value.trim();
-      if (!this.skipRefresh && (this.openOnFocus || trimmed)) {
-        this.openOnFocus = false;
-        this.refreshSuggestions();
-      }
+      handleComboboxFocus(this, this.input);
     }
 
     onBlur() {
@@ -1371,6 +1406,7 @@
 
     onKeyDown(event) {
       if (!this.isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+        this.skipRefresh = false;
         this.openOnFocus = true;
         this.refreshSuggestions();
       }
@@ -1456,9 +1492,10 @@
       ).filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query));
 
       if (!trimmed) {
+        const smartTeams = [];
         smartFiltered.forEach((suggestion) => {
           if (suggestion.kind === "team") {
-            addSmartTeam(suggestion);
+            smartTeams.push(suggestion);
             return;
           }
           const entry = rosterEntryFromSmartPlayer(
@@ -1473,11 +1510,32 @@
           }
           addSolo("smart-solo", entry, suggestion.label);
         });
+
+        const teamMemberIds = new Set();
+        smartTeams.forEach((suggestion) => {
+          smartPlayerIds(suggestion).forEach((playerId) => {
+            teamMemberIds.add(playerId);
+          });
+        });
+        teamMemberIds.forEach((playerId) => {
+          const entry = rosterSoloEntry(roster, playerId);
+          if (
+            entry &&
+            !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          ) {
+            addSolo("player", entry);
+          }
+        });
+
+        smartTeams
+          .slice(0, MAX_SMART_TEAMS_WHEN_EMPTY)
+          .forEach((suggestion) => {
+            addSmartTeam(suggestion);
+          });
       } else {
-        filterRoster(roster, query)
+        filterRoster(roster, query, { soloOnly: true })
           .filter(
             (entry) =>
-              entry.kind !== "team" &&
               !entryIsIneligible(this.tbody, entry, existing, this.roster)
           )
           .forEach((entry) => {
@@ -1508,10 +1566,9 @@
           addSmartTeam(suggestion);
         });
 
-        filterRoster(roster, query)
+        filterRoster(roster, query, { teamsOnly: true })
           .filter(
             (entry) =>
-              entry.kind === "team" &&
               !entryIsIneligible(this.tbody, entry, existing, this.roster)
           )
           .forEach((entry) => {
@@ -1742,23 +1799,16 @@
         if (!input || !tbody.contains(input)) {
           return;
         }
-        this.openOnFocus = true;
         this.prepareInput(input);
         input.removeAttribute("readonly");
-        if (
-          this.input === input &&
-          document.activeElement === input &&
-          !this.skipRefresh
-        ) {
-          this.openOnFocus = false;
-          this.refreshSuggestions();
-        }
+        handleComboboxUserActivation(this, input);
       };
       tbody.addEventListener("touchstart", unlockForPointer, {
         passive: true,
         capture: true,
       });
       tbody.addEventListener("mousedown", unlockForPointer, { capture: true });
+      tbody.addEventListener("pointerdown", unlockForPointer, { capture: true });
 
       tbody.addEventListener("focusin", (event) => {
         const input = event.target.closest("[data-add-teammate]");
@@ -1882,11 +1932,7 @@
     }
 
     onFocus() {
-      const trimmed = this.input ? this.input.value.trim() : "";
-      if (!this.skipRefresh && (this.openOnFocus || trimmed)) {
-        this.openOnFocus = false;
-        this.refreshSuggestions();
-      }
+      handleComboboxFocus(this, this.input);
     }
 
     onBlur() {
@@ -1907,6 +1953,7 @@
 
     onKeyDown(event) {
       if (!this.isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+        this.skipRefresh = false;
         this.openOnFocus = true;
         this.refreshSuggestions();
       }
