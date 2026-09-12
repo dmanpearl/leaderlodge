@@ -174,6 +174,7 @@
       {% endif %}
 
       {{ roster|json_script:"game-roster-data" }}
+      {{ smart_suggestions|json_script:"game-smart-suggestions-data" }}
 
       <div class="table-responsive">
         <table class="table table-striped align-middle mb-0 game-record-table">
@@ -409,6 +410,6 @@
     <script src="{% static 'js/location_set_place.js' %}?v=5"></script>
     <script src="{% static 'js/location_pin_status.js' %}?v=1"></script>
   {% endif %}
-  <script src="{% static 'js/player_picker.js' %}?v=37"></script>
+  <script src="{% static 'js/player_picker.js' %}?v=38"></script>
   <script src="{% static 'js/game_record_form.js' %}?v=17"></script>
 {% endblock %}

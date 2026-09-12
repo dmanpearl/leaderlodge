@@ -10,6 +10,7 @@ urlpatterns = [
     path("new/", views.game_create, name="create"),
     path("parse-recording/", views.game_parse_recording, name="parse_recording"),
     path("reuse-preview/", views.game_reuse_preview, name="reuse_preview"),
+    path("suggest-sides/", views.game_suggest_sides, name="suggest_sides"),
     path("matchup/", views.game_matchup, name="matchup"),
     path("<int:pk>/", views.game_detail, name="detail"),
     path("<int:pk>/edit-game/", views.game_edit_game, name="edit_game"),

@@ -24,6 +24,7 @@ from leaderlodge.games.forms import (
     prepare_participant_rows,
 )
 from leaderlodge.games.reuse_players import participant_rows_for_edit_game
+from leaderlodge.games.roster_suggestions import suggest_side_entries
 from leaderlodge.groups.player_search import roster_for_group
 from leaderlodge.games.features import (
     apply_feature_selections_to_games_qs,
@@ -919,10 +920,12 @@ def game_create(request: HttpRequest) -> HttpResponse:
         show_roster = True
 
     roster = []
+    smart_suggestions = []
     participant_rows = []
     if group and show_roster and game_type is not None:
         if request.user.is_authenticated and can_edit_group(request.user, group):
             roster = roster_for_group(group, game_type_code=game_type_code)
+            smart_suggestions = suggest_side_entries(group, game_type_code)
         if post_for_rows is not None:
             participant_rows = _participant_rows_from_post(group, post_for_rows)
         elif reused_participant_rows is not None:
@@ -1069,6 +1072,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "group": group,
             "participant_rows": participant_rows,
             "roster": roster,
+            "smart_suggestions": smart_suggestions,
             "game_rules_summary": (
                 record_game_rules_summary(game_type.code) if game_type else ""
             ),
@@ -1195,6 +1199,38 @@ def game_parse_recording(request: HttpRequest) -> JsonResponse:
         )
 
     return JsonResponse({"draft": draft})
+
+
+@login_required
+def game_suggest_sides(request: HttpRequest) -> JsonResponse:
+    group_id = request.GET.get("group", "").strip()
+    game_type_code = (
+        _requested_game_type_code(request)
+        or (request.GET.get("game_type_code") or "").strip()
+    )
+    if not group_id.isdigit() or game_type_code not in GAME_TYPES:
+        return JsonResponse({"suggestions": []})
+
+    group = Group.objects.filter(pk=int(group_id)).first()
+    if group is None or not can_edit_group(request.user, group):
+        raise Http404
+
+    exclude_raw = (request.GET.get("exclude") or "").strip()
+    exclude_ids = {
+        int(part) for part in exclude_raw.split(",") if part.strip().isdigit()
+    }
+
+    query = (request.GET.get("q") or "").strip()
+    teammate_mode = (request.GET.get("mode") or "").strip() == "teammate"
+
+    suggestions = suggest_side_entries(
+        group,
+        game_type_code,
+        exclude_player_ids=exclude_ids,
+        query=query,
+        teammate_mode=teammate_mode,
+    )
+    return JsonResponse({"suggestions": suggestions})
 
 
 @login_required
@@ -1446,6 +1482,7 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
         participant_rows = participant_rows_for_edit_game(game)
 
     roster = roster_for_group(game.group, game_type_code=game.game_type_code)
+    smart_suggestions = suggest_side_entries(game.group, game.game_type_code)
 
     google_places_api_key = getattr(settings, "GOOGLE_PLACES_API_KEY", "")
     can_set_place = can_assign_location_place(request.user, game.group) and (
@@ -1477,6 +1514,7 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "participant_rows": participant_rows,
             "participant_error": participant_error,
             "roster": roster,
+            "smart_suggestions": smart_suggestions,
             "default_participant_score": default_participant_score_value(
                 game.game_type_code
             ),

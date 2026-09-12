@@ -109,6 +109,109 @@
       .map((item) => item.entry);
   }
 
+  function readSmartSuggestions() {
+    try {
+      const el = document.getElementById("game-smart-suggestions-data");
+      return el ? JSON.parse(el.textContent) : [];
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  function smartPlayerIds(suggestion) {
+    return (suggestion?.players || [])
+      .map((player) => Number(player.player_id))
+      .filter((id) => !Number.isNaN(id) && id > 0);
+  }
+
+  function rosterEntryFromSmartPlayer(roster, player) {
+    if (!player) {
+      return null;
+    }
+    if (player.player_id) {
+      const entry = roster.find(
+        (item) => String(item.id) === String(player.player_id)
+      );
+      if (entry) {
+        return entry;
+      }
+      return {
+        id: player.player_id,
+        label: player.label,
+        username: null,
+        kind: "member",
+        guestName: "",
+      };
+    }
+    const guestName = player.guest_name || player.label || "";
+    return {
+      id: "",
+      label: guestName || "Guest",
+      username: null,
+      kind: "guest",
+      guestName,
+    };
+  }
+
+  function smartSuggestionMatchesQuery(suggestion, query) {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      return true;
+    }
+    if (scoreMatch(trimmed, suggestion.label || "") >= 0) {
+      return true;
+    }
+    return (suggestion.players || []).some(
+      (player) => scoreMatch(trimmed, player.label || "") >= 0
+    );
+  }
+
+  function filterSmartSuggestionsForPlayer(smartList, tbody) {
+    const inGame = playersAlreadyInGame(tbody);
+    return smartList.filter((suggestion) => {
+      const ids = smartPlayerIds(suggestion);
+      return ids.length > 0 && !ids.some((id) => inGame.has(id));
+    });
+  }
+
+  function filterSmartSuggestionsForTeammate(smartList, tbody, row, roster) {
+    return smartList.filter((suggestion) => {
+      if (suggestion.kind !== "solo") {
+        return false;
+      }
+      const entry = rosterEntryFromSmartPlayer(roster, suggestion.players?.[0]);
+      if (!entry) {
+        return false;
+      }
+      return !entryIsIneligibleForTeammate(tbody, row, entry, roster);
+    });
+  }
+
+  function comboboxOptionHtml(item) {
+    if (item.type === "guest") {
+      return `Add guest "${item.entry.guestName}"`;
+    }
+    if (item.type === "smart-team") {
+      return `<span>${item.label}</span> <span class="badge text-bg-primary ms-1">Team</span> <span class="badge text-bg-secondary ms-1">Recent</span>`;
+    }
+    const entry = item.entry;
+    const detail =
+      entry?.kind === "team"
+        ? "team"
+        : entry?.username
+          ? entry.username
+          : entry?.kind === "guest"
+            ? "guest"
+            : "";
+    const recentBadge =
+      item.type === "smart-solo"
+        ? ' <span class="badge text-bg-secondary ms-1">Recent</span>'
+        : "";
+    return `<span>${entry?.label || item.label}</span>${
+      detail ? ` <span class="text-muted small">${detail}</span>` : ""
+    }${recentBadge}`;
+  }
+
   function labelsMatch(a, b) {
     return normalizeForMatch(a) === normalizeForMatch(b);
   }
@@ -1233,19 +1336,73 @@
 
     refreshSuggestions() {
       const query = this.input.value;
-      const roster = this.roster;
-      const matches = filterRoster(roster, query);
-      const existing = this.existingRowKeys();
-      this.suggestions = matches
-        .filter((entry) => {
-          if (entry.kind === "team") {
-            return false;
-          }
-          return !entryIsIneligible(this.tbody, entry, existing, this.roster);
-        })
-        .map((entry) => ({ type: "player", entry }));
-
       const trimmed = query.trim();
+      const roster = this.roster;
+      const existing = this.existingRowKeys();
+      const items = [];
+      const seenPlayerIds = new Set();
+      const seenTeamKeys = new Set();
+
+      const rememberPlayer = (entry) => {
+        if (entry?.id) {
+          seenPlayerIds.add(Number(entry.id));
+        }
+      };
+
+      if (trimmed) {
+        filterRoster(roster, query)
+          .filter((entry) => entry.kind !== "team")
+          .filter(
+            (entry) =>
+              !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          )
+          .forEach((entry) => {
+            if (entry.id && seenPlayerIds.has(Number(entry.id))) {
+              return;
+            }
+            items.push({ type: "player", entry });
+            rememberPlayer(entry);
+          });
+      }
+
+      filterSmartSuggestionsForPlayer(readSmartSuggestions(), this.tbody)
+        .filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query))
+        .forEach((suggestion) => {
+          if (suggestion.kind === "team") {
+            const ids = smartPlayerIds(suggestion).sort((a, b) => a - b);
+            const teamKey = ids.join("-");
+            if (!teamKey || seenTeamKeys.has(teamKey)) {
+              return;
+            }
+            if (ids.some((id) => seenPlayerIds.has(id))) {
+              return;
+            }
+            seenTeamKeys.add(teamKey);
+            items.push({
+              type: "smart-team",
+              label: suggestion.label,
+              suggestion,
+            });
+            ids.forEach((id) => seenPlayerIds.add(id));
+            return;
+          }
+          const entry = rosterEntryFromSmartPlayer(
+            roster,
+            suggestion.players?.[0]
+          );
+          if (
+            !entry ||
+            entryIsIneligible(this.tbody, entry, existing, this.roster)
+          ) {
+            return;
+          }
+          if (entry.id && seenPlayerIds.has(Number(entry.id))) {
+            return;
+          }
+          items.push({ type: "smart-solo", entry, label: suggestion.label });
+          rememberPlayer(entry);
+        });
+
       if (trimmed) {
         const exactRosterMatch = roster.some((entry) =>
           rosterEntryMatchesLabel(entry, trimmed)
@@ -1255,18 +1412,19 @@
         if (
           guestAllowed &&
           !exactRosterMatch &&
-          !this.suggestions.some(
+          !items.some(
             (item) =>
               item.type === "guest" && labelsMatch(item.entry.guestName, trimmed)
           )
         ) {
-          this.suggestions.push({
+          items.push({
             type: "guest",
             entry: { guestName: trimmed },
           });
         }
       }
 
+      this.suggestions = items.slice(0, MAX_SUGGESTIONS);
       this.activeIndex = -1;
       if (this.suggestions.length === 0) {
         this.close();
@@ -1285,22 +1443,9 @@
         option.id = `${this.listId}-opt-${index}`;
 
         if (item.type === "guest") {
-          option.textContent = `Add guest "${item.entry.guestName}"`;
+          option.textContent = comboboxOptionHtml(item);
         } else {
-          const entry = item.entry;
-          const detail =
-            entry.kind === "team"
-              ? "team"
-              : entry.username
-                ? entry.username
-                : entry.kind === "guest"
-                  ? "guest"
-                  : "";
-          option.innerHTML = `<span>${entry.label}</span>${
-            detail
-              ? ` <span class="text-muted small">${detail}</span>`
-              : ""
-          }`;
+          option.innerHTML = comboboxOptionHtml(item);
         }
 
         if (index === this.activeIndex) {
@@ -1324,6 +1469,10 @@
       if (item.type === "guest") {
         this.addParticipant({
           guestName: item.entry.guestName,
+        });
+      } else if (item.type === "smart-team") {
+        window.LeaderLodgeRecordGame.appendSide({
+          players: item.suggestion.players,
         });
       } else {
         this.addParticipant({ entry: item.entry });
@@ -1674,21 +1823,67 @@
         return;
       }
       const query = this.input.value;
-      const matches = filterRoster(this.roster, query);
+      const trimmed = query.trim();
       const existing = existingRowKeys(this.tbody);
-      this.suggestions = matches
-        .filter(
-          (entry) =>
-            !entryIsIneligibleForTeammate(
+      const items = [];
+      const seenPlayerIds = new Set();
+
+      const rememberPlayer = (entry) => {
+        if (entry?.id) {
+          seenPlayerIds.add(Number(entry.id));
+        }
+      };
+
+      if (trimmed) {
+        filterRoster(this.roster, query)
+          .filter(
+            (entry) =>
+              !entryIsIneligibleForTeammate(
+                this.tbody,
+                this.row,
+                entry,
+                this.roster
+              )
+          )
+          .forEach((entry) => {
+            if (entry.id && seenPlayerIds.has(Number(entry.id))) {
+              return;
+            }
+            items.push({ type: "player", entry });
+            rememberPlayer(entry);
+          });
+      }
+
+      filterSmartSuggestionsForTeammate(
+        readSmartSuggestions(),
+        this.tbody,
+        this.row,
+        this.roster
+      )
+        .filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query))
+        .forEach((suggestion) => {
+          const entry = rosterEntryFromSmartPlayer(
+            this.roster,
+            suggestion.players?.[0]
+          );
+          if (
+            !entry ||
+            entryIsIneligibleForTeammate(
               this.tbody,
               this.row,
               entry,
               this.roster
             )
-        )
-        .map((entry) => ({ type: "player", entry }));
+          ) {
+            return;
+          }
+          if (entry.id && seenPlayerIds.has(Number(entry.id))) {
+            return;
+          }
+          items.push({ type: "smart-solo", entry, label: suggestion.label });
+          rememberPlayer(entry);
+        });
 
-      const trimmed = query.trim();
       if (trimmed) {
         const exactRosterMatch = this.roster.some((entry) =>
           rosterEntryMatchesLabel(entry, trimmed)
@@ -1697,18 +1892,19 @@
         if (
           !exactRosterMatch &&
           !existing.has(guestKey) &&
-          !this.suggestions.some(
+          !items.some(
             (item) =>
               item.type === "guest" && labelsMatch(item.entry.guestName, trimmed)
           )
         ) {
-          this.suggestions.push({
+          items.push({
             type: "guest",
             entry: { guestName: trimmed },
           });
         }
       }
 
+      this.suggestions = items.slice(0, MAX_SUGGESTIONS);
       this.activeIndex = -1;
       if (this.suggestions.length === 0) {
         this.close();
@@ -1730,19 +1926,9 @@
         option.id = `${this.listId}-opt-${index}`;
 
         if (item.type === "guest") {
-          option.textContent = `Add guest "${item.entry.guestName}"`;
+          option.textContent = comboboxOptionHtml(item);
         } else {
-          const entry = item.entry;
-          const detail = entry.username
-            ? entry.username
-            : entry.kind === "guest"
-              ? "guest"
-              : "";
-          option.innerHTML = `<span>${entry.label}</span>${
-            detail
-              ? ` <span class="text-muted small">${detail}</span>`
-              : ""
-          }`;
+          option.innerHTML = comboboxOptionHtml(item);
         }
 
         if (index === this.activeIndex) {
