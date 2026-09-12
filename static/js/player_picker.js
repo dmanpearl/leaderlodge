@@ -325,6 +325,7 @@
 
     picker.pendingGestureRefresh = true;
     input.focus();
+    refresh();
     window.requestAnimationFrame(() => {
       picker.pendingGestureRefresh = false;
       refresh();
@@ -2023,6 +2024,23 @@
         passive: true,
         capture: true,
       });
+
+      const wrap = input.closest("[data-add-teammate-wrap]");
+      if (wrap && wrap.dataset.teammateWrapPrepared !== "1") {
+        wrap.dataset.teammateWrapPrepared = "1";
+        const openFromWrap = (event) => {
+          if (event.target === input) {
+            return;
+          }
+          this.openTeammateFromGesture(input);
+        };
+        wrap.addEventListener("pointerdown", openFromWrap, true);
+        wrap.addEventListener("mousedown", openFromWrap, true);
+        wrap.addEventListener("touchstart", openFromWrap, {
+          passive: true,
+          capture: true,
+        });
+      }
     }
 
     activate(input) {
@@ -2031,6 +2049,8 @@
       if (this.input !== input) {
         this.commitPendingEntry();
         this.input = input;
+        this.row = input.closest("[data-game-row]");
+      } else if (!this.row) {
         this.row = input.closest("[data-game-row]");
       }
       handleComboboxFocus(this, input);
@@ -2137,7 +2157,88 @@
         }
       };
 
-      if (trimmed) {
+      const addPlayer = (type, entry, label = null) => {
+        if (entry.id && seenPlayerIds.has(Number(entry.id))) {
+          return;
+        }
+        if (
+          entryIsIneligibleForTeammate(
+            this.tbody,
+            this.row,
+            entry,
+            this.roster
+          )
+        ) {
+          return;
+        }
+        items.push({ type, entry, label: label || entry.label });
+        rememberPlayer(entry);
+      };
+
+      const addSmartSolo = (suggestion) => {
+        const entry = rosterEntryFromSmartPlayer(
+          this.roster,
+          suggestion.players?.[0]
+        );
+        if (!entry) {
+          return;
+        }
+        addPlayer("smart-solo", entry, suggestion.label);
+      };
+
+      const smartEligible = filterSmartSuggestionsForTeammate(
+        readSmartSuggestions(),
+        this.tbody,
+        this.row,
+        this.roster
+      ).filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query));
+
+      if (!trimmed) {
+        smartEligible.forEach((suggestion) => {
+          addSmartSolo(suggestion);
+        });
+
+        const teamMemberIds = new Set();
+        readSmartSuggestions()
+          .filter((suggestion) => suggestion.kind === "team")
+          .filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query))
+          .forEach((suggestion) => {
+            smartPlayerIds(suggestion).forEach((playerId) => {
+              teamMemberIds.add(playerId);
+            });
+          });
+        teamMemberIds.forEach((playerId) => {
+          const entry = rosterSoloEntry(this.roster, playerId);
+          if (entry) {
+            addPlayer("player", entry);
+          }
+        });
+
+        this.roster
+          .filter(
+            (entry) =>
+              !entryIsIneligibleForTeammate(
+                this.tbody,
+                this.row,
+                entry,
+                this.roster
+              )
+          )
+          .filter(
+            (entry) => !entry.id || !seenPlayerIds.has(Number(entry.id))
+          )
+          .sort((a, b) => {
+            const aRecency = a.recency ?? Number.MAX_SAFE_INTEGER;
+            const bRecency = b.recency ?? Number.MAX_SAFE_INTEGER;
+            if (aRecency !== bRecency) {
+              return aRecency - bRecency;
+            }
+            return a.label.localeCompare(b.label);
+          })
+          .forEach((entry) => {
+            addPlayer("player", entry);
+          });
+      } else {
         filterRoster(this.roster, query)
           .filter(
             (entry) =>
@@ -2149,43 +2250,13 @@
               )
           )
           .forEach((entry) => {
-            if (entry.id && seenPlayerIds.has(Number(entry.id))) {
-              return;
-            }
-            items.push({ type: "player", entry });
-            rememberPlayer(entry);
+            addPlayer("player", entry);
           });
-      }
 
-      filterSmartSuggestionsForTeammate(
-        readSmartSuggestions(),
-        this.tbody,
-        this.row,
-        this.roster
-      )
-        .filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query))
-        .forEach((suggestion) => {
-          const entry = rosterEntryFromSmartPlayer(
-            this.roster,
-            suggestion.players?.[0]
-          );
-          if (
-            !entry ||
-            entryIsIneligibleForTeammate(
-              this.tbody,
-              this.row,
-              entry,
-              this.roster
-            )
-          ) {
-            return;
-          }
-          if (entry.id && seenPlayerIds.has(Number(entry.id))) {
-            return;
-          }
-          items.push({ type: "smart-solo", entry, label: suggestion.label });
-          rememberPlayer(entry);
+        smartEligible.forEach((suggestion) => {
+          addSmartSolo(suggestion);
         });
+      }
 
       if (trimmed) {
         const exactRosterMatch = this.roster.some((entry) =>

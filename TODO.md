@@ -276,6 +276,7 @@
 
 ## Open Items
 
+- [ ] Login banner "Login to view your own Games, Groups..." needs a Login button.
 - [ ] Player and Teammate type ahead selection dropdowns and Smart Suggest should be combined into a single function, and installed where regular type-ahead is now. The Smart Suggestion button can be removed. Evaluate performance hit for doing the smart algorithm on the regular type-ahead keystrokes. Archived implementation: branch `archive/smart-suggest-2026-09-11`, files in `~/pixelmonks/smart-suggest-archive/`.
 - [ ] Pickleball needs an easier way to pick teams when recording a game. We currently have only the "Reuse" button to help. Add a button 
 - [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
