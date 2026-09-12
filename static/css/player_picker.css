@@ -11,7 +11,10 @@
   right: 0;
   z-index: 1060;
   max-height: 240px;
-  overflow-y: auto;
+  overflow-y: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   margin: -1px 0 0;
   padding: 0.25rem 0;
   list-style: none;
@@ -78,6 +81,7 @@
 }
 
 .combobox-list--scrollable {
+  overflow-y: auto;
   scrollbar-width: thin;
 }
 

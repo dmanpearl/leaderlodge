@@ -347,16 +347,37 @@
     }
   }
 
+  function syncComboboxScrollState(listEl) {
+    if (!listEl || listEl.hidden) {
+      return;
+    }
+    const canScroll = listEl.scrollHeight > listEl.clientHeight + 2;
+    const atBottom =
+      listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 2;
+    listEl.classList.toggle("combobox-list--scrollable", canScroll && !atBottom);
+  }
+
   function updateComboboxScrollHint(listEl) {
     window.requestAnimationFrame(() => {
-      if (!listEl || listEl.hidden) {
-        return;
-      }
-      const canScroll = listEl.scrollHeight > listEl.clientHeight + 2;
-      const atBottom =
-        listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 2;
-      listEl.classList.toggle("combobox-list--scrollable", canScroll && !atBottom);
+      syncComboboxScrollState(listEl);
     });
+  }
+
+  function bindComboboxScrollContainment(listEl) {
+    if (!listEl || listEl.dataset.scrollContainBound === "1") {
+      return;
+    }
+    listEl.dataset.scrollContainBound = "1";
+    listEl.addEventListener(
+      "touchmove",
+      (event) => {
+        if (listEl.scrollHeight <= listEl.clientHeight + 2) {
+          return;
+        }
+        event.stopPropagation();
+      },
+      { capture: true, passive: true }
+    );
   }
 
   function bindComboboxScrollHint(listEl) {
@@ -364,6 +385,7 @@
       return;
     }
     listEl.dataset.scrollHintBound = "1";
+    bindComboboxScrollContainment(listEl);
     listEl.addEventListener("scroll", () => updateComboboxScrollHint(listEl), {
       passive: true,
     });
@@ -1173,6 +1195,26 @@
     return Boolean(rect && rect.width > 0 && rect.height > 0);
   }
 
+  function revealComboboxInput(input) {
+    if (!input?.value.trim()) {
+      return;
+    }
+    const visible = visibleViewportBounds();
+    const rect = input.getBoundingClientRect();
+    const margin = 8;
+    if (
+      rect.top >= visible.top + margin &&
+      rect.bottom <= visible.bottom - margin
+    ) {
+      return;
+    }
+    try {
+      input.scrollIntoView({ block: "nearest", inline: "nearest" });
+    } catch (_error) {
+      // ignore
+    }
+  }
+
   function positionPortaledComboboxList(listEl, input) {
     if (!input || !input.isConnected) {
       return false;
@@ -1182,19 +1224,24 @@
       return false;
     }
 
+    const typing = Boolean(input.value.trim());
     const visible = visibleViewportBounds();
     const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
     const spaceBelow = visible.bottom - rect.bottom;
     const spaceAbove = rect.top - visible.top;
-    const placeAbove =
+    let placeAbove =
       spaceBelow < preferredHeight && spaceAbove > spaceBelow;
+    if (typing && spaceBelow >= 48) {
+      placeAbove = false;
+    }
     const available = placeAbove ? spaceAbove : spaceBelow;
+    const minMaxHeight = typing ? 72 : 120;
 
     listEl.classList.toggle("combobox-list--above", placeAbove);
     listEl.style.left = `${Math.max(8, rect.left)}px`;
     listEl.style.width = `${Math.max(rect.width, 160)}px`;
     listEl.style.right = "auto";
-    listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
+    listEl.style.maxHeight = `${Math.max(minMaxHeight, available - 8)}px`;
 
     // iOS: position:fixed uses layout-viewport coordinates; pair layout
     // rect edges with visual-viewport bounds for above/below placement.
@@ -1209,7 +1256,20 @@
       listEl.style.top = `${Math.max(visible.top + 8, rect.bottom)}px`;
     }
     listEl.style.visibility = "visible";
+    syncComboboxScrollState(listEl);
+    if (typing) {
+      revealComboboxInput(input);
+    }
     return true;
+  }
+
+  function settlePortaledComboboxList(picker) {
+    if (!picker.isOpen || !picker.input) {
+      return;
+    }
+    positionPortaledComboboxList(picker.listEl, picker.input);
+    syncComboboxScrollState(picker.listEl);
+    positionPortaledComboboxList(picker.listEl, picker.input);
   }
 
   function clearPortaledRepositionTimers(picker) {
@@ -1232,8 +1292,14 @@
 
     const run = () => {
       if (picker.isOpen && picker.input) {
-        positionPortaledComboboxList(picker.listEl, picker.input);
+        settlePortaledComboboxList(picker);
       }
+    };
+
+    const runAfterLayout = () => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(run);
+      });
     };
 
     let attempts = 0;
@@ -1246,13 +1312,16 @@
       if (!ok && attempts < 6) {
         const frameId = window.requestAnimationFrame(tryFrame);
         picker.repositionTimers.push(frameId);
+        return;
       }
+      settlePortaledComboboxList(picker);
     };
     picker.repositionTimers.push(window.requestAnimationFrame(tryFrame));
+    runAfterLayout();
     // iOS: keyboard open and visual-viewport pan settle after focus.
-    picker.repositionTimers.push(window.setTimeout(run, 100));
-    picker.repositionTimers.push(window.setTimeout(run, 350));
-    picker.repositionTimers.push(window.setTimeout(run, 600));
+    picker.repositionTimers.push(window.setTimeout(runAfterLayout, 100));
+    picker.repositionTimers.push(window.setTimeout(runAfterLayout, 350));
+    picker.repositionTimers.push(window.setTimeout(runAfterLayout, 600));
   }
 
   function adjustListPlacement(listEl, input) {
