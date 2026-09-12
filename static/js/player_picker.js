@@ -229,6 +229,31 @@
     });
   }
 
+  function playersOnOtherSides(tbody, currentRow) {
+    const ids = new Set();
+    if (!tbody) {
+      return ids;
+    }
+    tbody.querySelectorAll("[data-game-row]").forEach((row) => {
+      if (row === currentRow) {
+        return;
+      }
+      const primaryHidden = row.querySelector('[name="participant_player_id"]');
+      const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
+      if (primaryValue) {
+        ids.add(Number(primaryValue));
+      }
+      const teammateHidden = row.querySelector(
+        '[name="participant_teammate_player_id"]'
+      );
+      const teammateValue = teammateHidden ? teammateHidden.value.trim() : "";
+      if (teammateValue) {
+        ids.add(Number(teammateValue));
+      }
+    });
+    return ids;
+  }
+
   function entryIsIneligible(tbody, entry, existing, roster) {
     if (entry.kind === "team" && teamSideAlreadyAdded(tbody, entry)) {
       return true;
@@ -237,6 +262,29 @@
       return true;
     }
     return entrySharesPlayerWithGame(tbody, entry, roster);
+  }
+
+  function entryIsIneligibleForTeammate(tbody, row, entry, existing, roster) {
+    if (entry.kind === "team") {
+      return true;
+    }
+    const primaryHidden = row?.querySelector('[name="participant_player_id"]');
+    const primaryValue = primaryHidden ? primaryHidden.value.trim() : "";
+    if (primaryValue && entry.id && String(entry.id) === primaryValue) {
+      return true;
+    }
+    const blockedIds = playersOnOtherSides(tbody, row);
+    if (
+      memberIdsForRosterEntry(entry, roster).some((memberId) =>
+        blockedIds.has(memberId)
+      )
+    ) {
+      return true;
+    }
+    if (entry.id && existing.has(rowKeyForEntry({ id: entry.id }))) {
+      return true;
+    }
+    return false;
   }
 
   function rosterEntryMatchesLabel(entry, label) {
@@ -705,6 +753,11 @@
     delete row.dataset.teammateLabel;
     delete row.dataset.teammateKey;
     delete row.dataset.teammateDetail;
+    const teammateInput = row.querySelector("[data-add-teammate]");
+    if (teammateInput) {
+      teammateInput.value = "";
+    }
+    window.LeaderLodgeRecordGame?.teammatePicker?.close?.();
     const tbody = row.closest("[data-participant-rows]");
     updateSideLabel(row, getRecordForm(tbody), tbody);
   }
@@ -1039,6 +1092,17 @@
           break;
         case "remove-teammate":
           removeTeammate(row);
+          window.LeaderLodgeRecordGame?.picker?.close?.();
+          {
+            const teammateInput = row.querySelector("[data-add-teammate]");
+            if (teammateInput) {
+              window.setTimeout(() => {
+                window.LeaderLodgeRecordGame?.teammatePicker?.activate?.(
+                  teammateInput
+                );
+              }, 0);
+            }
+          }
           break;
         case "remove-primary":
           promoteTeammateToPrimary(row);
@@ -1508,6 +1572,7 @@
     }
 
     activate(input) {
+      window.LeaderLodgeRecordGame?.picker?.close?.();
       this.prepareInput(input);
       input.removeAttribute("readonly");
       if (this.input === input) {
@@ -1613,7 +1678,14 @@
       const existing = existingRowKeys(this.tbody);
       this.suggestions = matches
         .filter(
-          (entry) => !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          (entry) =>
+            !entryIsIneligibleForTeammate(
+              this.tbody,
+              this.row,
+              entry,
+              existing,
+              this.roster
+            )
         )
         .map((entry) => ({ type: "player", entry }));
 
@@ -1711,7 +1783,13 @@
       const rosterMatch = this.roster.find(
         (entry) =>
           rosterEntryMatchesLabel(entry, trimmed) &&
-          !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          !entryIsIneligibleForTeammate(
+            this.tbody,
+            this.row,
+            entry,
+            existing,
+            this.roster
+          )
       );
       if (rosterMatch) {
         this.assignFromEntry({ entry: rosterMatch });

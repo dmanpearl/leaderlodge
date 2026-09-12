@@ -24,6 +24,7 @@ from leaderlodge.games.forms import (
     prepare_participant_rows,
 )
 from leaderlodge.games.reuse_players import participant_rows_for_edit_game
+from leaderlodge.games.roster_suggestions import suggest_side_entries
 from leaderlodge.groups.player_search import roster_for_group
 from leaderlodge.games.features import (
     apply_feature_selections_to_games_qs,
@@ -1195,6 +1196,33 @@ def game_parse_recording(request: HttpRequest) -> JsonResponse:
         )
 
     return JsonResponse({"draft": draft})
+
+
+@login_required
+def game_suggest_sides(request: HttpRequest) -> JsonResponse:
+    group_id = request.GET.get("group", "").strip()
+    game_type_code = (
+        _requested_game_type_code(request)
+        or (request.GET.get("game_type_code") or "").strip()
+    )
+    if not group_id.isdigit() or game_type_code not in GAME_TYPES:
+        return JsonResponse({"suggestions": []})
+
+    group = Group.objects.filter(pk=int(group_id)).first()
+    if group is None or not can_edit_group(request.user, group):
+        raise Http404
+
+    exclude_raw = (request.GET.get("exclude") or "").strip()
+    exclude_ids = {
+        int(part) for part in exclude_raw.split(",") if part.strip().isdigit()
+    }
+
+    suggestions = suggest_side_entries(
+        group,
+        game_type_code,
+        exclude_player_ids=exclude_ids,
+    )
+    return JsonResponse({"suggestions": suggestions})
 
 
 @login_required

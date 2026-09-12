@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
   <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=15" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=33" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=34" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
@@ -37,7 +37,7 @@
         method="post"
         id="game-record-form"
         autocomplete="off"
-        {% if not is_guest_demo %} data-reuse-preview-url="{% url 'games:reuse_preview' %}"{% endif %}
+        {% if not is_guest_demo %} data-reuse-preview-url="{% url 'games:reuse_preview' %}" data-suggest-sides-url="{% url 'games:suggest_sides' %}"{% endif %}
         {% if not is_guest_demo and insights_ready %} data-parse-recording-url="{% url 'games:parse_recording' %}"{% endif %}
         {% if preserve_setup_location %} data-location-preserve="1"{% endif %}
         {% if show_roster and game_type %}
@@ -480,21 +480,46 @@
                   <span data-player-picker-label-text>Add player</span>
                 </button>
                 <div class="player-picker-wrap player-picker-cta-wrap">
-                  <div class="combobox-input-wrap player-picker-field">
-                    <input
-                      type="text"
-                      id="player-picker-input"
-                      class="form-control player-picker-cta-input"
-                      data-player-picker
-                      name="ll_player_search"
-                      placeholder="Type player"
-                      autocomplete="ll-player"
-                      autocorrect="off"
-                      autocapitalize="off"
-                      spellcheck="false"
-                      readonly
-                      {% if not participant_rows and not player_picker_start_collapsed %}autofocus{% endif %}
-                    />
+                  <div class="player-picker-field-row">
+                    <div class="combobox-input-wrap player-picker-field">
+                      <input
+                        type="text"
+                        id="player-picker-input"
+                        class="form-control player-picker-cta-input"
+                        data-player-picker
+                        name="ll_player_search"
+                        placeholder="Type player"
+                        autocomplete="ll-player"
+                        autocorrect="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        readonly
+                        {% if not participant_rows and not player_picker_start_collapsed %}autofocus{% endif %}
+                      />
+                    </div>
+                    {% if not is_guest_demo %}
+                      <div class="dropdown smart-suggest-action">
+                        <button
+                          type="button"
+                          id="smart-suggest-btn"
+                          class="btn btn-smart-suggest"
+                          data-smart-suggest
+                          data-bs-toggle="dropdown"
+                          data-bs-display="static"
+                          aria-expanded="false"
+                          title="Suggest players from recent games"
+                          aria-label="Suggest players from recent games"
+                        >
+                          <i class="bi bi-stars" aria-hidden="true"></i>
+                          <span class="visually-hidden">Suggest</span>
+                        </button>
+                        <ul
+                          class="dropdown-menu dropdown-menu-end smart-suggest-menu"
+                          data-smart-suggest-menu
+                          aria-labelledby="smart-suggest-btn"
+                        ></ul>
+                      </div>
+                    {% endif %}
                   </div>
                 </div>
               </div>
@@ -565,7 +590,8 @@
   {% if show_roster and game_type and not is_guest_demo %}
     <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
     <script src="{% static 'js/game_record_form.js' %}?v=17"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=35"></script>
+    <script src="{% static 'js/player_picker.js' %}?v=36"></script>
+    <script src="{% static 'js/smart_suggest.js' %}?v=1"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
       <script src="{% static 'js/game_record_voice.js' %}?v=16"></script>

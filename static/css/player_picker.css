@@ -162,6 +162,54 @@
   margin-bottom: 0;
 }
 
+.player-picker-field-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.player-picker-field-row .player-picker-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.btn-smart-suggest {
+  --smart-suggest-accent: #7c3aed;
+  --smart-suggest-accent-hover: #6d28d9;
+  --smart-suggest-accent-active: #5b21b6;
+  --bs-btn-color: var(--smart-suggest-accent);
+  --bs-btn-border-color: var(--smart-suggest-accent);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--smart-suggest-accent);
+  --bs-btn-hover-border-color: var(--smart-suggest-accent);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--smart-suggest-accent-active);
+  --bs-btn-active-border-color: var(--smart-suggest-accent-active);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.smart-suggest-menu {
+  min-width: 12rem;
+  max-width: min(100vw - 2rem, 20rem);
+}
+
+.smart-suggest-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .player-picker-cta-label {
   flex: 0 0 auto;
   font-weight: 600;
