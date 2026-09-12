@@ -191,18 +191,20 @@
     if (item.type === "guest") {
       return `Add guest "${item.entry.guestName}"`;
     }
-    if (item.type === "smart-team") {
-      return `<span>${item.label}</span> <span class="badge text-bg-primary ms-1">Team</span> <span class="badge text-bg-secondary ms-1">Recent</span>`;
+    if (item.type === "smart-team" || item.entry?.kind === "team") {
+      const label = item.label || item.entry?.label || "";
+      const recentBadge =
+        item.type === "smart-team"
+          ? ' <span class="badge text-bg-secondary ms-1">Recent</span>'
+          : "";
+      return `<span>${label}</span> <span class="badge text-bg-primary ms-1">Team</span>${recentBadge}`;
     }
     const entry = item.entry;
-    const detail =
-      entry?.kind === "team"
-        ? "team"
-        : entry?.username
-          ? entry.username
-          : entry?.kind === "guest"
-            ? "guest"
-            : "";
+    const detail = entry?.username
+      ? entry.username
+      : entry?.kind === "guest"
+        ? "guest"
+        : "";
     const recentBadge =
       item.type === "smart-solo"
         ? ' <span class="badge text-bg-secondary ms-1">Recent</span>'
@@ -210,6 +212,20 @@
     return `<span>${entry?.label || item.label}</span>${
       detail ? ` <span class="text-muted small">${detail}</span>` : ""
     }${recentBadge}`;
+  }
+
+  function rememberTeamMembers(entry, roster, seenPlayerIds, seenTeamKeys) {
+    const ids = memberIdsForRosterEntry(entry, roster)
+      .map((id) => Number(id))
+      .filter((id) => !Number.isNaN(id) && id > 0)
+      .sort((a, b) => a - b);
+    const teamKey = ids.join("-");
+    if (!teamKey || seenTeamKeys.has(teamKey)) {
+      return false;
+    }
+    seenTeamKeys.add(teamKey);
+    ids.forEach((id) => seenPlayerIds.add(id));
+    return true;
   }
 
   function labelsMatch(a, b) {
@@ -1087,6 +1103,7 @@
       this.isOpen = false;
       this.skipRefresh = false;
       this.suppressBlurCommit = false;
+      this.openOnFocus = false;
 
       this.listEl = document.createElement("ul");
       this.listEl.className = "combobox-list";
@@ -1103,6 +1120,14 @@
       suppressBrowserSuggestions(input);
 
       this.onViewportChange = () => this.reposition();
+      const markUserFocus = () => {
+        this.openOnFocus = true;
+      };
+      input.addEventListener("pointerdown", markUserFocus, true);
+      input.addEventListener("touchstart", markUserFocus, {
+        passive: true,
+        capture: true,
+      });
       input.addEventListener("input", () => this.onInput());
       input.addEventListener("keydown", (event) => this.onKeyDown(event));
       input.addEventListener("blur", () => this.onBlur());
@@ -1263,7 +1288,9 @@
     }
 
     onFocus() {
-      if (!this.skipRefresh) {
+      const trimmed = this.input.value.trim();
+      if (!this.skipRefresh && (this.openOnFocus || trimmed)) {
+        this.openOnFocus = false;
         this.refreshSuggestions();
       }
     }
@@ -1291,6 +1318,7 @@
 
     onKeyDown(event) {
       if (!this.isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+        this.openOnFocus = true;
         this.refreshSuggestions();
       }
       if (!this.isOpen) {
@@ -1349,22 +1377,6 @@
         }
       };
 
-      if (trimmed) {
-        filterRoster(roster, query)
-          .filter((entry) => entry.kind !== "team")
-          .filter(
-            (entry) =>
-              !entryIsIneligible(this.tbody, entry, existing, this.roster)
-          )
-          .forEach((entry) => {
-            if (entry.id && seenPlayerIds.has(Number(entry.id))) {
-              return;
-            }
-            items.push({ type: "player", entry });
-            rememberPlayer(entry);
-          });
-      }
-
       filterSmartSuggestionsForPlayer(readSmartSuggestions(), this.tbody)
         .filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query))
         .forEach((suggestion) => {
@@ -1372,9 +1384,6 @@
             const ids = smartPlayerIds(suggestion).sort((a, b) => a - b);
             const teamKey = ids.join("-");
             if (!teamKey || seenTeamKeys.has(teamKey)) {
-              return;
-            }
-            if (ids.some((id) => seenPlayerIds.has(id))) {
               return;
             }
             seenTeamKeys.add(teamKey);
@@ -1402,6 +1411,35 @@
           items.push({ type: "smart-solo", entry, label: suggestion.label });
           rememberPlayer(entry);
         });
+
+      if (trimmed) {
+        filterRoster(roster, query)
+          .filter(
+            (entry) =>
+              !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          )
+          .forEach((entry) => {
+            if (entry.kind === "team") {
+              if (
+                !rememberTeamMembers(
+                  entry,
+                  roster,
+                  seenPlayerIds,
+                  seenTeamKeys
+                )
+              ) {
+                return;
+              }
+              items.push({ type: "player", entry });
+              return;
+            }
+            if (entry.id && seenPlayerIds.has(Number(entry.id))) {
+              return;
+            }
+            items.push({ type: "player", entry });
+            rememberPlayer(entry);
+          });
+      }
 
       if (trimmed) {
         const exactRosterMatch = roster.some((entry) =>
@@ -1592,6 +1630,7 @@
       this.isOpen = false;
       this.skipRefresh = false;
       this.suppressBlurCommit = false;
+      this.openOnFocus = false;
       this.placeholder = "Teammate";
 
       this.listEl = document.createElement("ul");
@@ -1621,6 +1660,7 @@
         if (!input || !tbody.contains(input)) {
           return;
         }
+        this.openOnFocus = true;
         this.prepareInput(input);
         input.removeAttribute("readonly");
       };
@@ -1752,7 +1792,9 @@
     }
 
     onFocus() {
-      if (!this.skipRefresh) {
+      const trimmed = this.input ? this.input.value.trim() : "";
+      if (!this.skipRefresh && (this.openOnFocus || trimmed)) {
+        this.openOnFocus = false;
         this.refreshSuggestions();
       }
     }
@@ -1775,6 +1817,7 @@
 
     onKeyDown(event) {
       if (!this.isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+        this.openOnFocus = true;
         this.refreshSuggestions();
       }
       if (!this.isOpen) {

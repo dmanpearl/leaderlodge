@@ -38,6 +38,11 @@
   margin: 0;
 }
 
+/* Row ... menu above Add player combobox and teammate portaled list. */
+[data-side-menu-wrap] .dropdown-menu {
+  z-index: 1120;
+}
+
 .combobox-option {
   padding: 0.375rem 0.75rem;
   cursor: pointer;
