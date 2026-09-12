@@ -365,30 +365,39 @@
 
   const comboboxPageScrollLock = {
     depth: 0,
-    scrollY: 0,
+    onDocumentTouchMove: null,
   };
 
   function applyComboboxPageScrollLock() {
-    comboboxPageScrollLock.scrollY = window.scrollY;
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${comboboxPageScrollLock.scrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
+    document.documentElement.classList.add("combobox-page-scroll-locked");
+    document.body.classList.add("combobox-page-scroll-locked");
+    comboboxPageScrollLock.onDocumentTouchMove = (event) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest(".combobox-list--portal")
+      ) {
+        return;
+      }
+      event.preventDefault();
+    };
+    document.addEventListener(
+      "touchmove",
+      comboboxPageScrollLock.onDocumentTouchMove,
+      { passive: false }
+    );
   }
 
   function releaseComboboxPageScrollLock() {
-    const scrollY = comboboxPageScrollLock.scrollY;
-    document.documentElement.style.overflow = "";
-    document.body.style.overflow = "";
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.left = "";
-    document.body.style.right = "";
-    document.body.style.width = "";
-    window.scrollTo(0, scrollY);
+    if (comboboxPageScrollLock.onDocumentTouchMove) {
+      document.removeEventListener(
+        "touchmove",
+        comboboxPageScrollLock.onDocumentTouchMove
+      );
+      comboboxPageScrollLock.onDocumentTouchMove = null;
+    }
+    document.documentElement.classList.remove("combobox-page-scroll-locked");
+    document.body.classList.remove("combobox-page-scroll-locked");
   }
 
   function lockComboboxPageScroll() {
@@ -411,11 +420,45 @@
     }
   }
 
+  function bindComboboxListTouchScroll(listEl) {
+    if (!listEl || listEl.dataset.listTouchScrollBound === "1") {
+      return;
+    }
+    listEl.dataset.listTouchScrollBound = "1";
+    let lastTouchY = 0;
+    listEl.addEventListener(
+      "touchstart",
+      (event) => {
+        lastTouchY = event.touches[0].clientY;
+      },
+      { passive: true }
+    );
+    listEl.addEventListener(
+      "touchmove",
+      (event) => {
+        if (!shouldNudgeMobileKeyboard()) {
+          return;
+        }
+        event.preventDefault();
+        if (listEl.scrollHeight <= listEl.clientHeight + 2) {
+          return;
+        }
+        const touchY = event.touches[0].clientY;
+        const delta = lastTouchY - touchY;
+        lastTouchY = touchY;
+        listEl.scrollTop += delta;
+        syncComboboxScrollState(listEl);
+      },
+      { passive: false }
+    );
+  }
+
   function bindComboboxScrollHint(listEl) {
     if (!listEl || listEl.dataset.scrollHintBound === "1") {
       return;
     }
     listEl.dataset.scrollHintBound = "1";
+    bindComboboxListTouchScroll(listEl);
     listEl.addEventListener("scroll", () => updateComboboxScrollHint(listEl), {
       passive: true,
     });

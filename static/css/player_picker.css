@@ -30,6 +30,12 @@
   margin: 0 0 -1px;
 }
 
+/* iOS: block page pan while a portaled combobox list is open. */
+html.combobox-page-scroll-locked,
+body.combobox-page-scroll-locked {
+  overflow: hidden;
+}
+
 /* Player/teammate lists portaled to body above location field controls. */
 .combobox-list--portal {
   position: fixed;
