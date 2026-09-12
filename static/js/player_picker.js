@@ -420,6 +420,22 @@
     }
   }
 
+  function withComboboxScrollLockPaused(callback) {
+    const savedDepth = comboboxPageScrollLock.depth;
+    if (savedDepth > 0 && shouldNudgeMobileKeyboard()) {
+      releaseComboboxPageScrollLock();
+      comboboxPageScrollLock.depth = 0;
+    }
+    try {
+      callback();
+    } finally {
+      if (savedDepth > 0 && shouldNudgeMobileKeyboard()) {
+        comboboxPageScrollLock.depth = savedDepth;
+        applyComboboxPageScrollLock();
+      }
+    }
+  }
+
   function bindComboboxListTouchScroll(listEl) {
     if (!listEl || listEl.dataset.listTouchScrollBound === "1") {
       return;
@@ -1268,46 +1284,81 @@
     return Boolean(rect && rect.width > 0 && rect.height > 0);
   }
 
+  function comboboxInputIsVisible(input, margin = 12) {
+    const visible = visibleViewportBounds();
+    const rect = input.getBoundingClientRect();
+    return (
+      rect.top >= visible.top + margin &&
+      rect.bottom <= visible.bottom - margin
+    );
+  }
+
   function revealComboboxInput(input) {
     if (!input?.value.trim()) {
       return;
     }
-    const visible = visibleViewportBounds();
-    const rect = input.getBoundingClientRect();
-    const margin = 8;
-    if (
-      rect.top >= visible.top + margin &&
-      rect.bottom <= visible.bottom - margin
-    ) {
+    if (comboboxInputIsVisible(input)) {
       return;
     }
-    try {
-      input.scrollIntoView({ block: "nearest", inline: "nearest" });
-    } catch (_error) {
-      // ignore
+    withComboboxScrollLockPaused(() => {
+      try {
+        input.scrollIntoView({ block: "center", inline: "nearest" });
+      } catch (_error) {
+        // ignore
+      }
+    });
+  }
+
+  function chooseComboboxPlacement({ typing, rect, visible, listScrollHeight }) {
+    const spaceBelow = visible.bottom - rect.bottom;
+    const spaceAbove = rect.top - visible.top;
+    const preferredHeight = Math.min(240, listScrollHeight || 240);
+    const minSide = typing ? 40 : 0;
+
+    if (typing) {
+      if (spaceBelow >= minSide) {
+        return { placeAbove: false, available: spaceBelow };
+      }
+      if (spaceAbove >= minSide) {
+        return { placeAbove: true, available: spaceAbove };
+      }
+      const placeAbove = spaceAbove > spaceBelow;
+      return {
+        placeAbove,
+        available: Math.max(placeAbove ? spaceAbove : spaceBelow, 72),
+      };
     }
+
+    const placeAbove =
+      spaceBelow < preferredHeight && spaceAbove > spaceBelow;
+    return {
+      placeAbove,
+      available: placeAbove ? spaceAbove : spaceBelow,
+    };
   }
 
   function positionPortaledComboboxList(listEl, input) {
     if (!input || !input.isConnected) {
       return false;
     }
+
+    const typing = Boolean(input.value.trim());
+    if (typing) {
+      revealComboboxInput(input);
+    }
+
     const rect = input.getBoundingClientRect();
     if (!isUsableAnchorRect(rect)) {
       return false;
     }
 
-    const typing = Boolean(input.value.trim());
     const visible = visibleViewportBounds();
-    const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
-    const spaceBelow = visible.bottom - rect.bottom;
-    const spaceAbove = rect.top - visible.top;
-    let placeAbove =
-      spaceBelow < preferredHeight && spaceAbove > spaceBelow;
-    if (typing && spaceBelow >= 48) {
-      placeAbove = false;
-    }
-    const available = placeAbove ? spaceAbove : spaceBelow;
+    const { placeAbove, available } = chooseComboboxPlacement({
+      typing,
+      rect,
+      visible,
+      listScrollHeight: listEl.scrollHeight,
+    });
     const minMaxHeight = typing ? 72 : 120;
 
     listEl.classList.toggle("combobox-list--above", placeAbove);
@@ -1330,9 +1381,6 @@
     }
     listEl.style.visibility = "visible";
     syncComboboxScrollState(listEl);
-    if (typing) {
-      revealComboboxInput(input);
-    }
     return true;
   }
 
