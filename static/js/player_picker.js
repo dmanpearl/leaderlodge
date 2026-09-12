@@ -187,34 +187,48 @@
     });
   }
 
+  function comboboxOptionIcons({ team = false, recent = false } = {}) {
+    const parts = [];
+    if (team) {
+      parts.push(
+        '<i class="bi bi-people combobox-option-icon" aria-hidden="true" title="Team"></i>'
+      );
+    }
+    if (recent) {
+      parts.push(
+        '<i class="bi bi-stopwatch combobox-option-icon" aria-hidden="true" title="Recent"></i>'
+      );
+    }
+    if (parts.length === 0) {
+      return "";
+    }
+    return `<span class="combobox-option-badges">${parts.join("")}</span>`;
+  }
+
   function comboboxOptionHtml(item) {
     if (item.type === "guest") {
       return `Add guest "${item.entry.guestName}"`;
     }
-    if (item.type === "smart-team" || item.entry?.kind === "team") {
-      const label = item.label || item.entry?.label || "";
-      const recentBadge =
-        item.type === "smart-team"
-          ? ' <span class="badge text-bg-secondary ms-1">Recent</span>'
-          : "";
-      return `<span>${label}</span> <span class="badge text-bg-primary ms-1">Team</span>${recentBadge}`;
-    }
+    const isTeam = item.type === "smart-team" || item.entry?.kind === "team";
+    const isRecent = item.type === "smart-team" || item.type === "smart-solo";
+    const label = isTeam
+      ? item.label || item.entry?.label || ""
+      : item.entry?.label || item.label || "";
     const entry = item.entry;
-    const detail = entry?.username
-      ? entry.username
-      : entry?.kind === "guest"
-        ? "guest"
-        : "";
-    const recentBadge =
-      item.type === "smart-solo"
-        ? ' <span class="badge text-bg-secondary ms-1">Recent</span>'
-        : "";
-    return `<span>${entry?.label || item.label}</span>${
-      detail ? ` <span class="text-muted small">${detail}</span>` : ""
-    }${recentBadge}`;
+    const detail =
+      !isTeam && entry?.username
+        ? entry.username
+        : !isTeam && entry?.kind === "guest"
+          ? "guest"
+          : "";
+    const detailHtml = detail
+      ? ` <span class="text-muted small combobox-option-detail">${detail}</span>`
+      : "";
+    const icons = comboboxOptionIcons({ team: isTeam, recent: isRecent });
+    return `<span class="combobox-option-row"><span class="combobox-option-label">${label}${detailHtml}</span>${icons}</span>`;
   }
 
-  function rememberTeamMembers(entry, roster, seenPlayerIds, seenTeamKeys) {
+  function rememberTeamMembers(entry, roster, seenTeamKeys) {
     const ids = memberIdsForRosterEntry(entry, roster)
       .map((id) => Number(id))
       .filter((id) => !Number.isNaN(id) && id > 0)
@@ -224,8 +238,37 @@
       return false;
     }
     seenTeamKeys.add(teamKey);
-    ids.forEach((id) => seenPlayerIds.add(id));
     return true;
+  }
+
+  function requestComboboxOpenOnActivation(picker, input) {
+    picker.openOnFocus = true;
+    if (document.activeElement === input && !picker.skipRefresh) {
+      picker.openOnFocus = false;
+      picker.refreshSuggestions();
+    }
+  }
+
+  function updateComboboxScrollHint(listEl) {
+    window.requestAnimationFrame(() => {
+      if (!listEl || listEl.hidden) {
+        return;
+      }
+      const canScroll = listEl.scrollHeight > listEl.clientHeight + 2;
+      const atBottom =
+        listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 2;
+      listEl.classList.toggle("combobox-list--scrollable", canScroll && !atBottom);
+    });
+  }
+
+  function bindComboboxScrollHint(listEl) {
+    if (!listEl || listEl.dataset.scrollHintBound === "1") {
+      return;
+    }
+    listEl.dataset.scrollHintBound = "1";
+    listEl.addEventListener("scroll", () => updateComboboxScrollHint(listEl), {
+      passive: true,
+    });
   }
 
   function labelsMatch(a, b) {
@@ -519,10 +562,18 @@
     }
     toggle.dataset.rowMenuReady = "1";
     if (window.bootstrap?.Dropdown) {
+      const existing = window.bootstrap.Dropdown.getInstance(toggle);
+      if (existing) {
+        existing.dispose();
+      }
       new window.bootstrap.Dropdown(toggle, {
         popperConfig: (defaultConfig) => ({
           ...defaultConfig,
           strategy: "fixed",
+          modifiers: [
+            ...(defaultConfig.modifiers || []),
+            { name: "zIndex", options: { zIndex: 1200 } },
+          ],
         }),
       });
     }
@@ -1120,14 +1171,16 @@
       suppressBrowserSuggestions(input);
 
       this.onViewportChange = () => this.reposition();
-      const markUserFocus = () => {
-        this.openOnFocus = true;
+      const openOnUserActivation = () => {
+        requestComboboxOpenOnActivation(this, input);
       };
-      input.addEventListener("pointerdown", markUserFocus, true);
-      input.addEventListener("touchstart", markUserFocus, {
+      input.addEventListener("pointerdown", openOnUserActivation, true);
+      input.addEventListener("mousedown", openOnUserActivation, true);
+      input.addEventListener("touchstart", openOnUserActivation, {
         passive: true,
         capture: true,
       });
+      bindComboboxScrollHint(this.listEl);
       input.addEventListener("input", () => this.onInput());
       input.addEventListener("keydown", (event) => this.onKeyDown(event));
       input.addEventListener("blur", () => this.onBlur());
@@ -1368,31 +1421,44 @@
       const roster = this.roster;
       const existing = this.existingRowKeys();
       const items = [];
-      const seenPlayerIds = new Set();
+      const seenSoloIds = new Set();
       const seenTeamKeys = new Set();
 
-      const rememberPlayer = (entry) => {
-        if (entry?.id) {
-          seenPlayerIds.add(Number(entry.id));
+      const addSolo = (type, entry, label = null) => {
+        const soloId = entry?.id ? Number(entry.id) : null;
+        if (soloId && seenSoloIds.has(soloId)) {
+          return false;
         }
+        if (soloId) {
+          seenSoloIds.add(soloId);
+        }
+        items.push({ type, entry, label: label || entry?.label });
+        return true;
       };
 
-      filterSmartSuggestionsForPlayer(readSmartSuggestions(), this.tbody)
-        .filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query))
-        .forEach((suggestion) => {
+      const addSmartTeam = (suggestion) => {
+        const ids = smartPlayerIds(suggestion).sort((a, b) => a - b);
+        const teamKey = ids.join("-");
+        if (!teamKey || seenTeamKeys.has(teamKey)) {
+          return;
+        }
+        seenTeamKeys.add(teamKey);
+        items.push({
+          type: "smart-team",
+          label: suggestion.label,
+          suggestion,
+        });
+      };
+
+      const smartFiltered = filterSmartSuggestionsForPlayer(
+        readSmartSuggestions(),
+        this.tbody
+      ).filter((suggestion) => smartSuggestionMatchesQuery(suggestion, query));
+
+      if (!trimmed) {
+        smartFiltered.forEach((suggestion) => {
           if (suggestion.kind === "team") {
-            const ids = smartPlayerIds(suggestion).sort((a, b) => a - b);
-            const teamKey = ids.join("-");
-            if (!teamKey || seenTeamKeys.has(teamKey)) {
-              return;
-            }
-            seenTeamKeys.add(teamKey);
-            items.push({
-              type: "smart-team",
-              label: suggestion.label,
-              suggestion,
-            });
-            ids.forEach((id) => seenPlayerIds.add(id));
+            addSmartTeam(suggestion);
             return;
           }
           const entry = rosterEntryFromSmartPlayer(
@@ -1405,39 +1471,53 @@
           ) {
             return;
           }
-          if (entry.id && seenPlayerIds.has(Number(entry.id))) {
-            return;
-          }
-          items.push({ type: "smart-solo", entry, label: suggestion.label });
-          rememberPlayer(entry);
+          addSolo("smart-solo", entry, suggestion.label);
         });
-
-      if (trimmed) {
+      } else {
         filterRoster(roster, query)
           .filter(
             (entry) =>
+              entry.kind !== "team" &&
               !entryIsIneligible(this.tbody, entry, existing, this.roster)
           )
           .forEach((entry) => {
-            if (entry.kind === "team") {
-              if (
-                !rememberTeamMembers(
-                  entry,
-                  roster,
-                  seenPlayerIds,
-                  seenTeamKeys
-                )
-              ) {
-                return;
-              }
+            addSolo("player", entry);
+          });
+
+        smartFiltered.forEach((suggestion) => {
+          if (suggestion.kind === "team") {
+            return;
+          }
+          const entry = rosterEntryFromSmartPlayer(
+            roster,
+            suggestion.players?.[0]
+          );
+          if (
+            !entry ||
+            entryIsIneligible(this.tbody, entry, existing, this.roster)
+          ) {
+            return;
+          }
+          addSolo("smart-solo", entry, suggestion.label);
+        });
+
+        smartFiltered.forEach((suggestion) => {
+          if (suggestion.kind !== "team") {
+            return;
+          }
+          addSmartTeam(suggestion);
+        });
+
+        filterRoster(roster, query)
+          .filter(
+            (entry) =>
+              entry.kind === "team" &&
+              !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          )
+          .forEach((entry) => {
+            if (rememberTeamMembers(entry, roster, seenTeamKeys)) {
               items.push({ type: "player", entry });
-              return;
             }
-            if (entry.id && seenPlayerIds.has(Number(entry.id))) {
-              return;
-            }
-            items.push({ type: "player", entry });
-            rememberPlayer(entry);
           });
       }
 
@@ -1501,6 +1581,7 @@
         this.listEl.appendChild(option);
       });
       this.reposition();
+      updateComboboxScrollHint(this.listEl);
     }
 
     selectSuggestion(item) {
@@ -1640,6 +1721,7 @@
       this.listId = "teammate-picker-suggestions";
       this.listEl.id = this.listId;
       document.body.appendChild(this.listEl);
+      bindComboboxScrollHint(this.listEl);
       this.repositionTimers = [];
 
       this.onViewportChange = () => {
@@ -1663,6 +1745,14 @@
         this.openOnFocus = true;
         this.prepareInput(input);
         input.removeAttribute("readonly");
+        if (
+          this.input === input &&
+          document.activeElement === input &&
+          !this.skipRefresh
+        ) {
+          this.openOnFocus = false;
+          this.refreshSuggestions();
+        }
       };
       tbody.addEventListener("touchstart", unlockForPointer, {
         passive: true,
@@ -1989,6 +2079,7 @@
         this.listEl.appendChild(option);
       });
       this.scheduleReposition();
+      updateComboboxScrollHint(this.listEl);
     }
 
     selectSuggestion(item) {
