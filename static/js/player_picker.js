@@ -390,6 +390,7 @@
                   type="button"
                   class="btn btn-sm btn-outline-secondary"
                   data-bs-toggle="dropdown"
+                  data-bs-display="static"
                   aria-expanded="false"
                   aria-label="Side options"
                 >
@@ -883,36 +884,62 @@
     return Boolean(rect && (rect.width > 0 || rect.height > 0));
   }
 
+  function fixedAnchorRect(input) {
+    const rect = input.getBoundingClientRect();
+    const vv = window.visualViewport;
+    if (!vv) {
+      return {
+        top: rect.top,
+        left: rect.left,
+        bottom: rect.bottom,
+        right: rect.right,
+        width: rect.width,
+        height: rect.height,
+      };
+    }
+    const offsetTop = vv.offsetTop;
+    const offsetLeft = vv.offsetLeft;
+    return {
+      top: rect.top - offsetTop,
+      left: rect.left - offsetLeft,
+      bottom: rect.bottom - offsetTop,
+      right: rect.right - offsetLeft,
+      width: rect.width,
+      height: rect.height,
+    };
+  }
+
   function positionPortaledComboboxList(listEl, input) {
     if (!input || !input.isConnected) {
       return false;
     }
-    const rect = input.getBoundingClientRect();
-    if (!isUsableAnchorRect(rect)) {
+    const layoutRect = input.getBoundingClientRect();
+    if (!isUsableAnchorRect(layoutRect)) {
       return false;
     }
 
+    const anchor = fixedAnchorRect(input);
     const vv = window.visualViewport;
     const visibleHeight = vv?.height ?? window.innerHeight;
     const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
-    const spaceBelow = visibleHeight - rect.bottom;
-    const spaceAbove = rect.top;
+    const spaceBelow = visibleHeight - anchor.bottom;
+    const spaceAbove = anchor.top;
     const placeAbove =
       spaceBelow < preferredHeight && spaceAbove > spaceBelow;
     const available = placeAbove ? spaceAbove : spaceBelow;
 
     listEl.classList.toggle("combobox-list--above", placeAbove);
-    listEl.style.left = `${Math.max(8, rect.left)}px`;
-    listEl.style.width = `${Math.max(rect.width, 160)}px`;
+    listEl.style.left = `${Math.max(8, anchor.left)}px`;
+    listEl.style.width = `${Math.max(anchor.width, 160)}px`;
     listEl.style.right = "auto";
     listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
 
     if (placeAbove) {
       listEl.style.top = "auto";
-      listEl.style.bottom = `${visibleHeight - rect.top}px`;
+      listEl.style.bottom = `${visibleHeight - anchor.top}px`;
     } else {
       listEl.style.bottom = "auto";
-      listEl.style.top = `${rect.bottom}px`;
+      listEl.style.top = `${anchor.bottom}px`;
     }
     return true;
   }

@@ -396,7 +396,7 @@
           menu.style.left = `${Math.max(8, rect.left)}px`;
           menu.style.top = `${rect.bottom}px`;
           menu.style.minWidth = `${Math.max(rect.width, 160)}px`;
-          menu.style.zIndex = "1090";
+          menu.style.zIndex = "1100";
 
           const closeMenu = (event) => {
             if (
