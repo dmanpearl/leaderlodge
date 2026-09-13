@@ -273,6 +273,7 @@
 - [x] b8a9775 Edit game: Move Location's message "Assign saves the pin on the location row. You do not need Save changes for that." to the hover text. It is ok that it will not be available on mobile.
 - [x] ffbafdc Set place map toolbar: inline Enter search submit, pin-map icon for nearby lookup at pin or map center, crosshair for GPS, unified icon buttons.
 - [x] 95be926 Bug: Record game Team field no longer auto looks up existing user. This is recently introduced. Explain why there are no tests to uncover this type of regression.
+- [x] Bug: Record Game: Smart list does not auto-open for 2nd side tap inside player field. Note: Does auto-open for 1st side.
 
 ## Open Items
 

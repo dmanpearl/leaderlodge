@@ -301,11 +301,22 @@
     });
   }
 
+  function ensurePlayerPickerExpanded(picker) {
+    if (
+      typeof picker.isPickerCollapsed === "function" &&
+      picker.isPickerCollapsed() &&
+      typeof picker.expandPicker === "function"
+    ) {
+      picker.expandPicker({ focus: false });
+    }
+  }
+
   function openComboboxFromUserGesture(picker, input, { setContext } = {}) {
     if (!input || typeof picker.refreshSuggestions !== "function") {
       return;
     }
     unlockComboboxInput(input);
+    ensurePlayerPickerExpanded(picker);
     picker.allowEmptyOpen = true;
     picker.ignoreFocusRefresh = false;
     clearComboboxBlurTimer(picker);
@@ -316,10 +327,17 @@
     const refresh = () => {
       picker.refreshSuggestions();
     };
+    const maybeNudgeKeyboard = () => {
+      if (shouldNudgeMobileKeyboard() && !picker.keyboardNudged) {
+        picker.keyboardNudged = true;
+        nudgeMobileKeyboard(picker, input);
+        schedulePortaledComboboxReposition(picker);
+      }
+    };
 
     if (document.activeElement === input) {
       refresh();
-      nudgeMobileKeyboard(picker, input);
+      maybeNudgeKeyboard();
       return;
     }
 
@@ -329,7 +347,7 @@
     window.requestAnimationFrame(() => {
       picker.pendingGestureRefresh = false;
       refresh();
-      nudgeMobileKeyboard(picker, input);
+      maybeNudgeKeyboard();
     });
   }
 
@@ -1281,6 +1299,27 @@
     return Boolean(rect && rect.width > 0 && rect.height > 0);
   }
 
+  function isPlausibleAnchorRect(rect, visible) {
+    if (!isUsableAnchorRect(rect)) {
+      return false;
+    }
+    return (
+      rect.bottom > visible.top - 48 && rect.top < visible.bottom + 48
+    );
+  }
+
+  function clearPortaledComboboxPosition(listEl) {
+    if (!listEl) {
+      return;
+    }
+    listEl.style.top = "";
+    listEl.style.bottom = "";
+    listEl.style.left = "";
+    listEl.style.width = "";
+    listEl.style.right = "";
+    listEl.style.maxHeight = "";
+  }
+
   function chooseComboboxPlacement({ typing, rect, visible, listScrollHeight }) {
     const spaceBelow = visible.bottom - rect.bottom;
     const spaceAbove = rect.top - visible.top;
@@ -1317,13 +1356,18 @@
       return false;
     }
 
+    const expanded = input.closest("[data-player-picker-expanded]");
+    if (expanded && expanded.hidden) {
+      return false;
+    }
+
     const rect = input.getBoundingClientRect();
-    if (!isUsableAnchorRect(rect)) {
+    const visible = visibleViewportBounds();
+    if (!isPlausibleAnchorRect(rect, visible)) {
       return false;
     }
 
     const typing = Boolean(input.value.trim());
-    const visible = visibleViewportBounds();
     const { placeAbove, available } = chooseComboboxPlacement({
       typing,
       rect,
@@ -1367,12 +1411,12 @@
 
   function runPortaledComboboxReposition(picker) {
     if (!picker.isOpen || !picker.input) {
-      return;
+      return false;
     }
     if (picker.listEl?.dataset.userScrolling === "1") {
-      return;
+      return false;
     }
-    positionPortaledComboboxList(picker.listEl, picker.input);
+    return positionPortaledComboboxList(picker.listEl, picker.input);
   }
 
   function schedulePortaledComboboxReposition(picker) {
@@ -1382,11 +1426,23 @@
     clearPortaledRepositionTimers(picker);
     picker.repositionTimers = [];
 
-    const run = () => runPortaledComboboxReposition(picker);
+    let attempts = 0;
+    const run = () => {
+      if (!picker.isOpen || !picker.input) {
+        return;
+      }
+      attempts += 1;
+      const ok = runPortaledComboboxReposition(picker);
+      if (!ok && attempts < 8) {
+        const frameId = window.requestAnimationFrame(run);
+        picker.repositionTimers.push(frameId);
+      }
+    };
 
     picker.repositionTimers.push(window.requestAnimationFrame(run));
-    // iOS: keyboard open settles shortly after focus.
+    // iOS: keyboard open and row layout settle shortly after focus.
     picker.repositionTimers.push(window.setTimeout(run, 100));
+    picker.repositionTimers.push(window.setTimeout(run, 300));
   }
 
   function adjustListPlacement(listEl, input) {
@@ -1420,6 +1476,7 @@
       this.ignoreFocusRefresh = false;
       this.pendingGestureRefresh = false;
       this.suppressBlurCommit = false;
+      this.keyboardNudged = false;
       this.blurTimer = null;
       this.repositionTimers = [];
 
@@ -1619,6 +1676,7 @@
     }
 
     onFocus() {
+      ensurePlayerPickerExpanded(this);
       clearComboboxBlurTimer(this);
       handleComboboxFocus(this, this.input);
     }
@@ -1630,6 +1688,7 @@
       if (this.suppressBlurCommit) {
         return;
       }
+      this.keyboardNudged = false;
       clearComboboxBlurTimer(this);
       this.blurTimer = window.setTimeout(() => this.commitPendingEntry(), 150);
     }
@@ -1983,6 +2042,7 @@
       const wasOpen = this.isOpen;
       this.isOpen = true;
       this.listEl.hidden = false;
+      this.listEl.style.visibility = "hidden";
       this.input.setAttribute("aria-expanded", "true");
       if (!wasOpen) {
         lockComboboxPageScroll();
@@ -1999,6 +2059,7 @@
       this.suggestions = [];
       clearPortaledRepositionTimers(this);
       unlockComboboxPageScroll();
+      clearPortaledComboboxPosition(this.listEl);
       this.listEl.hidden = true;
       this.listEl.style.visibility = "hidden";
       this.listEl.innerHTML = "";
@@ -2544,6 +2605,7 @@
       this.suggestions = [];
       clearPortaledRepositionTimers(this);
       unlockComboboxPageScroll();
+      clearPortaledComboboxPosition(this.listEl);
       this.listEl.hidden = true;
       this.listEl.style.visibility = "";
       this.listEl.innerHTML = "";
