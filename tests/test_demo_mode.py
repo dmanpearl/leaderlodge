@@ -51,6 +51,10 @@ def test_anonymous_dashboard_shows_demo_landing(client, demo_group_flagged):
     assert "Sample games and leaderboards for all supported game types." in content
     assert "Record Game" not in content
     assert "Login to view your own Games, Groups, and Leaders" in content
+    assert reverse("accounts:login") in content
+    assert reverse("accounts:signup") in content
+    assert ">Login</a>" in content
+    assert ">Sign up</a>" in content
 
 
 @pytest.mark.django_db

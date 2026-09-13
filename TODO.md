@@ -274,10 +274,10 @@
 - [x] ffbafdc Set place map toolbar: inline Enter search submit, pin-map icon for nearby lookup at pin or map center, crosshair for GPS, unified icon buttons.
 - [x] 95be926 Bug: Record game Team field no longer auto looks up existing user. This is recently introduced. Explain why there are no tests to uncover this type of regression.
 - [x] de72369 Bug: Record Game: Smart list does not auto-open for 2nd side tap inside player field. Note: Does auto-open for 1st side.
+- [x] Login banner "Login to view your own Games, Groups..." needs Login and Sign up buttons.
 
 ## Open Items
 
-- [ ] Login banner "Login to view your own Games, Groups..." needs a Login button.
 - [ ] Player and Teammate type ahead selection dropdowns and Smart Suggest should be combined into a single function, and installed where regular type-ahead is now. The Smart Suggestion button can be removed. Evaluate performance hit for doing the smart algorithm on the regular type-ahead keystrokes. Archived implementation: branch `archive/smart-suggest-2026-09-11`, files in `~/pixelmonks/smart-suggest-archive/`.
 - [ ] Pickleball needs an easier way to pick teams when recording a game. We currently have only the "Reuse" button to help. Add a button 
 - [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)

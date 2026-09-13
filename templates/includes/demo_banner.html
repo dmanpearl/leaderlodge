@@ -1,5 +1,16 @@
 {% if is_visitor and demo_mode_enabled %}
-  <div class="demo-banner alert alert-info mb-0 border-0 rounded-0 py-1 small text-center">
-    Login to view your own Games, Groups, and Leaders, or to leave feedback
+  <div class="demo-banner alert alert-info mb-0 border-0 rounded-0 py-1 small">
+    <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center gap-2 text-center">
+      <span>
+        Login to view your own Games, Groups, and Leaders, or to leave feedback
+      </span>
+      <span class="d-flex flex-shrink-0 gap-2">
+        <a
+          href="{% url 'accounts:login' %}?next={{ request.path|urlencode }}"
+          class="btn btn-sm btn-primary"
+        >Login</a>
+        <a href="{% url 'accounts:signup' %}" class="btn btn-sm btn-outline-primary">Sign up</a>
+      </span>
+    </div>
   </div>
 {% endif %}
