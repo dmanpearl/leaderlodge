@@ -427,6 +427,7 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     display: none;
   }
 
+  #game-record-form .row > .col-12.col-md-4,
   #game-setup-form .row > .col-12.col-md-4 {
     display: flex;
     flex-wrap: wrap;
@@ -434,6 +435,7 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     gap: 0.5rem;
   }
 
+  #game-record-form .row > .col-12.col-md-4 .form-label,
   #game-setup-form .row > .col-12.col-md-4 .form-label {
     flex-shrink: 0;
     min-width: 6.5rem;
@@ -441,6 +443,9 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     white-space: nowrap;
   }
 
+  #game-record-form .row > .col-12.col-md-4 .form-select,
+  #game-record-form .row > .col-12.col-md-4 .form-control,
+  #game-record-form .row > .col-12.col-md-4 .game-setup-game-type-wrap,
   #game-setup-form .row > .col-12.col-md-4 .form-select,
   #game-setup-form .row > .col-12.col-md-4 .form-control,
   #game-setup-form .row > .col-12.col-md-4 .game-setup-game-type-wrap {
@@ -449,6 +454,7 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
     width: auto;
   }
 
+  #game-record-form .row > .col-12.col-md-4 .invalid-feedback,
   #game-setup-form .row > .col-12.col-md-4 .invalid-feedback {
     flex: 0 0 100%;
     margin-top: 0;
