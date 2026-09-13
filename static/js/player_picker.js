@@ -311,10 +311,43 @@
     }
   }
 
+  function scheduleMobileKeyboardNudge(picker, input) {
+    if (
+      !shouldNudgeMobileKeyboard() ||
+      picker.keyboardNudged ||
+      !input ||
+      document.activeElement !== input
+    ) {
+      return;
+    }
+    window.setTimeout(() => {
+      if (
+        !picker.isOpen ||
+        document.activeElement !== input ||
+        picker.keyboardNudged
+      ) {
+        return;
+      }
+      picker.keyboardNudged = true;
+      nudgeMobileKeyboard(picker, input);
+      schedulePortaledComboboxReposition(picker);
+    }, 350);
+  }
+
   function openComboboxFromUserGesture(picker, input, { setContext } = {}) {
     if (!input || typeof picker.refreshSuggestions !== "function") {
       return;
     }
+    const now = Date.now();
+    if (
+      picker.isOpen &&
+      picker.lastGestureOpenAt &&
+      now - picker.lastGestureOpenAt < 280
+    ) {
+      return;
+    }
+    picker.lastGestureOpenAt = now;
+
     unlockComboboxInput(input);
     ensurePlayerPickerExpanded(picker);
     picker.allowEmptyOpen = true;
@@ -327,27 +360,29 @@
     const refresh = () => {
       picker.refreshSuggestions();
     };
-    const maybeNudgeKeyboard = () => {
-      if (shouldNudgeMobileKeyboard() && !picker.keyboardNudged) {
-        picker.keyboardNudged = true;
-        nudgeMobileKeyboard(picker, input);
+    const settleOpen = () => {
+      refresh();
+      if (picker.isOpen) {
+        runPortaledComboboxReposition(picker);
         schedulePortaledComboboxReposition(picker);
       }
     };
 
     if (document.activeElement === input) {
-      refresh();
-      maybeNudgeKeyboard();
+      settleOpen();
+      window.requestAnimationFrame(() => {
+        settleOpen();
+      });
       return;
     }
 
     picker.pendingGestureRefresh = true;
     input.focus();
-    refresh();
+    settleOpen();
     window.requestAnimationFrame(() => {
       picker.pendingGestureRefresh = false;
-      refresh();
-      maybeNudgeKeyboard();
+      settleOpen();
+      scheduleMobileKeyboardNudge(picker, input);
     });
   }
 
@@ -1299,15 +1334,6 @@
     return Boolean(rect && rect.width > 0 && rect.height > 0);
   }
 
-  function isPlausibleAnchorRect(rect, visible) {
-    if (!isUsableAnchorRect(rect)) {
-      return false;
-    }
-    return (
-      rect.bottom > visible.top - 48 && rect.top < visible.bottom + 48
-    );
-  }
-
   function clearPortaledComboboxPosition(listEl) {
     if (!listEl) {
       return;
@@ -1362,12 +1388,12 @@
     }
 
     const rect = input.getBoundingClientRect();
-    const visible = visibleViewportBounds();
-    if (!isPlausibleAnchorRect(rect, visible)) {
+    if (!isUsableAnchorRect(rect)) {
       return false;
     }
 
     const typing = Boolean(input.value.trim());
+    const visible = visibleViewportBounds();
     const { placeAbove, available } = chooseComboboxPlacement({
       typing,
       rect,
@@ -1436,6 +1462,15 @@
       if (!ok && attempts < 8) {
         const frameId = window.requestAnimationFrame(run);
         picker.repositionTimers.push(frameId);
+        return;
+      }
+      if (!ok && picker.listEl && picker.input) {
+        const rect = picker.input.getBoundingClientRect();
+        if (isUsableAnchorRect(rect)) {
+          positionPortaledComboboxList(picker.listEl, picker.input);
+        } else if (picker.listEl) {
+          picker.listEl.style.visibility = "visible";
+        }
       }
     };
 
@@ -1443,6 +1478,7 @@
     // iOS: keyboard open and row layout settle shortly after focus.
     picker.repositionTimers.push(window.setTimeout(run, 100));
     picker.repositionTimers.push(window.setTimeout(run, 300));
+    picker.repositionTimers.push(window.setTimeout(run, 500));
   }
 
   function adjustListPlacement(listEl, input) {
@@ -1477,6 +1513,7 @@
       this.pendingGestureRefresh = false;
       this.suppressBlurCommit = false;
       this.keyboardNudged = false;
+      this.lastGestureOpenAt = 0;
       this.blurTimer = null;
       this.repositionTimers = [];
 
@@ -1510,6 +1547,7 @@
         passive: true,
         capture: true,
       });
+      input.addEventListener("click", openOnUserActivation, true);
       bindComboboxScrollHint(this.listEl);
       input.addEventListener("input", () => this.onInput());
       input.addEventListener("keydown", (event) => this.onKeyDown(event));
@@ -1940,6 +1978,7 @@
         });
         this.listEl.appendChild(option);
       });
+      runPortaledComboboxReposition(this);
       schedulePortaledComboboxReposition(this);
       updateComboboxScrollHint(this.listEl);
     }
@@ -2042,7 +2081,7 @@
       const wasOpen = this.isOpen;
       this.isOpen = true;
       this.listEl.hidden = false;
-      this.listEl.style.visibility = "hidden";
+      this.listEl.style.visibility = "visible";
       this.input.setAttribute("aria-expanded", "true");
       if (!wasOpen) {
         lockComboboxPageScroll();
@@ -2061,7 +2100,7 @@
       unlockComboboxPageScroll();
       clearPortaledComboboxPosition(this.listEl);
       this.listEl.hidden = true;
-      this.listEl.style.visibility = "hidden";
+      this.listEl.style.visibility = "";
       this.listEl.innerHTML = "";
       this.input.setAttribute("aria-expanded", "false");
       this.input.removeAttribute("aria-activedescendant");
@@ -2088,6 +2127,7 @@
       this.ignoreFocusRefresh = false;
       this.pendingGestureRefresh = false;
       this.suppressBlurCommit = false;
+      this.lastGestureOpenAt = 0;
       this.blurTimer = null;
       this.placeholder = "Teammate";
 
@@ -2223,6 +2263,7 @@
         passive: true,
         capture: true,
       });
+      input.addEventListener("click", openFromGesture, true);
 
       const wrap = input.closest("[data-add-teammate-wrap]");
       if (wrap && wrap.dataset.teammateWrapPrepared !== "1") {
@@ -2239,6 +2280,7 @@
           passive: true,
           capture: true,
         });
+        wrap.addEventListener("click", openFromWrap, true);
       }
     }
 
@@ -2341,7 +2383,13 @@
     }
 
     refreshSuggestions() {
-      if (!this.input || !this.row) {
+      if (!this.input) {
+        return;
+      }
+      if (!this.row) {
+        this.row = this.input.closest("[data-game-row]");
+      }
+      if (!this.row) {
         return;
       }
       const query = this.input.value;
@@ -2518,6 +2566,7 @@
         });
         this.listEl.appendChild(option);
       });
+      runPortaledComboboxReposition(this);
       this.scheduleReposition();
       updateComboboxScrollHint(this.listEl);
     }
@@ -2588,8 +2637,10 @@
       const wasOpen = this.isOpen;
       this.isOpen = true;
       this.listEl.hidden = false;
-      this.listEl.style.visibility = "hidden";
-      this.input.setAttribute("aria-expanded", "true");
+      this.listEl.style.visibility = "visible";
+      if (this.input) {
+        this.input.setAttribute("aria-expanded", "true");
+      }
       if (!wasOpen) {
         lockComboboxPageScroll();
       }
