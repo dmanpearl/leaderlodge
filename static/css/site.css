@@ -368,6 +368,64 @@ nav.navbar.bg-primary .navbar-nav-main .nav-link.active .navbar-nav-icon {
   padding-bottom: 0.25rem;
 }
 
+.demo-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.demo-banner-message {
+  flex: 0 1 auto;
+}
+
+.demo-banner-actions {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.demo-banner-action-link {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.demo-banner-action-link:hover,
+.demo-banner-action-link:focus-visible {
+  text-decoration: underline;
+}
+
+.demo-banner-action-sep {
+  margin: 0 0.2rem;
+  opacity: 0.65;
+}
+
+@media (max-width: 575.98px) {
+  .demo-banner-inner {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    text-align: left;
+  }
+
+  .demo-banner-message {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .demo-banner-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+  }
+
+  .demo-banner-action-sep {
+    display: none;
+  }
+}
+
 .table {
   --bs-table-cell-padding-y: 0.35rem;
   --bs-table-cell-padding-x: 0.5rem;

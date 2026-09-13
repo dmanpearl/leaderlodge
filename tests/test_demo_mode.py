@@ -53,8 +53,10 @@ def test_anonymous_dashboard_shows_demo_landing(client, demo_group_flagged):
     assert "Login to view your own Games, Groups, and Leaders" in content
     assert reverse("accounts:login") in content
     assert reverse("accounts:signup") in content
+    assert 'class="demo-banner-action-link"' in content
     assert ">Login</a>" in content
     assert ">Sign up</a>" in content
+    assert "btn btn-sm btn-primary" not in content
 
 
 @pytest.mark.django_db

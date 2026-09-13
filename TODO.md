@@ -276,7 +276,7 @@
 - [x] 5a1e47e Player and Teammate type ahead selection dropdowns and Smart Suggest should be combined into a single function, and installed where regular type-ahead is now. The Smart Suggestion button can be removed. Evaluate performance hit for doing the smart algorithm on the regular type-ahead keystrokes. Archived implementation: branch `archive/smart-suggest-2026-09-11`, files in `~/pixelmonks/smart-suggest-archive/`.
 - [x] de72369 Bug: Record Game: Smart list does not auto-open for 2nd side tap inside player field. Note: Does auto-open for 1st side.
 - [x] a4e93de Login banner "Login to view your own Games, Groups..." needs Login and Sign up buttons.
-- [x] Record game: Put labels and fields side-by-side instead of over-under for options above "AI game entry" similar to Leaderboard and Game filters
+- [x] 1477b0c Record game: Put labels and fields side-by-side instead of over-under for options above "AI game entry" similar to Leaderboard and Game filters
 
 ## Open Items
 
