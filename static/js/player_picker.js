@@ -1302,16 +1302,6 @@
     return wrap;
   }
 
-  function attachListToInput(input, listEl) {
-    const wrap = ensureComboboxInputWrap(input);
-    wrap.appendChild(listEl);
-    return wrap;
-  }
-
-  function viewportHeight() {
-    return window.visualViewport?.height ?? window.innerHeight;
-  }
-
   function visibleViewportBounds() {
     const vv = window.visualViewport;
     if (!vv) {
@@ -1479,23 +1469,6 @@
     picker.repositionTimers.push(window.setTimeout(run, 100));
     picker.repositionTimers.push(window.setTimeout(run, 300));
     picker.repositionTimers.push(window.setTimeout(run, 500));
-  }
-
-  function adjustListPlacement(listEl, input) {
-    listEl.classList.remove("combobox-list--above");
-    const inputRect = input.getBoundingClientRect();
-    const spaceBelow = viewportHeight() - inputRect.bottom;
-    const spaceAbove = inputRect.top;
-    const preferredHeight = Math.min(240, listEl.scrollHeight || 240);
-
-    if (spaceBelow < preferredHeight && spaceAbove > spaceBelow) {
-      listEl.classList.add("combobox-list--above");
-    }
-
-    const available = listEl.classList.contains("combobox-list--above")
-      ? spaceAbove
-      : spaceBelow;
-    listEl.style.maxHeight = `${Math.max(120, available - 8)}px`;
   }
 
   class PlayerPicker {
@@ -2105,13 +2078,6 @@
       this.input.setAttribute("aria-expanded", "false");
       this.input.removeAttribute("aria-activedescendant");
     }
-
-    reposition() {
-      if (!this.isOpen) {
-        return;
-      }
-      schedulePortaledComboboxReposition(this);
-    }
   }
 
   class TeammatePicker {
@@ -2668,13 +2634,6 @@
 
     scheduleReposition() {
       schedulePortaledComboboxReposition(this);
-    }
-
-    reposition() {
-      if (!this.isOpen || !this.input) {
-        return;
-      }
-      positionPortaledComboboxList(this.listEl, this.input);
     }
   }
 
