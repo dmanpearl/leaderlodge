@@ -280,7 +280,7 @@
 
 ## Open Items
 
-- [ ] Pickleball needs an easier way to pick teams when recording a game. We currently have only the "Reuse" button to help. Add a button 
+- [ ] Pickleball needs an easier way to pick teams when recording a game. We currently have only the "Reuse" button to help. Add a button called "Suggest" next to the Reuse buttons. It will use the smart list algorithm combinations. Not just PB, this works for all game types
 - [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre

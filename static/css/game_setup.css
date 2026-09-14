@@ -331,11 +331,23 @@
   color: var(--game-record-voice-accent-hover);
 }
 
-.reuse-players-action {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+.game-record-lineup-actions {
   position: relative;
+}
+
+.game-record-lineup-actions .btn-group > .btn-group {
+  position: static;
+}
+
+/* Nested dropdown btn-groups square inner joins; restore outer corners. */
+.game-record-lineup-actions > .btn-group > .btn-group:first-child > .btn {
+  border-top-left-radius: var(--bs-btn-border-radius);
+  border-bottom-left-radius: var(--bs-btn-border-radius);
+}
+
+.game-record-lineup-actions > .btn-group > .btn-group:last-child > .btn {
+  border-top-right-radius: var(--bs-btn-border-radius);
+  border-bottom-right-radius: var(--bs-btn-border-radius);
 }
 
 /* Keep the menu inside the viewport: Reuse sits on the right, so end-align

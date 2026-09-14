@@ -24,7 +24,10 @@ from leaderlodge.games.forms import (
     prepare_participant_rows,
 )
 from leaderlodge.games.reuse_players import participant_rows_for_edit_game
-from leaderlodge.games.roster_suggestions import suggest_side_entries
+from leaderlodge.games.roster_suggestions import (
+    suggest_lineup_entries,
+    suggest_side_entries,
+)
 from leaderlodge.groups.player_search import roster_for_group
 from leaderlodge.games.features import (
     apply_feature_selections_to_games_qs,
@@ -1219,6 +1222,10 @@ def game_suggest_sides(request: HttpRequest) -> JsonResponse:
     exclude_ids = {
         int(part) for part in exclude_raw.split(",") if part.strip().isdigit()
     }
+
+    if (request.GET.get("lineup") or "").strip() == "1":
+        suggestions = suggest_lineup_entries(group, game_type_code)
+        return JsonResponse({"suggestions": suggestions})
 
     query = (request.GET.get("q") or "").strip()
     teammate_mode = (request.GET.get("mode") or "").strip() == "teammate"

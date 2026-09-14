@@ -4,7 +4,10 @@ import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
 
-from leaderlodge.games.roster_suggestions import suggest_side_entries
+from leaderlodge.games.roster_suggestions import (
+    suggest_lineup_entries,
+    suggest_side_entries,
+)
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 from leaderlodge.groups.teams import resolve_side_player
@@ -184,6 +187,88 @@ def test_suggest_teammate_mode_returns_solo_only(user, group):
 
     assert suggestions
     assert all(item["kind"] == "solo" for item in suggestions)
+
+
+@pytest.mark.django_db
+def test_suggest_lineup_replays_recent_matchup(user, group):
+    today = date(2026, 3, 15)
+    _record_pickleball_doubles(
+        user,
+        group,
+        team_a=("David", "Nancy"),
+        team_b=("Imelda", "Steve"),
+        played_on=today,
+    )
+
+    owner = group.players.get(linked_user=user)
+    players = _players_by_name(group)
+    lineups = suggest_lineup_entries(group, "pickleball")
+
+    assert lineups
+    first = lineups[0]
+    assert first["source"] == "replay"
+    assert len(first["sides"]) == 2
+    assert first["summary"]
+    owner_label = owner.display_label
+    pair_a = "+".join(sorted([owner_label, "Nancy"], key=str.lower))
+    pair_b = "+".join(sorted(["Imelda", "Steve"], key=str.lower))
+    assert pair_a in first["summary"]
+    assert pair_b in first["summary"]
+    member_ids = {
+        player["player_id"] for side in first["sides"] for player in side["players"]
+    }
+    assert owner.pk in member_ids
+    assert players["Nancy"].pk in member_ids
+    assert players["Imelda"].pk in member_ids
+    assert players["Steve"].pk in member_ids
+
+
+@pytest.mark.django_db
+def test_suggest_lineup_endpoint_returns_full_sides(client, user, group):
+    today = date(2026, 3, 15)
+    _record_pickleball_doubles(
+        user,
+        group,
+        team_a=("David", "Nancy"),
+        team_b=("Imelda", "Steve"),
+        played_on=today,
+    )
+    client.force_login(user)
+    response = client.get(
+        reverse("games:suggest_sides"),
+        {"group": str(group.pk), "type": "pickleball", "lineup": "1"},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["suggestions"]
+    assert payload["suggestions"][0]["sides"]
+    assert len(payload["suggestions"][0]["sides"]) >= 2
+
+
+@pytest.mark.django_db
+def test_record_game_shows_reuse_suggest_segmented_buttons(client, user, group):
+    today = date(2026, 3, 15)
+    _record_pickleball_doubles(
+        user,
+        group,
+        team_a=("David", "Nancy"),
+        team_b=("Imelda", "Steve"),
+        played_on=today,
+    )
+    client.force_login(user)
+    response = client.get(
+        reverse("games:create"),
+        {"group": str(group.pk), "game_type_code": "pickleball"},
+    )
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'role="group"' in content
+    assert "game-record-lineup-actions" in content
+    assert 'id="reuse-players-btn"' in content
+    assert 'id="suggest-sides-btn"' in content
+    assert "Suggest" in content
+    assert reverse("games:suggest_sides") in content
+    assert "game_setup_suggest.js" in content
 
 
 @pytest.mark.django_db

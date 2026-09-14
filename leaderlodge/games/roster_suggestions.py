@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -9,11 +10,17 @@ from datetime import date, timedelta
 from django.utils import timezone
 
 from leaderlodge.games.models import Game
-from leaderlodge.games.registry import GAME_TYPES
+from leaderlodge.games.registry import GAME_TYPES, GameTypeDefinition
+from leaderlodge.games.reuse_players import (
+    REUSE_PLAYERS_MAX_SCAN,
+    _lineup_key,
+    participant_rows_from_game,
+)
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.teams import team_member_players
 
 MAX_SUGGESTIONS = 8
+MAX_LINEUP_SUGGESTIONS = 6
 SCAN_GAMES = 20
 MIN_RECENT_PLAYERS = 4
 
@@ -358,3 +365,277 @@ def suggest_side_entries(
         return suggestions
 
     return suggestions
+
+
+def _side_payload_from_row(row: dict) -> dict | None:
+    players = []
+    player_id = row.get("player_id")
+    guest_name = (row.get("guest_name") or "").strip()
+    if player_id:
+        players.append(
+            {
+                "player_id": int(player_id),
+                "guest_name": "",
+                "label": row.get("display_label") or "",
+            }
+        )
+    elif guest_name:
+        players.append(
+            {
+                "player_id": None,
+                "guest_name": guest_name,
+                "label": row.get("display_label") or guest_name,
+            }
+        )
+    else:
+        return None
+
+    teammate_id = row.get("teammate_player_id")
+    if teammate_id:
+        players.append(
+            {
+                "player_id": int(teammate_id),
+                "guest_name": "",
+                "label": row.get("teammate_display_label") or "",
+            }
+        )
+
+    kind = "team" if len(players) > 1 else "solo"
+    label = row.get("display_label") or players[0]["label"]
+    return {"kind": kind, "label": label, "players": players}
+
+
+def _lineup_option_from_rows(
+    rows: list[dict],
+    *,
+    source: str,
+    game_id: int | None = None,
+) -> dict | None:
+    sides = []
+    for row in rows:
+        side = _side_payload_from_row(row)
+        if side:
+            sides.append(side)
+    if len(sides) < 2:
+        return None
+    labels = [side["label"] for side in sides]
+    option = {
+        "summary": ", ".join(labels),
+        "labels": labels,
+        "sides": sides,
+        "source": source,
+        "lineup_key": _lineup_key(rows),
+    }
+    if game_id is not None:
+        option["game_id"] = game_id
+    return option
+
+
+def _lineup_key_from_side_payloads(sides: list[dict]) -> frozenset:
+    member_sets: list[frozenset[int]] = []
+    for side in sides:
+        member_ids = {
+            int(player["player_id"])
+            for player in side.get("players") or []
+            if player.get("player_id")
+        }
+        if member_ids:
+            member_sets.append(frozenset(member_ids))
+    return frozenset(member_sets)
+
+
+def _side_payload_from_pair(pair: _PairActivity, scan: _HistoryScan) -> dict:
+    players = []
+    for member_id in sorted(pair.member_ids):
+        activity = scan.players.get(member_id)
+        if activity is None:
+            continue
+        players.append(_player_payload(activity))
+    return {"kind": "team", "label": pair.label, "players": players}
+
+
+def _typical_side_count(games: list[Game], game_type: GameTypeDefinition) -> int:
+    counts: list[int] = []
+    for game in games:
+        count = len(game.participant_results.all())
+        if count >= game_type.min_players:
+            counts.append(count)
+    if not counts:
+        return game_type.min_players
+    return max(game_type.min_players, min(max(counts), game_type.max_players))
+
+
+def _predicted_team_lineups(
+    scan: _HistoryScan,
+    *,
+    side_count: int,
+    team_weight: float,
+    seen_keys: set[frozenset],
+    limit: int,
+) -> list[dict]:
+    if side_count != 2 or limit <= 0:
+        return []
+
+    pair_candidates: list[tuple[float, _PairActivity]] = []
+    for pair in scan.pairs.values():
+        pair_candidates.append((_pair_score(pair, team_weight=team_weight), pair))
+    pair_candidates.extend(
+        _predicted_pairs(scan, exclude=set(), team_weight=team_weight)
+    )
+    pair_candidates.sort(key=lambda item: (-item[0], item[1].label.lower()))
+
+    lineups: list[tuple[float, dict]] = []
+    for left_index, (left_score, left_pair) in enumerate(pair_candidates):
+        for right_score, right_pair in pair_candidates[left_index + 1 :]:
+            if left_pair.member_ids & right_pair.member_ids:
+                continue
+            sides = [
+                _side_payload_from_pair(left_pair, scan),
+                _side_payload_from_pair(right_pair, scan),
+            ]
+            if any(len(side["players"]) < 2 for side in sides):
+                continue
+            lineup_key = _lineup_key_from_side_payloads(sides)
+            if not lineup_key or lineup_key in seen_keys:
+                continue
+            labels = [side["label"] for side in sides]
+            lineups.append(
+                (
+                    left_score + right_score,
+                    {
+                        "summary": ", ".join(labels),
+                        "labels": labels,
+                        "sides": sides,
+                        "source": "predicted",
+                        "lineup_key": lineup_key,
+                    },
+                )
+            )
+
+    lineups.sort(key=lambda item: (-item[0], item[1]["summary"].lower()))
+    return [item[1] for item in lineups[:limit]]
+
+
+def _predicted_solo_lineups(
+    scan: _HistoryScan,
+    *,
+    side_count: int,
+    solo_weight: float,
+    seen_keys: set[frozenset],
+    limit: int,
+) -> list[dict]:
+    if limit <= 0:
+        return []
+
+    ranked = sorted(
+        scan.players.values(),
+        key=lambda activity: (
+            -_solo_score(activity, solo_weight=solo_weight),
+            activity.label.lower(),
+        ),
+    )
+    lineups: list[tuple[float, dict]] = []
+    combo_limit = min(len(ranked), side_count + 4)
+    for combo in itertools.combinations(ranked[:combo_limit], side_count):
+        sides = [
+            {
+                "kind": "solo",
+                "label": activity.label,
+                "players": [_player_payload(activity)],
+            }
+            for activity in combo
+        ]
+        lineup_key = _lineup_key_from_side_payloads(sides)
+        if not lineup_key or lineup_key in seen_keys:
+            continue
+        score = sum(
+            _solo_score(activity, solo_weight=solo_weight) for activity in combo
+        )
+        labels = [side["label"] for side in sides]
+        lineups.append(
+            (
+                score,
+                {
+                    "summary": ", ".join(labels),
+                    "labels": labels,
+                    "sides": sides,
+                    "source": "predicted",
+                    "lineup_key": lineup_key,
+                },
+            )
+        )
+
+    lineups.sort(key=lambda item: (-item[0], item[1]["summary"].lower()))
+    return [item[1] for item in lineups[:limit]]
+
+
+def suggest_lineup_entries(
+    group: Group,
+    game_type_code: str,
+    *,
+    limit: int = MAX_LINEUP_SUGGESTIONS,
+) -> list[dict]:
+    """Full-game lineup suggestions: replay recent matchups plus predicted combos."""
+    if game_type_code not in GAME_TYPES or limit <= 0:
+        return []
+
+    game_type = GAME_TYPES[game_type_code]
+    games = list(
+        Game.objects.filter(group_id=group.pk, game_type_code=game_type_code)
+        .order_by("-played_on", "-created_at", "-pk")
+        .prefetch_related(
+            "participant_results__player__linked_user",
+            "participant_results__player__team_members__member__linked_user",
+        )[:REUSE_PLAYERS_MAX_SCAN]
+    )
+
+    options: list[dict] = []
+    seen_keys: set[frozenset] = set()
+    for game in games:
+        if len(options) >= limit:
+            break
+        rows = participant_rows_from_game(game)
+        option = _lineup_option_from_rows(rows, source="replay", game_id=game.pk)
+        if option is None:
+            continue
+        lineup_key = option.pop("lineup_key")
+        if lineup_key in seen_keys:
+            continue
+        seen_keys.add(lineup_key)
+        options.append(option)
+
+    if len(options) < limit and games:
+        scan = _scan_recent_history(group, game_type_code)
+        if scan.players:
+            side_count = _typical_side_count(games, game_type)
+            total_sides = scan.solo_sides + scan.team_sides
+            team_ratio = scan.team_sides / total_sides if total_sides else 0.0
+            if team_ratio >= 0.65:
+                team_weight, solo_weight = 1.35, 0.55
+            elif team_ratio <= 0.35:
+                team_weight, solo_weight = 0.55, 1.35
+            else:
+                team_weight, solo_weight = 1.0, 1.0
+
+            if team_ratio >= 0.5 and side_count == 2:
+                predicted = _predicted_team_lineups(
+                    scan,
+                    side_count=side_count,
+                    team_weight=team_weight,
+                    seen_keys=seen_keys,
+                    limit=limit - len(options),
+                )
+            else:
+                predicted = _predicted_solo_lineups(
+                    scan,
+                    side_count=side_count,
+                    solo_weight=solo_weight,
+                    seen_keys=seen_keys,
+                    limit=limit - len(options),
+                )
+            for option in predicted:
+                lineup_key = option.pop("lineup_key")
+                seen_keys.add(lineup_key)
+                options.append(option)
+
+    return options

@@ -6,8 +6,8 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=15" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=42" />
+  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=18" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=43" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
@@ -37,7 +37,10 @@
         method="post"
         id="game-record-form"
         autocomplete="off"
-        {% if not is_guest_demo %} data-reuse-preview-url="{% url 'games:reuse_preview' %}"{% endif %}
+        {% if not is_guest_demo %}
+          data-reuse-preview-url="{% url 'games:reuse_preview' %}"
+          data-suggest-sides-url="{% url 'games:suggest_sides' %}"
+        {% endif %}
         {% if not is_guest_demo and insights_ready %} data-parse-recording-url="{% url 'games:parse_recording' %}"{% endif %}
         {% if preserve_setup_location %} data-location-preserve="1"{% endif %}
         {% if show_roster and game_type %}
@@ -511,23 +514,45 @@
                   >
                     Save Game
                   </button>
-                  <div class="dropdown reuse-players-action">
-                    <button
-                      type="button"
-                      id="reuse-players-btn"
-                      class="btn btn-outline-primary game-record-reuse"
-                      data-bs-toggle="dropdown"
-                      data-bs-display="static"
-                      aria-expanded="false"
-                      disabled
-                    >
-                      Reuse
-                    </button>
-                    <ul
-                      class="dropdown-menu dropdown-menu-end reuse-players-menu"
-                      id="reuse-players-menu"
-                      aria-labelledby="reuse-players-btn"
-                    ></ul>
+                  <div class="game-record-lineup-actions" role="group" aria-label="Lineup helpers">
+                    <div class="btn-group" role="group" aria-label="Reuse or suggest a lineup">
+                      <div class="btn-group" role="group">
+                        <button
+                          type="button"
+                          id="reuse-players-btn"
+                          class="btn btn-outline-primary game-record-reuse"
+                          data-bs-toggle="dropdown"
+                          data-bs-display="static"
+                          aria-expanded="false"
+                          disabled
+                        >
+                          Reuse
+                        </button>
+                        <ul
+                          class="dropdown-menu dropdown-menu-end reuse-players-menu"
+                          id="reuse-players-menu"
+                          aria-labelledby="reuse-players-btn"
+                        ></ul>
+                      </div>
+                      <div class="btn-group" role="group">
+                        <button
+                          type="button"
+                          id="suggest-sides-btn"
+                          class="btn btn-outline-primary game-record-suggest"
+                          data-bs-toggle="dropdown"
+                          data-bs-display="static"
+                          aria-expanded="false"
+                          disabled
+                        >
+                          Suggest
+                        </button>
+                        <ul
+                          class="dropdown-menu dropdown-menu-end reuse-players-menu suggest-sides-menu"
+                          id="suggest-sides-menu"
+                          aria-labelledby="suggest-sides-btn"
+                        ></ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div class="game-record-feedback small" data-score-feedback role="status" aria-live="polite"></div>
@@ -567,6 +592,7 @@
     <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
     <script src="{% static 'js/game_record_form.js' %}?v=17"></script>
     <script src="{% static 'js/player_picker.js' %}?v=55"></script>
+    <script src="{% static 'js/game_setup_suggest.js' %}?v=2"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
       <script src="{% static 'js/game_record_voice.js' %}?v=16"></script>
