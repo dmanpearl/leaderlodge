@@ -257,47 +257,7 @@
             {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True enable_recent_locations=True %}
           </div>
 
-          {% if score_type_choice_options %}
-            <div class="mb-3 d-flex align-items-center gap-2" data-score-type-wrap>
-              <label for="game-score-type" class="form-label mb-0">{{ score_type_field_label|default:"Score type" }}</label>
-              {% if score_type_icon_url %}
-                <img
-                  src="{{ score_type_icon_url }}"
-                  alt=""
-                  class="game-score-type-icon"
-                  data-score-type-icon
-                  width="28"
-                  height="28"
-                />
-              {% else %}
-                <img
-                  src=""
-                  alt=""
-                  class="game-score-type-icon d-none"
-                  data-score-type-icon
-                  width="28"
-                  height="28"
-                />
-              {% endif %}
-              <select
-                id="game-score-type"
-                name="score_type"
-                class="form-select"
-                style="max-width: 14rem;"
-                data-score-type-select
-              >
-                {% for option in score_type_choice_options %}
-                  <option
-                    value="{{ option.value }}"
-                    data-icon-url="{{ option.icon_url }}"
-                    {% if score_type == option.value %}selected{% endif %}
-                  >
-                    {{ option.label }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-          {% endif %}
+          {% include "games/includes/record_game_features.html" %}
 
           {% if game_type.no_score_tie %}
             <div class="form-check mb-3">

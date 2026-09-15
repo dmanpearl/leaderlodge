@@ -74,6 +74,61 @@ def _reuse_roster_post(group, *, game_type_code="dominos", reuse_game_id=None):
 
 
 @pytest.mark.django_db
+def test_record_progressive_rummy_half_game_checkbox(client, user, group):
+    players = list(group.players.order_by("pk"))
+    while len(players) < 3:
+        players.append(
+            add_guest_player(group=group, display_name=f"Guest{len(players)}")
+        )
+
+    client.force_login(user)
+    roster_response = client.post(
+        reverse("games:create"),
+        _load_roster_post(group, game_type_code="progressiverummy"),
+    )
+    content = roster_response.content.decode()
+    assert roster_response.status_code == 200
+    assert 'name="is_half_game"' in content
+    assert "Half game" in content
+
+    full_game_data = _save_game_post(
+        group,
+        game_type_code="progressiverummy",
+        players_played=players[:3],
+        scores={players[0].pk: 10, players[1].pk: 50, players[2].pk: 60},
+    )
+    response = client.post(reverse("games:create"), full_game_data)
+    assert response.status_code == 302
+    full_game = Game.objects.get(game_type_code="progressiverummy")
+    assert full_game.half_weight == 1
+
+    half_game_data = dict(full_game_data)
+    half_game_data["is_half_game"] = "on"
+    response = client.post(reverse("games:create"), half_game_data)
+    assert response.status_code == 302
+    half_game = (
+        Game.objects.filter(game_type_code="progressiverummy").order_by("-pk").first()
+    )
+    assert half_game.half_weight == 2
+    detail_content = client.get(
+        reverse("games:detail", kwargs={"pk": half_game.pk})
+    ).content.decode()
+    assert "Half game" in detail_content
+
+
+@pytest.mark.django_db
+def test_record_dominos_has_no_half_game_checkbox(client, user, group):
+    client.force_login(user)
+    response = client.post(
+        reverse("games:create"),
+        _load_roster_post(group, game_type_code="dominos"),
+    )
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert 'name="is_half_game"' not in content
+
+
+@pytest.mark.django_db
 def test_record_progressive_rummy_tied_losers(client, user, group):
     players = list(group.players.order_by("pk"))
     while len(players) < 3:

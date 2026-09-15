@@ -1,0 +1,56 @@
+{% for field in record_game_feature_fields %}
+  {% if field.widget == "select" %}
+    <div class="mb-3 d-flex align-items-center gap-2" data-score-type-wrap>
+      <label for="{{ field.select_id }}" class="form-label mb-0">{{ field.title }}</label>
+      {% if field.icon_url %}
+        <img
+          src="{{ field.icon_url }}"
+          alt=""
+          class="game-score-type-icon"
+          data-score-type-icon
+          width="28"
+          height="28"
+        />
+      {% else %}
+        <img
+          src=""
+          alt=""
+          class="game-score-type-icon d-none"
+          data-score-type-icon
+          width="28"
+          height="28"
+        />
+      {% endif %}
+      <select
+        id="{{ field.select_id }}"
+        name="{{ field.input_name }}"
+        class="form-select"
+        style="max-width: 14rem;"
+        data-score-type-select
+      >
+        {% for option in field.options %}
+          <option
+            value="{{ option.code }}"
+            data-icon-url="{{ option.icon_url }}"
+            {% if field.value == option.code %}selected{% endif %}
+          >
+            {{ option.label }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  {% elif field.widget == "checkbox" %}
+    <div class="form-check mb-3">
+      <input
+        type="checkbox"
+        class="form-check-input"
+        id="{{ field.checkbox_id }}"
+        name="{{ field.input_name }}"
+        {% if field.checked %}checked{% endif %}
+      />
+      <label class="form-check-label" for="{{ field.checkbox_id }}">
+        {{ field.title }}
+      </label>
+    </div>
+  {% endif %}
+{% endfor %}

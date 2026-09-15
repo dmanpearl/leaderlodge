@@ -51,6 +51,11 @@ from leaderlodge.games.game_size import (
 from leaderlodge.games.list_stats import build_game_list_stats
 from leaderlodge.games.list_table import build_game_list_table, show_weight_column
 from leaderlodge.games.models import Game, GameParticipantResult
+from leaderlodge.games.features import (
+    record_game_feature_fields,
+    record_game_kwargs_from_post,
+    resolve_record_game_feature_values,
+)
 from leaderlodge.games.registry import (
     GAME_TYPES,
     game_type_choices,
@@ -984,7 +989,10 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     played_on=save_form.cleaned_data["played_on"],
                     participants=participants,
                     location=location,
-                    score_type=request.POST.get("score_type", ""),
+                    **record_game_kwargs_from_post(
+                        save_form.cleaned_data["game_type_code"],
+                        request.POST,
+                    ),
                 )
             except ValidationError as exc:
                 participant_error = (
@@ -1007,11 +1015,8 @@ def game_create(request: HttpRequest) -> HttpResponse:
     played_on_display = ""
     location_name = ""
     location_geo = location_geo_post_values(None)
-    score_type = (
-        game_type.default_score_type
-        if game_type is not None and game_type.score_types
-        else ""
-    )
+    record_game_feature_values: dict = {}
+    record_game_feature_field_rows: list = []
     selected_setup_game_type_code = ""
     if form.is_bound:
         selected_setup_game_type_code = (form.data.get("game_type_code") or "").strip()
@@ -1035,22 +1040,33 @@ def game_create(request: HttpRequest) -> HttpResponse:
         if form.is_bound:
             location_name = form.data.get("location_name", "")
             location_geo = location_geo_post_values(form.data)
-            score_type = request.POST.get("score_type", score_type)
+            record_game_feature_values = resolve_record_game_feature_values(
+                game_type.code,
+                post_data=request.POST,
+                seeded_score_type=seeded_score_type,
+                last_score_type=last_recorded_score_type(
+                    request.user if request.user.is_authenticated else None,
+                    game_type.code,
+                ),
+            )
         else:
             if form.initial.get("location_name"):
                 location_name = form.initial.get("location_name", "")
                 location_geo = location_geo_post_values(form.initial)
             else:
                 location_name = form["location_name"].value() or ""
-            if seeded_score_type:
-                score_type = seeded_score_type
-            else:
-                prior_score_type = last_recorded_score_type(
+            record_game_feature_values = resolve_record_game_feature_values(
+                game_type.code,
+                seeded_score_type=seeded_score_type,
+                last_score_type=last_recorded_score_type(
                     request.user if request.user.is_authenticated else None,
                     game_type.code,
-                )
-                if prior_score_type:
-                    score_type = prior_score_type
+                ),
+            )
+        record_game_feature_field_rows = record_game_feature_fields(
+            game_type.code,
+            values=record_game_feature_values,
+        )
 
     locked = is_game_type_locked(request)
     heading_type = game_type
@@ -1080,28 +1096,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                 record_game_rules_summary(game_type.code) if game_type else ""
             ),
             "game_type": game_type,
-            "score_type_choices": (
-                score_type_choices_for(game_type.code) if game_type else []
-            ),
-            "score_type_choice_options": (
-                [
-                    {
-                        "value": value,
-                        "label": label,
-                        "icon_url": score_type_icon_url(game_type.code, value),
-                    }
-                    for value, label in score_type_choices_for(game_type.code)
-                ]
-                if game_type
-                else []
-            ),
-            "score_type_field_label": (
-                game_type.score_type_field_label if game_type else "Score type"
-            ),
-            "score_type": score_type,
-            "score_type_icon_url": (
-                score_type_icon_url(game_type.code, score_type) if game_type else ""
-            ),
+            "record_game_feature_fields": record_game_feature_field_rows,
             "show_roster": show_roster and group is not None and game_type is not None,
             "participant_error": participant_error,
             "played_on_value": played_on_value,

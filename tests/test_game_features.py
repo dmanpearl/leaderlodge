@@ -3,8 +3,11 @@ import pytest
 from leaderlodge.games.features import (
     feature_catalog_for_game_type,
     features_for_game_type,
+    record_game_feature_fields,
+    record_game_kwargs_from_post,
     resolve_feature_selections,
     resolve_feature_selections_from_tool_args,
+    resolve_record_game_feature_values,
 )
 
 
@@ -82,6 +85,54 @@ def test_resolve_feature_selections_from_tool_args():
         game_type_code="progressiverummy",
     )
     assert selections == {"half_game": "0"}
+
+
+def test_record_game_feature_fields_for_score_type_and_half_game():
+    pickleball_values = resolve_record_game_feature_values(
+        "pickleball",
+        last_score_type="rally",
+    )
+    pickleball_fields = record_game_feature_fields(
+        "pickleball", values=pickleball_values
+    )
+    assert len(pickleball_fields) == 1
+    assert pickleball_fields[0]["widget"] == "select"
+    assert pickleball_fields[0]["title"] == "Score type"
+    assert pickleball_fields[0]["value"] == "rally"
+    assert pickleball_fields[0]["select_id"] == "game-score-type"
+
+    mahjongg_fields = record_game_feature_fields(
+        "mahjongg",
+        values=resolve_record_game_feature_values("mahjongg"),
+    )
+    assert mahjongg_fields[0]["title"] == "Style"
+    assert any(option["code"] == "japanese" for option in mahjongg_fields[0]["options"])
+
+    pr_values = resolve_record_game_feature_values(
+        "progressiverummy",
+        post_data={"is_half_game": "on"},
+    )
+    pr_fields = record_game_feature_fields("progressiverummy", values=pr_values)
+    assert len(pr_fields) == 1
+    assert pr_fields[0]["widget"] == "checkbox"
+    assert pr_fields[0]["input_name"] == "is_half_game"
+    assert pr_fields[0]["checkbox_id"] == "is-half-game"
+    assert pr_fields[0]["checked"] is True
+    assert "help_text" not in pr_fields[0]
+
+    assert record_game_feature_fields("dominos", values={}) == []
+
+
+def test_record_game_kwargs_from_post():
+    assert record_game_kwargs_from_post(
+        "pickleball",
+        {"score_type": "rally"},
+    ) == {"score_type": "rally"}
+    assert record_game_kwargs_from_post(
+        "progressiverummy",
+        {"is_half_game": "on"},
+    ) == {"half_weight": 2}
+    assert record_game_kwargs_from_post("dominos", {}) == {}
 
 
 def test_resolve_feature_selections_from_tool_args_rejects_invalid():

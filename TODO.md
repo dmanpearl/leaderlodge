@@ -277,11 +277,10 @@
 - [x] de72369 Bug: Record Game: Smart list does not auto-open for 2nd side tap inside player field. Note: Does auto-open for 1st side.
 - [x] a4e93de Login banner "Login to view your own Games, Groups..." needs Login and Sign up buttons.
 - [x] 1477b0c Record game: Put labels and fields side-by-side instead of over-under for options above "AI game entry" similar to Leaderboard and Game filters
+- [x] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
 
 ## Open Items
 
-- [ ] Pickleball needs an easier way to pick teams when recording a game. We currently have only the "Reuse" button to help. Add a button called "Suggest" next to the Reuse buttons. It will use the smart list algorithm combinations. Not just PB, this works for all game types
-- [ ] Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

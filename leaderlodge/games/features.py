@@ -172,6 +172,128 @@ def features_for_game_type(game_type_code: str) -> tuple[GameFeatureSpec, ...]:
     )
 
 
+# Dominos double games are inferred from scores at save time, not set on Record Game.
+RECORD_GAME_CHECKBOX_FEATURES = frozenset({"half_game"})
+
+RECORD_GAME_CHECKBOX_LABELS: dict[str, str] = {
+    "half_game": "Half game",
+}
+
+
+def resolve_record_game_feature_values(
+    game_type_code: str,
+    *,
+    post_data=None,
+    seeded_score_type: str | None = None,
+    last_score_type: str | None = None,
+) -> dict[str, str | bool]:
+    """Current Record Game feature values for template repopulation."""
+    from leaderlodge.games.registry import get_game_type
+
+    game_type = get_game_type(game_type_code)
+    values: dict[str, str | bool] = {}
+
+    score_type = ""
+    if game_type.score_types:
+        score_type = game_type.default_score_type or game_type.score_types[0]
+        if seeded_score_type:
+            score_type = seeded_score_type
+        elif last_score_type:
+            score_type = last_score_type
+
+    is_half_game = False
+    if post_data is not None:
+        if game_type.score_types:
+            score_type = post_data.get("score_type", score_type)
+        if game_type.supports_half_game:
+            is_half_game = "is_half_game" in post_data
+
+    if game_type.score_types:
+        values["score_type"] = score_type
+    if game_type.supports_half_game:
+        values["is_half_game"] = is_half_game
+    return values
+
+
+def record_game_feature_fields(
+    game_type_code: str,
+    *,
+    values: dict[str, str | bool],
+) -> list[dict]:
+    """Render-ready Record Game fields derived from GAME_FEATURES metadata."""
+    from leaderlodge.games.game_type_icons import score_type_icon_url
+
+    rows: list[dict] = []
+    for feature in features_for_game_type(game_type_code):
+        if feature.binding_kind == FeatureBindingKind.STRING_FIELD:
+            selected = str(values.get(feature.key, "") or "")
+            options = []
+            for value in feature.values:
+                options.append(
+                    {
+                        "code": value.code,
+                        "label": value.label,
+                        "icon_url": score_type_icon_url(game_type_code, value.code),
+                    }
+                )
+            selected_icon_url = (
+                score_type_icon_url(game_type_code, selected) if selected else ""
+            )
+            select_id = (
+                "game-score-type"
+                if feature.key == "score_type"
+                else f"record-game-{feature.key.replace('_', '-')}"
+            )
+            rows.append(
+                {
+                    "key": feature.key,
+                    "widget": "select",
+                    "title": feature.title,
+                    "input_name": feature.key,
+                    "select_id": select_id,
+                    "value": selected,
+                    "icon_url": selected_icon_url,
+                    "options": options,
+                }
+            )
+            continue
+
+        if (
+            feature.binding_kind == FeatureBindingKind.WEIGHT_FIELD
+            and feature.key in RECORD_GAME_CHECKBOX_FEATURES
+        ):
+            input_name = "is_half_game" if feature.key == "half_game" else feature.key
+            checkbox_id = "is-half-game" if feature.key == "half_game" else input_name
+            rows.append(
+                {
+                    "key": feature.key,
+                    "widget": "checkbox",
+                    "title": RECORD_GAME_CHECKBOX_LABELS.get(
+                        feature.key, feature.title
+                    ),
+                    "input_name": input_name,
+                    "checkbox_id": checkbox_id,
+                    "checked": bool(values.get(input_name, False)),
+                }
+            )
+    return rows
+
+
+def record_game_kwargs_from_post(game_type_code: str, post_data) -> dict:
+    """Storage kwargs for record_game() from Record Game POST data."""
+    from leaderlodge.games.registry import get_game_type, normalize_half_weight
+
+    game_type = get_game_type(game_type_code)
+    kwargs: dict = {}
+    if game_type.score_types:
+        kwargs["score_type"] = post_data.get("score_type", "")
+    if game_type.supports_half_game:
+        kwargs["half_weight"] = normalize_half_weight(
+            is_half="is_half_game" in post_data
+        )
+    return kwargs
+
+
 def get_game_feature(key: str, *, game_type_code: str | None = None) -> GameFeatureSpec:
     if game_type_code:
         for feature in features_for_game_type(game_type_code):
