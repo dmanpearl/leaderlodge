@@ -95,7 +95,7 @@ def test_record_progressive_rummy_half_game_checkbox(client, user, group):
         group,
         game_type_code="progressiverummy",
         players_played=players[:3],
-        scores={players[0].pk: 10, players[1].pk: 50, players[2].pk: 60},
+        scores={players[0].pk: 10, players[1].pk: 50, players[2].pk: 50},
     )
     response = client.post(reverse("games:create"), full_game_data)
     assert response.status_code == 302
@@ -114,6 +114,14 @@ def test_record_progressive_rummy_half_game_checkbox(client, user, group):
         reverse("games:detail", kwargs={"pk": half_game.pk})
     ).content.decode()
     assert "Half game" in detail_content
+    assert detail_content.count("result-badge-modifier") == 3
+    assert detail_content.count(">½</span>") == 3
+
+    edit_content = client.get(
+        reverse("games:edit_game", kwargs={"pk": half_game.pk})
+    ).content.decode()
+    assert "Half game" in edit_content
+    assert edit_content.count("result-badge-modifier") == 3
 
 
 @pytest.mark.django_db

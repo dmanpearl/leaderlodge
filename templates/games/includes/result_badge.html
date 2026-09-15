@@ -4,14 +4,23 @@
     <span class="badge text-bg-secondary result-badge-modifier">2×</span>
   {% else %}
     <span class="badge result-badge result-badge--win">Win</span>
+    {% if is_half %}
+      <span class="badge text-bg-secondary result-badge-modifier">½</span>
+    {% endif %}
   {% endif %}
 {% elif result == "tie" %}
   <span class="badge result-badge result-badge--tie">Tie</span>
+  {% if is_half %}
+    <span class="badge text-bg-secondary result-badge-modifier">½</span>
+  {% endif %}
 {% elif result == "loss" %}
   {% if is_double %}
     <span class="badge result-badge result-badge--loss-double">Loss</span>
     <span class="badge text-bg-secondary result-badge-modifier">2×</span>
   {% else %}
     <span class="badge result-badge result-badge--loss">Loss</span>
+    {% if is_half %}
+      <span class="badge text-bg-secondary result-badge-modifier">½</span>
+    {% endif %}
   {% endif %}
 {% endif %}

@@ -26,11 +26,7 @@
         {% endif %}
         <h1 class="h3 mb-0">
           {{ game_type.name }}
-          {% if is_double %}
-            <span class="badge result-badge result-badge--win-double align-middle">Double game</span>
-          {% elif is_half %}
-            <span class="badge text-bg-secondary align-middle">Half game</span>
-          {% endif %}
+          {% include "games/includes/game_length_badge.html" %}
         </h1>
       </div>
       {% if insights_enabled %}
@@ -142,7 +138,7 @@
               <td>{{ result.score }}</td>
               <td>
                 <span class="game-detail-result-badges">
-                  {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}
+                  {% include "games/includes/result_badge.html" with result=result.result is_double=is_double is_half=is_half %}
                   {% if row.is_shutout_winner and shutout_icon_url %}
                     {% if row.is_double_skunk %}
                       <img

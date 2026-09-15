@@ -19,10 +19,8 @@
       {% if game.location %}
         &middot; {{ game.location.name }}
       {% endif %}
-      {% if is_double %}
-        &middot; <span class="badge result-badge result-badge--win-double">Double game</span>
-      {% elif is_half %}
-        &middot; <span class="badge text-bg-secondary">Half game</span>
+      {% if is_double or is_half %}
+        &middot; {% include "games/includes/game_length_badge.html" %}
       {% endif %}
     </p>
     <p class="text-muted small mb-0">

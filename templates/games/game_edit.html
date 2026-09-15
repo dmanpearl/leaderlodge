@@ -25,7 +25,9 @@
       <h1 class="h3 mb-0">Edit game</h1>
     </div>
     <p class="text-muted mb-0">
-      {{ game_type.name }} &middot; {{ game.group.name }} &middot; {{ game.played_on|date:"M j, Y" }}
+      {{ game_type.name }}
+      {% include "games/includes/game_length_badge.html" %}
+      &middot; {{ game.group.name }} &middot; {{ game.played_on|date:"M j, Y" }}
       {% if game.location %}
         &middot; {{ game.location.name }}
       {% endif %}
@@ -49,7 +51,7 @@
               <td>{{ result.player.display_label }}</td>
               <td>{{ result.score }}</td>
               <td>
-                {% include "games/includes/result_badge.html" with result=result.result is_double=is_double %}
+                {% include "games/includes/result_badge.html" with result=result.result is_double=is_double is_half=is_half %}
               </td>
             </tr>
           {% endfor %}
