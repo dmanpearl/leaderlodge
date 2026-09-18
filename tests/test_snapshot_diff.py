@@ -1,4 +1,4 @@
-from leaderlodge.games.snapshot_diff import format_snapshot_diff
+from leaderlodge.games.snapshot_diff import format_snapshot_diff, format_snapshot_pretty
 
 
 def test_format_snapshot_diff_empty_score_type():
@@ -122,3 +122,50 @@ def test_format_snapshot_diff_no_changes():
     }
 
     assert format_snapshot_diff(snapshot, snapshot) == "(no differences)"
+
+
+def test_format_snapshot_pretty_renders_game_state():
+    snapshot = {
+        "group": {"id": 1, "name": "Dom Club"},
+        "game_type_code": "dominos",
+        "played_on": "2026-06-30",
+        "score_type": "",
+        "double_weight": 2,
+        "half_weight": 1,
+        "location": {
+            "id": 1,
+            "name": "Kitchen",
+            "lat": 34.0522,
+            "lon": -118.2437,
+        },
+        "participants": [
+            {
+                "player_id": 10,
+                "display_name": "Elena",
+                "score": 35,
+                "result": "win",
+                "placement": 1,
+            },
+            {
+                "player_id": 20,
+                "display_name": "Lucy",
+                "score": 25,
+                "result": "played",
+                "placement": 2,
+            },
+        ],
+    }
+
+    pretty = format_snapshot_pretty(snapshot)
+
+    assert "Group: Dom Club" in pretty
+    assert "Game: Dominos" in pretty
+    assert "Date played: Jun 30, 2026" in pretty
+    assert "Location: Kitchen (34.0522, -118.2437)" in pretty
+    assert "Game length: Double" in pretty
+    assert "Elena: 35 (Win)" in pretty
+    assert "Lucy: 25 (Played)" in pretty
+
+
+def test_format_snapshot_pretty_empty_snapshot():
+    assert format_snapshot_pretty({}) == ""

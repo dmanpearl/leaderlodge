@@ -182,6 +182,9 @@ def test_apply_game_edits_notifies_admin(site_settings, user):
     assert "Dom Club" in admin_messages[0].subject
     assert "Changes:" in admin_messages[0].body
     assert "score 20 to 35" in admin_messages[0].body
+    assert "Updated snapshot:" in admin_messages[0].body
+    assert "Dom Club" in admin_messages[0].body
+    assert "Game: Dominos" in admin_messages[0].body
 
 
 @pytest.mark.django_db

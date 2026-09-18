@@ -8,6 +8,11 @@ Changed by: {{ changed_by_display }}
 {% endif %}
 Changes:
 {{ differences }}
+{% if updated_snapshot %}
+
+Updated snapshot:
+{{ updated_snapshot }}
+{% endif %}
 
 Game: {{ game_url }}
 Admin: {{ admin_url }}

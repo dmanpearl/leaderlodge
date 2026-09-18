@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.utils.dateparse import parse_date
+
 _SCALAR_FIELDS = (
     ("played_on", "played_on"),
     ("score_type", "score_type"),
@@ -9,6 +11,24 @@ _SCALAR_FIELDS = (
     ("half_weight", "half_weight"),
     ("player_count", "player_count"),
 )
+
+
+def _format_played_on(value: Any) -> str:
+    if value is None or value == "":
+        return "(none)"
+    if hasattr(value, "strftime"):
+        return value.strftime("%b %d, %Y").replace(" 0", " ")
+    parsed = parse_date(str(value))
+    if parsed:
+        return parsed.strftime("%b %d, %Y").replace(" 0", " ")
+    return str(value)
+
+
+def _format_result(value: Any) -> str:
+    if not value:
+        return "(none)"
+    text = str(value)
+    return text[:1].upper() + text[1:]
 
 
 def _display_value(value: Any) -> str:
@@ -168,4 +188,87 @@ def format_snapshot_diff(
 
     if not lines:
         return "(no differences)"
+    return "\n".join(lines)
+
+
+def format_snapshot_pretty(snapshot: dict[str, Any]) -> str:
+    """Human-readable final game state for audit emails."""
+    if not snapshot:
+        return ""
+
+    lines: list[str] = []
+
+    group = snapshot.get("group") or {}
+    group_name = str(group.get("name") or "").strip()
+    if group_name:
+        lines.append(f"Group: {group_name}")
+
+    game_type_code = str(snapshot.get("game_type_code") or "").strip()
+    game_type = None
+    if game_type_code:
+        try:
+            from leaderlodge.games.registry import get_game_type
+
+            game_type = get_game_type(game_type_code)
+            lines.append(f"Game: {game_type.name}")
+        except Exception:
+            lines.append(f"Game: {game_type_code}")
+
+    played_on = snapshot.get("played_on")
+    if played_on:
+        lines.append(f"Date played: {_format_played_on(played_on)}")
+
+    location = snapshot.get("location") or {}
+    location_name = str(location.get("name") or "").strip()
+    if location_name:
+        location_line = f"Location: {location_name}"
+        lat = location.get("lat")
+        lon = location.get("lon")
+        if lat is not None and lon is not None:
+            location_line += f" ({lat}, {lon})"
+        lines.append(location_line)
+
+    score_type = str(snapshot.get("score_type") or "").strip()
+    if game_type_code and score_type:
+        from leaderlodge.games.registry import (
+            game_type_has_score_type,
+            score_type_label,
+        )
+
+        if game_type_has_score_type(game_type_code):
+            field_label = (
+                game_type.score_type_field_label if game_type else "Score type"
+            )
+            lines.append(
+                f"{field_label}: {score_type_label(game_type_code, score_type)}"
+            )
+
+    if snapshot.get("double_weight") == 2:
+        lines.append("Game length: Double")
+    if snapshot.get("half_weight") == 2:
+        lines.append("Game length: Half")
+
+    participants = snapshot.get("participants") or []
+    if participants:
+        lines.append("")
+        lines.append("Results:")
+        for side in _group_participants_by_placement(participants):
+            if len(side) == 1:
+                participant = side[0]
+                lines.append(
+                    "  "
+                    f"{participant['display_name']}: "
+                    f"{participant.get('score', '(none)')} "
+                    f"({_format_result(participant.get('result'))})"
+                )
+                continue
+            side_label = _side_label(side)
+            score_text = " / ".join(
+                str(participant.get("score", "")) for participant in side
+            )
+            result_text = " / ".join(
+                _format_result(participant.get("result")) for participant in side
+            )
+            lines.append(f"  {side_label}: {score_text} ({result_text})")
+
     return "\n".join(lines)

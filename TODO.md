@@ -279,11 +279,11 @@
 - [x] 1477b0c Record game: Put labels and fields side-by-side instead of over-under for options above "AI game entry" similar to Leaderboard and Game filters
 - [x] 383f73e Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
 - [x] 37e3c2c Show half game indicators on game detail, edit, and result badges
-- [x] AI game entry: surface game type mismatch instead of silently applying wrong type
+- [x] c9f1b7a AI game entry: surface game type mismatch instead of silently applying wrong type
+- [x] Game edit email should include the final snapshot in a pretty printed format. Current the email provides only changes. Following the changes, there should be the updated snapshot.
 
 ## Open Items
 
-- [ ] Game edit email should include the final snapshot in a pretty printed format. Current the email provides only changes. Following the changes, there should be the updated snapshot.
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

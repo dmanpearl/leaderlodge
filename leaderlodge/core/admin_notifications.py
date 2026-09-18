@@ -208,7 +208,10 @@ def _game_log_notification_context(*, log) -> dict[str, Any]:
     except Exception:
         game_type_label = game_type_code
 
-    from leaderlodge.games.snapshot_diff import format_snapshot_diff
+    from leaderlodge.games.snapshot_diff import (
+        format_snapshot_diff,
+        format_snapshot_pretty,
+    )
 
     # Django admin change URLs include /change/; that is the canonical edit view.
     admin_path = reverse("admin:games_gamescorechangelog_change", args=[log.pk])
@@ -228,6 +231,7 @@ def _game_log_notification_context(*, log) -> dict[str, Any]:
         "old_snapshot": old_snapshot,
         "new_snapshot": new_snapshot,
         "differences": format_snapshot_diff(old_snapshot, new_snapshot),
+        "updated_snapshot": format_snapshot_pretty(new_snapshot),
     }
 
 
