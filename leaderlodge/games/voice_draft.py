@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from django.contrib.auth.models import AbstractBaseUser
+from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 from leaderlodge.games.last_location import (
     last_recorded_location_name,
@@ -39,6 +42,15 @@ _DATE_HINT = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+_RELATIVE_DATE_OFFSETS: dict[str, int] = {
+    "today": 0,
+    "yesterday": -1,
+    "day before yesterday": -2,
+}
+_RELATIVE_DATE_HINT = re.compile(
+    r"\b(?:date:?\s*)?(?:today|yesterday|day before yesterday)\b",
+    re.IGNORECASE,
+)
 
 _GAME_TYPE_ALIASES = {
     "pickle": "pickleball",
@@ -68,6 +80,7 @@ Return ONLY a JSON object (no markdown) with this shape:
   "mentioned_game_type_code": "pickleball|dominos|progressiverummy|mahjongg|backgammon|ginrummy|cribbage|phase10|darts|cornhole or null",
   "mentioned_group": "group/club name if spoken, else null",
   "mentioned_date": "date string if spoken (any format), else null",
+  "is_half_game": true or false or null,
   "score_type": "traditional|rally|american|chinese_trad|hong_kong|japanese|taiwanese|chinese_mcr or null",
   "location_name": "venue/place string or null",
   "sides": [
@@ -91,9 +104,28 @@ Rules:
 - location_name is a venue or place only (court, house, street, park). Never a group/club name.
 - If the user says "in group X" / "for group X", put X in mentioned_group and do NOT use it as location_name.
 - If a calendar date is spoken ("on 8/3/2026", "August 3"), put it in mentioned_date.
+- Relative dates ("yesterday", "today") go in mentioned_date using those words.
 - If a game name is spoken, put it in mentioned_game_type_code (lowercase codes above).
+- Progressive Rummy half game: "half game", "half progressive rummy" -> is_half_game true.
 - Do not invent players or venues not mentioned.
 """
+
+_DATE_FORMATS = (
+    "%Y-%m-%d",
+    "%m/%d/%Y",
+    "%m/%d/%y",
+    "%B %d, %Y",
+    "%b %d, %Y",
+    "%B %d %Y",
+    "%b %d %Y",
+    "%B %d",
+    "%b %d",
+)
+
+_HALF_GAME_HINT = re.compile(
+    r"\bhalf(?:\s+(?:game|progressive(?:\s+rummy)?|rummy))?\b",
+    re.IGNORECASE,
+)
 
 # "A and B 51 to 45" / "A and B 51-45" when the model wrongly collapses to one side.
 _AND_TO_SINGLES = re.compile(
@@ -151,6 +183,164 @@ def _normalize_game_type_code(raw: str | None) -> str:
     if value in GAME_TYPES:
         return value
     return _GAME_TYPE_ALIASES.get(value, value if value in GAME_TYPES else "")
+
+
+def _alias_tokens_for_type(code: str) -> tuple[str, ...]:
+    game_type = get_game_type(code)
+    tokens = {game_type.name.lower(), code.lower()}
+    if game_type.abbr:
+        tokens.add(game_type.abbr.lower())
+    for alias, alias_code in _GAME_TYPE_ALIASES.items():
+        if alias_code == code:
+            tokens.add(alias.lower())
+    return tuple(sorted(tokens, key=len, reverse=True))
+
+
+def _detect_mentioned_game_type_heuristic(transcript: str) -> str:
+    """Return a game type code when the transcript strongly names a game."""
+    text = (transcript or "").lower()
+    if not text:
+        return ""
+
+    for code in GAME_TYPES:
+        for alias in _alias_tokens_for_type(code):
+            if not alias:
+                continue
+            if re.search(rf"\bplaying(?:\s+(?:at|in))?\s+{re.escape(alias)}\b", text):
+                return code
+            if re.search(rf"\b{re.escape(alias)}\s+game\b", text):
+                return code
+            if re.search(rf"\ba\s+{re.escape(alias)}\s+game\b", text):
+                return code
+    return ""
+
+
+def _resolve_mentioned_game_type(
+    *,
+    transcript: str,
+    raw: dict[str, Any],
+) -> tuple[str, str]:
+    """Return (game_type_code, source) where source is llm, heuristic, or empty."""
+    llm_code = _normalize_game_type_code(
+        raw.get("mentioned_game_type_code") or raw.get("game_type_code")
+    )
+    if llm_code in GAME_TYPES:
+        return llm_code, "llm"
+
+    heuristic_code = _detect_mentioned_game_type_heuristic(transcript)
+    if heuristic_code in GAME_TYPES:
+        return heuristic_code, "heuristic"
+    return "", ""
+
+
+def _parse_relative_date(raw: str) -> date | None:
+    value = re.sub(r"^date:?\s*", "", (raw or "").strip(), flags=re.IGNORECASE)
+    cleaned = value.strip().lower()
+    if not cleaned:
+        return None
+    offset = _RELATIVE_DATE_OFFSETS.get(cleaned)
+    if offset is None:
+        return None
+    return timezone.localdate() + timedelta(days=offset)
+
+
+def _parse_spoken_date(raw: str, *, fallback_year: int | None = None) -> date | None:
+    value = (raw or "").strip()
+    if not value:
+        return None
+
+    relative = _parse_relative_date(value)
+    if relative:
+        return relative
+
+    parsed = parse_date(value)
+    if parsed:
+        return parsed
+
+    for fmt in _DATE_FORMATS:
+        try:
+            dt = datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+        if "%Y" not in fmt:
+            year = fallback_year or timezone.localdate().year
+            try:
+                return dt.replace(year=year).date()
+            except ValueError:
+                continue
+        return dt.date()
+    return None
+
+
+def _resolve_played_on(*, transcript: str, raw: dict[str, Any]) -> str:
+    mentioned = str(raw.get("mentioned_date") or raw.get("played_on") or "").strip()
+    if mentioned:
+        parsed = _parse_spoken_date(mentioned)
+        if parsed:
+            return parsed.isoformat()
+
+    text = transcript or ""
+    relative_match = _RELATIVE_DATE_HINT.search(text)
+    if relative_match:
+        parsed = _parse_relative_date(relative_match.group(0))
+        if parsed:
+            return parsed.isoformat()
+
+    match = _DATE_HINT.search(text)
+    if match:
+        parsed = _parse_spoken_date(match.group(0))
+        if parsed:
+            return parsed.isoformat()
+    return ""
+
+
+def _transcript_mentions_unresolved_date(
+    *,
+    transcript: str,
+    raw: dict[str, Any],
+    played_on: str,
+) -> bool:
+    if played_on:
+        return False
+    mentioned = str(raw.get("mentioned_date") or raw.get("played_on") or "").strip()
+    if mentioned:
+        return True
+    text = transcript or ""
+    if _DATE_HINT.search(text) or _RELATIVE_DATE_HINT.search(text):
+        return True
+    return bool(re.search(r"\bdate:?\s*\S", text, re.IGNORECASE))
+
+
+def _resolve_is_half_game(*, transcript: str, raw: dict[str, Any]) -> bool:
+    raw_value = raw.get("is_half_game")
+    if raw_value is True:
+        return True
+    if raw_value is False:
+        return False
+    if isinstance(raw_value, str):
+        cleaned = raw_value.strip().lower()
+        if cleaned in {"true", "yes", "1"}:
+            return True
+        if cleaned in {"false", "no", "0"}:
+            return False
+    return bool(_HALF_GAME_HINT.search(transcript or ""))
+
+
+def _build_game_type_conflict(
+    *,
+    mentioned_code: str,
+    selected_code: str,
+) -> dict[str, str] | None:
+    if not mentioned_code or mentioned_code == selected_code:
+        return None
+    if mentioned_code not in GAME_TYPES or selected_code not in GAME_TYPES:
+        return None
+    return {
+        "mentioned_code": mentioned_code,
+        "mentioned_name": get_game_type(mentioned_code).name,
+        "selected_code": selected_code,
+        "selected_name": get_game_type(selected_code).name,
+    }
 
 
 def _extract_json_object(text: str) -> dict[str, Any]:
@@ -257,41 +447,14 @@ def _resolve_location(
     return default_name, warnings
 
 
-def _scope_manual_change_notes(
-    *,
-    transcript: str,
-    raw: dict[str, Any],
-    selected_game_type_code: str,
-) -> list[str]:
-    """Warn when the utterance asks to change fields above AI entry."""
+def _scope_manual_change_notes(*, transcript: str, raw: dict[str, Any]) -> list[str]:
+    """Warn when the utterance asks to change fields we do not apply."""
     notes: list[str] = []
     text = transcript or ""
-
-    mentioned_type = _normalize_game_type_code(
-        raw.get("mentioned_game_type_code") or raw.get("game_type_code")
-    )
-    if (
-        mentioned_type
-        and selected_game_type_code
-        and mentioned_type != selected_game_type_code
-    ):
-        mentioned_name = get_game_type(mentioned_type).name
-        notes.append(
-            f'Game type "{mentioned_name}" was mentioned but not applied. '
-            "Change Game above if needed."
-        )
 
     mentioned_group = str(raw.get("mentioned_group") or "").strip()
     if mentioned_group or _GROUP_HINT.search(text):
         notes.append("Group mentioned is not applied. Change Group above if needed.")
-
-    mentioned_date = str(
-        raw.get("mentioned_date") or raw.get("played_on") or ""
-    ).strip()
-    if mentioned_date or _DATE_HINT.search(text):
-        notes.append(
-            "Date mentioned is not applied. Change Date played above if needed."
-        )
 
     return notes
 
@@ -304,7 +467,7 @@ def parse_recording_transcript(
     model_slug: str,
     default_game_type_code: str = "",
 ) -> dict[str, Any]:
-    """Return a resolved draft for fields below AI entry (not group/game/date)."""
+    """Return a resolved draft for Record Game fields (group stays manual)."""
     text = (transcript or "").strip()
     if not text:
         raise ValueError("Transcript is empty.")
@@ -326,11 +489,29 @@ def parse_recording_transcript(
     game_type_code = selected_game_type_code
     game_type = get_game_type(game_type_code)
     warnings: list[str] = []
-    ambiguities = _scope_manual_change_notes(
+    ambiguities = _scope_manual_change_notes(transcript=text, raw=raw)
+
+    mentioned_code, _mention_source = _resolve_mentioned_game_type(
         transcript=text,
         raw=raw,
-        selected_game_type_code=game_type_code,
     )
+    conflict = _build_game_type_conflict(
+        mentioned_code=mentioned_code,
+        selected_code=game_type_code,
+    )
+
+    played_on = _resolve_played_on(transcript=text, raw=raw)
+    if _transcript_mentions_unresolved_date(
+        transcript=text,
+        raw=raw,
+        played_on=played_on,
+    ):
+        ambiguities.append(
+            "Could not resolve the date mentioned. Set Date played manually."
+        )
+    is_half_game = False
+    if game_type.supports_half_game:
+        is_half_game = _resolve_is_half_game(transcript=text, raw=raw)
 
     score_type = ""
     if game_type_has_score_type(game_type_code):
@@ -393,8 +574,11 @@ def parse_recording_transcript(
         "game_type_name": game_type.name,
         "score_type": score_type,
         "location_name": location_name,
+        "played_on": played_on,
+        "is_half_game": is_half_game,
         "sides": sides,
         "warnings": warnings,
         "ambiguities": ambiguities,
+        "conflict": conflict,
         "transcript": text,
     }

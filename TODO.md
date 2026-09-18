@@ -278,11 +278,12 @@
 - [x] a4e93de Login banner "Login to view your own Games, Groups..." needs Login and Sign up buttons.
 - [x] 1477b0c Record game: Put labels and fields side-by-side instead of over-under for options above "AI game entry" similar to Leaderboard and Game filters
 - [x] 383f73e Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
-- [x] Show half game indicators on game detail, edit, and result badges
+- [x] 37e3c2c Show half game indicators on game detail, edit, and result badges
+- [x] AI game entry: surface game type mismatch instead of silently applying wrong type
 
 ## Open Items
 
-- [ ] AI game entry: If the user requests a different game type, stop and ask if he needs to switch, or modify to support switching.
+- [ ] Game edit email should include the final snapshot in a pretty printed format. Current the email provides only changes. Following the changes, there should be the updated snapshot.
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from unittest.mock import patch
 
 import pytest
@@ -11,6 +12,7 @@ from leaderlodge.games.models import Game
 from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.games.voice_draft import (
+    _detect_mentioned_game_type_heuristic,
     _sides_from_and_to_singles,
     parse_recording_transcript,
 )
@@ -383,6 +385,17 @@ def test_parse_recording_resolves_apostrophe_location_to_places_label(
     assert not any("No location matched" in msg for msg in draft["warnings"])
 
 
+def test_detect_mentioned_game_type_heuristic_playing_phrase():
+    code = _detect_mentioned_game_type_heuristic(
+        "playing dominos at Zinque Pat 23 Nancy 32"
+    )
+    assert code == "dominos"
+
+
+def test_detect_mentioned_game_type_heuristic_skips_bare_names():
+    assert _detect_mentioned_game_type_heuristic("David beat Nancy 11 to 9") == ""
+
+
 @pytest.mark.django_db
 @patch("leaderlodge.games.voice_draft.complete_insight")
 def test_parse_recording_keeps_selected_game_and_warns_on_above_fields(
@@ -394,7 +407,7 @@ def test_parse_recording_keeps_selected_game_and_warns_on_above_fields(
             "mentioned_group": "manpearl",
             "mentioned_date": "8/3/2026",
             "score_type": "traditional",
-            "location_name": None,
+            "location_name": "Zinque",
             "sides": [
                 {"names": ["Lucas"], "score": 11},
                 {"names": ["Amelia"], "score": 0},
@@ -404,7 +417,7 @@ def test_parse_recording_keeps_selected_game_and_warns_on_above_fields(
 
     draft = parse_recording_transcript(
         group=voice_group,
-        transcript="Lucas 11 vs Amelia 0 on 8/3/2026 traditional in group manpearl dominos",
+        transcript="Lucas 11 vs Amelia 0 on 8/3/2026 traditional in group manpearl playing dominos at Zinque",
         user=user,
         model_slug="gpt-4o-mini",
         default_game_type_code="pickleball",
@@ -412,9 +425,163 @@ def test_parse_recording_keeps_selected_game_and_warns_on_above_fields(
 
     assert draft["game_type_code"] == "pickleball"
     assert draft["score_type"] == "traditional"
-    assert any("Date played above" in msg for msg in draft["ambiguities"])
+    assert draft["played_on"] == "2026-08-03"
+    assert draft["location_name"] == "Zinque"
+    assert len(draft["sides"]) == 2
+    assert draft["conflict"] == {
+        "mentioned_code": "dominos",
+        "mentioned_name": "Dominos",
+        "selected_code": "pickleball",
+        "selected_name": "Pickleball",
+    }
     assert any("Group above" in msg for msg in draft["ambiguities"])
-    assert any("Game above" in msg for msg in draft["ambiguities"])
+    assert not any("Date played" in msg for msg in draft["ambiguities"])
+    assert not any("Game above" in msg for msg in draft["ambiguities"])
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_heuristic_game_type_conflict_when_llm_misses_type(
+    mock_complete, voice_group, user
+):
+    mock_complete.return_value = _completion(
+        {
+            "score_type": None,
+            "location_name": "Zinque",
+            "sides": [
+                {"names": ["Pat"], "score": 23},
+                {"names": ["Nancy"], "score": 32},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="playing dominos Pat 23 Nancy 32 at Zinque",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="pickleball",
+    )
+
+    assert draft["conflict"]["mentioned_code"] == "dominos"
+    assert draft["location_name"] == "Zinque"
+    assert len(draft["sides"]) == 2
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.timezone.localdate")
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_resolves_yesterday_from_transcript(
+    mock_complete, mock_localdate, voice_group, user
+):
+    mock_localdate.return_value = date(2026, 9, 16)
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_game_type_code": "dominos",
+            "mentioned_date": "yesterday",
+            "location_name": "Zinque",
+            "sides": [
+                {"names": ["Nancy"], "score": 35},
+                {"names": ["David"], "score": 25},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="nancy and david played dominos 35 to 25 yesterday at Zinque",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="progressiverummy",
+    )
+
+    assert draft["played_on"] == "2026-09-15"
+    assert not any("Could not resolve the date" in msg for msg in draft["ambiguities"])
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.timezone.localdate")
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_resolves_date_yesterday_label(
+    mock_complete, mock_localdate, voice_group, user
+):
+    mock_localdate.return_value = date(2026, 9, 16)
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_date": "yesterday",
+            "location_name": "Zinque",
+            "sides": [
+                {"names": ["Nancy"], "score": 35},
+                {"names": ["David"], "score": 25},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="nancy and david 35 to 25, date: yesterday at Zinque",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="dominos",
+    )
+
+    assert draft["played_on"] == "2026-09-15"
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_warns_when_date_cannot_be_resolved(
+    mock_complete, voice_group, user
+):
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_date": "next week",
+            "location_name": "Zinque",
+            "sides": [
+                {"names": ["Nancy"], "score": 35},
+                {"names": ["David"], "score": 25},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="nancy and david 35 to 25 next week at Zinque",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="dominos",
+    )
+
+    assert draft["played_on"] == ""
+    assert any("Could not resolve the date" in msg for msg in draft["ambiguities"])
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_applies_half_game_for_progressive_rummy(
+    mock_complete, voice_group, user
+):
+    mock_complete.return_value = _completion(
+        {
+            "is_half_game": True,
+            "location_name": None,
+            "sides": [
+                {"names": ["Pat"], "score": 50},
+                {"names": ["Nancy"], "score": 60},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="half game Pat 50 Nancy 60",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="progressiverummy",
+    )
+
+    assert draft["is_half_game"] is True
+    assert draft["conflict"] is None
 
 
 @override_settings(INSIGHTS_ENABLED=True, OPENAI_API_KEY="test-key")
@@ -511,8 +678,10 @@ def test_record_game_page_includes_voice_controls(client, voice_group, user):
     assert "data-voice-mic" not in content
     assert "Fill form" not in content
     voice_idx = content.index("data-game-record-voice")
+    date_idx = content.index('name="played_on"')
     location_idx = content.index('name="location_name"')
-    assert voice_idx < location_idx
+    assert voice_idx < date_idx < location_idx
+    assert 'data-game-type-locked="false"' in content
 
 
 @override_settings(INSIGHTS_ENABLED=True, OPENAI_API_KEY="test-key")

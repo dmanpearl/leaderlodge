@@ -6,7 +6,7 @@
 {% block extra_css %}
   <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
-  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=18" />
+  <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=19" />
   <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=43" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
@@ -106,13 +106,15 @@
               {% endif %}
             </div>
           {% endif %}
-          <div class="col-12 col-md-4">
-            <label for="{{ form.played_on.id_for_label }}" class="form-label">Date played</label>
-            {{ form.played_on }}
-            {% if form.played_on.errors %}
-              <div class="invalid-feedback d-block">{{ form.played_on.errors }}</div>
-            {% endif %}
-          </div>
+          {% if not show_roster or not game_type %}
+            <div class="col-12 col-md-4">
+              <label for="{{ form.played_on.id_for_label }}" class="form-label">Date played</label>
+              {{ form.played_on }}
+              {% if form.played_on.errors %}
+                <div class="invalid-feedback d-block">{{ form.played_on.errors }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
           {% if not show_roster or is_guest_demo %}
             <div class="col-12">
               {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True enable_recent_locations=True %}
@@ -139,6 +141,7 @@
             <div
               class="game-record-voice mb-3"
               data-game-record-voice
+              data-game-type-locked="{% if game_type_locked %}true{% else %}false{% endif %}"
             >
               <div class="game-record-voice-header">
                 <button
@@ -252,6 +255,16 @@
               </div>
             </div>
           {% endif %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+              <label for="{{ form.played_on.id_for_label }}" class="form-label">Date played</label>
+              {{ form.played_on }}
+              {% if form.played_on.errors %}
+                <div class="invalid-feedback d-block">{{ form.played_on.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
 
           <div class="mb-3">
             {% include "games/includes/location_field.html" with field=form.location_name enable_record_map=True enable_recent_locations=True %}
@@ -555,7 +568,7 @@
     <script src="{% static 'js/game_setup_suggest.js' %}?v=2"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
-      <script src="{% static 'js/game_record_voice.js' %}?v=16"></script>
+      <script src="{% static 'js/game_record_voice.js' %}?v=18"></script>
     {% endif %}
   {% endif %}
 {% endblock %}

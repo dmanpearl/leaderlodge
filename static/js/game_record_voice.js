@@ -1,11 +1,12 @@
 /**
  * Keyboard / typed draft into the unified Record Game form.
- * AI fills fields below this panel only (location, score type, players).
- * Group, game, and date above stay as selected; mentions warn to edit manually.
+ * AI fills location, date, score type, half game, and players below the panel.
+ * Group stays manual; game type mismatch shows a red warning with optional switch.
  * Never auto-saves; user reviews and clicks Save Game.
  */
 (function () {
   const STORAGE_KEY = "leaderlodge.recordGame.aiEntryOpen";
+  const REPARSE_KEY = "leaderlodge.recordGame.reparseTranscript";
 
   const form = document.getElementById("game-record-form");
   const root = document.querySelector("[data-game-record-voice]");
@@ -18,6 +19,7 @@
     return;
   }
 
+  const gameTypeLocked = root.dataset.gameTypeLocked === "true";
   const panel = document.getElementById("game-record-voice-panel");
   const toggleBtns = Array.from(root.querySelectorAll("[data-voice-toggle]"));
   const helpBtn = root.querySelector("[data-voice-help]");
@@ -34,6 +36,7 @@
   let listening = false;
   let recognition = null;
   let finalTranscript = "";
+  let conflictSwitchHandler = null;
 
   function readStoredOpen() {
     try {
@@ -69,7 +72,15 @@
     statusEl.classList.toggle("text-muted", tone !== "error");
   }
 
+  function clearConflictUi() {
+    if (conflictSwitchHandler && notesEl) {
+      notesEl.removeEventListener("click", conflictSwitchHandler);
+      conflictSwitchHandler = null;
+    }
+  }
+
   function setNotes(lines) {
+    clearConflictUi();
     if (!notesEl) {
       return;
     }
@@ -186,6 +197,19 @@
     }
   }
 
+  function applyPlayedOn(isoDate) {
+    if (!isoDate) {
+      return;
+    }
+    const input = form.querySelector('[name="played_on"]');
+    if (!input) {
+      return;
+    }
+    input.value = isoDate;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
   function applyScoreType(scoreType) {
     if (!scoreType) {
       return;
@@ -207,6 +231,83 @@
     }
   }
 
+  function applyHalfGame(isHalf) {
+    const checkbox = form.querySelector('[name="is_half_game"]');
+    if (!checkbox) {
+      return;
+    }
+    checkbox.checked = Boolean(isHalf);
+    checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function conflictStatusText(conflict) {
+    if (!conflict) {
+      return "";
+    }
+    const mentioned = conflict.mentioned_name || conflict.mentioned_code || "another game";
+    const selected = conflict.selected_name || conflict.selected_code || "the selected game";
+    return `You mentioned ${mentioned}, but Game is set to ${selected}.`;
+  }
+
+  function renderConflict(conflict) {
+    clearConflictUi();
+    if (!notesEl || !conflict) {
+      return;
+    }
+
+    const canSwitch = !gameTypeLocked && Boolean(conflict.mentioned_code);
+    let html = "";
+
+    if (canSwitch) {
+      const label = conflict.mentioned_name || conflict.mentioned_code;
+      html = `<button type="button" class="btn btn-sm btn-outline-danger game-record-voice-switch" data-voice-switch-game="${escapeHtml(
+        conflict.mentioned_code
+      )}">Switch to ${escapeHtml(label)} and re-parse</button>`;
+    } else if (gameTypeLocked) {
+      html =
+        '<div class="small text-danger">Game type is locked for this account.</div>';
+    }
+
+    notesEl.classList.remove("d-none");
+    notesEl.innerHTML = html;
+
+    conflictSwitchHandler = function (event) {
+      const btn = event.target.closest("[data-voice-switch-game]");
+      if (!btn) {
+        return;
+      }
+      event.preventDefault();
+      switchGameTypeAndReparse(btn.getAttribute("data-voice-switch-game"));
+    };
+    notesEl.addEventListener("click", conflictSwitchHandler);
+  }
+
+  function switchGameTypeAndReparse(gameTypeCode) {
+    const transcript = (transcriptEl && transcriptEl.value.trim()) || "";
+    if (!transcript || !gameTypeCode) {
+      return;
+    }
+    const groupId = currentGroupId();
+    if (!groupId) {
+      setStatus("Choose a group first.", "error");
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(REPARSE_KEY, transcript);
+      writeStoredOpen(true);
+    } catch (err) {
+      /* ignore */
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("group", groupId);
+    url.searchParams.set("type", gameTypeCode);
+    url.searchParams.delete("reuse_from");
+    url.searchParams.delete("pick_from");
+    window.LeaderLodge.navigate(url.pathname + url.search);
+  }
+
   function applyDraft(draft) {
     if (!draft || !window.LeaderLodgeRecordGame) {
       return false;
@@ -217,7 +318,9 @@
     }
 
     applyLocation(draft.location_name || "");
+    applyPlayedOn(draft.played_on || "");
     applyScoreType(draft.score_type || "");
+    applyHalfGame(draft.is_half_game);
 
     api.clearParticipants();
     const sides = Array.isArray(draft.sides) ? draft.sides : [];
@@ -237,11 +340,27 @@
       // Sides are filled; collapse Add player to the compact "+" control.
       api.collapsePlayerPicker();
     }
+
+    if (draft.conflict) {
+      renderConflict(draft.conflict);
+      if (notes.length) {
+        notesEl.innerHTML += notes
+          .map((line) => `<div class="text-warning-emphasis mt-1">${escapeHtml(line)}</div>`)
+          .join("");
+        notesEl.classList.remove("d-none");
+      }
+      if (added < 2) {
+        setStatus("Draft partially filled. Edit as needed.", "error");
+      } else {
+        setStatus(conflictStatusText(draft.conflict), "error");
+      }
+      return added >= 2;
+    }
+
     setNotes(notes);
     if (added < 2) {
       setStatus("Draft partially filled. Edit as needed.", "error");
     } else {
-      // Success is obvious from filled rows; keep status for errors only.
       setStatus("");
     }
     return added >= 2;
@@ -263,6 +382,7 @@
       return;
     }
 
+    clearConflictUi();
     setNotes([]);
     setProcessing(true);
 
@@ -298,6 +418,24 @@
       setProcessing(false);
       setStatus("Network error while parsing.", "error");
     }
+  }
+
+  function restoreReparseTranscript() {
+    let stored = "";
+    try {
+      stored = window.localStorage.getItem(REPARSE_KEY) || "";
+      if (stored) {
+        window.localStorage.removeItem(REPARSE_KEY);
+      }
+    } catch (err) {
+      return;
+    }
+    if (!stored || !transcriptEl) {
+      return;
+    }
+    transcriptEl.value = stored;
+    syncApplyEnabled();
+    parseTranscript();
   }
 
   if (panel) {
@@ -518,4 +656,5 @@
   }
 
   syncApplyEnabled();
+  restoreReparseTranscript();
 })();

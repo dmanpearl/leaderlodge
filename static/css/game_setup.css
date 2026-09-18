@@ -193,6 +193,14 @@
   color: var(--bs-danger) !important;
 }
 
+.game-record-voice-conflict {
+  font-weight: 600;
+}
+
+.game-record-voice-switch {
+  display: inline-block;
+}
+
 .game-record-voice-input-wrap {
   position: relative;
   display: block;
