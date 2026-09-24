@@ -3,7 +3,7 @@
  */
 (function () {
   const MAX_SUGGESTIONS = 8;
-  const MAX_SMART_TEAMS_WHEN_EMPTY = 4;
+  const MAX_SMART_TEAMS_WHEN_EMPTY = 2;
 
   function foldAccents(value) {
     return value.normalize("NFD").replace(/\p{M}/gu, "");
@@ -131,6 +131,47 @@
     } catch (_error) {
       return [];
     }
+  }
+
+  function promoteBestSoloMatchForQuery(items, roster, query, tbody, existing) {
+    const trimmed = (query || "").trim();
+    if (!trimmed) {
+      return items;
+    }
+    const soloMatches = filterRoster(roster, trimmed, { soloOnly: true, limit: 1 });
+    if (!soloMatches.length) {
+      return items;
+    }
+    const best = soloMatches[0];
+    if (entryIsIneligible(tbody, best, existing, roster)) {
+      return items;
+    }
+    const bestId = best.id ? Number(best.id) : null;
+    let matchIndex = -1;
+    items.forEach((item, index) => {
+      if (item.type === "smart-team") {
+        return;
+      }
+      const entry = item.entry;
+      if (!entry) {
+        return;
+      }
+      if (bestId && Number(entry.id) === bestId) {
+        matchIndex = index;
+      } else if (labelsMatch(entry.label || entry.guestName, trimmed)) {
+        matchIndex = index;
+      }
+    });
+    if (matchIndex === 0) {
+      return items;
+    }
+    if (matchIndex > 0) {
+      const [matched] = items.splice(matchIndex, 1);
+      items.unshift(matched);
+      return items;
+    }
+    items.unshift({ type: "player", entry: best });
+    return items;
   }
 
   function smartPlayerIds(suggestion) {
@@ -1913,7 +1954,16 @@
         }
       }
 
-      this.suggestions = items.slice(0, MAX_SUGGESTIONS);
+      const trimmedItems = trimmed
+        ? promoteBestSoloMatchForQuery(
+            items,
+            roster,
+            query,
+            this.tbody,
+            existing
+          )
+        : items;
+      this.suggestions = trimmedItems.slice(0, MAX_SUGGESTIONS);
       this.activeIndex = -1;
       if (this.suggestions.length === 0) {
         this.close();

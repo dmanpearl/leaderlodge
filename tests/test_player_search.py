@@ -238,6 +238,12 @@ def test_roster_deprioritizes_team_with_no_history_in_game_type(group, user):
     assert team_entry["deprioritized"] is True
     assert team_entry["recency"] == DEFAULT_RECENCY
 
+    pickleball_roster = roster_for_group(group, game_type_code="pickleball")
+    pickleball_team = next(
+        entry for entry in pickleball_roster if entry["label"] == "Nancy+Zach"
+    )
+    assert pickleball_team["deprioritized"] is False
+
     # Without game_type_code scoping, no team is deprioritized.
     unscoped_roster = roster_for_group(group)
     unscoped_team_entry = next(

@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 
 from leaderlodge.games.roster_suggestions import (
+    TEAM_SUGGESTIONS_MIN_GAME_RATIO,
     suggest_lineup_entries,
     suggest_side_entries,
 )
@@ -58,6 +59,86 @@ def _record_pickleball_doubles(
             ParticipantInput(player=side_b, score=9, result="played", placement=1),
         ],
     )
+
+
+@pytest.mark.django_db
+def test_suggest_mahjongg_omits_team_pairs(user, group):
+    today = date(2026, 3, 15)
+    _record_pickleball_doubles(
+        user,
+        group,
+        team_a=("David", "Nancy"),
+        team_b=("Imelda", "Steve"),
+        played_on=today,
+    )
+    players = _players_by_name(group)
+    owner = group.players.get(linked_user=user)
+    record_game(
+        user=user,
+        group=group,
+        game_type_code="mahjongg",
+        played_on=today,
+        participants=[
+            ParticipantInput(player=owner, score=100, result="win", placement=0),
+            ParticipantInput(
+                player=players["Nancy"], score=80, result="played", placement=1
+            ),
+            ParticipantInput(
+                player=players["Imelda"], score=70, result="played", placement=2
+            ),
+            ParticipantInput(
+                player=players["Steve"], score=60, result="played", placement=3
+            ),
+        ],
+    )
+
+    suggestions = suggest_side_entries(group, "mahjongg")
+
+    assert suggestions
+    assert all(item["kind"] == "solo" for item in suggestions)
+
+
+@pytest.mark.django_db
+def test_suggest_omits_teams_when_team_games_below_ratio(user, group):
+    today = date(2026, 3, 15)
+    players = _players_by_name(group)
+    owner = group.players.get(linked_user=user)
+    for name in ("Nancy", "Imelda", "Melissa", "Karen"):
+        record_game(
+            user=user,
+            group=group,
+            game_type_code="pickleball",
+            played_on=today,
+            participants=[
+                ParticipantInput(
+                    player=owner,
+                    score=11,
+                    result="win",
+                    placement=0,
+                ),
+                ParticipantInput(
+                    player=players[name],
+                    score=9,
+                    result="played",
+                    placement=1,
+                ),
+            ],
+        )
+    _record_pickleball_doubles(
+        user,
+        group,
+        team_a=("David", "Nancy"),
+        team_b=("Imelda", "Steve"),
+        played_on=today,
+    )
+
+    suggestions = suggest_side_entries(group, "pickleball")
+    team_labels = [item["label"] for item in suggestions if item["kind"] == "team"]
+    solo_labels = [item["label"] for item in suggestions if item["kind"] == "solo"]
+
+    assert solo_labels
+    assert not team_labels
+    assert TEAM_SUGGESTIONS_MIN_GAME_RATIO == 0.85
 
 
 @pytest.mark.django_db

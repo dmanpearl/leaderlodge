@@ -23,6 +23,9 @@ MAX_SUGGESTIONS = 8
 MAX_LINEUP_SUGGESTIONS = 6
 SCAN_GAMES = 20
 MIN_RECENT_PLAYERS = 4
+# Share of recent games (group + game type) that must have a team side before
+# team rows appear in the smart suggest list.
+TEAM_SUGGESTIONS_MIN_GAME_RATIO = 0.85
 
 
 @dataclass
@@ -65,6 +68,8 @@ class _HistoryScan:
     pairs: dict[frozenset[int], _PairActivity] = field(default_factory=dict)
     solo_sides: int = 0
     team_sides: int = 0
+    games_scanned: int = 0
+    games_with_team_side: int = 0
     dates_seen: set[date] = field(default_factory=set)
 
 
@@ -107,6 +112,7 @@ def _scan_recent_history(group: Group, game_type_code: str) -> _HistoryScan:
 
     for game in games:
         scan.dates_seen.add(game.played_on)
+        game_has_team_side = False
         for result in game.participant_results.all():
             player = result.player
             if not player.is_active:
@@ -116,6 +122,8 @@ def _scan_recent_history(group: Group, game_type_code: str) -> _HistoryScan:
                 continue
             member_labels = _member_labels_for_result(result, labels)
             is_team_side = len(member_ids) > 1
+            if is_team_side:
+                game_has_team_side = True
             if is_team_side:
                 scan.team_sides += 1
                 pair = scan.pairs.setdefault(
@@ -144,7 +152,18 @@ def _scan_recent_history(group: Group, game_type_code: str) -> _HistoryScan:
                 else:
                     activity.solo_count += 1
 
+        scan.games_scanned += 1
+        if game_has_team_side:
+            scan.games_with_team_side += 1
+
     return scan
+
+
+def _allow_team_smart_suggestions(scan: _HistoryScan) -> bool:
+    if scan.games_scanned == 0:
+        return False
+    ratio = scan.games_with_team_side / scan.games_scanned
+    return ratio >= TEAM_SUGGESTIONS_MIN_GAME_RATIO
 
 
 def _player_payload(activity: _PlayerActivity) -> dict:
@@ -256,6 +275,8 @@ def suggest_side_entries(
     if not scan.players:
         return []
 
+    allow_team_sides = _allow_team_smart_suggestions(scan)
+
     total_sides = scan.solo_sides + scan.team_sides
     team_ratio = scan.team_sides / total_sides if total_sides else 0.0
     if team_ratio >= 0.65:
@@ -267,52 +288,55 @@ def suggest_side_entries(
 
     candidates: list[tuple[float, str, dict]] = []
 
-    for pair in scan.pairs.values():
-        if len(pair.member_ids) != 2 or _pair_blocked(pair.member_ids, exclude):
-            continue
-        score = _pair_score(pair, team_weight=team_weight)
-        players = [
-            _player_payload(scan.players[member_id])
-            for member_id in sorted(
-                pair.member_ids, key=lambda pk: scan.players[pk].label.lower()
+    if allow_team_sides:
+        for pair in scan.pairs.values():
+            if len(pair.member_ids) != 2 or _pair_blocked(pair.member_ids, exclude):
+                continue
+            score = _pair_score(pair, team_weight=team_weight)
+            players = [
+                _player_payload(scan.players[member_id])
+                for member_id in sorted(
+                    pair.member_ids, key=lambda pk: scan.players[pk].label.lower()
+                )
+                if member_id in scan.players
+            ]
+            if len(players) != 2:
+                continue
+            candidates.append(
+                (
+                    score,
+                    pair.label.lower(),
+                    {
+                        "kind": "team",
+                        "label": pair.label,
+                        "players": players,
+                    },
+                )
             )
-            if member_id in scan.players
-        ]
-        if len(players) != 2:
-            continue
-        candidates.append(
-            (
-                score,
-                pair.label.lower(),
-                {
-                    "kind": "team",
-                    "label": pair.label,
-                    "players": players,
-                },
-            )
-        )
 
-    for score, pair in _predicted_pairs(scan, exclude=exclude, team_weight=team_weight):
-        players = [
-            _player_payload(scan.players[member_id])
-            for member_id in sorted(
-                pair.member_ids, key=lambda pk: scan.players[pk].label.lower()
+        for score, pair in _predicted_pairs(
+            scan, exclude=exclude, team_weight=team_weight
+        ):
+            players = [
+                _player_payload(scan.players[member_id])
+                for member_id in sorted(
+                    pair.member_ids, key=lambda pk: scan.players[pk].label.lower()
+                )
+                if member_id in scan.players
+            ]
+            if len(players) != 2:
+                continue
+            candidates.append(
+                (
+                    score,
+                    pair.label.lower(),
+                    {
+                        "kind": "team",
+                        "label": pair.label,
+                        "players": players,
+                    },
+                )
             )
-            if member_id in scan.players
-        ]
-        if len(players) != 2:
-            continue
-        candidates.append(
-            (
-                score,
-                pair.label.lower(),
-                {
-                    "kind": "team",
-                    "label": pair.label,
-                    "players": players,
-                },
-            )
-        )
 
     for activity in scan.players.values():
         if activity.player_id in exclude:
@@ -641,7 +665,11 @@ def suggest_lineup_entries(
             else:
                 team_weight, solo_weight = 1.0, 1.0
 
-            if team_ratio >= 0.5 and side_count == 2:
+            if (
+                _allow_team_smart_suggestions(scan)
+                and team_ratio >= 0.5
+                and side_count == 2
+            ):
                 predicted = _predicted_team_lineups(
                     scan,
                     side_count=side_count,
