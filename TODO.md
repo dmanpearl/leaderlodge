@@ -280,10 +280,19 @@
 - [x] 383f73e Progressive Rummy needs a half game checkbox (note: edit game already has a half game checkbox)
 - [x] 37e3c2c Show half game indicators on game detail, edit, and result badges
 - [x] c9f1b7a AI game entry: surface game type mismatch instead of silently applying wrong type
-- [x] Game edit email should include the final snapshot in a pretty printed format. Current the email provides only changes. Following the changes, there should be the updated snapshot.
+- [x] 383f73e Game edit email should include the final snapshot in a pretty printed format. Current the email provides only changes. Following the changes, there should be the updated snapshot.
+- [x] Bug: Record Game: Suggest button displays team incorrectly, but then saves team corrrectly. Examples: Suggest > "Gene+Monica, RG shows: David+Ronnie" > "Gene+Monica+Monica" saves as "Gene+Monica, David+Ronnie", Suggest > "David+Nancy, RG shows: Karen+Parker" > "David+Karen+Karen M" saves as "David+Nancy, Karen+Parker"
 
 ## Open Items
 
+- [ ] Bug: Record Game: After deleting a teammate during record game, the context menu should disappear because there is now only one item: remove (https://leaderlodge.com/admin/feedback/feedback/49)
+- [ ] Record Game: Smart list should be smart enough to know that we're unlikely to use teammates in traditionally single-player-side games like MahJongg (https://leaderlodge.com/admin/feedback/feedback/48)
+- [ ] Bug: Record Game: Teammate field: Typed player name does not get saved if Enter or Check not pressed.
+- [ ] Bug: Record Game: Player field smart list does not always anchor to field, usually when above.
+- [ ] Bug: Record Game: Player field: Keyboard does not always open when field is tapped.
+- [ ] Bug: Record Game: Teammate field: Sometimes obscured by smart list.
+- [ ] Admin > When editing a player name, teams using that player should update.
+- [ ] Admin > Group Player > Need filter for Players, Teams
 - [ ] User account profile picture, probably requires Cloudinary
 - [ ] Game Type: Add Canasta, Euchre
 - [ ] Record Game View: Map icon should open map in read-only mode instead of edit mode (user must edit location via Edit Game View)

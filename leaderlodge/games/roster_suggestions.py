@@ -367,16 +367,33 @@ def suggest_side_entries(
     return suggestions
 
 
+def _primary_member_label(row: dict) -> str:
+    """Label for the primary slot on a side (never the combined team name)."""
+    player = row.get("player")
+    if player is not None:
+        return player.display_label
+    guest_name = (row.get("guest_name") or "").strip()
+    if guest_name:
+        return guest_name
+    return str(row.get("display_label") or "")
+
+
 def _side_payload_from_row(row: dict) -> dict | None:
     players = []
     player_id = row.get("player_id")
     guest_name = (row.get("guest_name") or "").strip()
+    teammate_id = row.get("teammate_player_id")
     if player_id:
+        primary_label = (
+            _primary_member_label(row)
+            if teammate_id
+            else (row.get("display_label") or _primary_member_label(row))
+        )
         players.append(
             {
                 "player_id": int(player_id),
                 "guest_name": "",
-                "label": row.get("display_label") or "",
+                "label": primary_label,
             }
         )
     elif guest_name:
@@ -390,7 +407,6 @@ def _side_payload_from_row(row: dict) -> dict | None:
     else:
         return None
 
-    teammate_id = row.get("teammate_player_id")
     if teammate_id:
         players.append(
             {
@@ -401,7 +417,15 @@ def _side_payload_from_row(row: dict) -> dict | None:
         )
 
     kind = "team" if len(players) > 1 else "solo"
-    label = row.get("display_label") or players[0]["label"]
+    if len(players) > 1:
+        label = row.get("display_label") or "+".join(
+            sorted(
+                (player["label"] for player in players if player.get("label")),
+                key=str.lower,
+            )
+        )
+    else:
+        label = row.get("display_label") or players[0]["label"]
     return {"kind": kind, "label": label, "players": players}
 
 

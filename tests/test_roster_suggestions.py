@@ -224,6 +224,29 @@ def test_suggest_lineup_replays_recent_matchup(user, group):
 
 
 @pytest.mark.django_db
+def test_suggest_lineup_team_side_players_use_member_labels_not_team_name(user, group):
+    today = date(2026, 3, 15)
+    _record_pickleball_doubles(
+        user,
+        group,
+        team_a=("David", "Nancy"),
+        team_b=("Imelda", "Steve"),
+        played_on=today,
+    )
+
+    lineups = suggest_lineup_entries(group, "pickleball")
+    replay = next(item for item in lineups if item["source"] == "replay")
+    team_sides = [side for side in replay["sides"] if len(side["players"]) > 1]
+    assert len(team_sides) == 2
+
+    for side in team_sides:
+        member_labels = [player["label"] for player in side["players"]]
+        assert all("+" not in label for label in member_labels)
+        assert "+" in side["label"]
+        assert side["label"] == "+".join(sorted(member_labels, key=str.lower))
+
+
+@pytest.mark.django_db
 def test_suggest_lineup_endpoint_returns_full_sides(client, user, group):
     today = date(2026, 3, 15)
     _record_pickleball_doubles(
