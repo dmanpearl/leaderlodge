@@ -21,6 +21,7 @@
     input.setAttribute("autocorrect", "off");
     input.setAttribute("autocapitalize", "off");
     input.setAttribute("spellcheck", "false");
+    input.setAttribute("enterkeyhint", "done");
     if (!input.hasAttribute("readonly")) {
       input.setAttribute("readonly", "readonly");
     }
@@ -1565,6 +1566,7 @@
       bindComboboxScrollHint(this.listEl);
       input.addEventListener("input", () => this.onInput());
       input.addEventListener("keydown", (event) => this.onKeyDown(event));
+      input.addEventListener("keyup", (event) => this.onKeyUp(event));
       input.addEventListener("blur", () => this.onBlur());
       input.addEventListener("focus", () => this.onFocus());
       window.addEventListener("resize", this.onViewportChange);
@@ -1755,9 +1757,26 @@
       if (this.suppressBlurCommit) {
         this.suppressBlurCommit = false;
       } else {
-        this.tryAddGuestFromInput();
+        this.tryAddGuestFromInput({ allowGuestCreate: true });
       }
       this.close();
+    }
+
+    isEnterLikeKey(event) {
+      return event.key === "Enter" || event.keyCode === 13;
+    }
+
+    commitFromKeyboard(event) {
+      if (!this.isEnterLikeKey(event)) {
+        return false;
+      }
+      event.preventDefault();
+      if (this.isOpen && this.activeIndex >= 0) {
+        this.selectSuggestion(this.suggestions[this.activeIndex]);
+        return true;
+      }
+      this.tryAddGuestFromInput({ allowGuestCreate: true });
+      return true;
     }
 
     onKeyDown(event) {
@@ -1766,9 +1785,8 @@
         this.refreshSuggestions();
       }
       if (!this.isOpen) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          this.tryAddGuestFromInput({ allowGuestCreate: true });
+        if (this.isEnterLikeKey(event)) {
+          this.commitFromKeyboard(event);
         }
         return;
       }
@@ -1779,17 +1797,23 @@
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
         this.moveActive(-1);
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        if (this.activeIndex >= 0) {
-          this.selectSuggestion(this.suggestions[this.activeIndex]);
-        } else {
-          this.tryAddGuestFromInput({ allowGuestCreate: true });
-        }
+      } else if (this.isEnterLikeKey(event)) {
+        this.commitFromKeyboard(event);
       } else if (event.key === "Escape") {
         event.preventDefault();
         this.close();
       }
+    }
+
+    onKeyUp(event) {
+      // iOS virtual keyboard Done/Check often fires Enter on keyup only.
+      if (!this.isEnterLikeKey(event)) {
+        return;
+      }
+      if (this.isOpen && this.activeIndex >= 0) {
+        return;
+      }
+      this.commitFromKeyboard(event);
     }
 
     moveActive(delta) {
@@ -2189,6 +2213,12 @@
           this.onKeyDown(event);
         }
       });
+      tbody.addEventListener("keyup", (event) => {
+        const input = event.target.closest("[data-add-teammate]");
+        if (input && input === this.input) {
+          this.onKeyUp(event);
+        }
+      });
       tbody.addEventListener("focusout", (event) => {
         const input = event.target.closest("[data-add-teammate]");
         if (input && input === this.input) {
@@ -2348,8 +2378,25 @@
         this.suppressBlurCommit = false;
         return;
       }
-      this.tryAddGuestFromInput();
+      this.tryAddGuestFromInput({ allowGuestCreate: true });
       this.close();
+    }
+
+    isEnterLikeKey(event) {
+      return event.key === "Enter" || event.keyCode === 13;
+    }
+
+    commitFromKeyboard(event) {
+      if (!this.isEnterLikeKey(event)) {
+        return false;
+      }
+      event.preventDefault();
+      if (this.isOpen && this.activeIndex >= 0) {
+        this.selectSuggestion(this.suggestions[this.activeIndex]);
+        return true;
+      }
+      this.tryAddGuestFromInput({ allowGuestCreate: true });
+      return true;
     }
 
     onKeyDown(event) {
@@ -2358,9 +2405,8 @@
         this.refreshSuggestions();
       }
       if (!this.isOpen) {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          this.tryAddGuestFromInput({ allowGuestCreate: true });
+        if (this.isEnterLikeKey(event)) {
+          this.commitFromKeyboard(event);
         }
         return;
       }
@@ -2371,17 +2417,22 @@
       } else if (event.key === "ArrowUp") {
         event.preventDefault();
         this.moveActive(-1);
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        if (this.activeIndex >= 0) {
-          this.selectSuggestion(this.suggestions[this.activeIndex]);
-        } else {
-          this.tryAddGuestFromInput({ allowGuestCreate: true });
-        }
+      } else if (this.isEnterLikeKey(event)) {
+        this.commitFromKeyboard(event);
       } else if (event.key === "Escape") {
         event.preventDefault();
         this.close();
       }
+    }
+
+    onKeyUp(event) {
+      if (!this.isEnterLikeKey(event)) {
+        return;
+      }
+      if (this.isOpen && this.activeIndex >= 0) {
+        return;
+      }
+      this.commitFromKeyboard(event);
     }
 
     moveActive(delta) {

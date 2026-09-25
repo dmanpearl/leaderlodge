@@ -282,11 +282,13 @@
 - [x] c9f1b7a AI game entry: surface game type mismatch instead of silently applying wrong type
 - [x] 383f73e Game edit email should include the final snapshot in a pretty printed format. Current the email provides only changes. Following the changes, there should be the updated snapshot.
 - [x] a2754e9 Bug: Record Game: Suggest button displays team incorrectly, but then saves team corrrectly. Examples: Suggest > "Gene+Monica, RG shows: David+Ronnie" > "Gene+Monica+Monica" saves as "Gene+Monica, David+Ronnie", Suggest > "David+Nancy, RG shows: Karen+Parker" > "David+Karen+Karen M" saves as "David+Nancy, Karen+Parker"
-- [x] Record Game: Smart list should be smart enough to know that we're unlikely to use teammates in traditionally single-player-side games like MahJongg (https://leaderlodge.com/admin/feedback/feedback/48)
+- [x] adca0b3 Record Game: Smart list should be smart enough to know that we're unlikely to use teammates in traditionally single-player-side games like MahJongg (https://leaderlodge.com/admin/feedback/feedback/48)
+- [x] Bug: Record Game: Teammate field: Manually typed guest does not get saved if Enter not pressed.
+- [x] Record Game: iPhone virtual keyboard Check button should lock in Player or Teammate same as Enter key.
 
 ## Open Items
 
-- [ ] Bug: Record Game: After deleting a teammate during record game, the context menu should disappear because there is now only one item: remove (https://leaderlodge.com/admin/feedback/feedback/49)
+- [ ] Bug: Record Game: Suggest: Smart List displayed behind URL field. Solution is to place above the Player Field if there is room.
 - [ ] Bug: Record Game: Teammate field: Typed player name does not get saved if Enter or Check not pressed.
 - [ ] Bug: Record Game: Player field smart list does not always anchor to field, usually when above.
 - [ ] Bug: Record Game: Player field: Keyboard does not always open when field is tapped.
@@ -341,3 +343,4 @@
       - It should be able to specify game-type, but game-type would default to current game preference.
       - We have to decide if game-type would be overridden by game locking.
       - How to decide when to navigate to the Record Game screen. Recommend a button in the Ask screen after ask determines that the prompt is probably a request to record a game. This will allow the user to view the debug information if set.
+- [/] Bug: Record Game: After deleting a teammate during record game, the context menu should disappear because there is now only one item: remove (https://leaderlodge.com/admin/feedback/feedback/49)
