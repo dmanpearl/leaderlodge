@@ -1362,6 +1362,21 @@
     return Boolean(rect && rect.width > 0 && rect.height > 0);
   }
 
+  function measuredPortaledListHeight(listEl) {
+    const boxHeight = listEl.getBoundingClientRect().height;
+    if (boxHeight > 0) {
+      return boxHeight;
+    }
+    if (listEl.offsetHeight > 0) {
+      return listEl.offsetHeight;
+    }
+    const cap = parseFloat(listEl.style.maxHeight);
+    if (Number.isFinite(cap) && cap > 0) {
+      return Math.min(listEl.scrollHeight, cap);
+    }
+    return listEl.scrollHeight;
+  }
+
   function clearPortaledComboboxPosition(listEl) {
     if (!listEl) {
       return;
@@ -1436,23 +1451,21 @@
     listEl.style.right = "auto";
     listEl.style.maxHeight = `${Math.min(240, Math.max(available - 8, 48))}px`;
 
-    // Portaled lists use position:fixed. Desktop browsers match getBoundingClientRect
-    // to fixed top/bottom; iOS Safari with keyboard (visual viewport offset) does
-    // not, especially for above placement via bottom/layoutHeight math. Measure
-    // list height and set top so the list bottom sits on the input top.
+    // Portaled lists use position:fixed. When above, set top so the list bottom
+    // sits on the input top. Measure height only while visible (iOS returns 0
+    // when visibility:hidden, which leaves top ≈ input top and drops the list
+    // over the field). Do not clamp above placement to visible.top; maxHeight
+    // already reflects available space above the input.
     listEl.style.bottom = "auto";
     listEl.style.transform = "";
+    listEl.style.visibility = "visible";
     const mobile = shouldNudgeMobileKeyboard();
     if (placeAbove) {
-      const listHeight = listEl.offsetHeight;
-      listEl.style.top = `${Math.max(
-        visible.top + 8,
-        rect.top - listHeight - 1
-      )}px`;
+      const listHeight = measuredPortaledListHeight(listEl);
+      listEl.style.top = `${Math.max(8, rect.top - listHeight - 1)}px`;
     } else {
       listEl.style.top = `${mobile ? Math.max(visible.top + 8, rect.bottom) : rect.bottom}px`;
     }
-    listEl.style.visibility = "visible";
     syncComboboxScrollState(listEl);
     return true;
   }
