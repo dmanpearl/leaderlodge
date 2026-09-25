@@ -47,6 +47,10 @@ body.combobox-page-scroll-locked {
   margin: 0;
 }
 
+.combobox-list--portal.combobox-list--above {
+  bottom: auto;
+}
+
 /* Row ... menu portaled to body in JS; Popper keeps it anchored to the row. */
 [data-side-menu][data-portaled="1"] {
   z-index: 2100 !important;

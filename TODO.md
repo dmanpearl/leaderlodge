@@ -283,11 +283,12 @@
 - [x] 383f73e Game edit email should include the final snapshot in a pretty printed format. Current the email provides only changes. Following the changes, there should be the updated snapshot.
 - [x] a2754e9 Bug: Record Game: Suggest button displays team incorrectly, but then saves team corrrectly. Examples: Suggest > "Gene+Monica, RG shows: David+Ronnie" > "Gene+Monica+Monica" saves as "Gene+Monica, David+Ronnie", Suggest > "David+Nancy, RG shows: Karen+Parker" > "David+Karen+Karen M" saves as "David+Nancy, Karen+Parker"
 - [x] adca0b3 Record Game: Smart list should be smart enough to know that we're unlikely to use teammates in traditionally single-player-side games like MahJongg (https://leaderlodge.com/admin/feedback/feedback/48)
-- [x] Bug: Record Game: Teammate field: Manually typed guest does not get saved if Enter not pressed.
-- [x] Record Game: iPhone virtual keyboard Check button should lock in Player or Teammate same as Enter key.
+- [x] c48a9bd Bug: Record Game: Teammate field: Manually typed guest does not get saved if Enter not pressed.
+- [x] c48a9bd Record Game: iPhone virtual keyboard Check button should lock in Player or Teammate same as Enter key.
 
 ## Open Items
 
+- [ ] Bug: Record Game: Smart List is positioned too high. When displayed above the Player or Teammate field, there is airspace of about the height of the field between the top of the field and the bottom of the smart list. Seems like offset from the top plus field height or something like that.
 - [ ] Bug: Record Game: Suggest: Smart List displayed behind URL field. Solution is to place above the Player Field if there is room.
 - [ ] Bug: Record Game: Teammate field: Typed player name does not get saved if Enter or Check not pressed.
 - [ ] Bug: Record Game: Player field smart list does not always anchor to field, usually when above.

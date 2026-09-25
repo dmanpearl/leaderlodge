@@ -1358,10 +1358,6 @@
     };
   }
 
-  function layoutViewportHeight() {
-    return document.documentElement.clientHeight;
-  }
-
   function isUsableAnchorRect(rect) {
     return Boolean(rect && rect.width > 0 && rect.height > 0);
   }
@@ -1376,6 +1372,7 @@
     listEl.style.width = "";
     listEl.style.right = "";
     listEl.style.maxHeight = "";
+    listEl.style.transform = "";
   }
 
   function chooseComboboxPlacement({ typing, rect, visible, listScrollHeight }) {
@@ -1439,17 +1436,21 @@
     listEl.style.right = "auto";
     listEl.style.maxHeight = `${Math.min(240, Math.max(available - 8, 48))}px`;
 
-    // iOS: position:fixed uses layout-viewport coordinates; pair layout
-    // rect edges with visual-viewport bounds for above/below placement.
+    // Portaled lists use position:fixed. Desktop browsers match getBoundingClientRect
+    // to fixed top/bottom; iOS Safari with keyboard (visual viewport offset) does
+    // not, especially for above placement via bottom/layoutHeight math. Measure
+    // list height and set top so the list bottom sits on the input top.
+    listEl.style.bottom = "auto";
+    listEl.style.transform = "";
+    const mobile = shouldNudgeMobileKeyboard();
     if (placeAbove) {
-      listEl.style.top = "auto";
-      listEl.style.bottom = `${Math.max(
-        8,
-        layoutViewportHeight() - rect.top
+      const listHeight = listEl.offsetHeight;
+      listEl.style.top = `${Math.max(
+        visible.top + 8,
+        rect.top - listHeight - 1
       )}px`;
     } else {
-      listEl.style.bottom = "auto";
-      listEl.style.top = `${rect.bottom}px`;
+      listEl.style.top = `${mobile ? Math.max(visible.top + 8, rect.bottom) : rect.bottom}px`;
     }
     listEl.style.visibility = "visible";
     syncComboboxScrollState(listEl);
