@@ -19,7 +19,9 @@ class LocationLibrary(models.Model):
         ordering = ["name", "pk"]
 
     def __str__(self) -> str:
-        return self.name or f"Places #{self.pk}"
+        from leaderlodge.groups.locations import location_library_admin_label
+
+        return location_library_admin_label(self)
 
 
 class Location(models.Model):

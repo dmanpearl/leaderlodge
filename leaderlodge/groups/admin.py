@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from leaderlodge.groups.locations import location_library_admin_label
 from leaderlodge.groups.models import (
     Group,
     GroupInvite,
@@ -55,9 +56,21 @@ class LocationInline(admin.TabularInline):
 
 @admin.register(LocationLibrary)
 class LocationLibraryAdmin(admin.ModelAdmin):
-    list_display = ("name", "created_by", "created_at", "group_count")
-    search_fields = ("name",)
+    list_display = ("admin_label", "created_by", "created_at", "group_count")
+    search_fields = ("name", "groups__name", "created_by__username")
     inlines = [LocationInline]
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("created_by")
+            .prefetch_related("groups")
+        )
+
+    @admin.display(description="Name", ordering="name")
+    def admin_label(self, obj: LocationLibrary) -> str:
+        return location_library_admin_label(obj)
 
     @admin.display(description="Groups")
     def group_count(self, obj):
@@ -68,7 +81,7 @@ class LocationLibraryAdmin(admin.ModelAdmin):
 class LocationAdmin(admin.ModelAdmin):
     list_display = (
         "name",
-        "library",
+        "library_display",
         "city",
         "state",
         "lat",
@@ -80,13 +93,63 @@ class LocationAdmin(admin.ModelAdmin):
     search_fields = ("name", "city", "place_id")
     readonly_fields = ("normalized_name", "geocode_at", "created_at")
 
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("library__created_by")
+            .prefetch_related("library__groups")
+        )
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == "library":
+            formfield.queryset = LocationLibrary.objects.select_related(
+                "created_by"
+            ).prefetch_related("groups")
+            formfield.label_from_instance = location_library_admin_label
+        return formfield
+
+    @admin.display(description="Library", ordering="library__name")
+    def library_display(self, obj: Location) -> str:
+        return location_library_admin_label(obj.library)
+
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ("name", "is_demo", "location_library", "created_by", "created_at")
+    list_display = (
+        "name",
+        "is_demo",
+        "location_library_display",
+        "created_by",
+        "created_at",
+    )
     search_fields = ("name", "description")
     list_filter = ("is_demo", "location_library")
     inlines = [GroupMembershipInline, GroupPlayerInline]
+
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("location_library__created_by")
+            .prefetch_related("location_library__groups")
+        )
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == "location_library":
+            formfield.queryset = LocationLibrary.objects.select_related(
+                "created_by"
+            ).prefetch_related("groups")
+            formfield.label_from_instance = location_library_admin_label
+        return formfield
+
+    @admin.display(description="Location library", ordering="location_library__name")
+    def location_library_display(self, obj: Group) -> str:
+        if obj.location_library_id is None:
+            return "-"
+        return location_library_admin_label(obj.location_library)
 
 
 @admin.register(GroupInvite)

@@ -264,7 +264,7 @@ def test_game_admin_location_dropdown_includes_library(admin_user, group):
         ]
     )
     assert any("Friends places" in label for label in superior_labels)
-    assert any(str(group.location_library) in label for label in superior_labels)
+    assert any("Admin Club" in label for label in superior_labels)
 
 
 @pytest.mark.django_db

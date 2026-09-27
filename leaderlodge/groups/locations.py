@@ -29,9 +29,31 @@ def normalize_location_name(name: str) -> str:
     return re.sub(r"\s+", " ", folded)
 
 
+def location_library_admin_label(library: LocationLibrary) -> str:
+    """Disambiguate location libraries in admin (duplicate names, orphans)."""
+    base = library.name or f"Places #{library.pk}"
+    prefetched = "groups" in getattr(library, "_prefetched_objects_cache", {})
+    if prefetched:
+        groups = sorted(library.groups.all(), key=lambda row: row.name.lower())
+        group_count = len(groups)
+    else:
+        group_count = library.groups.count()
+        groups = list(library.groups.order_by("name")[:3])
+
+    username = library.created_by.get_username()
+    if group_count == 0:
+        return f"{base} (no group, {username}, #{library.pk})"
+    if group_count == 1:
+        return f"{base} ({groups[0].name}, {username})"
+    names = ", ".join(group.name for group in groups[:2])
+    if group_count > 2:
+        names = f"{names}, +{group_count - 2} more"
+    return f"{base} ({names}, #{library.pk})"
+
+
 def location_admin_label(location: Location) -> str:
     """Label for admin FK dropdowns when names repeat across libraries."""
-    return f"{location.name} ({location.library})"
+    return f"{location.name} ({location_library_admin_label(location.library)})"
 
 
 def normalize_for_fuzzy_match(name: str) -> str:

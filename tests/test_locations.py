@@ -6,8 +6,10 @@ from django.urls import reverse
 
 from leaderlodge.games.models import Game
 from leaderlodge.groups.locations import (
+    create_location_library,
     find_fuzzy_location_match,
     get_or_create_location,
+    location_library_admin_label,
     normalize_location_name,
 )
 from leaderlodge.groups.models import Location
@@ -664,3 +666,46 @@ def test_location_set_place_requires_membership(client, user):
     )
 
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_location_library_admin_label_single_group(user):
+    group = create_group_with_owner(user=user, name="Manpearl")
+    library = group.location_library
+    assert location_library_admin_label(library) == "Manpearl places (Manpearl, david)"
+
+
+@pytest.mark.django_db
+def test_location_library_admin_label_orphan(user):
+    library = create_location_library(user=user, name="peeps places")
+    label = location_library_admin_label(library)
+    assert label.startswith("peeps places (no group, david, #")
+    assert str(library.pk) in label
+
+
+@pytest.mark.django_db
+def test_location_library_admin_label_duplicate_names_differ_by_group(user):
+    group_a = create_group_with_owner(user=user, name="G")
+    other = User.objects.create_user(username="algo", password="test-pass-123")
+    group_b = create_group_with_owner(user=other, name="G")
+    label_a = location_library_admin_label(group_a.location_library)
+    label_b = location_library_admin_label(group_b.location_library)
+    assert label_a == "G places (G, david)"
+    assert label_b == "G places (G, algo)"
+    assert label_a != label_b
+
+
+@pytest.mark.django_db
+def test_location_library_admin_label_shared_library(user):
+    family = create_group_with_owner(user=user, name="Family")
+    friends = create_group_with_owner(user=user, name="Friends")
+    friends.location_library = family.location_library
+    friends.save(update_fields=["location_library"])
+    library = family.location_library
+    LocationLibrary = type(library)
+    library = LocationLibrary.objects.prefetch_related("groups").get(pk=library.pk)
+    label = location_library_admin_label(library)
+    assert label.startswith("Family places (")
+    assert "Family" in label
+    assert "Friends" in label
+    assert f"#{library.pk}" in label

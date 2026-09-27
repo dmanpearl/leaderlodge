@@ -173,15 +173,20 @@ class GameAdmin(admin.ModelAdmin):
     inlines = [GameParticipantResultInline]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("location__library")
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("location__library__created_by")
+            .prefetch_related("location__library__groups")
+        )
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
         if db_field.name == "location":
-            formfield.queryset = Location.objects.select_related("library").order_by(
-                "library__name",
-                "library__pk",
-                "name",
+            formfield.queryset = (
+                Location.objects.select_related("library__created_by")
+                .prefetch_related("library__groups")
+                .order_by("library__name", "library__pk", "name")
             )
             formfield.label_from_instance = location_admin_label
         return formfield
