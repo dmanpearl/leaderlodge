@@ -286,11 +286,11 @@
 - [x] c48a9bd Bug: Record Game: Teammate field: Manually typed guest does not get saved if Enter not pressed.
 - [x] c48a9bd Record Game: iPhone virtual keyboard Check button should lock in Player or Teammate same as Enter key.
 - [x] 8bdedd3 Admin > Games > Location: Display name should include loction library (to tell duplicates apart that have same names but different placees).
-- [x] Bug: Admin > Locations: There are two "peeps places" in https://leaderlodge.com/admin/groups/location/476/change/?_changelist_filters=q%3Dsuperior
+- [x] cc5e549 Bug: Admin > Locations: There are two "peeps places" in https://leaderlodge.com/admin/groups/location/476/change/?_changelist_filters=q%3Dsuperior
+- [x] Bug: Admin > Locations: Edit "peeps places" attempt change name to "Manpearl places" causes Error 400 in https://leaderlodge.com/admin/groups/location/476/change/?_changelist_filters=q%3Dsuperior
 
 ## Open Items
 
-- [ ] Bug: Admin > Locations: Edit "peeps places" attempt change name to "Manpearl places" causes Error 400 in https://leaderlodge.com/admin/groups/location/476/change/?_changelist_filters=q%3Dsuperior
 - [ ] Bug: Record Game: Smart List is positioned too high. When displayed above the Player or Teammate field, there is airspace of about the height of the field between the top of the field and the bottom of the smart list. Seems like offset from the top plus field height or something like that.
 - [ ] Bug: Record Game: Suggest: Smart List displayed behind URL field. Solution is to place above the Player Field if there is room.
 - [ ] Bug: Record Game: Teammate field: Typed player name does not get saved if Enter or Check not pressed.

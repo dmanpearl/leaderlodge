@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 
 from leaderlodge.groups.locations import location_library_admin_label
 from leaderlodge.groups.models import (
@@ -58,7 +60,10 @@ class LocationInline(admin.TabularInline):
 class LocationLibraryAdmin(admin.ModelAdmin):
     list_display = ("admin_label", "created_by", "created_at", "group_count")
     search_fields = ("name", "groups__name", "created_by__username")
-    inlines = [LocationInline]
+    readonly_fields = ("locations_admin_link",)
+    fields = ("name", "created_by", "locations_admin_link")
+    # Do not inline locations here: large libraries exceed Django's POST field
+    # limit when saving the library (400 Bad Request) even for a name-only edit.
 
     def get_queryset(self, request):
         return (
@@ -75,6 +80,17 @@ class LocationLibraryAdmin(admin.ModelAdmin):
     @admin.display(description="Groups")
     def group_count(self, obj):
         return obj.groups.count()
+
+    @admin.display(description="Locations")
+    def locations_admin_link(self, obj: LocationLibrary) -> str:
+        if not obj.pk:
+            return "-"
+        count = obj.locations.count()
+        url = (
+            reverse("admin:groups_location_changelist")
+            + f"?library__id__exact={obj.pk}"
+        )
+        return format_html('<a href="{}">{} location(s)</a>', url, count)
 
 
 @admin.register(Location)
