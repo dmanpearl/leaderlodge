@@ -29,6 +29,11 @@ def normalize_location_name(name: str) -> str:
     return re.sub(r"\s+", " ", folded)
 
 
+def location_admin_label(location: Location) -> str:
+    """Label for admin FK dropdowns when names repeat across libraries."""
+    return f"{location.name} ({location.library})"
+
+
 def normalize_for_fuzzy_match(name: str) -> str:
     base = normalize_location_name(name)
     cleaned = re.sub(r"[^a-z0-9\s']+", "", base)

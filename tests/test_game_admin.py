@@ -13,6 +13,11 @@ from leaderlodge.games.admin import (
     RecentActiveGroupFilter,
 )
 from leaderlodge.games.models import Game, GameParticipantResult
+from leaderlodge.groups.locations import (
+    create_location_library,
+    get_or_create_location,
+    location_admin_label,
+)
 from leaderlodge.groups.services import add_guest_player, create_group_with_owner
 
 Result = GameParticipantResult.Result
@@ -231,6 +236,35 @@ def test_recent_active_group_filter_limits_lookups(admin_user):
     assert (str(newest_group.pk), newest_group.name) in lookups
     oldest_group = Game.objects.order_by("played_on", "created_at").first().group
     assert (str(oldest_group.pk), oldest_group.name) not in lookups
+
+
+@pytest.mark.django_db
+def test_game_admin_location_dropdown_includes_library(admin_user, group):
+    other_library = create_location_library(
+        user=admin_user,
+        name="Friends places",
+    )
+    get_or_create_location(library=group.location_library, name="Superior Ave")
+    get_or_create_location(library=other_library, name="Superior Ave")
+
+    model_admin = GameAdmin(Game, AdminSite())
+    formfield = model_admin.formfield_for_foreignkey(
+        Game._meta.get_field("location"),
+        RequestFactory().get("/admin/games/game/"),
+    )
+    superior_labels = [
+        formfield.label_from_instance(location)
+        for location in formfield.queryset.filter(name="Superior Ave")
+    ]
+    assert len(superior_labels) == 2
+    assert superior_labels == sorted(
+        [
+            location_admin_label(row)
+            for row in formfield.queryset.filter(name="Superior Ave")
+        ]
+    )
+    assert any("Friends places" in label for label in superior_labels)
+    assert any(str(group.location_library) in label for label in superior_labels)
 
 
 @pytest.mark.django_db

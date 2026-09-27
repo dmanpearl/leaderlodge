@@ -7,7 +7,8 @@ from leaderlodge.games.models import Game, GameParticipantResult, GameScoreChang
 from leaderlodge.games.snapshot_diff import format_snapshot_diff
 from leaderlodge.games.registry import get_game_type
 from leaderlodge.games.validators import validate_participant_results
-from leaderlodge.groups.models import Group
+from leaderlodge.groups.locations import location_admin_label
+from leaderlodge.groups.models import Group, Location
 
 RECENT_ACTIVE_GROUP_FILTER_LIMIT = 15
 
@@ -160,7 +161,7 @@ class GameAdmin(admin.ModelAdmin):
         "game_type_code",
         "group",
         "played_on",
-        "location",
+        "location_display",
         "player_count",
         "recorded_by",
     )
@@ -170,6 +171,26 @@ class GameAdmin(admin.ModelAdmin):
         "group__pk",
     )
     inlines = [GameParticipantResultInline]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("location__library")
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        formfield = super().formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == "location":
+            formfield.queryset = Location.objects.select_related("library").order_by(
+                "library__name",
+                "library__pk",
+                "name",
+            )
+            formfield.label_from_instance = location_admin_label
+        return formfield
+
+    @admin.display(description="Location", ordering="location__name")
+    def location_display(self, obj: Game) -> str:
+        if obj.location_id is None:
+            return "-"
+        return location_admin_label(obj.location)
 
 
 @admin.register(GameParticipantResult)
