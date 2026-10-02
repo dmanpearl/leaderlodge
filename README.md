@@ -31,6 +31,9 @@ python manage.py runserver
 
 Open http://127.0.0.1:8000/
 
+To test on a phone on the same Wi-Fi, see
+[Testing on a phone over the LAN](docs/setup.md#testing-on-a-phone-over-the-lan).
+
 On Windows, activate the virtual environment with:
 
 ```text

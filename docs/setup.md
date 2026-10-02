@@ -34,13 +34,55 @@ python manage.py runserver
 
 On Windows: `venv\Scripts\activate`
 
+## Testing on a phone over the LAN
+
+Mobile layout and touch bugs (the Record Game pickers in particular) have to be
+tested on a real device against dev, not desktop Chrome. Three things have to be
+true, and each one fails with a different symptom.
+
+```bash
+sudo tools/allow_lan_dev_server.sh      # once per Python version, macOS only
+python manage.py runserver 0.0.0.0:8000
+```
+
+Then browse to `http://<mac-lan-ip>:8000/` on the phone. Find the address with
+`ipconfig getifaddr en0`.
+
+| Missing piece | Symptom on the phone |
+|--------|--------|
+| Server bound to `127.0.0.1` (plain `runserver`) | "Safari can't open the page because it couldn't connect to the server" |
+| LAN address not in `ALLOWED_HOSTS` | Django 400 page, `DisallowedHost` in the server log |
+| macOS firewall blocking Homebrew Python | "Safari can't open the page because the network connection was lost", and `OSError: [Errno 57] Socket is not connected` in the server log |
+
+`leaderlodge/settings/local.py` adds the Mac's current LAN address to
+`ALLOWED_HOSTS` automatically, so the second row should not happen in local dev.
+The firewall rule is keyed to Python's real binary path, so re-run
+`tools/allow_lan_dev_server.sh` after `brew upgrade python`.
+
+Staff users can add `?vdebug=1` to any URL for a viewport geometry overlay
+(`static/js/viewport_debug.js`), which reports what portaled dropdowns asked the
+browser for against what the browser produced. Turn it off with `?vdebug=0`. The
+overlay prints its own version, so a stale script is easy to spot; its `copy`
+button yields every state captured since the page loaded.
+
+Local settings send `Cache-Control: no-store` on page responses. Without it the
+dev server sends no cache headers at all, and iOS Safari caches by heuristic,
+serving a page that still references a superseded `?v=` asset. That is
+indistinguishable from a code change failing to take effect.
+
+Static files do not get that header: under `runserver` they are served by
+`StaticFilesHandler`, which intercepts `/static/` before the middleware runs.
+Uncached pages are enough, because a fresh page carries the current `?v=` and a
+bumped `?v=` is a new URL. So always bump `?v=` in `templates/base.html` when
+you change a JS or CSS file, or a phone will keep the old one.
+
 ## First run
 
 ```bash
 source venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env
-# edit .env — set DJANGO_SECRET_KEY
+# edit .env: set DJANGO_SECRET_KEY
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py setup_site_settings --email=you@example.com
@@ -102,7 +144,7 @@ python manage.py import_games \
 
 ## Demo group (public read-only)
 
-Anonymous visitors can browse the **Demo** group when `DEMO_MODE_ENABLED` is true (default). See [Importing game history — Demo group seeds](importing.md#demo-group-seeds) for spreadsheet paths and formats.
+Anonymous visitors can browse the **Demo** group when `DEMO_MODE_ENABLED` is true (default). See [Importing game history: Demo group seeds](importing.md#demo-group-seeds) for spreadsheet paths and formats.
 
 After `migrate` and `createsuperuser`:
 
@@ -113,7 +155,7 @@ python manage.py setup_demo
 This creates the **Demo** group, sets `is_demo=True`, and imports all bundled demo
 seed files (ten game types). Newer generated demos use mappable venues and
 per-sport randomized size/span. Re-running is idempotent. See
-[Importing — Demo group seeds](importing.md#demo-group-seeds) for the full path list.
+[Importing: Demo group seeds](importing.md#demo-group-seeds) for the full path list.
 
 Log out and open http://127.0.0.1:8000/ to confirm the demo landing page. Set `DEMO_MODE_ENABLED=false` in `.env` or Railway variables to disable public demo browsing.
 

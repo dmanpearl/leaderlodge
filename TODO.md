@@ -287,16 +287,15 @@
 - [x] c48a9bd Record Game: iPhone virtual keyboard Check button should lock in Player or Teammate same as Enter key.
 - [x] 8bdedd3 Admin > Games > Location: Display name should include loction library (to tell duplicates apart that have same names but different placees).
 - [x] cc5e549 Bug: Admin > Locations: There are two "peeps places" in https://leaderlodge.com/admin/groups/location/476/change/?_changelist_filters=q%3Dsuperior
-- [x] Bug: Admin > Locations: Edit "peeps places" attempt change name to "Manpearl places" causes Error 400 in https://leaderlodge.com/admin/groups/location/476/change/?_changelist_filters=q%3Dsuperior
+- [x] 9cda027 Bug: Admin > Locations: Edit "peeps places" attempt change name to "Manpearl places" causes Error 400 in https://leaderlodge.com/admin/groups/location/476/change/?_changelist_filters=q%3Dsuperior
+- [x] Bug: Record Game: iPhone smart list geometry, three symptoms of one cause: (a) Smart List positioned too high, with airspace about the height of the field between the top of the field and the bottom of the list when shown above; (b) Player field smart list does not always anchor to the field, usually when above; (c) Teammate field sometimes obscured by the smart list. Cause: the list was measured in getBoundingClientRect coordinates and written to a position:fixed element, and iOS Safari shifts the containing block for position:fixed while the virtual keyboard is open, so the list landed one visualViewport.offsetTop too high.
 
 ## Open Items
 
-- [ ] Bug: Record Game: Smart List is positioned too high. When displayed above the Player or Teammate field, there is airspace of about the height of the field between the top of the field and the bottom of the smart list. Seems like offset from the top plus field height or something like that.
 - [ ] Bug: Record Game: Suggest: Smart List displayed behind URL field. Solution is to place above the Player Field if there is room.
-- [ ] Bug: Record Game: Teammate field: Typed player name does not get saved if Enter or Check not pressed.
-- [ ] Bug: Record Game: Player field smart list does not always anchor to field, usually when above.
-- [ ] Bug: Record Game: Player field: Keyboard does not always open when field is tapped.
-- [ ] Bug: Record Game: Teammate field: Sometimes obscured by smart list.
+- [ ] Bug: Record Game: Player and Teammate fields: Virtual keyboard is not always displayed when the field is tapped. If it cannot be made reliable, consider an explicit keyboard show/hide control, like a spin-down.
+- [ ] Bug: Record Game: Player field smart list stops opening once the smart suggestions run out, even while eligible roster players remain. On an empty query the Player picker offers only smart suggestions and smart-team members, where the Teammate picker falls back to the remaining eligible roster. Measured on a 4 player group: 2 sides showed 2 suggestions with 5 roster left, 4 sides showed 1 suggestion with 3 roster left.
+- [ ] Record Game: AI Game Entry: After dictation displays warning that I requested a different game-type when I didn't. I believe a flag is probably not getting reset (https://leaderlodge.com/admin/feedback/feedback/50)
 - [ ] Admin > When editing a player name, teams using that player should update.
 - [ ] Admin > Group Player > Need filter for Players, Teams
 - [ ] User account profile picture, probably requires Cloudinary

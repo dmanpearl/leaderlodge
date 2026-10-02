@@ -325,24 +325,6 @@
     }
   }
 
-  function nudgeMobileKeyboard(picker, input) {
-    if (!input || !shouldNudgeMobileKeyboard()) {
-      return;
-    }
-    if (document.activeElement !== input) {
-      return;
-    }
-    picker.suppressBlurCommit = true;
-    clearComboboxBlurTimer(picker);
-    input.blur();
-    window.requestAnimationFrame(() => {
-      input.focus();
-      window.requestAnimationFrame(() => {
-        picker.suppressBlurCommit = false;
-      });
-    });
-  }
-
   function ensurePlayerPickerExpanded(picker) {
     if (
       typeof picker.isPickerCollapsed === "function" &&
@@ -351,29 +333,6 @@
     ) {
       picker.expandPicker({ focus: false });
     }
-  }
-
-  function scheduleMobileKeyboardNudge(picker, input) {
-    if (
-      !shouldNudgeMobileKeyboard() ||
-      picker.keyboardNudged ||
-      !input ||
-      document.activeElement !== input
-    ) {
-      return;
-    }
-    window.setTimeout(() => {
-      if (
-        !picker.isOpen ||
-        document.activeElement !== input ||
-        picker.keyboardNudged
-      ) {
-        return;
-      }
-      picker.keyboardNudged = true;
-      nudgeMobileKeyboard(picker, input);
-      schedulePortaledComboboxReposition(picker);
-    }, 350);
   }
 
   function openComboboxFromUserGesture(picker, input, { setContext } = {}) {
@@ -418,13 +377,16 @@
       return;
     }
 
+    // This focus is the only one that can raise the iOS keyboard: WebKit
+    // honours focus() only while the user gesture that triggered it is still
+    // on the stack. Anything deferred to a timer or a frame callback silently
+    // focuses without showing the keyboard, so do not move it.
     picker.pendingGestureRefresh = true;
     input.focus();
     settleOpen();
     window.requestAnimationFrame(() => {
       picker.pendingGestureRefresh = false;
       settleOpen();
-      scheduleMobileKeyboardNudge(picker, input);
     });
   }
 
@@ -1344,6 +1306,10 @@
     return wrap;
   }
 
+  // Bounds are in getBoundingClientRect space, which is what every anchor
+  // measurement here uses. The visible band starts at 0 in that space.
+  // visualViewport.offsetTop measures a different origin, and adding it here
+  // put the list one offsetTop off the anchor whenever the keyboard was open.
   function visibleViewportBounds() {
     const vv = window.visualViewport;
     if (!vv) {
@@ -1351,11 +1317,32 @@
       return { top: 0, left: 0, bottom: height, height };
     }
     return {
-      top: vv.offsetTop,
-      left: vv.offsetLeft,
-      bottom: vv.offsetTop + vv.height,
+      top: 0,
+      left: 0,
+      bottom: vv.height,
       height: vv.height,
     };
+  }
+
+  let fixedOriginProbe = null;
+
+  // iOS Safari shifts the containing block for position:fixed while the
+  // keyboard is up, so a fixed element set to top:T does not land at client
+  // y T. Measure the shift rather than deriving it from visualViewport: on
+  // device the probe matched the observed error exactly where offsetTop was
+  // off by a fraction of a pixel. Reads 0 everywhere else.
+  function fixedOriginOffset() {
+    if (!fixedOriginProbe) {
+      fixedOriginProbe = document.createElement("div");
+      fixedOriginProbe.setAttribute("aria-hidden", "true");
+      fixedOriginProbe.style.cssText =
+        "position:fixed;top:0;left:0;width:0;height:0;opacity:0;pointer-events:none";
+    }
+    if (!fixedOriginProbe.isConnected) {
+      document.body.appendChild(fixedOriginProbe);
+    }
+    const rect = fixedOriginProbe.getBoundingClientRect();
+    return { top: rect.top, left: rect.left };
   }
 
   function isUsableAnchorRect(rect) {
@@ -1446,7 +1433,8 @@
     });
 
     listEl.classList.toggle("combobox-list--above", placeAbove);
-    listEl.style.left = `${Math.max(8, rect.left)}px`;
+    const fixedOrigin = fixedOriginOffset();
+    listEl.style.left = `${Math.max(8, rect.left) - fixedOrigin.left}px`;
     listEl.style.width = `${Math.max(rect.width, 160)}px`;
     listEl.style.right = "auto";
     listEl.style.maxHeight = `${Math.min(240, Math.max(available - 8, 48))}px`;
@@ -1460,11 +1448,17 @@
     listEl.style.transform = "";
     listEl.style.visibility = "visible";
     const mobile = shouldNudgeMobileKeyboard();
+    // Targets are computed in client space, then converted to the fixed
+    // containing block right before they are written.
     if (placeAbove) {
       const listHeight = measuredPortaledListHeight(listEl);
-      listEl.style.top = `${Math.max(8, rect.top - listHeight - 1)}px`;
+      const target = Math.max(8, rect.top - listHeight - 1);
+      listEl.style.top = `${target - fixedOrigin.top}px`;
     } else {
-      listEl.style.top = `${mobile ? Math.max(visible.top + 8, rect.bottom) : rect.bottom}px`;
+      const target = mobile
+        ? Math.max(visible.top + 8, rect.bottom)
+        : rect.bottom;
+      listEl.style.top = `${target - fixedOrigin.top}px`;
     }
     syncComboboxScrollState(listEl);
     return true;
@@ -1541,7 +1535,6 @@
       this.ignoreFocusRefresh = false;
       this.pendingGestureRefresh = false;
       this.suppressBlurCommit = false;
-      this.keyboardNudged = false;
       this.lastGestureOpenAt = 0;
       this.blurTimer = null;
       this.repositionTimers = [];
@@ -1756,7 +1749,6 @@
       if (this.suppressBlurCommit) {
         return;
       }
-      this.keyboardNudged = false;
       clearComboboxBlurTimer(this);
       this.blurTimer = window.setTimeout(() => this.commitPendingEntry(), 150);
     }
