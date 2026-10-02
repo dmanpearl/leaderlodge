@@ -41,7 +41,6 @@ tested on a real device against dev, not desktop Chrome. Three things have to be
 true, and each one fails with a different symptom.
 
 ```bash
-sudo tools/allow_lan_dev_server.sh      # once per Python version, macOS only
 python manage.py runserver 0.0.0.0:8000
 ```
 
@@ -52,12 +51,26 @@ Then browse to `http://<mac-lan-ip>:8000/` on the phone. Find the address with
 |--------|--------|
 | Server bound to `127.0.0.1` (plain `runserver`) | "Safari can't open the page because it couldn't connect to the server" |
 | LAN address not in `ALLOWED_HOSTS` | Django 400 page, `DisallowedHost` in the server log |
-| macOS firewall blocking Homebrew Python | "Safari can't open the page because the network connection was lost", and `OSError: [Errno 57] Socket is not connected` in the server log |
+| macOS firewall blocking the dev server | "Safari can't open the page because the network connection was lost", and `OSError: [Errno 57] Socket is not connected` in the server log |
 
 `leaderlodge/settings/local.py` adds the Mac's current LAN address to
 `ALLOWED_HOSTS` automatically, so the second row should not happen in local dev.
-The firewall rule is keyed to Python's real binary path, so re-run
-`tools/allow_lan_dev_server.sh` after `brew upgrade python`.
+
+For the third row, turn the firewall off for the length of the test and back on
+straight afterwards:
+
+```bash
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
+# run the phone test, then put it back
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+```
+
+A per-app allow rule for Python looks like the tidier fix and does not work with
+Homebrew Python. The firewall accepts the rule and reports the app as permitted,
+then still drops the connection, because the bundle is unsigned: `codesign -dv`
+on it reports "code object is not signed at all". Use the toggle, and do not
+leave the firewall off.
 
 Staff users can add `?vdebug=1` to any URL for a viewport geometry overlay
 (`static/js/viewport_debug.js`), which reports what portaled dropdowns asked the
