@@ -118,6 +118,24 @@
     }
   }
 
+  const nativeFieldSizing =
+    typeof CSS !== "undefined" && CSS.supports("field-sizing", "content");
+
+  // Resize the field to fit its text. Resetting to "auto" first lets the
+  // rows attribute set the floor and CSS max-height set the ceiling.
+  // Skip when field-sizing is native so we do not fight the UA.
+  function autoGrowTranscript() {
+    if (nativeFieldSizing || !transcriptEl) {
+      return;
+    }
+    if (!transcriptEl.getClientRects().length) {
+      return;
+    }
+    transcriptEl.style.height = "auto";
+    const borders = transcriptEl.offsetHeight - transcriptEl.clientHeight;
+    transcriptEl.style.height = `${transcriptEl.scrollHeight + borders}px`;
+  }
+
   function clearTranscript() {
     if (processing) {
       return;
@@ -132,6 +150,7 @@
     setStatus("");
     setNotes([]);
     syncApplyEnabled();
+    autoGrowTranscript();
     if (transcriptEl) {
       transcriptEl.focus();
     }
@@ -435,6 +454,7 @@
     }
     transcriptEl.value = stored;
     syncApplyEnabled();
+    autoGrowTranscript();
     parseTranscript();
   }
 
@@ -442,6 +462,7 @@
     panel.addEventListener("shown.bs.collapse", function () {
       writeStoredOpen(true);
       syncOpenChrome(true);
+      autoGrowTranscript();
     });
     panel.addEventListener("hidden.bs.collapse", function () {
       writeStoredOpen(false);
@@ -574,6 +595,7 @@
       if (transcriptEl) {
         transcriptEl.value = (finalTranscript + interim).trimStart();
         syncApplyEnabled();
+        autoGrowTranscript();
       }
     };
 
@@ -617,7 +639,15 @@
   }
 
   if (transcriptEl) {
-    transcriptEl.addEventListener("input", syncApplyEnabled);
+    transcriptEl.addEventListener("input", function () {
+      syncApplyEnabled();
+      autoGrowTranscript();
+    });
+    // Rotation, keyboard, or iOS visual-viewport changes rewrap the text.
+    window.addEventListener("resize", autoGrowTranscript);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", autoGrowTranscript);
+    }
     transcriptEl.addEventListener("keydown", function (event) {
       if (event.key !== "Enter" || event.shiftKey) {
         return;
@@ -657,4 +687,5 @@
 
   syncApplyEnabled();
   restoreReparseTranscript();
+  autoGrowTranscript();
 })();

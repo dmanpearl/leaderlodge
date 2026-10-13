@@ -270,6 +270,14 @@
 .game-record-voice-input-wrap [data-voice-transcript] {
   padding-right: 4.6rem;
   border-color: rgba(var(--game-record-voice-accent-rgb), 0.28);
+  /* Grow with wrapped or typed lines. field-sizing is native; JS is fallback.
+     Two-line floor matches rows=2 (Chrome field-sizing does not honor rows).
+     Cap height so Save Game stays reachable. */
+  field-sizing: content;
+  min-height: calc(3em + 0.75rem + calc(var(--bs-border-width, 1px) * 2));
+  max-height: 11rem;
+  overflow-y: auto;
+  resize: none;
   /* font-size 16px floor is in site.css (.form-control) */
 }
 
