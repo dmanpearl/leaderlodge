@@ -276,6 +276,9 @@
     if (!toggle) {
       return;
     }
+    if (toggle.checked) {
+      applyNoScore(form);
+    }
     toggle.addEventListener("change", () => {
       if (toggle.checked) {
         applyNoScore(form);

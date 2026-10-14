@@ -13,6 +13,7 @@ from leaderlodge.games.scoring import assign_results_from_scores
 from leaderlodge.games.services import ParticipantInput, record_game
 from leaderlodge.games.voice_draft import (
     _detect_mentioned_game_type_heuristic,
+    _parse_spoken_date,
     _sides_from_and_to_singles,
     parse_recording_transcript,
 )
@@ -394,6 +395,12 @@ def test_detect_mentioned_game_type_heuristic_playing_phrase():
 
 def test_detect_mentioned_game_type_heuristic_skips_bare_names():
     assert _detect_mentioned_game_type_heuristic("David beat Nancy 11 to 9") == ""
+
+
+def test_parse_spoken_date_month_day_uses_fallback_year():
+    assert _parse_spoken_date("September 15", fallback_year=2026) == date(2026, 9, 15)
+    assert _parse_spoken_date("Sep 15", fallback_year=2026) == date(2026, 9, 15)
+    assert _parse_spoken_date("next week", fallback_year=2026) is None
 
 
 @pytest.mark.django_db

@@ -257,18 +257,18 @@ def _parse_spoken_date(raw: str, *, fallback_year: int | None = None) -> date | 
     if parsed:
         return parsed
 
+    year = fallback_year or timezone.localdate().year
     for fmt in _DATE_FORMATS:
+        parse_value = value
+        parse_fmt = fmt
+        if "%Y" not in fmt and "%y" not in fmt:
+            # Python 3.15+ rejects day-of-month formats with no year.
+            parse_value = f"{value} {year}"
+            parse_fmt = f"{fmt} %Y"
         try:
-            dt = datetime.strptime(value, fmt)
+            return datetime.strptime(parse_value, parse_fmt).date()
         except ValueError:
             continue
-        if "%Y" not in fmt:
-            year = fallback_year or timezone.localdate().year
-            try:
-                return dt.replace(year=year).date()
-            except ValueError:
-                continue
-        return dt.date()
     return None
 
 

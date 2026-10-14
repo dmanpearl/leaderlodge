@@ -235,3 +235,76 @@ def test_edit_mahjongg_style(client, user, group):
     log = GameScoreChangeLog.objects.get(game=game)
     assert log.old_snapshot["score_type"] == MahjonggStyle.AMERICAN.value
     assert log.new_snapshot["score_type"] == MahjonggStyle.JAPANESE.value
+
+
+def _record_wall_game(user, group, players):
+    return record_game(
+        user=user,
+        group=group,
+        game_type_code="mahjongg",
+        played_on=timezone.localdate(),
+        score_type=MahjonggStyle.AMERICAN.value,
+        participants=[
+            ParticipantInput(
+                player=player,
+                score=10,
+                result=GameParticipantResult.Result.TIE,
+                placement=len(players) - 1,
+            )
+            for player in players
+        ],
+    )
+
+
+@pytest.mark.django_db
+def test_edit_mahjongg_wall_game_shows_checked_wall_game(client, user, group):
+    players = _three_players(group)
+    client.force_login(user)
+    game = _record_wall_game(user, group, players)
+
+    response = client.get(reverse("games:edit_game", kwargs={"pk": game.pk}))
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Wall Game" in content
+    assert 'data-no-score-points="10"' in content
+    assert "data-no-score-toggle" in content
+    assert 'name="is_no_score_tie"' in content
+    assert "checked" in content
+
+
+@pytest.mark.django_db
+def test_edit_mahjongg_wall_game_replacement_gets_ten_points(client, user, group):
+    players = _three_players(group)
+    replacement = add_guest_player(group=group, display_name="Alex")
+    client.force_login(user)
+    game = _record_wall_game(user, group, players)
+    replaced = players[-1]
+
+    post = edit_game_participant_post(
+        game,
+        notes="Wrong player sat down.",
+        is_no_score_tie="1",
+        score_type=MahjonggStyle.AMERICAN.value,
+    )
+    post["participant_player_id"] = [
+        str(players[0].pk),
+        str(players[1].pk),
+        str(replacement.pk),
+    ]
+    post["participant_score"] = ["10", "10", "0"]
+
+    response = client.post(reverse("games:edit_game", kwargs={"pk": game.pk}), post)
+    assert response.status_code == 302
+    game.refresh_from_db()
+    scores = {
+        row.player_id: row.score
+        for row in game.participant_results.select_related("player")
+    }
+    assert scores[players[0].pk] == 10
+    assert scores[players[1].pk] == 10
+    assert scores[replacement.pk] == 10
+    assert replaced.pk not in scores
+    assert all(
+        row.result == GameParticipantResult.Result.TIE
+        for row in game.participant_results.all()
+    )

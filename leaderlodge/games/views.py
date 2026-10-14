@@ -79,6 +79,8 @@ from leaderlodge.games.reuse_players import (
 )
 from leaderlodge.games.scoring import (
     default_participant_score_value,
+    lineup_is_no_score_tie,
+    no_score_tie_requested,
     record_game_rules_summary,
 )
 from leaderlodge.games.matchup import build_matchup_view
@@ -1440,7 +1442,11 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
         if request.POST.getlist("participant_player_id"):
             try:
                 parsed = parse_participants_from_post(request.POST, group=game.group)
-                prepare_participant_rows(parsed, game.game_type_code)
+                prepare_participant_rows(
+                    parsed,
+                    game.game_type_code,
+                    no_score_tie=no_score_tie_requested(request.POST),
+                )
                 lineup_rows = parsed
             except ValidationError as exc:
                 participant_error = str(exc)
@@ -1519,6 +1525,11 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
             "smart_suggestions": smart_suggestions,
             "default_participant_score": default_participant_score_value(
                 game.game_type_code
+            ),
+            "is_no_score_tie": (
+                no_score_tie_requested(request.POST)
+                if request.method == "POST"
+                else lineup_is_no_score_tie(participant_rows, game.game_type_code)
             ),
             "score_type_choice_options": [
                 {

@@ -72,6 +72,9 @@
     data-score-direction="{{ game_type.score_direction }}"
     data-win-target-score="{% if game_type.win_target_score %}{{ game_type.win_target_score }}{% endif %}"
     data-default-participant-score="{{ default_participant_score }}"
+    {% if game_type.no_score_tie %}
+      data-no-score-points="{{ game_type.no_score_points }}"
+    {% endif %}
   >
     {% csrf_token %}
     <div class="card-header">Changes</div>
@@ -172,6 +175,23 @@
               <div class="invalid-feedback d-block">{{ form.is_half_game.errors }}</div>
             {% endif %}
           </div>
+        </div>
+      {% endif %}
+
+      {% if game_type.no_score_tie %}
+        <div class="form-check mb-3">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            id="no-score-toggle"
+            name="is_no_score_tie"
+            value="1"
+            data-no-score-toggle
+            {% if is_no_score_tie %}checked{% endif %}
+          />
+          <label class="form-check-label" for="no-score-toggle">
+            {{ game_type.no_score_label }}
+          </label>
         </div>
       {% endif %}
 
@@ -413,5 +433,5 @@
     <script src="{% static 'js/location_pin_status.js' %}?v=1"></script>
   {% endif %}
   <script src="{% static 'js/player_picker.js' %}?v=64"></script>
-  <script src="{% static 'js/game_record_form.js' %}?v=17"></script>
+  <script src="{% static 'js/game_record_form.js' %}?v=18"></script>
 {% endblock %}

@@ -16,7 +16,11 @@ from leaderlodge.games.registry import (
     normalize_score_type,
     score_type_choices_for,
 )
-from leaderlodge.games.scoring import assign_results_from_scores, player_count_is_valid
+from leaderlodge.games.scoring import (
+    apply_no_score_tie_scores,
+    assign_results_from_scores,
+    player_count_is_valid,
+)
 from leaderlodge.groups.models import Group
 from leaderlodge.groups.player_search import resolve_participant_player
 
@@ -158,7 +162,9 @@ def parse_participants_from_post(post, *, group) -> list[dict]:
     return rows
 
 
-def prepare_participant_rows(rows: list[dict], game_type_code: str) -> list[dict]:
+def prepare_participant_rows(
+    rows: list[dict], game_type_code: str, *, no_score_tie: bool = False
+) -> list[dict]:
     if not rows:
         raise ValidationError("Select at least one player who took part.")
     if not player_count_is_valid(len(rows), game_type_code):
@@ -167,6 +173,8 @@ def prepare_participant_rows(rows: list[dict], game_type_code: str) -> list[dict
             f"This game requires {game_type.min_players} to "
             f"{game_type.max_players} players."
         )
+    if no_score_tie:
+        apply_no_score_tie_scores(rows, game_type_code)
     assign_results_from_scores(rows, game_type_code)
     return rows
 

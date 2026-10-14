@@ -3,9 +3,12 @@ from django.core.exceptions import ValidationError
 
 from leaderlodge.games.models import GameParticipantResult
 from leaderlodge.games.scoring import (
+    apply_no_score_tie_scores,
     assign_results_from_scores,
     compute_double_weight,
     evaluate_results_from_rows,
+    lineup_is_no_score_tie,
+    no_score_tie_requested,
 )
 
 Result = GameParticipantResult.Result
@@ -89,6 +92,27 @@ def test_assign_placements_mahjongg_wall_game():
     assert rows[1]["placement"] == 3
     assert rows[2]["placement"] == 3
     assert rows[3]["placement"] == 3
+
+
+def test_lineup_is_no_score_tie_for_mahjongg_tens():
+    assert lineup_is_no_score_tie(_rows([10, 10, 10]), "mahjongg") is True
+    assert lineup_is_no_score_tie(_rows([10, 10, 0]), "mahjongg") is False
+    assert lineup_is_no_score_tie(_rows([10, 10]), "dominos") is False
+    assert lineup_is_no_score_tie([], "mahjongg") is False
+
+
+def test_apply_no_score_tie_scores_fills_mahjongg_tens():
+    rows = _rows([10, 0, ""])
+    apply_no_score_tie_scores(rows, "mahjongg")
+    assert [row["score"] for row in rows] == [10, 10, 10]
+    apply_no_score_tie_scores(rows, "dominos")
+    assert [row["score"] for row in rows] == [10, 10, 10]
+
+
+def test_no_score_tie_requested_reads_posted_checkbox():
+    assert no_score_tie_requested({"is_no_score_tie": "1"}) is True
+    assert no_score_tie_requested({"is_no_score_tie": "on"}) is True
+    assert no_score_tie_requested({}) is False
 
 
 @pytest.mark.parametrize(

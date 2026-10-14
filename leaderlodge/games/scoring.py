@@ -133,6 +133,35 @@ def default_participant_score_value(game_type_code: str) -> str:
     return "0"
 
 
+def _row_score_int(row: dict) -> int | None:
+    try:
+        return int(row["score"])
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
+def lineup_is_no_score_tie(rows: list[dict], game_type_code: str) -> bool:
+    """True when every row is the game type's wall-game / no-score points."""
+    game_type = get_game_type(game_type_code)
+    if not game_type.no_score_tie or not rows:
+        return False
+    points = game_type.no_score_points
+    scores = [_row_score_int(row) for row in rows]
+    return all(score == points for score in scores)
+
+
+def apply_no_score_tie_scores(rows: list[dict], game_type_code: str) -> None:
+    game_type = get_game_type(game_type_code)
+    if not game_type.no_score_tie:
+        return
+    for row in rows:
+        row["score"] = game_type.no_score_points
+
+
+def no_score_tie_requested(post) -> bool:
+    return str(post.get("is_no_score_tie") or "").lower() in {"on", "true", "1"}
+
+
 def record_game_rules_summary(game_type_code: str) -> str:
     game_type = get_game_type(game_type_code)
     if game_type.score_direction == ScoreDirection.LOW_WINS:

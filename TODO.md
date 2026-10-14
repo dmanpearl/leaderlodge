@@ -293,10 +293,10 @@
 - [x] 05c7975 Bug: Record Game: Suggest: Smart List displayed behind URL field. Same coordinate cause as the entry above: space below the field was measured against visualViewport.offsetTop plus height rather than the visible band, which inflated the list maxHeight (240 where the correct value was 190.8 in one measurement) and let the list run past the bottom of the screen behind the Safari URL bar. The proposed solution of preferring placement above the Player field turned out not to be needed and was not implemented.
 - [x] 5ef286a AI Game Entry: Grow height of field to match number of text lines
 - [x] 62a05f2 Feature request: Add 'AI game entry' to feature request item types (https://leaderlodge.com/admin/feedback/feedback/52)
+- [x] Bug: Edit Mahjong wall game change player replacement player doesn’t auto-receive the required 10 points (https://leaderlodge.com/admin/feedback/feedback/51)
 
 ## Open Items
 
-- [ ] Bug: Edit Mahjong wall game change player replacement player doesn’t auto-receive the required 10 points (https://leaderlodge.com/admin/feedback/feedback/51)
 - [ ] Bug: Record Game: Player field smart list stops opening once the smart suggestions run out, even while eligible roster players remain. On an empty query the Player picker offers only smart suggestions and smart-team members, where the Teammate picker falls back to the remaining eligible roster. Measured on a 4 player group: 2 sides showed 2 suggestions with 5 roster left, 4 sides showed 1 suggestion with 3 roster left.
 - [ ] Record Game: AI Game Entry: After dictation displays warning that I requested a different game-type when I didn't. I believe a flag is probably not getting reset (https://leaderlodge.com/admin/feedback/feedback/50)
 - [ ] Admin > When editing a player name, teams using that player should update.
