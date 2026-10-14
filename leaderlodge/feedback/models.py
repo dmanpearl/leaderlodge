@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from leaderlodge.feedback.items import (
-    FEEDBACK_ITEM_OTHER,
+    FeedbackAppItem,
     feedback_item_label,
     is_valid_feedback_item_code,
 )
@@ -44,7 +44,7 @@ class Feedback(models.Model):
     game_type_code = models.CharField(
         max_length=30,
         blank=True,
-        default=FEEDBACK_ITEM_OTHER,
+        default=FeedbackAppItem.OTHER,
         help_text="Feedback item code: app-area tag or game registry code.",
     )
     title = models.CharField(max_length=200)

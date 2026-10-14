@@ -4,10 +4,7 @@ from django.core import mail
 from django.urls import reverse
 
 from leaderlodge.feedback.items import (
-    FEEDBACK_ITEM_AI_GAME_ENTRY,
-    FEEDBACK_ITEM_LOCATION,
-    FEEDBACK_ITEM_OTHER,
-    FEEDBACK_ITEM_USER_ACCOUNTS,
+    FeedbackAppItem,
     feedback_item_choices,
     feedback_item_label,
 )
@@ -99,7 +96,7 @@ def test_feedback_create_defaults_item_to_other(client, user):
     )
     assert response.status_code == 302
     feedback = Feedback.objects.get()
-    assert feedback.game_type_code == FEEDBACK_ITEM_OTHER
+    assert feedback.game_type_code == FeedbackAppItem.OTHER
     assert feedback_item_label(feedback.game_type_code) == "Other"
 
 
@@ -118,7 +115,7 @@ def test_feedback_create_allows_empty_details(client, user):
         reverse("feedback:create"),
         {
             "feedback_type": Feedback.FeedbackType.FEATURE,
-            "game_type_code": FEEDBACK_ITEM_LOCATION,
+            "game_type_code": FeedbackAppItem.LOCATION,
             "title": "Map pin drift",
             "description": "",
         },
@@ -128,13 +125,13 @@ def test_feedback_create_allows_empty_details(client, user):
     feedback = Feedback.objects.get()
     assert feedback.title == "Map pin drift"
     assert feedback.description == ""
-    assert feedback.game_type_code == FEEDBACK_ITEM_LOCATION
+    assert feedback.game_type_code == FeedbackAppItem.LOCATION
 
 
 @pytest.mark.django_db
 def test_feedback_item_labels_for_app_areas():
-    assert feedback_item_label(FEEDBACK_ITEM_USER_ACCOUNTS) == "User Accounts"
-    assert feedback_item_label(FEEDBACK_ITEM_AI_GAME_ENTRY) == "AI game entry"
+    assert feedback_item_label(FeedbackAppItem.USER_ACCOUNTS) == "User Accounts"
+    assert feedback_item_label(FeedbackAppItem.AI_GAME_ENTRY) == "AI game entry"
     assert feedback_item_label("") == "Other"
 
 
@@ -150,7 +147,7 @@ def test_feedback_create_without_email_still_saves(client, db):
         reverse("feedback:create"),
         {
             "feedback_type": Feedback.FeedbackType.COMMENT,
-            "game_type_code": FEEDBACK_ITEM_OTHER,
+            "game_type_code": FeedbackAppItem.OTHER,
             "title": "Nice app",
             "description": "Enjoying LeaderLodge.",
         },

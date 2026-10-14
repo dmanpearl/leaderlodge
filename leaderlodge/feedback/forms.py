@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 
 from leaderlodge.feedback.items import (
-    FEEDBACK_ITEM_OTHER,
+    FeedbackAppItem,
     feedback_item_choices,
     is_valid_feedback_item_code,
 )
@@ -51,14 +51,14 @@ class FeedbackForm(forms.ModelForm):
         self.fields["game_type_code"].choices = feedback_item_choices()
         if not self.is_bound and not self.instance.pk:
             self.fields["feedback_type"].initial = Feedback.FeedbackType.BUG
-            self.fields["game_type_code"].initial = FEEDBACK_ITEM_OTHER
+            self.fields["game_type_code"].initial = FeedbackAppItem.OTHER
         self.fields["feedback_type"].choices = Feedback.FeedbackType.choices
         # Model allows blank; keep the HTML required attribute off as well.
         self.fields["description"].required = False
         self.fields["description"].widget.attrs.pop("required", None)
 
     def clean_game_type_code(self):
-        code = self.cleaned_data.get("game_type_code") or FEEDBACK_ITEM_OTHER
+        code = self.cleaned_data.get("game_type_code") or FeedbackAppItem.OTHER
         if not is_valid_feedback_item_code(code):
             raise ValidationError("Choose a valid item.")
         return code

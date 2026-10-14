@@ -292,7 +292,7 @@
 - [x] 05c7975 Bug: Record Game: Player and Teammate fields: Virtual keyboard is not always displayed when the field is tapped. Cause: nudgeMobileKeyboard blurred the input and refocused it inside a frame callback, and WebKit raises the keyboard only for a focus that runs while the originating user gesture is still on the stack. It cleared its own guard on every blur, which is why the failure came and went. No explicit keyboard show/hide control was needed.
 - [x] 05c7975 Bug: Record Game: Suggest: Smart List displayed behind URL field. Same coordinate cause as the entry above: space below the field was measured against visualViewport.offsetTop plus height rather than the visible band, which inflated the list maxHeight (240 where the correct value was 190.8 in one measurement) and let the list run past the bottom of the screen behind the Safari URL bar. The proposed solution of preferring placement above the Player field turned out not to be needed and was not implemented.
 - [x] 5ef286a AI Game Entry: Grow height of field to match number of text lines
-- [x] Feature request: Add 'AI game entry' to feature request item types (https://leaderlodge.com/admin/feedback/feedback/52)
+- [x] 62a05f2 Feature request: Add 'AI game entry' to feature request item types (https://leaderlodge.com/admin/feedback/feedback/52)
 
 ## Open Items
 
