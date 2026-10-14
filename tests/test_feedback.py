@@ -4,6 +4,7 @@ from django.core import mail
 from django.urls import reverse
 
 from leaderlodge.feedback.items import (
+    FEEDBACK_ITEM_AI_GAME_ENTRY,
     FEEDBACK_ITEM_LOCATION,
     FEEDBACK_ITEM_OTHER,
     FEEDBACK_ITEM_USER_ACCOUNTS,
@@ -42,6 +43,7 @@ def test_feedback_form_item_field_and_choices(client, user):
     assert ">User Accounts</option>" in content
     assert ">Groups</option>" in content
     assert ">Leaderboards</option>" in content
+    assert ">AI game entry</option>" in content
     assert ">Dominos</option>" in content
     assert ">Other</option>" in content
     assert 'value="other" selected' in content
@@ -49,6 +51,7 @@ def test_feedback_form_item_field_and_choices(client, user):
     labels = [label for _code, label in feedback_item_choices()]
     assert labels[0] == "Other"
     assert labels.index("Location") < labels.index("Dominos")
+    assert labels.index("AI game entry") < labels.index("Dominos")
 
 
 @pytest.mark.django_db
@@ -131,6 +134,7 @@ def test_feedback_create_allows_empty_details(client, user):
 @pytest.mark.django_db
 def test_feedback_item_labels_for_app_areas():
     assert feedback_item_label(FEEDBACK_ITEM_USER_ACCOUNTS) == "User Accounts"
+    assert feedback_item_label(FEEDBACK_ITEM_AI_GAME_ENTRY) == "AI game entry"
     assert feedback_item_label("") == "Other"
 
 

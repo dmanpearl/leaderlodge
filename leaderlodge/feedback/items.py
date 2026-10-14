@@ -7,6 +7,7 @@ FEEDBACK_ITEM_LOCATION = "location"
 FEEDBACK_ITEM_USER_ACCOUNTS = "user_accounts"
 FEEDBACK_ITEM_GROUPS = "groups"
 FEEDBACK_ITEM_LEADERBOARDS = "leaderboards"
+FEEDBACK_ITEM_AI_GAME_ENTRY = "ai_game_entry"
 
 FEEDBACK_ITEM_LABELS: dict[str, str] = {
     FEEDBACK_ITEM_OTHER: "Other",
@@ -14,6 +15,7 @@ FEEDBACK_ITEM_LABELS: dict[str, str] = {
     FEEDBACK_ITEM_USER_ACCOUNTS: "User Accounts",
     FEEDBACK_ITEM_GROUPS: "Groups",
     FEEDBACK_ITEM_LEADERBOARDS: "Leaderboards",
+    FEEDBACK_ITEM_AI_GAME_ENTRY: "AI game entry",
 }
 
 
@@ -29,6 +31,10 @@ def feedback_item_choices() -> list[tuple[str, str]]:
         (
             FEEDBACK_ITEM_LEADERBOARDS,
             FEEDBACK_ITEM_LABELS[FEEDBACK_ITEM_LEADERBOARDS],
+        ),
+        (
+            FEEDBACK_ITEM_AI_GAME_ENTRY,
+            FEEDBACK_ITEM_LABELS[FEEDBACK_ITEM_AI_GAME_ENTRY],
         ),
     ]
     games = sorted(game_type_choices(), key=lambda pair: pair[1].casefold())
