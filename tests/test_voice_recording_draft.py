@@ -121,6 +121,7 @@ def test_parse_recording_repairs_and_to_singles_when_model_returns_one_side(
     assert draft["sides"][1]["score"] == 45
     assert draft["sides"][0]["players"][0]["label"] == "Charlene"
     assert draft["location_name"] == "Cafe 50s"
+    assert draft["location_source"] == "spoken"
 
 
 @pytest.mark.django_db
@@ -160,6 +161,7 @@ def test_parse_recording_resolves_sides_and_rally(mock_complete, voice_group, us
     assert draft["game_type_code"] == "pickleball"
     assert draft["score_type"] == "rally"
     assert draft["location_name"] == "Court A"
+    assert draft["location_source"] == "last"
     assert any("last location" in w.lower() for w in draft["warnings"])
     assert len(draft["sides"]) == 2
     assert draft["sides"][0]["score"] == 11

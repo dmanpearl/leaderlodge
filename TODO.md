@@ -293,7 +293,8 @@
 - [x] 05c7975 Bug: Record Game: Suggest: Smart List displayed behind URL field. Same coordinate cause as the entry above: space below the field was measured against visualViewport.offsetTop plus height rather than the visible band, which inflated the list maxHeight (240 where the correct value was 190.8 in one measurement) and let the list run past the bottom of the screen behind the Safari URL bar. The proposed solution of preferring placement above the Player field turned out not to be needed and was not implemented.
 - [x] 5ef286a AI Game Entry: Grow height of field to match number of text lines
 - [x] 62a05f2 Feature request: Add 'AI game entry' to feature request item types (https://leaderlodge.com/admin/feedback/feedback/52)
-- [x] Bug: Edit Mahjong wall game change player replacement player doesn’t auto-receive the required 10 points (https://leaderlodge.com/admin/feedback/feedback/51)
+- [x] aae98c5 Bug: Edit Mahjong wall game change player replacement player doesn’t auto-receive the required 10 points (https://leaderlodge.com/admin/feedback/feedback/51)
+- [x] Bug: Last game location is not using the most recent last game from GPS search (https://leaderlodge.com/admin/feedback/feedback/53)
 
 ## Open Items
 
@@ -345,7 +346,7 @@
 - [/] Leaderboard context menu gets truncated inside player field height (https://leaderlodge.com/admin/feedback/feedback/26)
 - [/] Leaderboard Additional Algorithms: points-percent, points-total (note: streaks already implemented)
 - [/] Make ask the lodge capable of recording a game (https://leaderlodge.com/admin/feedback/feedback/41)
-      - Needs the capability to navigate to the game screen and parse the information for the user to edit or save. 
+      - Needs the capability to navigate to the game screen and parse the information for the user to edit or save.
       - It should be able to specify game-type, but game-type would default to current game preference.
       - We have to decide if game-type would be overridden by game locking.
       - How to decide when to navigate to the Record Game screen. Recommend a button in the Ask screen after ask determines that the prompt is probably a request to record a game. This will allow the user to view the debug information if set.

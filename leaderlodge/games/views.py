@@ -1261,7 +1261,9 @@ def game_reuse_preview(request: HttpRequest) -> JsonResponse:
 
     payload = reuse_players_summary(group, game_type_code)
     payload["last_location_name"] = last_recorded_location_name(
-        request.user, game_type_code
+        request.user,
+        game_type_code,
+        group=group,
     )
     return JsonResponse(payload)
 

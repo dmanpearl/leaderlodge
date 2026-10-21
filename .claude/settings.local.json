@@ -17,7 +17,10 @@
       "Bash(env)",
       "Bash(node --check static/js/location_autocomplete.js)",
       "Bash(node --check static/js/player_picker.js)",
-      "Bash(node --check static/js/game_record_form.js)"
+      "Bash(node --check static/js/game_record_form.js)",
+      "Bash(xattr -l \"/Volumes/Cursor Installer/Cursor.app\")",
+      "Bash(ditto \"/Volumes/Cursor Installer/Cursor.app\" /Applications/Cursor.app)",
+      "Bash(/usr/libexec/PlistBuddy -c \"Print :CFBundleShortVersionString\" /Applications/Cursor.app/Contents/Info.plist)"
     ]
   }
 }

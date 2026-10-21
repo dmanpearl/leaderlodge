@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from datetime import date, timedelta
 
+from leaderlodge.games.forms import GameRecordForm
 from leaderlodge.games.last_location import (
     last_recorded_location_name,
     recent_location_names,
@@ -91,6 +92,99 @@ def test_last_recorded_location_name_returns_latest_for_user_and_game_type(
     assert last_recorded_location_name(staff_user, "dominos") == "Clubhouse"
     assert last_recorded_location_name(staff_user, "backgammon") == "Kitchen"
     assert last_recorded_location_name(staff_user, "mahjongg") == ""
+
+
+def _play(staff_user, group, players, *, game_type_code, location, played_on):
+    return record_game(
+        user=staff_user,
+        group=group,
+        game_type_code=game_type_code,
+        played_on=played_on,
+        participants=[
+            ParticipantInput(
+                player=players[0], score=30, result=Result.WIN, placement=0
+            ),
+            ParticipantInput(
+                player=players[1], score=20, result=Result.PLAYED, placement=1
+            ),
+        ],
+        location=location,
+    )
+
+
+@pytest.mark.django_db
+def test_last_recorded_location_name_follows_latest_save_not_play_date(
+    staff_user, group
+):
+    """A back-dated game saved just now is the next default location."""
+    players = list(group.players.order_by("pk"))
+    kitchen = resolve_game_location(group=group, location_name="Kitchen")
+    clubhouse = resolve_game_location(group=group, location_name="Clubhouse")
+    today = timezone.localdate()
+
+    earlier_save = _play(
+        staff_user,
+        group,
+        players,
+        game_type_code="dominos",
+        location=clubhouse,
+        played_on=today,
+    )
+    earlier_save.created_at = timezone.now() - timedelta(days=3)
+    earlier_save.save(update_fields=["created_at"])
+
+    _play(
+        staff_user,
+        group,
+        players,
+        game_type_code="dominos",
+        location=kitchen,
+        played_on=today - timedelta(days=10),
+    )
+
+    assert last_recorded_location_name(staff_user, "dominos", group=group) == "Kitchen"
+
+
+@pytest.mark.django_db
+def test_last_recorded_location_name_stays_in_the_selected_group(staff_user, group):
+    players = list(group.players.order_by("pk"))
+    kitchen = resolve_game_location(group=group, location_name="Kitchen")
+    other = create_group_with_owner(user=staff_user, name="Away Club")
+    add_guest_player(group=other, display_name="Pat")
+    add_guest_player(group=other, display_name="Sam")
+    other_players = list(other.players.order_by("pk"))
+    clubhouse = resolve_game_location(group=other, location_name="Clubhouse")
+    today = timezone.localdate()
+
+    home_game = _play(
+        staff_user,
+        group,
+        players,
+        game_type_code="dominos",
+        location=kitchen,
+        played_on=today,
+    )
+    home_game.created_at = timezone.now() - timedelta(hours=1)
+    home_game.save(update_fields=["created_at"])
+    _play(
+        staff_user,
+        other,
+        other_players,
+        game_type_code="dominos",
+        location=clubhouse,
+        played_on=today,
+    )
+
+    assert last_recorded_location_name(staff_user, "dominos", group=group) == "Kitchen"
+    assert (
+        last_recorded_location_name(staff_user, "dominos", group=other) == "Clubhouse"
+    )
+
+    form = GameRecordForm(
+        user=staff_user,
+        initial={"group": group.pk, "game_type_code": "dominos"},
+    )
+    assert form.initial["location_name"] == "Kitchen"
 
 
 @pytest.mark.django_db

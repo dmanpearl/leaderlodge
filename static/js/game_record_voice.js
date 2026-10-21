@@ -198,22 +198,34 @@
     return (el && el.value) || "";
   }
 
-  function applyLocation(name) {
-    if (!name) {
-      return;
-    }
-    const input =
+  function locationInputEl() {
+    return (
       form.querySelector('[name="location_name"]') ||
-      document.getElementById("id_location_name");
+      document.getElementById("id_location_name")
+    );
+  }
+
+  function applyLocation(name, options) {
+    const input = locationInputEl();
     if (!input) {
-      return;
+      return false;
+    }
+    // A fallback ("last location") must not replace a place already chosen,
+    // including a Near me / GPS pick that has not been saved yet.
+    if (options && options.keepExisting && input.value.trim()) {
+      return false;
+    }
+    if (!name) {
+      return false;
     }
     input.value = name;
+    input.dataset.locationLocked = "1";
     input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
     if (window.LeaderLodgeLocationAutocomplete?.resolveInput) {
       window.LeaderLodgeLocationAutocomplete.resolveInput(input);
     }
+    return true;
   }
 
   function applyPlayedOn(isoDate) {
@@ -336,7 +348,10 @@
       return false;
     }
 
-    applyLocation(draft.location_name || "");
+    const locationSource = draft.location_source || "";
+    const appliedLocation = applyLocation(draft.location_name || "", {
+      keepExisting: locationSource === "last",
+    });
     applyPlayedOn(draft.played_on || "");
     applyScoreType(draft.score_type || "");
     applyHalfGame(draft.is_half_game);
@@ -351,7 +366,16 @@
     });
 
     const notes = [];
-    (draft.warnings || []).forEach((w) => notes.push(w));
+    (draft.warnings || []).forEach((w) => {
+      if (
+        locationSource === "last" &&
+        !appliedLocation &&
+        /^using last location:/i.test(String(w || "").trim())
+      ) {
+        return;
+      }
+      notes.push(w);
+    });
     (draft.ambiguities || []).forEach((a) => notes.push(a));
     if (added < 2) {
       notes.push("Could not add both sides. Check names and try again.");

@@ -552,10 +552,10 @@
   <script src="{% static 'js/location_autocomplete.js' %}?v=15"></script>
   <script src="{% static 'js/game_setup.js' %}?v=1"></script>
   {% if not is_guest_demo %}
-    <script src="{% static 'js/game_setup_reuse.js' %}?v=8"></script>
+    <script src="{% static 'js/game_setup_reuse.js' %}?v=9"></script>
   {% endif %}
   {% if google_places_api_key %}
-      <script src="{% static 'js/location_lookup.js' %}?v=8"></script>
+      <script src="{% static 'js/location_lookup.js' %}?v=9"></script>
     {% if not is_guest_demo %}
       <script src="{% static 'js/location_map.js' %}?v=5"></script>
       <script src="{% static 'js/location_set_place.js' %}?v=5"></script>
@@ -568,7 +568,7 @@
     <script src="{% static 'js/game_setup_suggest.js' %}?v=2"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
-      <script src="{% static 'js/game_record_voice.js' %}?v=20"></script>
+      <script src="{% static 'js/game_record_voice.js' %}?v=21"></script>
     {% endif %}
   {% endif %}
 {% endblock %}

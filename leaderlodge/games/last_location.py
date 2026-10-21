@@ -13,24 +13,43 @@ from leaderlodge.groups.models import Group
 RECENT_LOCATIONS_LIMIT = 8
 
 
+def _group_id(group: Group | int | str | None) -> int | None:
+    if group is None or group == "":
+        return None
+    if isinstance(group, Group):
+        return group.pk
+    if isinstance(group, int):
+        return group
+    if isinstance(group, str) and group.isdigit():
+        return int(group)
+    return None
+
+
 def last_recorded_location_name(
-    user: AbstractBaseUser | None, game_type_code: str
+    user: AbstractBaseUser | None,
+    game_type_code: str,
+    group: Group | int | str | None = None,
 ) -> str:
+    """Venue on the game this user most recently saved for the type.
+
+    Sorted by save time, so a back-dated entry still becomes the default
+    for the next Record Game. ``group`` limits the search to that group.
+    """
     if user is None or not user.is_authenticated:
         return ""
     if game_type_code not in GAME_TYPES:
         return ""
 
-    game = (
-        Game.objects.filter(
-            recorded_by=user,
-            game_type_code=game_type_code,
-            location__isnull=False,
-        )
-        .select_related("location")
-        .order_by("-played_on", "-created_at", "-pk")
-        .first()
+    games = Game.objects.filter(
+        recorded_by=user,
+        game_type_code=game_type_code,
+        location__isnull=False,
     )
+    group_id = _group_id(group)
+    if group_id is not None:
+        games = games.filter(group_id=group_id)
+
+    game = games.select_related("location").order_by("-created_at", "-pk").first()
     if game is None or game.location is None:
         return ""
     return game.location.name

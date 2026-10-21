@@ -29,6 +29,28 @@
   // Pick-from seeds location server-side; keep it until the user changes group/type.
   let preserveLocation = form.dataset.locationPreserve === "1";
 
+  function lockLocation() {
+    if (locationInput) {
+      locationInput.dataset.locationLocked = "1";
+    }
+  }
+
+  if (locationInput) {
+    locationInput.addEventListener("input", (event) => {
+      if (event.isTrusted) {
+        lockLocation();
+      }
+    });
+    locationInput.addEventListener("change", (event) => {
+      if (event.isTrusted) {
+        lockLocation();
+      }
+    });
+  }
+  document.addEventListener("location-lookup-select", lockLocation);
+  document.addEventListener("location-autocomplete-select", lockLocation);
+  document.addEventListener("location-map-apply", lockLocation);
+
   function clearReuseAction() {
     button.disabled = true;
     menu.replaceChildren();
@@ -96,9 +118,18 @@
       } else {
         menu.replaceChildren();
       }
-      if (locationInput && !preserveLocation) {
-        locationInput.value = data.last_location_name || "";
-        locationInput.dispatchEvent(new Event("input", { bubbles: true }));
+      // Do not replace a place the user already chose (Near me, map, or typing)
+      // while this preview request was in flight.
+      if (
+        locationInput &&
+        !preserveLocation &&
+        locationInput.dataset.locationLocked !== "1"
+      ) {
+        const nextLocation = data.last_location_name || "";
+        if (locationInput.value !== nextLocation) {
+          locationInput.value = nextLocation;
+          locationInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
       }
     } catch (_error) {
       if (requestId === fetchId) {
@@ -109,6 +140,9 @@
 
   function scheduleUpdate() {
     preserveLocation = false;
+    if (locationInput) {
+      delete locationInput.dataset.locationLocked;
+    }
     clearReuseAction();
     window.clearTimeout(fetchTimer);
     fetchTimer = window.setTimeout(updateReuseAction, 150);

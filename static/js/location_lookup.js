@@ -276,6 +276,16 @@
 
   function applySelection(item) {
     fillLocation(item.fillValue);
+    const chosen = locationInput();
+    if (chosen) {
+      chosen.dataset.locationLocked = "1";
+    }
+    document.dispatchEvent(
+      new CustomEvent("location-lookup-select", {
+        bubbles: true,
+        detail: { name: item.fillValue },
+      }),
+    );
     const meta = item.meta || {};
     if (meta.kind === "place" && meta.lat != null && meta.lon != null) {
       setGeoFields({

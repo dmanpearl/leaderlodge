@@ -63,7 +63,11 @@ class GameRecordForm(forms.Form):
             return
         game_type_code = self.initial.get("game_type_code", "")
         if user is not None and game_type_code:
-            last_location = last_recorded_location_name(user, game_type_code)
+            last_location = last_recorded_location_name(
+                user,
+                game_type_code,
+                group=self.initial.get("group"),
+            )
             if last_location:
                 self.initial["location_name"] = last_location
 

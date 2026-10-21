@@ -431,20 +431,22 @@ def _resolve_location(
     raw_name: str | None,
     user: AbstractBaseUser | None,
     game_type_code: str,
-) -> tuple[str, list[str]]:
+) -> tuple[str, list[str], str]:
+    """Return location name, warnings, and source (spoken, last, or blank)."""
     warnings: list[str] = []
     mentioned = (raw_name or "").strip()
     if mentioned:
         try:
             location = resolve_location_query(group, mentioned)
-            return location.name, warnings
+            return location.name, warnings, "spoken"
         except ValueError as exc:
             warnings.append(str(exc))
-            return mentioned, warnings
-    default_name = last_recorded_location_name(user, game_type_code)
+            return mentioned, warnings, "spoken"
+    default_name = last_recorded_location_name(user, game_type_code, group=group)
     if default_name:
         warnings.append(f"Using last location: {default_name}.")
-    return default_name, warnings
+        return default_name, warnings, "last"
+    return "", warnings, ""
 
 
 def _scope_manual_change_notes(*, transcript: str, raw: dict[str, Any]) -> list[str]:
@@ -525,7 +527,7 @@ def parse_recording_transcript(
             field_label = (game_type.score_type_field_label or "Score type").lower()
             warnings.append(f"Using {field_label}: {score_type}.")
 
-    location_name, location_warnings = _resolve_location(
+    location_name, location_warnings, location_source = _resolve_location(
         group,
         raw_name=raw.get("location_name"),
         user=user,
@@ -574,6 +576,7 @@ def parse_recording_transcript(
         "game_type_name": game_type.name,
         "score_type": score_type,
         "location_name": location_name,
+        "location_source": location_source,
         "played_on": played_on,
         "is_half_game": is_half_game,
         "sides": sides,
