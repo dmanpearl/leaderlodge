@@ -271,6 +271,24 @@
     checkbox.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
+  function conflictIsCurrentGame(conflict) {
+    if (!conflict) {
+      return false;
+    }
+    const mentioned = conflict.mentioned_code || "";
+    const current = currentGameType();
+    if (mentioned && (mentioned === current || mentioned === conflict.selected_code)) {
+      return true;
+    }
+    const select = form.querySelector("#game-setup-game-type-select");
+    const selectedLabel =
+      select && select.options && select.selectedIndex >= 0
+        ? (select.options[select.selectedIndex].textContent || "").trim()
+        : "";
+    const mentionedName = (conflict.mentioned_name || "").trim();
+    return Boolean(mentionedName && selectedLabel && mentionedName === selectedLabel);
+  }
+
   function conflictStatusText(conflict) {
     if (!conflict) {
       return "";
@@ -384,8 +402,9 @@
       api.collapsePlayerPicker();
     }
 
-    if (draft.conflict) {
-      renderConflict(draft.conflict);
+    const conflict = conflictIsCurrentGame(draft.conflict) ? null : draft.conflict;
+    if (conflict) {
+      renderConflict(conflict);
       if (notes.length) {
         notesEl.innerHTML += notes
           .map((line) => `<div class="text-warning-emphasis mt-1">${escapeHtml(line)}</div>`)
@@ -395,7 +414,7 @@
       if (added < 2) {
         setStatus("Draft partially filled. Edit as needed.", "error");
       } else {
-        setStatus(conflictStatusText(draft.conflict), "error");
+        setStatus(conflictStatusText(conflict), "error");
       }
       return added >= 2;
     }

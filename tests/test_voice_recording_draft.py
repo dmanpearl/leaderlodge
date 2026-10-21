@@ -478,6 +478,183 @@ def test_parse_recording_heuristic_game_type_conflict_when_llm_misses_type(
 
 
 @pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_ignores_game_type_guess_not_in_transcript(
+    mock_complete, voice_group, user
+):
+    """A guessed type must not warn when the utterance never names a game."""
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_game_type_code": "dominos",
+            "game_type_code": "dominos",
+            "score_type": "rally",
+            "location_name": None,
+            "sides": [
+                {"names": ["Pat"], "score": 11},
+                {"names": ["Nancy"], "score": 8},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="Pat 11 Nancy 8 rally",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="pickleball",
+    )
+
+    assert draft["conflict"] is None
+    assert draft["game_type_code"] == "pickleball"
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_same_game_type_name_is_not_a_conflict(
+    mock_complete, voice_group, user
+):
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_game_type_code": "dominoes",
+            "score_type": None,
+            "location_name": None,
+            "sides": [
+                {"names": ["Pat"], "score": 11},
+                {"names": ["Nancy"], "score": 8},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="dominoes Pat 11 Nancy 8",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="dominos",
+    )
+
+    assert draft["conflict"] is None
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_recognizes_mahjongg_spellings(
+    mock_complete, voice_group, user
+):
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_game_type_code": None,
+            "mentioned_game_type_words": None,
+            "score_type": None,
+            "location_name": None,
+            "sides": [
+                {"names": ["Pat"], "score": 20},
+                {"names": ["Nancy"], "score": 10},
+            ],
+        }
+    )
+
+    for transcript in ("maj jongg Pat 20 Nancy 10", "Majongg Pat 20 Nancy 10"):
+        draft = parse_recording_transcript(
+            group=voice_group,
+            transcript=transcript,
+            user=user,
+            model_slug="gpt-4o-mini",
+            default_game_type_code="pickleball",
+        )
+        assert draft["conflict"]["mentioned_code"] == "mahjongg", transcript
+        assert draft["game_type_code"] == "pickleball"
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_recognizes_dominos_nickname_and_misspelling(
+    mock_complete, voice_group, user
+):
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_game_type_code": "dominos",
+            "mentioned_game_type_words": "bones",
+            "score_type": None,
+            "location_name": None,
+            "sides": [
+                {"names": ["Pat"], "score": 30},
+                {"names": ["Nancy"], "score": 20},
+            ],
+        }
+    )
+
+    bones = parse_recording_transcript(
+        group=voice_group,
+        transcript="bones Pat 30 Nancy 20",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="pickleball",
+    )
+    assert bones["conflict"]["mentioned_code"] == "dominos"
+    assert bones["conflict"]["mentioned_name"] == "Dominos"
+
+    same_game = parse_recording_transcript(
+        group=voice_group,
+        transcript="bones Pat 30 Nancy 20",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="dominos",
+    )
+    assert same_game["conflict"] is None
+
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_game_type_code": "dominos",
+            "mentioned_game_type_words": "dominoz",
+            "score_type": None,
+            "location_name": None,
+            "sides": [
+                {"names": ["Pat"], "score": 30},
+                {"names": ["Nancy"], "score": 20},
+            ],
+        }
+    )
+    misspelled = parse_recording_transcript(
+        group=voice_group,
+        transcript="dominoz Pat 30 Nancy 20",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="pickleball",
+    )
+    assert misspelled["conflict"]["mentioned_code"] == "dominos"
+
+
+@pytest.mark.django_db
+@patch("leaderlodge.games.voice_draft.complete_insight")
+def test_parse_recording_rejects_player_name_as_game_type_proof(
+    mock_complete, voice_group, user
+):
+    mock_complete.return_value = _completion(
+        {
+            "mentioned_game_type_code": "dominos",
+            "mentioned_game_type_words": "Pat",
+            "score_type": None,
+            "location_name": None,
+            "sides": [
+                {"names": ["Pat"], "score": 11},
+                {"names": ["Nancy"], "score": 8},
+            ],
+        }
+    )
+
+    draft = parse_recording_transcript(
+        group=voice_group,
+        transcript="Pat 11 Nancy 8",
+        user=user,
+        model_slug="gpt-4o-mini",
+        default_game_type_code="pickleball",
+    )
+
+    assert draft["conflict"] is None
+
+
+@pytest.mark.django_db
 @patch("leaderlodge.games.voice_draft.timezone.localdate")
 @patch("leaderlodge.games.voice_draft.complete_insight")
 def test_parse_recording_resolves_yesterday_from_transcript(

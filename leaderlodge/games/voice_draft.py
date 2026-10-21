@@ -64,10 +64,14 @@ _GAME_TYPE_ALIASES = {
     "phase 10": "phase10",
     "phase10": "phase10",
     "mah jongg": "mahjongg",
+    "mah jong": "mahjongg",
+    "maj jongg": "mahjongg",
+    "majongg": "mahjongg",
     "mahjong": "mahjongg",
     "mahjongg": "mahjongg",
     "dominos": "dominos",
     "dominoes": "dominos",
+    "bones": "dominos",
     "backgammon": "backgammon",
     "cribbage": "cribbage",
     "darts": "darts",
@@ -78,6 +82,7 @@ _PARSE_SYSTEM = """You extract a board-game or sports game result from a user ut
 Return ONLY a JSON object (no markdown) with this shape:
 {
   "mentioned_game_type_code": "pickleball|dominos|progressiverummy|mahjongg|backgammon|ginrummy|cribbage|phase10|darts|cornhole or null",
+  "mentioned_game_type_words": "the game-name words copied from the utterance, else null",
   "mentioned_group": "group/club name if spoken, else null",
   "mentioned_date": "date string if spoken (any format), else null",
   "is_half_game": true or false or null,
@@ -105,7 +110,11 @@ Rules:
 - If the user says "in group X" / "for group X", put X in mentioned_group and do NOT use it as location_name.
 - If a calendar date is spoken ("on 8/3/2026", "August 3"), put it in mentioned_date.
 - Relative dates ("yesterday", "today") go in mentioned_date using those words.
-- If a game name is spoken, put it in mentioned_game_type_code (lowercase codes above).
+- If a game name is spoken, set mentioned_game_type_code to that game (lowercase codes above).
+  Normalize spelling, nicknames, and misspellings ("maj jongg" and "mahjong" are mahjongg,
+  "bones" and "dominoes" are dominos). Copy the words as spoken into mentioned_game_type_words.
+  If no game name is spoken, both fields must be null. Never guess a game from scores,
+  players, or a game the user did not name.
 - Progressive Rummy half game: "half game", "half progressive rummy" -> is_half_game true.
 - Do not invent players or venues not mentioned.
 """
@@ -215,17 +224,198 @@ def _detect_mentioned_game_type_heuristic(transcript: str) -> str:
     return ""
 
 
+# Words that are not a game name. A model must not use one of these as proof
+# that the user named a game.
+_NOT_GAME_NAME_WORDS = frozenset(
+    {
+        "american",
+        "chinese",
+        "game",
+        "half",
+        "hong",
+        "japanese",
+        "kong",
+        "playing",
+        "rally",
+        "today",
+        "traditional",
+        "taiwanese",
+        "versus",
+        "yesterday",
+    }
+)
+
+
+def _fold_game_text(text: str) -> str:
+    """Lowercase, drop apostrophes, and turn hyphens into spaces."""
+    folded = (text or "").lower()
+    folded = re.sub(r"['\u2019]", "", folded)
+    folded = folded.replace("-", " ")
+    folded = re.sub(r"[^a-z0-9\s]+", " ", folded)
+    return re.sub(r"\s+", " ", folded).strip()
+
+
+def _squash_game_text(text: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", _fold_game_text(text))
+
+
+def _edit_distance(left: str, right: str) -> int:
+    if left == right:
+        return 0
+    if not left:
+        return len(right)
+    if not right:
+        return len(left)
+    previous = list(range(len(right) + 1))
+    for i, left_char in enumerate(left, start=1):
+        current = [i]
+        for j, right_char in enumerate(right, start=1):
+            insert_cost = current[j - 1] + 1
+            delete_cost = previous[j] + 1
+            replace_cost = previous[j - 1] + (left_char != right_char)
+            current.append(min(insert_cost, delete_cost, replace_cost))
+        previous = current
+    return previous[-1]
+
+
+def _close_game_spelling(alias: str, heard: str) -> bool:
+    """True when a heard spelling is a small typo of a known game name."""
+    left = _squash_game_text(alias)
+    right = _squash_game_text(heard)
+    if len(left) < 7 or len(right) < 7:
+        return False
+    if abs(len(left) - len(right)) > 2:
+        return False
+    return _edit_distance(left, right) <= 2
+
+
+def _transcript_contains_game_type(transcript: str, code: str) -> bool:
+    """True when the utterance names this game, including a close misspelling.
+
+    Short abbreviations are ignored so ordinary words are not read as a game.
+    """
+    text = _fold_game_text(transcript)
+    if not text or code not in GAME_TYPES:
+        return False
+    words = text.split()
+    for alias in _alias_tokens_for_type(code):
+        folded_alias = _fold_game_text(alias)
+        if len(folded_alias) < 4:
+            continue
+        if re.search(rf"\b{re.escape(folded_alias)}\b", text):
+            return True
+        alias_words = folded_alias.split()
+        width = len(alias_words)
+        if width == 0 or len(words) < width:
+            continue
+        for start in range(len(words) - width + 1):
+            window = " ".join(words[start : start + width])
+            if _close_game_spelling(folded_alias, window):
+                return True
+    return False
+
+
+def _game_type_named_in_transcript(transcript: str) -> str:
+    """Known game name in the utterance, preferring the longest match."""
+    text = _fold_game_text(transcript)
+    if not text:
+        return ""
+    words = text.split()
+    best_code = ""
+    best_length = 0
+    tied = False
+    for code in GAME_TYPES:
+        for alias in _alias_tokens_for_type(code):
+            folded_alias = _fold_game_text(alias)
+            if len(folded_alias) < 4:
+                continue
+            matched = bool(re.search(rf"\b{re.escape(folded_alias)}\b", text))
+            if not matched:
+                alias_words = folded_alias.split()
+                width = len(alias_words)
+                if width and len(words) >= width:
+                    for start in range(len(words) - width + 1):
+                        window = " ".join(words[start : start + width])
+                        if _close_game_spelling(folded_alias, window):
+                            matched = True
+                            break
+            if not matched:
+                continue
+            if len(folded_alias) > best_length:
+                best_code = code
+                best_length = len(folded_alias)
+                tied = False
+            elif len(folded_alias) == best_length and code != best_code:
+                tied = True
+    if tied:
+        return ""
+    return best_code
+
+
+def _side_names_from_raw(raw: dict[str, Any]) -> set[str]:
+    names: set[str] = set()
+    for side in raw.get("sides") or []:
+        if not isinstance(side, dict):
+            continue
+        raw_names = side.get("names") or []
+        if isinstance(raw_names, str):
+            raw_names = [raw_names]
+        for name in raw_names:
+            folded = _fold_game_text(str(name))
+            if not folded:
+                continue
+            names.add(folded)
+            names.update(folded.split())
+    return names
+
+
+def _quoted_game_words_in_transcript(
+    transcript: str,
+    words: str,
+    *,
+    side_names: set[str],
+) -> bool:
+    """True when the model copied a short game-name phrase from the utterance."""
+    phrase = _fold_game_text(words)
+    if not phrase or phrase in side_names or phrase in _NOT_GAME_NAME_WORDS:
+        return False
+    tokens = phrase.split()
+    if not tokens or len(tokens) > 3:
+        return False
+    if all(token in side_names or token in _NOT_GAME_NAME_WORDS for token in tokens):
+        return False
+    text = _fold_game_text(transcript)
+    return bool(re.search(rf"\b{re.escape(phrase)}\b", text))
+
+
 def _resolve_mentioned_game_type(
     *,
     transcript: str,
     raw: dict[str, Any],
 ) -> tuple[str, str]:
-    """Return (game_type_code, source) where source is llm, heuristic, or empty."""
-    llm_code = _normalize_game_type_code(
-        raw.get("mentioned_game_type_code") or raw.get("game_type_code")
+    """Return (game_type_code, source) where source is llm, transcript, heuristic, or empty.
+
+    A model code counts when the utterance contains that game's name, a close
+    spelling, a known nickname, or the words the model copied from the utterance.
+    A code with none of those is a guess and is ignored. ``game_type_code`` is
+    ignored for the same reason.
+    """
+    llm_code = _normalize_game_type_code(raw.get("mentioned_game_type_code"))
+    quoted = str(raw.get("mentioned_game_type_words") or "").strip()
+    named = _game_type_named_in_transcript(transcript)
+    quoted_ok = _quoted_game_words_in_transcript(
+        transcript,
+        quoted,
+        side_names=_side_names_from_raw(raw),
     )
-    if llm_code in GAME_TYPES:
+    if llm_code in GAME_TYPES and (
+        _transcript_contains_game_type(transcript, llm_code)
+        or (quoted_ok and (not named or named == llm_code))
+    ):
         return llm_code, "llm"
+
+    if named in GAME_TYPES:
+        return named, "transcript"
 
     heuristic_code = _detect_mentioned_game_type_heuristic(transcript)
     if heuristic_code in GAME_TYPES:
@@ -331,6 +521,8 @@ def _build_game_type_conflict(
     mentioned_code: str,
     selected_code: str,
 ) -> dict[str, str] | None:
+    mentioned_code = _normalize_game_type_code(mentioned_code)
+    selected_code = _normalize_game_type_code(selected_code)
     if not mentioned_code or mentioned_code == selected_code:
         return None
     if mentioned_code not in GAME_TYPES or selected_code not in GAME_TYPES:

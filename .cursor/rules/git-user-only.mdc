@@ -24,8 +24,14 @@ When the user asks for a commit message (with or without "please"):
 
 1. **Read `tools/git/git_template`** before drafting.
 2. Run read-only git commands if helpful (`status`, `diff`, `log`).
-3. **Output the suggested message** in `<type>(<scope>): <subject>` format (HEREDOC for copy-paste).
+3. **Output only the message text** in one fenced code block (no `git commit` command).
 4. **Do not** stage or commit.
+
+Footer when the task names a feedback report: a blank line, then
+
+`Re: https://leaderlodge.com/admin/feedback/feedback/<id>`
+
+Use that line for the report this change addresses. Do not put the URL in the subject.
 
 Same for pull requests: suggest title/body or use `gh` only when the user explicitly asks to create the PR.
 
