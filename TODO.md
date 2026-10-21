@@ -295,7 +295,7 @@
 - [x] 62a05f2 Feature request: Add 'AI game entry' to feature request item types (https://leaderlodge.com/admin/feedback/feedback/52)
 - [x] aae98c5 Bug: Edit Mahjong wall game change player replacement player doesn’t auto-receive the required 10 points (https://leaderlodge.com/admin/feedback/feedback/51)
 - [x] 5d83316 Bug: Last game location is not using the most recent last game from GPS search (https://leaderlodge.com/admin/feedback/feedback/53)
-- [x] Record Game: AI Game Entry: After dictation displays warning that I requested a different game-type when I didn't. I believe a flag is probably not getting reset (https://leaderlodge.com/admin/feedback/feedback/50)
+- [x] c3b55bd Record Game: AI Game Entry: After dictation displays warning that I requested a different game-type when I didn't. I believe a flag is probably not getting reset (https://leaderlodge.com/admin/feedback/feedback/50)
 
 ## Open Items
 

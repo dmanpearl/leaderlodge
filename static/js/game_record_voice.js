@@ -682,7 +682,88 @@
   }
 
   if (transcriptEl) {
+    // Value before a plain Enter, so a line break that slips past
+    // preventDefault can be removed before the field grows.
+    let lineBreakSnapshot = null;
+    let shiftEnter = false;
+    let enterSubmitQueued = false;
+
+    function isImeKey(event) {
+      return event.isComposing || event.keyCode === 229;
+    }
+
+    function isPlainEnter(event) {
+      return event.key === "Enter" && !event.shiftKey && !isImeKey(event);
+    }
+
+    function isLineBreakInput(event) {
+      return (
+        event.inputType === "insertLineBreak" ||
+        event.inputType === "insertParagraph" ||
+        (event.inputType === "insertText" &&
+          (event.data === "\n" || event.data === "\r\n"))
+      );
+    }
+
+    function rememberFieldBeforeLineBreak() {
+      if (lineBreakSnapshot) {
+        return;
+      }
+      lineBreakSnapshot = {
+        value: transcriptEl.value,
+        start: transcriptEl.selectionStart,
+        end: transcriptEl.selectionEnd,
+      };
+    }
+
+    // Some browsers insert the newline even after keydown preventDefault
+    // (Safari, and Chrome once this handler sets the field read-only).
+    function undoInsertedLineBreak() {
+      if (!lineBreakSnapshot) {
+        return;
+      }
+      const snap = lineBreakSnapshot;
+      lineBreakSnapshot = null;
+      const current = transcriptEl.value;
+      const breaks = ["\n", "\r\n", "\r"];
+      for (let i = 0; i < breaks.length; i += 1) {
+        const withBreak =
+          snap.value.slice(0, snap.start) + breaks[i] + snap.value.slice(snap.end);
+        if (current !== withBreak) {
+          continue;
+        }
+        transcriptEl.value = snap.value;
+        if (typeof transcriptEl.setSelectionRange === "function") {
+          transcriptEl.setSelectionRange(snap.start, snap.start);
+        }
+        return;
+      }
+    }
+
+    function queueEnterSubmit() {
+      if (enterSubmitQueued || processing || !transcriptEl.value.trim()) {
+        return;
+      }
+      enterSubmitQueued = true;
+      // Let the key event finish cancelled before parse marks the field
+      // read-only. Doing that inside keydown lets the line break land.
+      window.setTimeout(function () {
+        enterSubmitQueued = false;
+        if (!processing && transcriptEl.value.trim()) {
+          stopListeningAndParse();
+        }
+      }, 0);
+    }
+
+    function cancelPlainEnter(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      rememberFieldBeforeLineBreak();
+      queueEnterSubmit();
+    }
+
     transcriptEl.addEventListener("input", function () {
+      undoInsertedLineBreak();
       syncApplyEnabled();
       autoGrowTranscript();
     });
@@ -692,12 +773,34 @@
       window.visualViewport.addEventListener("resize", autoGrowTranscript);
     }
     transcriptEl.addEventListener("keydown", function (event) {
-      if (event.key !== "Enter" || event.shiftKey) {
+      if (event.key === "Enter" && event.shiftKey) {
+        shiftEnter = true;
         return;
       }
-      event.preventDefault();
-      if (!processing && transcriptEl.value.trim()) {
-        stopListeningAndParse();
+      if (!isPlainEnter(event)) {
+        return;
+      }
+      cancelPlainEnter(event);
+    });
+    // keydown preventDefault does not stop the line break in every browser.
+    transcriptEl.addEventListener("keypress", function (event) {
+      if (!isPlainEnter(event)) {
+        return;
+      }
+      cancelPlainEnter(event);
+    });
+    transcriptEl.addEventListener("beforeinput", function (event) {
+      if (!isLineBreakInput(event) || event.isComposing) {
+        return;
+      }
+      if (shiftEnter || event.shiftKey) {
+        return;
+      }
+      cancelPlainEnter(event);
+    });
+    transcriptEl.addEventListener("keyup", function (event) {
+      if (event.key === "Enter" || event.key === "Shift") {
+        shiftEnter = false;
       }
     });
   }
