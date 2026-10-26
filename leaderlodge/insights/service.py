@@ -265,6 +265,7 @@ def generate_ask_response(
                         "name": call.name,
                         "arguments": json.dumps(call.arguments),
                     },
+                    "thought_signature": call.thought_signature,
                 }
                 for call in completion.tool_calls
             ],

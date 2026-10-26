@@ -8,6 +8,8 @@ class ToolCall:
     id: str
     name: str
     arguments: dict
+    # Opaque Gemini thought signature, base64. Echoed on the next tool turn.
+    thought_signature: str = ""
 
 
 @dataclass(frozen=True)

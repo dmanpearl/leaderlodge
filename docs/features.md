@@ -130,8 +130,8 @@ and leaderboards for social games played by groups of people.
 ### AI Model Options (owner-paid API)
 
 - GPT-4o mini (OpenAI, default)
-- Gemini 2.5 Flash (Google)
-- Gemini 2.5 Flash-Lite (Google, lightweight)
+- Gemini 3.6 Flash (Google)
+- Gemini 3.5 Flash-Lite (Google, lightweight)
 - Model selection stored per user
 
 ### Rate Limiting

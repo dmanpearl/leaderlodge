@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 
 from django.conf import settings
@@ -83,7 +84,11 @@ def complete_google_messages(
         "system_instruction": system,
         "temperature": temperature,
         "max_output_tokens": max_output_tokens,
-        "thinking_config": types.ThinkingConfig(thinking_budget=0),
+        # Gemini 3 rejects thinking_budget. minimal is the closest setting
+        # to the old budget of 0, so thinking tokens do not eat the answer.
+        "thinking_config": types.ThinkingConfig(
+            thinking_level=types.ThinkingLevel.MINIMAL
+        ),
     }
     if tools:
         config_kwargs["tools"] = [
@@ -104,16 +109,20 @@ def complete_google_messages(
     candidate = response.candidates[0] if response.candidates else None
     if candidate and candidate.content and candidate.content.parts:
         for index, part in enumerate(candidate.content.parts):
+            if getattr(part, "thought", None) is True:
+                continue
             if getattr(part, "text", None):
                 text_parts.append(part.text)
             function_call = getattr(part, "function_call", None)
             if function_call and function_call.name:
                 arguments = dict(function_call.args or {})
+                call_id = getattr(function_call, "id", None) or f"call_{index}"
                 tool_calls.append(
                     ToolCall(
-                        id=f"call_{index}",
+                        id=str(call_id),
                         name=function_call.name,
                         arguments=arguments,
+                        thought_signature=_thought_signature_b64(part),
                     )
                 )
 
@@ -143,15 +152,19 @@ def _google_contents_from_messages(messages: list[dict]) -> list[types.Content]:
     for message in messages:
         role = message.get("role")
         if role == "tool":
+            response_kwargs = {
+                "name": message.get("name", "tool"),
+                "response": {"result": _parse_tool_content(message.get("content"))},
+            }
+            call_id = message.get("tool_call_id") or ""
+            if call_id:
+                response_kwargs["id"] = call_id
             contents.append(
                 types.Content(
                     role="user",
                     parts=[
-                        types.Part.from_function_response(
-                            name=message.get("name", "tool"),
-                            response={
-                                "result": _parse_tool_content(message.get("content"))
-                            },
+                        types.Part(
+                            function_response=types.FunctionResponse(**response_kwargs)
                         )
                     ],
                 )
@@ -163,12 +176,14 @@ def _google_contents_from_messages(messages: list[dict]) -> list[types.Content]:
                 parts.append(types.Part.from_text(text=str(message["content"])))
             for call in message.get("tool_calls") or []:
                 fn = call.get("function", {})
-                parts.append(
-                    types.Part.from_function_call(
-                        name=fn.get("name", ""),
-                        args=json.loads(fn.get("arguments") or "{}"),
-                    )
+                part = types.Part.from_function_call(
+                    name=fn.get("name", ""),
+                    args=json.loads(fn.get("arguments") or "{}"),
                 )
+                signature = _thought_signature_bytes(call.get("thought_signature"))
+                if signature:
+                    part.thought_signature = signature
+                parts.append(part)
             contents.append(types.Content(role="model", parts=parts))
             continue
         if role == "user":
@@ -179,6 +194,24 @@ def _google_contents_from_messages(messages: list[dict]) -> list[types.Content]:
                 )
             )
     return contents
+
+
+def _thought_signature_b64(part) -> str:
+    raw = getattr(part, "thought_signature", None)
+    if not raw:
+        return ""
+    if isinstance(raw, str):
+        return raw
+    return base64.b64encode(raw).decode("ascii")
+
+
+def _thought_signature_bytes(value) -> bytes | None:
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        return base64.b64decode(value)
+    except ValueError:
+        return None
 
 
 def _parse_tool_content(content) -> dict:

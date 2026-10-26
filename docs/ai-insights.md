@@ -164,8 +164,8 @@ Owner pays. Users pick among three low-cost cloud models:
 | Slug | Label | Provider | API model |
 |------|-------|----------|-----------|
 | `gpt-4o-mini` | GPT-4o mini | OpenAI | `gpt-4o-mini` |
-| `gemini-flash` | Gemini Flash | Google | `gemini-2.5-flash` |
-| `flash-lite` | Gemini Flash-Lite | Google | `gemini-2.5-flash-lite` |
+| `gemini-flash` | Gemini Flash | Google | `gemini-3.6-flash` |
+| `flash-lite` | Gemini Flash-Lite | Google | `gemini-3.5-flash-lite` |
 
 Default: `gpt-4o-mini`. User preference: `UserProfile.ui_settings['insights']['model_id']`. Registry: `registry.py`.
 
