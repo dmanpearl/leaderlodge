@@ -1917,6 +1917,28 @@
           .forEach((suggestion) => {
             addSmartTeam(suggestion);
           });
+
+        // Smart suggestions and smart-team members stay first. Once those
+        // run out, keep the list open with the remaining eligible roster,
+        // matching the teammate picker.
+        roster
+          .filter((entry) => entry.kind !== "team")
+          .filter(
+            (entry) =>
+              !entryIsIneligible(this.tbody, entry, existing, this.roster)
+          )
+          .filter((entry) => !entry.id || !seenSoloIds.has(Number(entry.id)))
+          .sort((a, b) => {
+            const aRecency = a.recency ?? Number.MAX_SAFE_INTEGER;
+            const bRecency = b.recency ?? Number.MAX_SAFE_INTEGER;
+            if (aRecency !== bRecency) {
+              return aRecency - bRecency;
+            }
+            return a.label.localeCompare(b.label);
+          })
+          .forEach((entry) => {
+            addSolo("player", entry);
+          });
       } else {
         filterRoster(roster, query, { soloOnly: true })
           .filter(

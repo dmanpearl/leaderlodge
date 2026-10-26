@@ -296,10 +296,10 @@
 - [x] aae98c5 Bug: Edit Mahjong wall game change player replacement player doesn’t auto-receive the required 10 points (https://leaderlodge.com/admin/feedback/feedback/51)
 - [x] 5d83316 Bug: Last game location is not using the most recent last game from GPS search (https://leaderlodge.com/admin/feedback/feedback/53)
 - [x] c3b55bd Record Game: AI Game Entry: After dictation displays warning that I requested a different game-type when I didn't. I believe a flag is probably not getting reset (https://leaderlodge.com/admin/feedback/feedback/50)
+- [x] Bug: Record Game: Player field smart list stops opening once the smart suggestions run out, even while eligible roster players remain. On an empty query the Player picker offers only smart suggestions and smart-team members, where the Teammate picker falls back to the remaining eligible roster. Measured on a 4 player group: 2 sides showed 2 suggestions with 5 roster left, 4 sides showed 1 suggestion with 3 roster left.
 
 ## Open Items
 
-- [ ] Bug: Record Game: Player field smart list stops opening once the smart suggestions run out, even while eligible roster players remain. On an empty query the Player picker offers only smart suggestions and smart-team members, where the Teammate picker falls back to the remaining eligible roster. Measured on a 4 player group: 2 sides showed 2 suggestions with 5 roster left, 4 sides showed 1 suggestion with 3 roster left.
 - [ ] Admin > When editing a player name, teams using that player should update.
 - [ ] Admin > Group Player > Need filter for Players, Teams
 - [ ] User account profile picture, probably requires Cloudinary
