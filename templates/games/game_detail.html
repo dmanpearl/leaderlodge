@@ -4,7 +4,7 @@
 {% block title %}{{ game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=16" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=18" />
   {% if insights_enabled %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}" />
   {% endif %}
@@ -89,20 +89,8 @@
     </p>
   </div>
 
-  <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center gap-2">
-      <span>Results</span>
-      {% if can_edit_game %}
-        <a
-          href="{% url 'games:edit_game' pk=game.pk %}"
-          class="btn btn-sm btn-outline-secondary game-detail-edit-game"
-          aria-label="Edit game"
-          title="Edit game"
-        >
-          <i class="bi bi-pencil-square" aria-hidden="true"></i>
-        </a>
-      {% endif %}
-    </div>
+  <div class="card game-detail-results">
+    <div class="card-header">Results</div>
     <div class="table-responsive">
       <table class="table table-striped mb-0">
         <thead>
@@ -110,8 +98,21 @@
             <th scope="col">Player</th>
             <th scope="col">Score</th>
             <th scope="col">Result</th>
-            {% if can_invite_guests %}
-              <th scope="col" class="group-list-actions-col"><span class="visually-hidden">Actions</span></th>
+            {% if can_edit_game or can_invite_guests %}
+              <th scope="col" class="game-detail-actions-col">
+                {% if can_edit_game %}
+                  <a
+                    href="{% url 'games:edit_game' pk=game.pk %}"
+                    class="game-detail-row-action"
+                    aria-label="Edit game"
+                    title="Edit game"
+                  >
+                    <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                  </a>
+                {% else %}
+                  <span class="visually-hidden">Actions</span>
+                {% endif %}
+              </th>
             {% endif %}
           </tr>
         </thead>
@@ -164,12 +165,12 @@
                   {% endif %}
                 </span>
               </td>
-              {% if can_invite_guests %}
-                <td class="text-end group-list-actions-col">
-                  {% if row.is_guest %}
+              {% if can_edit_game or can_invite_guests %}
+                <td class="game-detail-actions-col">
+                  {% if can_invite_guests and row.is_guest %}
                     <button
                       type="button"
-                      class="btn btn-sm btn-outline-secondary"
+                      class="game-detail-row-action"
                       data-roster-invite
                       data-player-name="{{ result.player.display_label }}"
                       data-invite-url="{% url 'groups:player_invite' game.group.pk result.player.pk %}"
