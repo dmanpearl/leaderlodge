@@ -21,7 +21,7 @@ def recency_ranks_for_group(
 
     ranks: dict[int, int] = {}
     next_rank = 0
-    results = GameParticipantResult.objects.filter(game__group_id=group.pk)
+    results = GameParticipantResult.finished.filter(game__group_id=group.pk)
     if game_type_code:
         results = results.filter(game__game_type_code=game_type_code)
     player_ids = results.order_by(

@@ -286,12 +286,39 @@
   background-color: #e9ecef;
 }
 
+.game-list-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .game-list-title-wrap {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   max-width: 100%;
   min-width: 0;
+}
+
+.game-list-page-header .game-list-title-wrap {
+  flex: 1 1 auto;
+}
+
+.paused-games-toggle .bi {
+  transition: transform 0.15s ease;
+}
+
+.paused-games-toggle[aria-expanded="true"] .bi {
+  transform: rotate(90deg);
+}
+
+.paused-game-choice {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
 }
 
 .game-detail-title-wrap {

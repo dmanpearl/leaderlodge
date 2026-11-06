@@ -267,7 +267,7 @@ def query_play_locations(
         period = LeaderboardPeriod.all_time()
 
     game_type = get_game_type(game_type_code)
-    games_qs = Game.objects.filter(
+    games_qs = Game.finished.filter(
         group=group,
         game_type_code=game_type_code,
         location_id__isnull=False,
@@ -356,7 +356,7 @@ def query_player_play_locations(
 
     game_ids = list(results_qs.values_list("game_id", flat=True).distinct())
     total_games = len(game_ids)
-    games_qs = Game.objects.filter(pk__in=game_ids)
+    games_qs = Game.finished.filter(pk__in=game_ids)
     games_without_location = games_qs.filter(location_id__isnull=True).count()
     located_qs = games_qs.filter(location_id__isnull=False)
 
@@ -661,7 +661,7 @@ def list_game_types(group: Group) -> dict:
     from leaderlodge.games.models import Game
 
     codes = list(
-        Game.objects.filter(group=group)
+        Game.finished.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")

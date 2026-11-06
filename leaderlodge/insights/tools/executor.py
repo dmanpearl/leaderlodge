@@ -123,7 +123,7 @@ class ToolExecutor:
         if raw is None:
             return None
         options = available_game_sizes(
-            Game.objects.filter(
+            Game.finished.filter(
                 group=self.scope.group,
                 game_type_code=game_type_code,
             )

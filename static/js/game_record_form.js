@@ -198,6 +198,11 @@
     if (saveBtn) {
       saveBtn.disabled = !countOk;
     }
+    const laterBtn = form.querySelector("[data-save-later-button]");
+    if (laterBtn) {
+      const sideCount = form.querySelectorAll("[data-game-row]").length;
+      laterBtn.disabled = sideCount < 1;
+    }
 
     if (feedback) {
       const countMessage = formatPlayerCountFeedback(
@@ -335,7 +340,85 @@
 
     watchParticipantRows(form);
     initNoScoreToggle(form);
+    initWhoseTurn(form);
     updateForm(form);
+  }
+
+  function sideNameForRow(row) {
+    if (row.dataset.sideName) {
+      return row.dataset.sideName;
+    }
+    const label = row.querySelector("[data-side-label]");
+    if (!label) {
+      return "";
+    }
+    return label.textContent.replace(/\s+/g, " ").trim();
+  }
+
+  function initWhoseTurn(form) {
+    const laterBtn = form.querySelector("[data-save-later-button]");
+    const submitter = form.querySelector("[data-save-later-submit]");
+    const turnInput = form.querySelector("[data-turn-side]");
+    const modalEl = document.getElementById("whose-turn-modal");
+    const select = modalEl
+      ? modalEl.querySelector("[data-whose-turn-select]")
+      : null;
+    const saveBtn = modalEl
+      ? modalEl.querySelector("[data-whose-turn-save]")
+      : null;
+    if (
+      !laterBtn ||
+      !submitter ||
+      !turnInput ||
+      !modalEl ||
+      !select ||
+      !saveBtn ||
+      !window.bootstrap
+    ) {
+      return;
+    }
+    const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    laterBtn.addEventListener("click", () => {
+      if (laterBtn.disabled) {
+        return;
+      }
+      select.replaceChildren();
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Choose a side";
+      select.appendChild(placeholder);
+      let selected = "";
+      form.querySelectorAll("[data-game-row]").forEach((row, index) => {
+        const name = sideNameForRow(row);
+        if (!name) {
+          return;
+        }
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = name;
+        select.appendChild(option);
+        if (row.dataset.isTurn === "1") {
+          selected = option.value;
+        }
+      });
+      select.value = selected;
+      saveBtn.disabled = select.value === "";
+      modal.show();
+    });
+
+    select.addEventListener("change", () => {
+      saveBtn.disabled = select.value === "";
+    });
+
+    saveBtn.addEventListener("click", () => {
+      if (select.value === "") {
+        return;
+      }
+      turnInput.value = select.value;
+      modal.hide();
+      form.requestSubmit(submitter);
+    });
   }
 
   if (document.readyState === "loading") {

@@ -6,6 +6,20 @@ from leaderlodge.games.registry import get_game_type, normalize_score_type
 from leaderlodge.games.validators import validate_participant_results
 
 
+class FinishedGameManager(models.Manager):
+    """Finished games only. Paused games stay out of standings and lists."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(paused=False)
+
+
+class FinishedResultManager(models.Manager):
+    """Results whose game is finished. Paused rows stay off win and stat queries."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(game__paused=False)
+
+
 class Game(models.Model):
     group = models.ForeignKey(
         "groups.Group",
@@ -33,7 +47,19 @@ class Game(models.Model):
     )
     import_source = models.CharField(max_length=64, blank=True)
     import_row_key = models.CharField(max_length=64, blank=True)
+    paused = models.BooleanField(default=False)
+    turn_player = models.ForeignKey(
+        "groups.GroupPlayer",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="turn_games",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = models.Manager()
+    finished = FinishedGameManager()
 
     class Meta:
         ordering = ["-played_on", "-created_at"]
@@ -100,6 +126,9 @@ class GameParticipantResult(models.Model):
         default=Result.PLAYED,
     )
     placement = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    objects = models.Manager()
+    finished = FinishedResultManager()
 
     class Meta:
         unique_together = [("game", "player")]

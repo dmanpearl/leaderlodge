@@ -28,7 +28,7 @@ def game_type_codes_for_group(group: Group) -> list[str]:
     from leaderlodge.games.models import Game
 
     return list(
-        Game.objects.filter(group=group)
+        Game.finished.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
@@ -134,7 +134,7 @@ def resolve_matchup_insight_target(
     from leaderlodge.games.models import Game
     from leaderlodge.groups.services import can_view_group
 
-    game = Game.objects.filter(pk=game_id).select_related("group", "location").first()
+    game = Game.finished.filter(pk=game_id).select_related("group", "location").first()
     if game is None or not can_view_group(user, game.group, session=request.session):
         raise InsightAccessError("Game not found.")
     return game

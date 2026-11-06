@@ -64,7 +64,7 @@ from leaderlodge.leaderboards.service import get_player_rank_detail, get_player_
 
 def _game_type_codes_for_group(group: Group) -> list[str]:
     return list(
-        Game.objects.filter(group=group)
+        Game.finished.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
@@ -117,7 +117,7 @@ def _game_size_context(
         }
 
     options = available_game_sizes(
-        Game.objects.filter(group=group, game_type_code=game_type_code)
+        Game.finished.filter(group=group, game_type_code=game_type_code)
     )
     selected = resolve_game_size(
         request.GET.get("game_size", "").strip(),
@@ -133,7 +133,7 @@ def _location_choices_for_leaderboard(group: Group | None, game_type_code: str |
     if group is None or not game_type_code:
         return Location.objects.none()
     location_ids = (
-        Game.objects.filter(group=group, game_type_code=game_type_code)
+        Game.finished.filter(group=group, game_type_code=game_type_code)
         .exclude(location_id=None)
         .values_list("location_id", flat=True)
         .distinct()

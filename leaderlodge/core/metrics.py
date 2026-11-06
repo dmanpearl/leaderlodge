@@ -78,7 +78,7 @@ def _avg_per_day(game_count: int, days: int = ROLLING_DAYS) -> Decimal:
 
 
 def _counts_by_game_type(*, since: datetime | None = None) -> dict[str, int]:
-    qs = Game.objects.all()
+    qs = Game.finished.all()
     if since is not None:
         qs = qs.filter(created_at__gte=since)
     return {
@@ -133,23 +133,23 @@ def build_site_metrics(*, top_n: int = METRICS_TOP_GROUPS) -> SiteMetrics:
 
     total_users = User.objects.count()
     group_count = Group.objects.count()
-    games_total = Game.objects.count()
+    games_total = Game.finished.count()
 
-    games_last_hour = Game.objects.filter(created_at__gte=hour_ago).count()
-    games_last_7_days = Game.objects.filter(created_at__gte=week_ago).count()
+    games_last_hour = Game.finished.filter(created_at__gte=hour_ago).count()
+    games_last_7_days = Game.finished.filter(created_at__gte=week_ago).count()
     avg_games_per_day_7d = _avg_per_day(games_last_7_days)
 
     # Groups with activity in the rolling 7-day window, ranked by total games.
     ranked = list(
         Group.objects.annotate(
-            games_total=Count("games"),
+            games_total=Count("games", filter=Q(games__paused=False)),
             games_last_7_days=Count(
                 "games",
-                filter=Q(games__created_at__gte=week_ago),
+                filter=Q(games__paused=False, games__created_at__gte=week_ago),
             ),
             games_last_hour=Count(
                 "games",
-                filter=Q(games__created_at__gte=hour_ago),
+                filter=Q(games__paused=False, games__created_at__gte=hour_ago),
             ),
             user_count=Count("memberships", distinct=True),
         )
@@ -174,14 +174,23 @@ def build_site_metrics(*, top_n: int = METRICS_TOP_GROUPS) -> SiteMetrics:
     # Users who recorded games in the rolling 7-day window, ranked by total.
     ranked_users = list(
         User.objects.annotate(
-            games_total=Count("recorded_games"),
+            games_total=Count(
+                "recorded_games",
+                filter=Q(recorded_games__paused=False),
+            ),
             games_last_7_days=Count(
                 "recorded_games",
-                filter=Q(recorded_games__created_at__gte=week_ago),
+                filter=Q(
+                    recorded_games__paused=False,
+                    recorded_games__created_at__gte=week_ago,
+                ),
             ),
             games_last_hour=Count(
                 "recorded_games",
-                filter=Q(recorded_games__created_at__gte=hour_ago),
+                filter=Q(
+                    recorded_games__paused=False,
+                    recorded_games__created_at__gte=hour_ago,
+                ),
             ),
         )
         .filter(games_last_7_days__gt=0)

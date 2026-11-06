@@ -43,7 +43,7 @@ def _resolve_navbar_active_section(request) -> str:
     url_name = match.url_name or ""
 
     if namespace == "games":
-        if url_name == "create":
+        if url_name in {"create", "resume"}:
             return "add"
         if url_name == "map":
             return "map"

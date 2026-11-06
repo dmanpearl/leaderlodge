@@ -26,12 +26,10 @@ def recent_games_for_reuse(
         return []
 
     return list(
-        Game.objects.filter(
+        Game.finished.filter(
             group_id=group.pk,
             game_type_code=game_type_code,
-        ).order_by(
-            "-played_on", "-created_at", "-pk"
-        )[:limit]
+        ).order_by("-played_on", "-created_at", "-pk")[:limit]
     )
 
 
@@ -79,6 +77,7 @@ def _build_participant_rows_from_results(
                     "display_label": player.display_label,
                     "played": True,
                     "score": score,
+                    "is_turn": game.turn_player_id == player.pk,
                 }
             )
             continue
@@ -96,6 +95,7 @@ def _build_participant_rows_from_results(
                 "display_label": player.display_label,
                 "played": True,
                 "score": score,
+                "is_turn": game.turn_player_id == player.pk,
             }
         )
     return rows
@@ -171,7 +171,7 @@ def reuse_players_summary(
 
     # Slice before prefetch_related so Django does not load the full history.
     games = list(
-        Game.objects.filter(
+        Game.finished.filter(
             group_id=group.pk,
             game_type_code=game_type_code,
         )

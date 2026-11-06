@@ -4,7 +4,7 @@
 {% block title %}{{ selected_game_type.name }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=18" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=20" />
 {% endblock %}
 
 {% block content %}
@@ -47,6 +47,19 @@
         {% endif %}
       </div>
     </div>
+    {% if paused_game_count %}
+      {% if showing_paused %}
+        <a
+          href="{% url 'games:list' %}{% if finished_filter_query %}?{{ finished_filter_query }}{% endif %}"
+          class="btn btn-outline-primary btn-sm flex-shrink-0"
+        >Finished</a>
+      {% else %}
+        <a
+          href="{% url 'games:list' %}?{{ paused_filter_query }}"
+          class="btn btn-outline-primary btn-sm flex-shrink-0"
+        >In progress ({{ paused_game_count }})</a>
+      {% endif %}
+    {% endif %}
   </div>
 
   <div class="game-list-body game-list-density--{{ list_density|default:'comfortable' }}">
@@ -70,6 +83,9 @@
     <div id="game-list-type-filters" class="collapse game-list-type-filters-collapse">
       <div class="card-body game-list-filters-body">
         <form method="get" id="game-list-filters" class="row g-3 align-items-end">
+        {% if showing_paused %}
+          <input type="hidden" name="status" value="paused">
+        {% endif %}
         <div class="col-12 col-sm-6 col-lg-4 col-xl">
           <label for="filter-group" class="form-label">Group</label>
           <select id="filter-group" name="group" class="form-select game-list-filter-select" onchange="this.form.submit()">
@@ -123,7 +139,7 @@
     </div>
   </div>
 
-  {% if list_stats %}
+  {% if list_stats and not showing_paused %}
     <div class="card mb-3 game-list-stats-card">
       <div class="card-header d-flex justify-content-between align-items-center game-list-stats-header">
         <button
@@ -232,13 +248,16 @@
               <tr
                 class="game-list-row"
                 tabindex="0"
-                data-href="{% url 'games:detail' row.game.pk %}"
+                data-href="{% if showing_paused %}{% url 'games:resume' row.game.pk %}{% else %}{% url 'games:detail' row.game.pk %}{% endif %}"
               >
                 <td class="game-list-nowrap-col">
                   <a
-                    href="{% url 'games:detail' row.game.pk %}"
+                    href="{% if showing_paused %}{% url 'games:resume' row.game.pk %}{% else %}{% url 'games:detail' row.game.pk %}{% endif %}"
                     class="game-list-row-link"
                   >{{ row.game.played_on|date:date_format }}</a>
+                  {% if showing_paused and row.game.turn_player %}
+                    <div class="small text-muted">{{ row.game.turn_player.display_label }}'s turn</div>
+                  {% endif %}
                 </td>
                 {% if show_group_column %}
                   <td class="game-list-nowrap-col">
@@ -394,7 +413,9 @@
   {% else %}
     <div class="card">
       <div class="card-body text-center py-5">
-        {% if show_empty_filters_message %}
+        {% if showing_paused %}
+          <p class="text-muted mb-3">No games in progress match these filters.</p>
+        {% elif show_empty_filters_message %}
           <p class="text-muted mb-3">No games match these filters.</p>
           <a href="{% url 'games:list' %}?type={{ params.game_type }}" class="btn btn-outline-secondary">Clear filters</a>
         {% else %}

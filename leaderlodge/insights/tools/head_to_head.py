@@ -74,7 +74,7 @@ def _shared_table_games_qs(
     game_size: int | None,
     game_filters: LeaderboardGameFilters | None = None,
 ):
-    qs = Game.objects.filter(group=group, game_type_code=game_type_code)
+    qs = Game.finished.filter(group=group, game_type_code=game_type_code)
     if game_size is not None:
         qs = qs.filter(player_count=game_size)
     qs = filter_results_by_period(qs, period, game_prefix="")

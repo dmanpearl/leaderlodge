@@ -17,7 +17,7 @@ def winner_labels_for_games(games: list[Game]) -> dict[int, str]:
     players_by_pk: dict[int, GroupPlayer] = {}
 
     results = (
-        GameParticipantResult.objects.filter(
+        GameParticipantResult.finished.filter(
             game_id__in=game_ids,
             result__in=(
                 GameParticipantResult.Result.WIN,

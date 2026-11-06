@@ -144,7 +144,7 @@ def available_leaderboard_periods(
     from leaderlodge.games.models import Game
 
     dates = (
-        Game.objects.filter(group=group, game_type_code=game_type_code)
+        Game.finished.filter(group=group, game_type_code=game_type_code)
         .values_list("played_on", flat=True)
         .distinct()
     )

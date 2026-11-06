@@ -10,6 +10,7 @@ from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.formats import date_format
 from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_POST
 
@@ -67,6 +68,7 @@ from leaderlodge.games.registry import (
 from leaderlodge.games.location_field import (
     location_geo_from_form,
     location_geo_post_values,
+    set_location_geo_form_initials,
 )
 from leaderlodge.games.last_location import (
     last_recorded_location_name,
@@ -78,6 +80,7 @@ from leaderlodge.games.reuse_players import (
     reuse_players_summary,
 )
 from leaderlodge.games.scoring import (
+    apply_no_score_tie_scores,
     default_participant_score_value,
     lineup_is_no_score_tie,
     no_score_tie_requested,
@@ -145,6 +148,7 @@ def _game_list_params(request: HttpRequest) -> dict:
         "shutout": request.GET.get("shutout", "").strip(),
         "score_type": request.GET.get("score_type", "").strip(),
         "sort": sort,
+        "status": request.GET.get("status", "").strip(),
     }
 
 
@@ -186,6 +190,7 @@ def _resolve_game_list_params(
         "shutout": params.get("shutout", ""),
         "score_type": params.get("score_type", ""),
         "sort": params["sort"],
+        "status": params.get("status", ""),
     }
     return resolved
 
@@ -206,8 +211,13 @@ def _game_list_redirect_query(params: dict[str, str], page: str | None) -> str:
     return urlencode(query_params)
 
 
-def _games_queryset_for_filter_choices(user, params: dict[str, str], session=None):
-    games_qs = Game.objects.filter(group__in=visible_groups(user, session=session))
+def _games_queryset_for_filter_choices(
+    user, params: dict[str, str], session=None, *, paused_only: bool = False
+):
+    manager = Game.objects if paused_only else Game.finished
+    games_qs = manager.filter(group__in=visible_groups(user, session=session))
+    if paused_only:
+        games_qs = games_qs.filter(paused=True)
     if params["group"].isdigit():
         games_qs = games_qs.filter(group_id=int(params["group"]))
     if params["game_type"] in GAME_TYPES:
@@ -267,7 +277,14 @@ def _apply_period_params(params: dict[str, str], period) -> dict[str, str]:
     return updated
 
 
-def _filtered_games_queryset(user, params: dict[str, str], period=None, session=None):
+def _filtered_games_queryset(
+    user,
+    params: dict[str, str],
+    period=None,
+    session=None,
+    *,
+    paused_only: bool = False,
+):
     from leaderlodge.leaderboards.period import (
         LeaderboardPeriod,
         filter_results_by_period,
@@ -276,8 +293,14 @@ def _filtered_games_queryset(user, params: dict[str, str], period=None, session=
     )
 
     games_qs = _games_queryset_for_filter_choices(
-        user, params, session=session
-    ).select_related("group", "recorded_by", "location")
+        user, params, session=session, paused_only=paused_only
+    ).select_related(
+        "group",
+        "recorded_by",
+        "location",
+        "turn_player",
+        "turn_player__linked_user",
+    )
 
     if params["game_type"] not in GAME_TYPES:
         return games_qs.none()
@@ -330,41 +353,53 @@ def _filtered_games_queryset(user, params: dict[str, str], period=None, session=
 
     from leaderlodge.leaderboards.game_filters import apply_shutout_filter_to_games_qs
 
-    if params.get("shutout") in ("1", "true", "on"):
+    if not paused_only and params.get("shutout") in ("1", "true", "on"):
         games_qs = apply_shutout_filter_to_games_qs(
             games_qs,
             game_type_code=params["game_type"],
             shutout_only=True,
         )
 
-    feature_selections = resolve_feature_selections(
-        params, game_type_code=params["game_type"]
-    )
-    games_qs = apply_feature_selections_to_games_qs(
-        games_qs,
-        feature_selections,
-        game_type_code=params["game_type"],
-    )
+    if not paused_only:
+        feature_selections = resolve_feature_selections(
+            params, game_type_code=params["game_type"]
+        )
+        games_qs = apply_feature_selections_to_games_qs(
+            games_qs,
+            feature_selections,
+            game_type_code=params["game_type"],
+        )
 
+    if paused_only:
+        return games_qs.order_by("-updated_at", "-pk")
     if params["sort"] == "asc":
         return games_qs.order_by("played_on", "created_at")
     return games_qs.order_by("-played_on", "-created_at")
 
 
-def _location_choices_for_game_list(user, params: dict[str, str], session=None):
-    games_qs = _games_queryset_for_filter_choices(user, params, session=session).filter(
+def _location_choices_for_game_list(
+    user, params: dict[str, str], session=None, *, paused_only: bool = False
+):
+    games_qs = _games_queryset_for_filter_choices(
+        user, params, session=session, paused_only=paused_only
+    ).filter(
         location__isnull=False,
     )
     location_ids = games_qs.values_list("location_id", flat=True).distinct()
     return Location.objects.filter(pk__in=location_ids).order_by("name")
 
 
-def _player_choices_for_game_list(user, params: dict[str, str], session=None):
-    games_qs = _games_queryset_for_filter_choices(user, params, session=session)
+def _player_choices_for_game_list(
+    user, params: dict[str, str], session=None, *, paused_only: bool = False
+):
+    games_qs = _games_queryset_for_filter_choices(
+        user, params, session=session, paused_only=paused_only
+    )
+    results = (
+        GameParticipantResult.objects if paused_only else GameParticipantResult.finished
+    )
     player_ids = (
-        GameParticipantResult.objects.filter(game__in=games_qs)
-        .values_list("player_id", flat=True)
-        .distinct()
+        results.filter(game__in=games_qs).values_list("player_id", flat=True).distinct()
     )
     players_qs = GroupPlayer.objects.filter(pk__in=player_ids).select_related(
         "linked_user",
@@ -376,8 +411,12 @@ def _player_choices_for_game_list(user, params: dict[str, str], session=None):
     return players_qs.order_by("group__name", "display_name", "pk")
 
 
-def _game_size_choices_for_game_list(user, params: dict[str, str], session=None):
-    games_qs = _games_queryset_for_filter_choices(user, params, session=session)
+def _game_size_choices_for_game_list(
+    user, params: dict[str, str], session=None, *, paused_only: bool = False
+):
+    games_qs = _games_queryset_for_filter_choices(
+        user, params, session=session, paused_only=paused_only
+    )
     return available_game_sizes(games_qs)
 
 
@@ -528,6 +567,10 @@ def _participant_rows_from_post(group, post):
     teammate_player_ids = post.getlist("participant_teammate_player_id")
     teammate_guest_names = post.getlist("participant_teammate_guest_name")
     scores = post.getlist("participant_score")
+    turn_index = None
+    raw_turn = (post.get("turn_side") or "").strip()
+    if raw_turn.isdigit():
+        turn_index = int(raw_turn)
     while len(teammate_player_ids) < len(player_ids):
         teammate_player_ids.append("")
     while len(teammate_guest_names) < len(player_ids):
@@ -575,8 +618,11 @@ def _participant_rows_from_post(group, post):
                 "display_label": side_label,
                 "played": True,
                 "score": score_raw,
+                "is_turn": False,
             }
         )
+    for index, row in enumerate(rows):
+        row["is_turn"] = index == turn_index
     return rows
 
 
@@ -641,32 +687,60 @@ def game_list(request: HttpRequest) -> HttpResponse:
 
     params = resolved_params
     groups = list(groups)
+    paused_game_count = Game.objects.filter(
+        paused=True,
+        game_type_code=params["game_type"],
+        group__in=groups,
+    ).count()
+    if params.get("status") == "paused" and paused_game_count == 0:
+        cleaned = dict(params)
+        cleaned["status"] = ""
+        query = _game_list_redirect_query(cleaned, None)
+        url = reverse("games:list")
+        if query:
+            url = f"{url}?{query}"
+        return redirect(url)
+    showing_paused = params.get("status") == "paused"
     selected_period, period_ctx = _game_list_period(params, groups)
     params = _apply_period_params(params, selected_period)
     locations = _location_choices_for_game_list(
-        request.user, params, session=request.session
+        request.user, params, session=request.session, paused_only=showing_paused
     )
     players = _player_choices_for_game_list(
-        request.user, params, session=request.session
+        request.user, params, session=request.session, paused_only=showing_paused
     )
     game_size_options = _game_size_choices_for_game_list(
-        request.user, params, session=request.session
+        request.user, params, session=request.session, paused_only=showing_paused
     )
     params = _sanitize_game_list_params(params, locations, players, game_size_options)
     games_qs = _filtered_games_queryset(
-        request.user, params, period=selected_period, session=request.session
+        request.user,
+        params,
+        period=selected_period,
+        session=request.session,
+        paused_only=showing_paused,
     )
     selected_game_type = get_game_type(params["game_type"])
     shutout_config = selected_game_type.shutout
-    list_stats = build_game_list_stats(
-        games_qs=games_qs,
-        game_type_code=params["game_type"],
-        player_type=params.get("player_type", ""),
+    list_stats = (
+        None
+        if showing_paused
+        else build_game_list_stats(
+            games_qs=games_qs,
+            game_type_code=params["game_type"],
+            player_type=params.get("player_type", ""),
+        )
     )
     paginator = Paginator(games_qs, GAMES_PER_PAGE)
     page = paginator.get_page(request.GET.get("page"))
     games = list(page.object_list)
-    player_columns, game_rows = build_game_list_table(games)
+    if showing_paused:
+        apply_label_overrides(
+            [game.turn_player for game in games if game.turn_player_id]
+        )
+    player_columns, game_rows = build_game_list_table(
+        games, include_paused=showing_paused
+    )
 
     all_player_instances = (
         list(player_columns)
@@ -695,6 +769,12 @@ def game_list(request: HttpRequest) -> HttpResponse:
         {
             "page": page,
             "game_rows": game_rows,
+            "showing_paused": showing_paused,
+            "paused_game_count": paused_game_count,
+            "paused_filter_query": _game_list_filter_query(
+                {**params, "status": "paused"}
+            ),
+            "finished_filter_query": _game_list_filter_query({**params, "status": ""}),
             "player_columns": player_columns,
             "list_stats": list_stats,
             "list_density": list_density,
@@ -755,6 +835,72 @@ def game_list(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _paused_game_choices(group, game_type) -> list[dict]:
+    if group is None or game_type is None:
+        return []
+    games = (
+        Game.objects.filter(
+            paused=True,
+            group=group,
+            game_type_code=game_type.code,
+        )
+        .select_related("turn_player", "turn_player__linked_user", "location")
+        .order_by("-updated_at", "-pk")
+    )
+    choices = []
+    for paused in games:
+        rows = participant_rows_for_edit_game(paused)
+        turn_label = ""
+        if paused.turn_player_id:
+            apply_label_overrides([paused.turn_player])
+            turn_label = f"{paused.turn_player.display_label}'s turn"
+        choices.append(
+            {
+                "game": paused,
+                "summary": _paused_game_summary(paused, rows, turn_label),
+            }
+        )
+    return choices
+
+
+def _paused_game_summary(paused, rows, turn_label: str) -> str:
+    parts = [date_format(paused.played_on, "M j")]
+    if paused.location_id and paused.location.name:
+        parts.append(paused.location.name)
+    parts.extend(f"{row['display_label']} {row['score']}" for row in rows)
+    if turn_label:
+        parts.append(turn_label)
+    return ", ".join(parts)
+
+
+def _posted_record_participants(request, group, game_type_code, *, paused: bool):
+    rows = parse_participants_from_post(request.POST, group=group)
+    if no_score_tie_requested(request.POST):
+        apply_no_score_tie_scores(rows, game_type_code)
+    if paused:
+        for row in rows:
+            row["result"] = GameParticipantResult.Result.PLAYED
+            row["placement"] = 0
+    else:
+        prepare_participant_rows(rows, game_type_code)
+    participants = [
+        ParticipantInput(
+            player=row["player"],
+            score=row["score"],
+            result=row["result"],
+            placement=row["placement"],
+        )
+        for row in rows
+    ]
+    turn_player = None
+    raw_turn = (request.POST.get("turn_side") or "").strip()
+    if raw_turn.isdigit():
+        turn_index = int(raw_turn)
+        if 0 <= turn_index < len(rows):
+            turn_player = rows[turn_index]["player"]
+    return participants, turn_player
+
+
 @demo_or_login_required
 def game_create(request: HttpRequest) -> HttpResponse:
     show_roster = False
@@ -769,7 +915,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         form = GameRecordForm(request.POST, user=request.user)
         action = request.POST.get("action")
-        if action == "save":
+        if action in ("save", "save_later"):
             show_roster = True
             post_for_rows = request.POST
         elif (
@@ -787,7 +933,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     reuse_game_id = (request.POST.get("reuse_game_id") or "").strip()
                     source_for_reuse = None
                     if reuse_game_id.isdigit():
-                        source_for_reuse = Game.objects.filter(
+                        source_for_reuse = Game.finished.filter(
                             pk=int(reuse_game_id),
                             group=group,
                             game_type_code=game_type_code,
@@ -824,7 +970,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
         source_game = None
         if reuse_from_pk and request.user.is_authenticated:
             source_game = (
-                Game.objects.filter(pk=reuse_from_pk)
+                Game.finished.filter(pk=reuse_from_pk)
                 .select_related("group", "location")
                 .prefetch_related(
                     "participant_results__player__linked_user",
@@ -855,7 +1001,7 @@ def game_create(request: HttpRequest) -> HttpResponse:
 
         if source_game is None and pick_from_pk and request.user.is_authenticated:
             pick_game = (
-                Game.objects.filter(pk=pick_from_pk)
+                Game.finished.filter(pk=pick_from_pk)
                 .select_related("group", "location")
                 .first()
             )
@@ -901,9 +1047,12 @@ def game_create(request: HttpRequest) -> HttpResponse:
         group = Group.objects.filter(pk=form.initial["group"]).first()
     if request.method == "POST" and group:
         action = request.POST.get("action")
-        if action in ("load_roster", "reuse_roster", "save") and not can_edit_group(
-            request.user, group
-        ):
+        if action in (
+            "load_roster",
+            "reuse_roster",
+            "save",
+            "save_later",
+        ) and not can_edit_group(request.user, group):
             raise Http404
     if show_roster and group and not can_edit_group(request.user, group):
         raise Http404
@@ -941,7 +1090,12 @@ def game_create(request: HttpRequest) -> HttpResponse:
         elif reused_participant_rows is not None:
             participant_rows = reused_participant_rows
 
-    if request.method == "POST" and request.POST.get("action") == "save" and group:
+    if (
+        request.method == "POST"
+        and request.POST.get("action") in ("save", "save_later")
+        and group
+    ):
+        save_later = request.POST.get("action") == "save_later"
         if not request.user.is_authenticated:
             raise Http404
         save_form = GameRecordForm(
@@ -967,34 +1121,29 @@ def game_create(request: HttpRequest) -> HttpResponse:
             user=request.user,
         )
         if save_form.is_valid():
-            rows = parse_participants_from_post(request.POST, group=group)
             try:
-                prepare_participant_rows(rows, save_form.cleaned_data["game_type_code"])
+                posted_type = save_form.cleaned_data["game_type_code"]
+                participants, turn_player = _posted_record_participants(
+                    request,
+                    group,
+                    posted_type,
+                    paused=save_later,
+                )
                 location = resolve_game_location(
                     group=group,
                     location_name=save_form.cleaned_data.get("location_name", ""),
                     geo=location_geo_from_form(save_form),
                 )
-                participants = [
-                    ParticipantInput(
-                        player=row["player"],
-                        score=row["score"],
-                        result=row["result"],
-                        placement=row["placement"],
-                    )
-                    for row in rows
-                ]
                 game = record_game(
                     user=request.user,
                     group=group,
-                    game_type_code=save_form.cleaned_data["game_type_code"],
+                    game_type_code=posted_type,
                     played_on=save_form.cleaned_data["played_on"],
                     participants=participants,
                     location=location,
-                    **record_game_kwargs_from_post(
-                        save_form.cleaned_data["game_type_code"],
-                        request.POST,
-                    ),
+                    paused=save_later,
+                    turn_player=turn_player,
+                    **record_game_kwargs_from_post(posted_type, request.POST),
                 )
             except ValidationError as exc:
                 participant_error = (
@@ -1009,10 +1158,46 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     save_form.cleaned_data["game_type_code"],
                 )
                 persist_group_id(request, group.pk)
+                if save_later:
+                    messages.success(request, "Saved for later.")
+                    return redirect("games:resume", pk=game.pk)
                 messages.success(request, "Game recorded.")
                 detail_url = reverse("games:detail", kwargs={"pk": game.pk})
                 return redirect(f"{detail_url}?record_again=1")
 
+    return _render_record_game(
+        request,
+        form=form,
+        group=group,
+        game_type=game_type,
+        participant_rows=participant_rows,
+        roster=roster,
+        smart_suggestions=smart_suggestions,
+        show_roster=show_roster,
+        participant_error=participant_error,
+        seeded_score_type=seeded_score_type,
+        player_picker_start_collapsed=player_picker_start_collapsed,
+        preserve_setup_location=preserve_setup_location,
+    )
+
+
+def _render_record_game(
+    request,
+    *,
+    form,
+    group,
+    game_type,
+    participant_rows,
+    roster,
+    smart_suggestions,
+    show_roster,
+    participant_error,
+    seeded_score_type,
+    player_picker_start_collapsed,
+    preserve_setup_location,
+    append_mode=False,
+    paused_game=None,
+):
     played_on_value = ""
     played_on_display = ""
     location_name = ""
@@ -1065,6 +1250,12 @@ def game_create(request: HttpRequest) -> HttpResponse:
                     game_type.code,
                 ),
             )
+        if (
+            paused_game is not None
+            and not form.is_bound
+            and game_type.supports_half_game
+        ):
+            record_game_feature_values["is_half_game"] = paused_game.half_weight == 2
         record_game_feature_field_rows = record_game_feature_fields(
             game_type.code,
             values=record_game_feature_values,
@@ -1076,7 +1267,10 @@ def game_create(request: HttpRequest) -> HttpResponse:
         locked_code = preferred_game_type_code(request)
         if locked_code in GAME_TYPES:
             heading_type = get_game_type(locked_code)
-    if locked and heading_type is not None:
+    if append_mode and game_type is not None:
+        record_game_heading = f"{game_type.name} - In progress"
+        record_game_heading_icon_url = game_type_icon_url(game_type.code)
+    elif locked and heading_type is not None:
         record_game_heading = f"{heading_type.name} - Record Game"
         record_game_heading_icon_url = game_type_icon_url(heading_type.code)
     else:
@@ -1129,7 +1323,143 @@ def game_create(request: HttpRequest) -> HttpResponse:
             "ai_entry_help_content": (
                 ai_entry_help_content(game_type.code) if game_type else ""
             ),
+            "append_mode": append_mode,
+            "paused_game": paused_game,
+            "paused_game_choices": (
+                [] if append_mode else _paused_game_choices(group, game_type)
+            ),
+            "is_no_score_tie": bool(
+                game_type is not None
+                and game_type.no_score_tie
+                and (
+                    no_score_tie_requested(request.POST)
+                    if request.method == "POST"
+                    else paused_game is not None
+                    and lineup_is_no_score_tie(participant_rows, game_type.code)
+                )
+            ),
         },
+    )
+
+
+def _record_save_form(request: HttpRequest) -> GameRecordForm:
+    return GameRecordForm(
+        {
+            "group": request.POST.get("group"),
+            "game_type_code": request.POST.get("game_type_code"),
+            "played_on": request.POST.get("played_on"),
+            "location_name": request.POST.get("location_name", ""),
+            "location_lat": request.POST.get("location_lat", ""),
+            "location_lon": request.POST.get("location_lon", ""),
+            "location_city": request.POST.get("location_city", ""),
+            "location_state": request.POST.get("location_state", ""),
+            "location_country": request.POST.get("location_country", ""),
+            "location_postal_code": request.POST.get("location_postal_code", ""),
+            "location_street_address": request.POST.get("location_street_address", ""),
+            "location_place_id": request.POST.get("location_place_id", ""),
+            "location_geocode_source": request.POST.get("location_geocode_source", ""),
+        },
+        user=request.user,
+    )
+
+
+@login_required
+def game_resume(request: HttpRequest, pk: int) -> HttpResponse:
+    game = get_object_or_404(
+        Game.objects.select_related("group", "location", "turn_player"),
+        pk=pk,
+    )
+    if not game.paused:
+        return redirect("games:detail", pk=game.pk)
+    if not can_edit_group(request.user, game.group):
+        raise Http404
+
+    action = request.POST.get("action") if request.method == "POST" else ""
+    if action == "discard":
+        game_type_code = game.game_type_code
+        group_id = game.group_id
+        game.delete()
+        messages.success(request, "In progress game discarded.")
+        return redirect(
+            f"{reverse('games:list')}?type={game_type_code}&group={group_id}"
+        )
+
+    participant_error = None
+    form = None
+    participant_rows = participant_rows_for_edit_game(game)
+    if request.method == "POST" and action in ("save", "save_later"):
+        form = _record_save_form(request)
+        if form.is_valid():
+            save_later = action == "save_later"
+            try:
+                participants, turn_player = _posted_record_participants(
+                    request,
+                    game.group,
+                    game.game_type_code,
+                    paused=save_later,
+                )
+                location = resolve_game_location(
+                    group=game.group,
+                    location_name=form.cleaned_data.get("location_name", ""),
+                    geo=location_geo_from_form(form),
+                )
+                game = record_game(
+                    user=request.user,
+                    group=game.group,
+                    game_type_code=game.game_type_code,
+                    played_on=form.cleaned_data["played_on"],
+                    participants=participants,
+                    location=location,
+                    paused=save_later,
+                    turn_player=turn_player,
+                    game=game,
+                    **record_game_kwargs_from_post(
+                        game.game_type_code,
+                        request.POST,
+                    ),
+                )
+            except ValidationError as exc:
+                participant_error = (
+                    exc.messages[0] if getattr(exc, "messages", None) else str(exc)
+                )
+                participant_rows = _participant_rows_from_post(game.group, request.POST)
+            else:
+                if save_later:
+                    messages.success(request, "Saved for later.")
+                    return redirect("games:resume", pk=game.pk)
+                messages.success(request, "Game recorded.")
+                detail_url = reverse("games:detail", kwargs={"pk": game.pk})
+                return redirect(f"{detail_url}?record_again=1")
+        else:
+            participant_rows = _participant_rows_from_post(game.group, request.POST)
+
+    if form is None:
+        initial = {
+            "group": game.group_id,
+            "game_type_code": game.game_type_code,
+            "played_on": game.played_on,
+        }
+        if game.location_id:
+            initial["location_name"] = game.location.name
+        form = GameRecordForm(user=request.user, initial=initial)
+        if game.location_id:
+            set_location_geo_form_initials(form, game.location)
+
+    return _render_record_game(
+        request,
+        form=form,
+        group=game.group,
+        game_type=get_game_type(game.game_type_code),
+        participant_rows=participant_rows,
+        roster=[],
+        smart_suggestions=[],
+        show_roster=True,
+        participant_error=participant_error,
+        seeded_score_type=game.score_type or None,
+        player_picker_start_collapsed=True,
+        preserve_setup_location=True,
+        append_mode=True,
+        paused_game=game,
     )
 
 
@@ -1282,6 +1612,10 @@ def game_matchup(request: HttpRequest) -> HttpResponse:
     )
     if not can_view_group(request.user, game.group, session=request.session):
         raise Http404
+    if game.paused:
+        if can_edit_group(request.user, game.group):
+            return redirect("games:resume", pk=game.pk)
+        raise Http404
 
     matchup = build_matchup_view(game)
     apply_label_overrides([col.player for col in matchup.players])
@@ -1303,6 +1637,13 @@ def game_matchup(request: HttpRequest) -> HttpResponse:
 
 
 def game_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    paused_game = (
+        Game.objects.filter(pk=pk, paused=True).select_related("group").first()
+    )
+    if paused_game is not None:
+        if can_edit_group(request.user, paused_game.group):
+            return redirect("games:resume", pk=pk)
+        raise Http404
     game = get_object_or_404(
         Game.objects.select_related(
             "group", "recorded_by", "location"
@@ -1431,6 +1772,8 @@ def game_edit_game(request: HttpRequest, pk: int) -> HttpResponse:
         request.user, game.group, session=request.session
     ) or not user_can_edit_game(request.user, game):
         raise Http404
+    if game.paused:
+        return redirect("games:resume", pk=game.pk)
 
     game_type = get_game_type(game.game_type_code)
     results = list(

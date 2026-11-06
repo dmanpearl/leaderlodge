@@ -4,10 +4,10 @@
 {% block title %}{{ record_game_heading|default:"Record Game" }} | LeaderLodge{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=15" />
+  <link rel="stylesheet" href="{% static 'css/games.css' %}?v=20" />
   <link rel="stylesheet" href="{% static 'css/location_autocomplete.css' %}?v=3" />
   <link rel="stylesheet" href="{% static 'css/game_setup.css' %}?v=21" />
-  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=43" />
+  <link rel="stylesheet" href="{% static 'css/player_picker.css' %}?v=45" />
   {% if insights_ready %}
     <link rel="stylesheet" href="{% static 'css/insights.css' %}?v=1" />
   {% endif %}
@@ -16,7 +16,7 @@
   {% endif %}
 {% endblock %}
 {% block content %}
-  {% if game_type_locked and record_game_heading_icon_url %}
+  {% if record_game_heading_icon_url %}
     <div class="mb-3">
       {% include "includes/game_type_page_title.html" with title=record_game_heading icon_url=record_game_heading_icon_url h1_class="h3 mb-0" %}
     </div>
@@ -58,6 +58,20 @@
         {% csrf_token %}
         <input type="hidden" name="reuse_game_id" id="reuse-game-id" value="" />
 
+        {% if append_mode %}
+          <input type="hidden" name="group" value="{{ group.pk }}">
+          <input type="hidden" name="game_type_code" value="{{ game_type.code }}">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-4">
+              <div class="form-label">Group</div>
+              <div>{{ group.name }}</div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-label">Game</div>
+              <div>{{ game_type.name }}</div>
+            </div>
+          </div>
+        {% else %}
         <div class="row g-3 mb-3">
           <div class="col-12 col-md-4">
             <label for="{{ form.group.id_for_label }}" class="form-label">Group</label>
@@ -121,6 +135,32 @@
             </div>
           {% endif %}
         </div>
+        {% endif %}
+
+        {% if paused_game_choices %}
+          <div class="card mb-3">
+            <div class="card-header">
+              <button
+                class="btn btn-sm btn-link text-decoration-none text-body p-0 d-flex align-items-center gap-2 paused-games-toggle"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#paused-games-list"
+                aria-expanded="false"
+                aria-controls="paused-games-list"
+              >
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                <span class="fw-semibold">In progress ({{ paused_game_choices|length }})</span>
+              </button>
+            </div>
+            <div id="paused-games-list" class="collapse">
+              <div class="list-group list-group-flush">
+                {% for item in paused_game_choices %}
+                  <a class="list-group-item paused-game-choice" href="{% url 'games:resume' item.game.pk %}">{{ item.summary }}</a>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
 
         {% if is_guest_demo %}
           <div class="game-setup-actions mt-2">
@@ -137,7 +177,7 @@
             <p class="text-muted small mb-3">{{ game_rules_summary }}</p>
           {% endif %}
 
-          {% if insights_ready %}
+          {% if insights_ready and not append_mode %}
             <div
               class="game-record-voice mb-3"
               data-game-record-voice
@@ -278,7 +318,9 @@
                 type="checkbox"
                 class="form-check-input"
                 id="no-score-toggle"
+                name="is_no_score_tie"
                 data-no-score-toggle
+                {% if is_no_score_tie %}checked{% endif %}
               />
               <label class="form-check-label" for="no-score-toggle">
                 {{ game_type.no_score_label }}
@@ -308,13 +350,21 @@
                     data-row-key="{% if row.player_id %}player-{{ row.player_id }}{% else %}guest-{{ row.guest_name|lower }}{% endif %}"
                     data-player-id="{% if row.player_id %}{{ row.player_id }}{% else %}guest:{{ row.guest_name }}{% endif %}"
                     data-primary-label="{% if row.teammate_display_label and row.player %}{{ row.player.display_label }}{% elif row.guest_name %}{{ row.guest_name }}{% else %}{{ row.display_label }}{% endif %}"
+                    data-side-name="{{ row.display_label }}"
+                    {% if row.is_turn %}data-is-turn="1"{% endif %}
                     {% if row.teammate_display_label %}data-teammate-label="{{ row.teammate_display_label }}"{% endif %}
                     {% if row.teammate_player_id or row.teammate_guest_name %}data-has-teammate="1"{% endif %}
                   >
                     <td>
-                      <div class="d-flex align-items-center justify-content-between gap-2 participant-label">
+                      <div class="d-flex align-items-center gap-2 participant-label">
                         <span data-side-label>
+                          {% if append_mode and row.is_turn %}
+                            <span class="game-record-turn-mark" aria-hidden="true">&#9654;</span>
+                          {% endif %}
                           {{ row.display_label }}
+                          {% if append_mode and row.is_turn %}
+                            <span class="visually-hidden"> to play</span>
+                          {% endif %}
                           {% if row.teammate_player_id or row.teammate_guest_name %}
                             <span class="badge text-bg-primary ms-1">Team</span>
                           {% elif row.player and row.player.linked_user %}
@@ -325,7 +375,8 @@
                             <span class="badge text-bg-secondary ms-1">New guest</span>
                           {% endif %}
                         </span>
-                        <span class="d-flex align-items-center gap-1 flex-shrink-0">
+                        {% if not append_mode %}
+                        <span class="d-flex align-items-center gap-1 flex-shrink-0 ms-auto">
                           <div
                             class="combobox-input-wrap{% if row.teammate_player_id or row.teammate_guest_name %} d-none{% endif %}"
                             data-add-teammate-wrap
@@ -390,6 +441,7 @@
                           </button>
                           {% endif %}
                         </span>
+                        {% endif %}
                       </div>
                       <input type="hidden" name="participant_player_id" value="{{ row.player_id }}" />
                       <input type="hidden" name="participant_guest_name" value="{{ row.guest_name }}" />
@@ -426,6 +478,7 @@
             class="game-record-picker-panel{% if player_picker_start_collapsed %} is-player-picker-collapsed{% endif %}"
             data-player-picker-panel
           >
+            {% if not append_mode %}
             <button
               type="button"
               class="btn game-record-add-toggle"
@@ -437,8 +490,10 @@
               <i class="bi bi-plus-lg" aria-hidden="true"></i>
               <span class="visually-hidden">Add player</span>
             </button>
+            {% endif %}
 
             <div class="game-record-footer">
+              {% if not append_mode %}
               <div
                 id="player-picker-expanded"
                 class="game-record-picker-block"
@@ -475,18 +530,42 @@
                   </div>
                 </div>
               </div>
+              {% endif %}
               <div class="game-record-save-col">
                 <div class="game-setup-actions game-record-primary-actions">
-                  <button
-                    type="submit"
-                    name="action"
-                    value="save"
-                    class="btn btn-primary game-record-save"
-                    data-save-button
-                    disabled
-                  >
-                    Save Game
-                  </button>
+                  <div class="game-record-save-stack">
+                    <button
+                      type="submit"
+                      name="action"
+                      value="save"
+                      class="btn btn-primary game-record-save"
+                      data-save-button
+                      disabled
+                    >
+                      Save Game
+                    </button>
+                    <button
+                      type="submit"
+                      name="action"
+                      value="save_later"
+                      class="d-none"
+                      data-save-later-submit
+                      tabindex="-1"
+                      aria-hidden="true"
+                    >
+                      Save for later
+                    </button>
+                    <input type="hidden" name="turn_side" value="" data-turn-side>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary game-record-save"
+                      data-save-later-button
+                      disabled
+                    >
+                      Save for later
+                    </button>
+                  </div>
+                  {% if not append_mode %}
                   <div class="game-record-lineup-actions" role="group" aria-label="Lineup helpers">
                     <div class="btn-group" role="group" aria-label="Reuse or suggest a lineup">
                       <div class="btn-group" role="group">
@@ -527,7 +606,19 @@
                       </div>
                     </div>
                   </div>
+                  {% endif %}
                 </div>
+                {% if append_mode %}
+                  <button
+                    type="submit"
+                    name="action"
+                    value="discard"
+                    class="btn btn-link btn-sm game-record-discard"
+                    onclick="return confirm('Discard this in progress game?');"
+                  >
+                    Discard
+                  </button>
+                {% endif %}
                 <div class="game-record-feedback small" data-score-feedback role="status" aria-live="polite"></div>
               </div>
             </div>
@@ -536,6 +627,35 @@
           <p class="text-muted mb-0">Choose a group and game to start recording.</p>
         {% endif %}
       </form>
+    </div>
+  </div>
+
+  <div
+    class="modal fade"
+    id="whose-turn-modal"
+    tabindex="-1"
+    aria-labelledby="whose-turn-modal-label"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title h5" id="whose-turn-modal-label">Whose turn is it?</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <select
+            id="whose-turn-select"
+            class="form-select"
+            data-whose-turn-select
+            aria-labelledby="whose-turn-modal-label"
+          ></select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" data-whose-turn-save disabled>Save</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -563,12 +683,14 @@
   {% endif %}
   {% if show_roster and game_type and not is_guest_demo %}
     <script src="{% static 'js/score_type_select.js' %}?v=1"></script>
-    <script src="{% static 'js/game_record_form.js' %}?v=18"></script>
-    <script src="{% static 'js/player_picker.js' %}?v=65"></script>
+    <script src="{% static 'js/game_record_form.js' %}?v=21"></script>
+    {% if not append_mode %}
+    <script src="{% static 'js/player_picker.js' %}?v=67"></script>
     <script src="{% static 'js/game_setup_suggest.js' %}?v=2"></script>
     <script src="{% static 'js/game_record_context.js' %}?v=1"></script>
     {% if insights_ready %}
       <script src="{% static 'js/game_record_voice.js' %}?v=23"></script>
+    {% endif %}
     {% endif %}
   {% endif %}
 {% endblock %}

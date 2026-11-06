@@ -82,7 +82,7 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
     from leaderlodge.games.models import Game
 
     return list(
-        Game.objects.filter(group=group)
+        Game.finished.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
@@ -92,7 +92,7 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
 def _period_rows(group: Group, *, granularity: str) -> list[LeaderboardPeriod]:
     from leaderlodge.games.models import Game
 
-    dates = list(Game.objects.filter(group=group).values_list("played_on", flat=True))
+    dates = list(Game.finished.filter(group=group).values_list("played_on", flat=True))
     if not dates:
         return []
 
