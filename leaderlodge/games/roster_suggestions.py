@@ -92,7 +92,7 @@ def _scan_recent_history(group: Group, game_type_code: str) -> _HistoryScan:
 
     scan = _HistoryScan()
     games = (
-        Game.objects.filter(group_id=group.pk, game_type_code=game_type_code)
+        Game.finished.filter(group_id=group.pk, game_type_code=game_type_code)
         .order_by("-played_on", "-created_at", "-pk")
         .prefetch_related(
             "participant_results__player",
@@ -629,7 +629,7 @@ def suggest_lineup_entries(
 
     game_type = GAME_TYPES[game_type_code]
     games = list(
-        Game.objects.filter(group_id=group.pk, game_type_code=game_type_code)
+        Game.finished.filter(group_id=group.pk, game_type_code=game_type_code)
         .order_by("-played_on", "-created_at", "-pk")
         .prefetch_related(
             "participant_results__player__linked_user",

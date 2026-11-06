@@ -325,7 +325,7 @@ def build_game_list_stats(
 
     from leaderlodge.groups.teams import leaderboard_credit_players, matches_player_type
 
-    results_qs = GameParticipantResult.objects.filter(game__in=games_qs)
+    results_qs = GameParticipantResult.finished.filter(game__in=games_qs)
     global_agg = results_qs.aggregate(
         global_max_score=Max("score"),
         global_min_score=Min("score"),

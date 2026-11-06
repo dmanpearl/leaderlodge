@@ -94,9 +94,11 @@ class Command(BaseCommand):
             game = Game.objects.filter(pk=options["game"]).first()
             if game is None:
                 raise CommandError(f"No game with pk={options['game']}.")
+            if game.paused:
+                raise CommandError("Paused games are not recalculated.")
             return [game]
 
-        queryset = Game.objects.order_by("pk")
+        queryset = Game.finished.order_by("pk")
         if options["game_type"]:
             queryset = queryset.filter(game_type_code=options["game_type"])
         if options["group"]:

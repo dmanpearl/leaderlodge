@@ -52,13 +52,20 @@ def result_cell_class(*, result: str, is_double: bool) -> str:
     return ""
 
 
-def build_game_list_table(games: list[Game]) -> tuple[list, list[GameListRow]]:
+def build_game_list_table(
+    games: list[Game], *, include_paused: bool = False
+) -> tuple[list, list[GameListRow]]:
     if not games:
         return [], []
 
     game_ids = [game.pk for game in games]
+    results = (
+        GameParticipantResult.objects
+        if include_paused
+        else GameParticipantResult.finished
+    )
     participant_results = (
-        GameParticipantResult.objects.filter(game_id__in=game_ids)
+        results.filter(game_id__in=game_ids)
         .select_related("player", "player__linked_user")
         .order_by("game_id", "placement", "pk")
     )

@@ -159,7 +159,7 @@ def apply_shutout_filter_to_games_qs(
 
     from leaderlodge.games.models import GameParticipantResult
 
-    results = GameParticipantResult.objects.filter(
+    results = GameParticipantResult.finished.filter(
         game_id__in=games_qs.values("pk")
     ).select_related("game")
     matching_ids = shutout_game_ids(game_type_code, list(results))
@@ -187,7 +187,7 @@ def apply_game_filters_to_results_qs(
     from leaderlodge.games.models import GameParticipantResult
 
     game_ids = filtered.values_list("game_id", flat=True).distinct()
-    all_results = GameParticipantResult.objects.filter(
+    all_results = GameParticipantResult.finished.filter(
         game_id__in=game_ids
     ).select_related("game")
     matching_ids = shutout_game_ids(game_type_code, list(all_results))

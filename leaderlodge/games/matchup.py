@@ -288,7 +288,7 @@ def _place_pct_by_player(
     """Share of weighted games where the player finished in this game's place."""
     from collections import defaultdict
 
-    results_qs = GameParticipantResult.objects.filter(
+    results_qs = GameParticipantResult.finished.filter(
         game__group=game.group,
         game__game_type_code=game.game_type_code,
         player_id__in=player_ids,
@@ -707,7 +707,7 @@ def _filter_games_through_game(games_qs, game: Game, *, include_game: bool):
 
 def _head_to_head_games_qs(game: Game, players, *, include_game: bool):
     player_ids = [player.pk for player in players]
-    qs = Game.objects.filter(
+    qs = Game.finished.filter(
         group=game.group,
         game_type_code=game.game_type_code,
     )
@@ -733,7 +733,7 @@ def _stats_by_player_from_games(games_qs, game_type_code: str):
 
 
 def _career_stats(game: Game, *, include_game: bool):
-    qs = Game.objects.filter(
+    qs = Game.finished.filter(
         group=game.group,
         game_type_code=game.game_type_code,
     )

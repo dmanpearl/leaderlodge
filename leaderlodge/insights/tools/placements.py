@@ -30,7 +30,7 @@ def query_placement_leaders(
 
     game_type = get_game_type(game_type_code)
     weight = standings_weight_expression()
-    results_qs = GameParticipantResult.objects.filter(
+    results_qs = GameParticipantResult.finished.filter(
         game__group=group,
         game__game_type_code=game_type_code,
         placement=placement,

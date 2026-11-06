@@ -40,7 +40,7 @@ def last_recorded_location_name(
     if game_type_code not in GAME_TYPES:
         return ""
 
-    games = Game.objects.filter(
+    games = Game.finished.filter(
         recorded_by=user,
         game_type_code=game_type_code,
         location__isnull=False,
@@ -68,7 +68,7 @@ def last_recorded_score_type(user: AbstractBaseUser | None, game_type_code: str)
         return ""
 
     game = (
-        Game.objects.filter(recorded_by=user, game_type_code=game_type_code)
+        Game.finished.filter(recorded_by=user, game_type_code=game_type_code)
         .order_by("-played_on", "-created_at", "-pk")
         .first()
     )
@@ -109,7 +109,7 @@ def recent_location_names(
     if limit <= 0:
         return []
 
-    base = Game.objects.filter(group=group, location__isnull=False).order_by(
+    base = Game.finished.filter(group=group, location__isnull=False).order_by(
         "-played_on",
         "-created_at",
         "-pk",

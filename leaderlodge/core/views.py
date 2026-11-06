@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from django.contrib.auth.views import redirect_to_login
 from django.db.models import QuerySet
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from leaderlodge.core.decorators import demo_or_login_required, staff_required
@@ -66,7 +66,7 @@ def _dashboard_leaderboard_icons(game_type_code: str) -> tuple[str, str]:
 
 def _game_type_codes_for_groups(groups: QuerySet[Group] | list[Group]) -> list[str]:
     return list(
-        Game.objects.filter(group__in=groups)
+        Game.finished.filter(group__in=groups)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
@@ -220,7 +220,7 @@ def _render_dashboard(
     )
 
     allowed_types = available_game_type_codes(request)
-    recent_games_qs = Game.objects.filter(group__in=group_list).select_related(
+    recent_games_qs = Game.finished.filter(group__in=group_list).select_related(
         "group", "location"
     )
     if len(allowed_types) == 1:
@@ -288,6 +288,17 @@ def dashboard(request):
     if ctx is None:
         return redirect_to_login(request.get_full_path())
     groups, is_demo_landing, can_record_games = ctx
+    if request.user.is_authenticated and not is_demo_landing:
+        latest_paused = (
+            Game.objects.filter(
+                paused=True,
+                group__in=editable_groups(request.user),
+            )
+            .order_by("-updated_at", "-pk")
+            .first()
+        )
+        if latest_paused is not None:
+            return redirect("games:resume", pk=latest_paused.pk)
     return _render_dashboard(
         request,
         groups=groups,

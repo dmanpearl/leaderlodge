@@ -91,6 +91,7 @@ def group_has_teams_for_game_type(
         is_team=True,
         is_active=True,
         game_results__game__game_type_code=game_type_code,
+        game_results__game__paused=False,
     ).exists()
 
 
@@ -291,11 +292,11 @@ def results_queryset_for_player_credit(player: GroupPlayer):
     from leaderlodge.games.models import GameParticipantResult
 
     if player.is_team:
-        return GameParticipantResult.objects.filter(player=player)
+        return GameParticipantResult.finished.filter(player=player)
 
     team_ids = GroupTeamMember.objects.filter(member=player).values_list(
         "team_id", flat=True
     )
-    return GameParticipantResult.objects.filter(player=player) | (
-        GameParticipantResult.objects.filter(player_id__in=team_ids)
+    return GameParticipantResult.finished.filter(player=player) | (
+        GameParticipantResult.finished.filter(player_id__in=team_ids)
     )

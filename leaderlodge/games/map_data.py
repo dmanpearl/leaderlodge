@@ -55,7 +55,7 @@ def group_has_ungeocoded_locations(group: Group) -> bool:
 def map_location_name_choices(group: Group) -> list[str]:
     """Venue names for map Location type-ahead (geocoded locations with games)."""
     location_ids = (
-        Game.objects.filter(
+        Game.finished.filter(
             group=group,
             location__isnull=False,
             location__lat__isnull=False,
@@ -170,7 +170,7 @@ def _filtered_games_for_map(
         filter_results_by_period,
     )
 
-    games_qs = Game.objects.filter(group=group, location__isnull=False)
+    games_qs = Game.finished.filter(group=group, location__isnull=False)
     if game_type_code in GAME_TYPES:
         games_qs = games_qs.filter(game_type_code=game_type_code)
     if player_id.isdigit():

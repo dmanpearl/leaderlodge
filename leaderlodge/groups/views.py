@@ -91,7 +91,7 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
     from leaderlodge.games.models import Game
 
     return list(
-        Game.objects.filter(group=group)
+        Game.finished.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
@@ -878,7 +878,7 @@ def player_combine(request: HttpRequest, pk: int, player_pk: int) -> HttpRespons
 
 @login_required
 def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
-    from django.db.models import Count, Max
+    from django.db.models import Count, Max, Q
 
     from leaderlodge.accounts.ui_settings import get_ui_settings, set_ui_settings
     from leaderlodge.games.models import Game
@@ -927,13 +927,13 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
 
     library = ensure_group_location_library(group)
     locations_qs = library.locations.annotate(
-        game_count=Count("games"),
-        last_played=Max("games__played_on"),
+        game_count=Count("games", filter=Q(games__paused=False)),
+        last_played=Max("games__played_on", filter=Q(games__paused=False)),
     ).order_by(orm_field, "name")
 
     game_type_map: dict[int, list[str]] = {}
     for row in (
-        Game.objects.filter(location__library=library)
+        Game.finished.filter(location__library=library)
         .values("location_id", "game_type_code")
         .distinct()
     ):
@@ -993,7 +993,7 @@ def location_manage(request: HttpRequest, pk: int) -> HttpResponse:
 def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
     from urllib.parse import urlencode
 
-    from django.db.models import Count, Max
+    from django.db.models import Count, Max, Q
 
     from leaderlodge.games.models import Game
     from leaderlodge.games.registry import GAME_TYPES, game_type_abbr
@@ -1010,7 +1010,7 @@ def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
     can_manage = can_manage_group_members(request.user, group)
     is_geocoded = location.lat is not None and location.lon is not None
 
-    games_qs = Game.objects.filter(group=group, location=location).select_related(
+    games_qs = Game.finished.filter(group=group, location=location).select_related(
         "group"
     )
     game_count = games_qs.count()
@@ -1034,7 +1034,7 @@ def location_detail(request: HttpRequest, pk: int, loc_pk: int) -> HttpResponse:
 
     other_locations = list(
         library.locations.exclude(pk=location.pk)
-        .annotate(game_count=Count("games"))
+        .annotate(game_count=Count("games", filter=Q(games__paused=False)))
         .order_by("name")
         .values("pk", "name", "lat", "lon", "game_count")
     )

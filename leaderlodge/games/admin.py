@@ -64,7 +64,7 @@ class GameParticipantResultInlineFormSet(BaseInlineFormSet):
                 form.cleaned_data["result"] = result
             participant_results.append(result)
 
-        if not participant_results:
+        if not participant_results or self.instance.paused:
             return
 
         validate_participant_results(
@@ -163,9 +163,10 @@ class GameAdmin(admin.ModelAdmin):
         "played_on",
         "location_display",
         "player_count",
+        "paused",
         "recorded_by",
     )
-    list_filter = ("game_type_code", "played_on", RecentActiveGroupFilter)
+    list_filter = ("paused", "game_type_code", "played_on", RecentActiveGroupFilter)
     search_fields = (
         "group__name",
         "group__pk",
@@ -174,8 +175,7 @@ class GameAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return (
-            super()
-            .get_queryset(request)
+            Game.objects.all()
             .select_related("location__library__created_by")
             .prefetch_related("location__library__groups")
         )

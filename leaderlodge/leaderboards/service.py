@@ -732,7 +732,7 @@ def get_player_stats(
 
     weight = standings_weight_expression()
     rows = (
-        GameParticipantResult.objects.filter(game__group=group, player=player)
+        GameParticipantResult.finished.filter(game__group=group, player=player)
         .values("game__game_type_code")
         .annotate(
             games_played=Sum(weight),
@@ -768,7 +768,7 @@ def _game_type_codes_for_group(group: Group) -> list[str]:
     from leaderlodge.games.models import Game
 
     codes = (
-        Game.objects.filter(group=group)
+        Game.finished.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
         .order_by("game_type_code")
@@ -878,7 +878,7 @@ def get_standings_at_game(
     from leaderlodge.games.models import GameParticipantResult
 
     period = LeaderboardPeriod.all_time()
-    results_qs = GameParticipantResult.objects.filter(
+    results_qs = GameParticipantResult.finished.filter(
         game__group=group,
         game__game_type_code=game_type_code,
     )
@@ -938,7 +938,7 @@ def _standings_for_game_type(
         period = LeaderboardPeriod.all_time()
 
     if results_qs is None:
-        results_qs = GameParticipantResult.objects.filter(
+        results_qs = GameParticipantResult.finished.filter(
             game__group=group,
             game__game_type_code=game_type_code,
         )

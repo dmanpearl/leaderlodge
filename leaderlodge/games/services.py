@@ -34,11 +34,20 @@ def record_game(
     import_row_key: str = "",
     half_weight: int = 1,
     score_type: str = "",
+    paused: bool = False,
+    turn_player: GroupPlayer | None = None,
+    game: Game | None = None,
 ) -> Game:
     game_type = get_game_type(game_type_code)
 
     if not can_edit_group(user, group):
         raise ValidationError("You cannot record games in this group.")
+
+    if game is not None:
+        if game.group_id != group.pk or game.game_type_code != game_type_code:
+            raise ValidationError("This game's group and type are fixed.")
+        if not game.paused:
+            raise ValidationError("This game is already finished.")
 
     if not participants:
         raise ValidationError("Select at least one player.")
@@ -59,22 +68,26 @@ def record_game(
         sides.append(credit_players_for_result(item.player))
     validate_sides_no_shared_players(sides)
 
-    winner_count = sum(
-        1 for p in participants if p.result == GameParticipantResult.Result.WIN
-    )
-    tie_count = sum(
-        1 for p in participants if p.result == GameParticipantResult.Result.TIE
-    )
-    loser_count = sum(
-        1 for p in participants if p.result == GameParticipantResult.Result.LOSS
-    )
-    validate_game_for_type(
-        game_type=game_type,
-        player_count=len(participants),
-        winner_count=winner_count,
-        tie_count=tie_count,
-        loser_count=loser_count,
-    )
+    if turn_player is not None and turn_player.pk not in player_ids:
+        turn_player = None
+
+    if not paused:
+        winner_count = sum(
+            1 for p in participants if p.result == GameParticipantResult.Result.WIN
+        )
+        tie_count = sum(
+            1 for p in participants if p.result == GameParticipantResult.Result.TIE
+        )
+        loser_count = sum(
+            1 for p in participants if p.result == GameParticipantResult.Result.LOSS
+        )
+        validate_game_for_type(
+            game_type=game_type,
+            player_count=len(participants),
+            winner_count=winner_count,
+            tie_count=tie_count,
+            loser_count=loser_count,
+        )
 
     if half_weight not in (1, 2):
         raise ValidationError("Half weight must be 1 or 2.")
@@ -97,29 +110,49 @@ def record_game(
         if location.library_id != group.location_library_id:
             raise ValidationError("Location must belong to this group's place list.")
 
-    game = Game.objects.create(
-        group=group,
-        game_type_code=game_type_code,
-        played_on=played_on,
-        recorded_by=user,
-        player_count=len(participants),
-        double_weight=double_weight,
-        half_weight=half_weight,
-        score_type=stored_score_type,
-        location=location,
-        import_source=import_source,
-        import_row_key=import_row_key,
-    )
+    if game is None:
+        game = Game.objects.create(
+            group=group,
+            game_type_code=game_type_code,
+            played_on=played_on,
+            recorded_by=user,
+            player_count=len(participants),
+            double_weight=double_weight,
+            half_weight=half_weight,
+            score_type=stored_score_type,
+            location=location,
+            import_source=import_source,
+            import_row_key=import_row_key,
+            paused=paused,
+            turn_player=turn_player if paused else None,
+        )
+    else:
+        game.played_on = played_on
+        game.player_count = len(participants)
+        game.double_weight = double_weight
+        game.half_weight = half_weight
+        game.score_type = stored_score_type
+        game.location = location
+        game.paused = paused
+        game.turn_player = turn_player if paused else None
+        game.save()
+        game.participant_results.all().delete()
 
     for item in participants:
+        result = item.result
+        placement = item.placement
+        if paused:
+            result = GameParticipantResult.Result.PLAYED
+            placement = None
         GameParticipantResult.objects.create(
             game=game,
             player=item.player,
             score=item.score,
-            result=item.result,
-            placement=item.placement,
+            result=result,
+            placement=placement,
         )
 
     game.full_clean()
-    game.validate_participant_results()
+    if not paused:
+        game.validate_participant_results()
     return game

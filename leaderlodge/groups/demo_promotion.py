@@ -172,7 +172,7 @@ def promote_games(
     )
 
     source_games = (
-        Game.objects.filter(group=source_group)
+        Game.finished.filter(group=source_group)
         .select_related("location")
         .prefetch_related("participant_results__player__team_members__member")
         .order_by("pk")

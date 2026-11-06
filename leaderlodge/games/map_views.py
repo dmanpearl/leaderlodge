@@ -93,7 +93,7 @@ def _map_period_context(group, game_type_code: str, params: dict[str, str]):
     code = game_type_code if game_type_code in GAME_TYPES else ""
     if not code:
         code = (
-            Game.objects.filter(group=group)
+            Game.finished.filter(group=group)
             .order_by("game_type_code")
             .values_list("game_type_code", flat=True)
             .first()
@@ -123,11 +123,11 @@ def _map_period_context(group, game_type_code: str, params: dict[str, str]):
 
 
 def _player_choices_for_map(group, game_type_code: str):
-    games_qs = Game.objects.filter(group=group)
+    games_qs = Game.finished.filter(group=group)
     if game_type_code in GAME_TYPES:
         games_qs = games_qs.filter(game_type_code=game_type_code)
     player_ids = (
-        GameParticipantResult.objects.filter(game__in=games_qs)
+        GameParticipantResult.finished.filter(game__in=games_qs)
         .values_list("player_id", flat=True)
         .distinct()
     )
@@ -140,7 +140,7 @@ def _player_choices_for_map(group, game_type_code: str):
 
 def _game_type_options_for_map(request: HttpRequest, group) -> list[tuple[str, str]]:
     codes = set(
-        Game.objects.filter(group=group)
+        Game.finished.filter(group=group)
         .values_list("game_type_code", flat=True)
         .distinct()
     )

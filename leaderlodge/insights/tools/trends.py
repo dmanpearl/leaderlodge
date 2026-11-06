@@ -32,7 +32,7 @@ def query_rank_trends(
     recent_start = today - timedelta(days=days)
     prior_start = today - timedelta(days=days * 2)
 
-    base_qs = GameParticipantResult.objects.filter(
+    base_qs = GameParticipantResult.finished.filter(
         game__group=group,
         game__game_type_code=game_type_code,
     )
@@ -138,7 +138,7 @@ def query_month_leaders(
             "leaders": leaders,
         }
 
-    results_qs = GameParticipantResult.objects.filter(
+    results_qs = GameParticipantResult.finished.filter(
         game__group=group,
         game__game_type_code=game_type_code,
         game__played_on__month=month,

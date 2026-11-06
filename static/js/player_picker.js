@@ -998,6 +998,7 @@
           ? ` <span class="text-muted small ms-1">${row.dataset.primaryDetail}</span>`
           : ""
     }`;
+    row.dataset.sideName = sideLabel(primaryLabel, teammateLabel);
     const addWrap = row.querySelector("[data-add-teammate-wrap]");
     if (addWrap) {
       addWrap.classList.toggle("d-none", hasTeammate);
@@ -1042,7 +1043,7 @@
 
     row.innerHTML = `
         <td>
-          <div class="d-flex align-items-center justify-content-between gap-2 participant-label">
+          <div class="d-flex align-items-center gap-2 participant-label">
             <span data-side-label>
               ${rowEntry.label}
               ${
@@ -1051,7 +1052,7 @@
                   : ""
               }
             </span>
-            <span class="d-flex align-items-center gap-1 flex-shrink-0">
+            <span class="d-flex align-items-center gap-1 flex-shrink-0 ms-auto">
               <div class="combobox-input-wrap" data-add-teammate-wrap>
                 <input
                   type="text"
